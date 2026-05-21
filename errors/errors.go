@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	contractserrors "github.com/dracory/eloquent/contracts/errors"
+	contractserrors "github.com/dracory/neat/contracts/errors"
 )
 
 type errorString struct {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/dracory/eloquent/support/env"
+	"github.com/dracory/neat/support/env"
 )
 
 type StringTestSuite struct {

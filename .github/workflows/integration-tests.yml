@@ -30,6 +30,10 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Configure git for private modules
+      run: |
+        git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
+
     - name: Wait for MySQL service
       run: |
         echo "Waiting for MySQL to be ready..."

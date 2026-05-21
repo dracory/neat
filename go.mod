@@ -3,7 +3,6 @@ module github.com/dracory/neat
 go 1.26.1
 
 require (
-	github.com/dracory/eloquent v0.11.0
 	github.com/dromara/carbon/v2 v2.6.16
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/uuid v1.6.0
