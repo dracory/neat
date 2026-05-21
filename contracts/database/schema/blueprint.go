@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/dracory/eloquent/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 type Blueprint interface {

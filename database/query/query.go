@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dracory/neat/contracts/config"
 	"github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
+	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 )
 
@@ -18,20 +18,20 @@ type Query struct {
 	db         *sql.DB
 	driver     driver.Driver
 	connection string
-	config     config.Config
+	dbConfig   *db.DBConfig
 	log        log.Log
 	queryLog   []contractsorm.QueryLog
 	enableLog  bool
 }
 
 // NewQuery creates a new Query instance.
-func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection string, config config.Config, log log.Log) *Query {
+func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection string, dbConfig *db.DBConfig, log log.Log) *Query {
 	return &Query{
 		ctx:        ctx,
 		db:         db,
 		driver:     drv,
 		connection: connection,
-		config:     config,
+		dbConfig:   dbConfig,
 		log:        log,
 		enableLog:  false,
 		queryLog:   make([]contractsorm.QueryLog, 0),
@@ -145,13 +145,14 @@ func (q *Query) CrossJoin(query string, args ...any) contractsorm.Query        {
 func (q *Query) Group(name string) contractsorm.Query                          { return q }
 func (q *Query) Having(query any, args ...any) contractsorm.Query              { return q }
 
-func (q *Query) Find(dest any, conds ...any) error { return fmt.Errorf("not implemented") }
-func (q *Query) First(dest any) error              { return fmt.Errorf("not implemented") }
-func (q *Query) FirstOrFail(dest any) error        { return fmt.Errorf("not implemented") }
-func (q *Query) Get(dest any) error                { return fmt.Errorf("not implemented") }
-func (q *Query) Create(value any) error            { return fmt.Errorf("not implemented") }
-func (q *Query) Save(value any) error              { return fmt.Errorf("not implemented") }
-func (q *Query) SaveQuietly(value any) error       { return fmt.Errorf("not implemented") }
+func (q *Query) Find(dest any, conds ...any) error       { return fmt.Errorf("not implemented") }
+func (q *Query) FindOrFail(dest any, conds ...any) error { return fmt.Errorf("not implemented") }
+func (q *Query) First(dest any) error                    { return fmt.Errorf("not implemented") }
+func (q *Query) FirstOrFail(dest any) error              { return fmt.Errorf("not implemented") }
+func (q *Query) Get(dest any) error                      { return fmt.Errorf("not implemented") }
+func (q *Query) Create(value any) error                  { return fmt.Errorf("not implemented") }
+func (q *Query) Save(value any) error                    { return fmt.Errorf("not implemented") }
+func (q *Query) SaveQuietly(value any) error             { return fmt.Errorf("not implemented") }
 func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	return nil, fmt.Errorf("not implemented")
 }
@@ -234,9 +235,10 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (q *Query) WithTrashed() contractsorm.Query    { return q }
-func (q *Query) OnlyTrashed() contractsorm.Query    { return q }
-func (q *Query) WithoutTrashed() contractsorm.Query { return q }
+func (q *Query) WithTrashed() contractsorm.Query           { return q }
+func (q *Query) OnlyTrashed() contractsorm.Query           { return q }
+func (q *Query) WithoutTrashed() contractsorm.Query        { return q }
+func (q *Query) Omit(columns ...string) contractsorm.Query { return q }
 func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	return nil, fmt.Errorf("not implemented")
 }
@@ -261,8 +263,13 @@ func (q *Query) WithoutEvents() contractsorm.Query { return q }
 func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (q *Query) Commit() error   { return fmt.Errorf("not implemented") }
-func (q *Query) Rollback() error { return fmt.Errorf("not implemented") }
+func (q *Query) Commit() error                 { return fmt.Errorf("not implemented") }
+func (q *Query) Rollback() error               { return fmt.Errorf("not implemented") }
+func (q *Query) RollbackTo(level string) error { return fmt.Errorf("not implemented") }
+func (q *Query) SavePoint(name string) error   { return fmt.Errorf("not implemented") }
+func (q *Query) Scopes(scopes ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
+	return q
+}
 
 func (q *Query) Cursor() (chan contractsorm.Cursor, error) { return nil, fmt.Errorf("not implemented") }
 

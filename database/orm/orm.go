@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dracory/neat/contracts/config"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
@@ -17,7 +16,7 @@ import (
 
 type Orm struct {
 	ctx             context.Context
-	config          config.Config
+	dbConfig        *db.DBConfig
 	connection      string
 	log             log.Log
 	modelToObserver []contractsorm.ModelToObserver
@@ -31,7 +30,7 @@ type Orm struct {
 
 func NewOrm(
 	ctx context.Context,
-	config config.Config,
+	dbConfig *db.DBConfig,
 	connection string,
 	query contractsorm.Query,
 	queries map[string]contractsorm.Query,
@@ -43,7 +42,7 @@ func NewOrm(
 ) *Orm {
 	return &Orm{
 		ctx:             ctx,
-		config:          config,
+		dbConfig:        dbConfig,
 		connection:      connection,
 		log:             log,
 		modelToObserver: modelToObserver,
@@ -55,31 +54,36 @@ func NewOrm(
 	}
 }
 
-func BuildOrm(ctx context.Context, config config.Config, connection string, log log.Log, refresh func()) (*Orm, error) {
+func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, refresh func()) (*Orm, error) {
 	// Initialize drivers and connections
 	drivers := make(map[string]driver.Driver)
 	dbConnections := make(map[string]*sql.DB)
 
 	// Get default connection if not specified
 	if connection == "" {
-		connection = config.GetString("database.default")
+		connection = dbConfig.Default
 	}
 
 	// Build query for the connection
-	query, err := buildQuery(ctx, config, connection, log, drivers, dbConnections)
+	query, err := buildQuery(ctx, dbConfig, connection, log, drivers, dbConnections)
 	if err != nil {
-		return NewOrm(ctx, config, connection, nil, nil, log, nil, refresh, drivers, dbConnections), err
+		return NewOrm(ctx, dbConfig, connection, nil, nil, log, nil, refresh, drivers, dbConnections), err
 	}
 
 	queries := map[string]contractsorm.Query{
 		connection: query,
 	}
 
-	return NewOrm(ctx, config, connection, query, queries, log, nil, refresh, drivers, dbConnections), nil
+	return NewOrm(ctx, dbConfig, connection, query, queries, log, nil, refresh, drivers, dbConnections), nil
 }
 
-func buildQuery(ctx context.Context, config config.Config, connection string, log log.Log, drivers map[string]driver.Driver, dbConnections map[string]*sql.DB) (contractsorm.Query, error) {
-	driverName := config.GetString(fmt.Sprintf("database.connections.%s.driver", connection))
+func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, drivers map[string]driver.Driver, dbConnections map[string]*sql.DB) (contractsorm.Query, error) {
+	connConfig, ok := dbConfig.Connections[connection]
+	if !ok {
+		return nil, fmt.Errorf("connection %s not found in configuration", connection)
+	}
+
+	driverName := connConfig.Driver
 	if driverName == "" {
 		return nil, fmt.Errorf("driver not specified for connection: %s", connection)
 	}
@@ -93,41 +97,11 @@ func buildQuery(ctx context.Context, config config.Config, connection string, lo
 		drivers[connection] = dbDriver
 	}
 
-	// Build DSN
-	var err error
-	dsn := config.GetString(fmt.Sprintf("database.connections.%s.dsn", connection))
-	if dsn == "" {
-		// Build DSN from config
-		host := config.GetString(fmt.Sprintf("database.connections.%s.host", connection))
-		port := config.GetInt(fmt.Sprintf("database.connections.%s.port", connection))
-		database := config.GetString(fmt.Sprintf("database.connections.%s.database", connection))
-		username := config.GetString(fmt.Sprintf("database.connections.%s.username", connection))
-		password := config.GetString(fmt.Sprintf("database.connections.%s.password", connection))
-		charset := config.GetString(fmt.Sprintf("database.connections.%s.charset", connection))
-		schema := config.GetString(fmt.Sprintf("database.connections.%s.schema", connection))
-		sslmode := config.GetString(fmt.Sprintf("database.connections.%s.sslmode", connection))
-		loc := config.GetString(fmt.Sprintf("database.connections.%s.loc", connection))
-		timezone := config.GetString(fmt.Sprintf("database.connections.%s.timezone", connection))
-
-		connConfig := db.ConnectionConfig{
-			Driver:   driverName,
-			Host:     host,
-			Port:     port,
-			Database: database,
-			Username: username,
-			Password: password,
-			Charset:  charset,
-			Schema:   schema,
-			SSLMode:  sslmode,
-			Loc:      loc,
-			Timezone: timezone,
-		}
-
-		builder := db.NewConfigBuilder(connConfig)
-		dsn, err = builder.BuildDSN()
-		if err != nil {
-			return nil, err
-		}
+	// Build DSN using the config builder
+	builder := db.NewConfigBuilder(connConfig)
+	dsn, err := builder.BuildDSN()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build DSN: %w", err)
 	}
 
 	// Open database connection
@@ -140,22 +114,17 @@ func buildQuery(ctx context.Context, config config.Config, connection string, lo
 			return nil, fmt.Errorf("failed to open database connection: %w", err)
 		}
 
-		// Configure connection pool
-		maxIdleConns := config.GetInt("database.pool.max_idle_conns", 10)
-		maxOpenConns := config.GetInt("database.pool.max_open_conns", 100)
-		connMaxLifetime := config.GetInt("database.pool.conn_max_lifetime", 3600)
-		connMaxIdleTime := config.GetInt("database.pool.conn_max_idletime", 3600)
-
-		sqlDB.SetMaxIdleConns(maxIdleConns)
-		sqlDB.SetMaxOpenConns(maxOpenConns)
-		sqlDB.SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Second)
-		sqlDB.SetConnMaxIdleTime(time.Duration(connMaxIdleTime) * time.Second)
+		// Configure connection pool from DBConfig
+		sqlDB.SetMaxIdleConns(dbConfig.Pool.MaxIdleConns)
+		sqlDB.SetMaxOpenConns(dbConfig.Pool.MaxOpenConns)
+		sqlDB.SetConnMaxLifetime(time.Duration(dbConfig.Pool.ConnMaxLifetime) * time.Second)
+		sqlDB.SetConnMaxIdleTime(time.Duration(dbConfig.Pool.ConnMaxIdleTime) * time.Second)
 
 		dbConnections[connection] = sqlDB
 	}
 
 	// Create query instance
-	return query.NewQuery(ctx, sqlDB, dbDriver, connection, config, log), nil
+	return query.NewQuery(ctx, sqlDB, dbDriver, connection, dbConfig, log), nil
 }
 
 func createDriver(driverName string) driver.Driver {
@@ -177,25 +146,25 @@ func createDriver(driverName string) driver.Driver {
 
 func (r *Orm) Connection(name string) contractsorm.Orm {
 	if name == "" {
-		name = r.config.GetString("database.default")
+		name = r.dbConfig.Default
 	}
 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if instance, exist := r.queries[name]; exist {
-		return NewOrm(r.ctx, r.config, name, instance, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
+		return NewOrm(r.ctx, r.dbConfig, name, instance, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
 	}
 
-	query, err := buildQuery(r.ctx, r.config, name, r.log, r.drivers, r.dbConnections)
+	query, err := buildQuery(r.ctx, r.dbConfig, name, r.log, r.drivers, r.dbConnections)
 	if err != nil || query == nil {
 		r.log.Errorf("[Orm] Init %s connection error: %v", name, err)
-		return NewOrm(r.ctx, r.config, name, nil, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
+		return NewOrm(r.ctx, r.dbConfig, name, nil, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
 	}
 
 	r.queries[name] = query
 
-	return NewOrm(r.ctx, r.config, name, query, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
+	return NewOrm(r.ctx, r.dbConfig, name, query, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
 }
 
 func (r *Orm) DB() (*sql.DB, error) {
@@ -236,7 +205,10 @@ func (r *Orm) Factory() contractsorm.Factory {
 }
 
 func (r *Orm) DatabaseName() string {
-	return r.config.GetString(fmt.Sprintf("database.connections.%s.database", r.connection))
+	if conn, ok := r.dbConfig.Connections[r.connection]; ok {
+		return conn.Database
+	}
+	return ""
 }
 
 func (r *Orm) Name() string {
@@ -296,7 +268,7 @@ func (r *Orm) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*sql
 }
 
 func (r *Orm) WithContext(ctx context.Context) contractsorm.Orm {
-	return NewOrm(ctx, r.config, r.connection, r.query, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
+	return NewOrm(ctx, r.dbConfig, r.connection, r.query, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
 }
 
 // Close closes all database connections.

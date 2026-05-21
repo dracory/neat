@@ -3,8 +3,8 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	"github.com/tursodatabase/libsql-client-go/libsql"
+	"fmt"
+	// "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 // Turso implements the Driver interface for Turso databases.
@@ -17,7 +17,8 @@ func NewTurso() *Turso {
 
 // Open opens a connection to the Turso database.
 func (t *Turso) Open(dsn string) (*sql.DB, error) {
-	return libsql.Open(dsn)
+	// TODO: Implement Turso driver with libsql
+	return nil, fmt.Errorf("Turso driver not yet implemented")
 }
 
 // Close closes the Turso database connection.

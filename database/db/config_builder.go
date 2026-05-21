@@ -114,31 +114,47 @@ func (b *ConfigBuilder) buildTursoDSN() (string, error) {
 	if strings.HasPrefix(b.config.Database, "libsql://") || strings.HasPrefix(b.config.Database, "file://") {
 		return b.config.Database, nil
 	}
-	
+
 	// If auth token is provided, add it
 	if b.config.Password != "" {
 		return fmt.Sprintf("libsql://%s?authToken=%s", b.config.Database, b.config.Password), nil
 	}
-	
+
 	return fmt.Sprintf("libsql://%s", b.config.Database), nil
 }
 
 // ConnectionConfig represents a database connection configuration.
 type ConnectionConfig struct {
-	Driver   string
-	Dsn      string
-	Host     string
-	Port     int
-	Database string
-	Username string
-	Password string
-	Charset  string
-	Schema   string
-	SSLMode  string
-	Loc      string
-	Timezone string
-	Prefix   string
-	Singular bool
-	NoLowerCase bool
+	Driver       string
+	Dsn          string
+	Host         string
+	Port         int
+	Database     string
+	Username     string
+	Password     string
+	Charset      string
+	Schema       string
+	SSLMode      string
+	Loc          string
+	Timezone     string
+	Prefix       string
+	Singular     bool
+	NoLowerCase  bool
 	NameReplacer any
+}
+
+// PoolConfig represents connection pool configuration.
+type PoolConfig struct {
+	MaxIdleConns    int
+	MaxOpenConns    int
+	ConnMaxLifetime int // seconds
+	ConnMaxIdleTime int // seconds
+}
+
+// DBConfig represents the database configuration.
+type DBConfig struct {
+	Default     string
+	Connections map[string]ConnectionConfig
+	Pool        PoolConfig
+	Debug       bool
 }
