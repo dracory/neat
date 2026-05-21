@@ -8,12 +8,12 @@ import (
 
 // MockDriver is a mock implementation of the Driver interface for testing.
 type MockDriver struct {
-	OpenFunc       func(dsn string) (*sql.DB, error)
-	CloseFunc      func(db *sql.DB) error
-	PingFunc       func(ctx context.Context, db *sql.DB) error
-	BeginTxFunc    func(ctx context.Context, db *sql.DB, opts *sql.TxOptions) (*sql.Tx, error)
+	OpenFunc        func(dsn string) (*sql.DB, error)
+	CloseFunc       func(db *sql.DB) error
+	PingFunc        func(ctx context.Context, db *sql.DB) error
+	BeginTxFunc     func(ctx context.Context, db *sql.DB, opts *sql.TxOptions) (*sql.Tx, error)
 	PlaceholderFunc func(n int) string
-	DialectFunc    func() string
+	DialectFunc     func() string
 }
 
 func (m *MockDriver) Open(dsn string) (*sql.DB, error) {

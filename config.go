@@ -24,21 +24,21 @@ type DBConfig struct {
 
 // ConnectionConfig holds configuration for a single database connection.
 type ConnectionConfig struct {
-	Driver    string // "postgres", "mysql", "sqlite", "sqlserver", "turso"
-	Dsn       string
-	Host      string
-	Port      int
-	Database  string
-	Username  string
-	Password  string
-	Charset   string
-	Schema    string // postgres only
-	SSLMode   string // postgres only
-	Loc       string // mysql only
-	Timezone  string // postgres only
-	Prefix    string
-	Singular  bool
-	NoLowerCase bool
+	Driver       string // "postgres", "mysql", "sqlite", "sqlserver", "turso"
+	Dsn          string
+	Host         string
+	Port         int
+	Database     string
+	Username     string
+	Password     string
+	Charset      string
+	Schema       string // postgres only
+	SSLMode      string // postgres only
+	Loc          string // mysql only
+	Timezone     string // postgres only
+	Prefix       string
+	Singular     bool
+	NoLowerCase  bool
 	NameReplacer any
 }
 

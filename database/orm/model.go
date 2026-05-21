@@ -7,7 +7,7 @@ import (
 
 // Model represents a base model with ID and timestamps.
 type Model struct {
-	ID        uint       `json:"id"`
+	ID uint `json:"id"`
 	Timestamps
 }
 

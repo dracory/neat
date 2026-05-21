@@ -8,16 +8,16 @@ import (
 
 // Association represents a model association.
 type Association struct {
-	query      contractsorm.Query
-	model      any
+	query       contractsorm.Query
+	model       any
 	association string
 }
 
 // NewAssociation creates a new Association instance.
 func NewAssociation(query contractsorm.Query, model any, association string) *Association {
 	return &Association{
-		query:      query,
-		model:      model,
+		query:       query,
+		model:       model,
 		association: association,
 	}
 }

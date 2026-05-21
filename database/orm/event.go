@@ -6,7 +6,7 @@ import (
 
 // EventBus is a lightweight internal event bus for model lifecycle events.
 type EventBus struct {
-	mu       sync.RWMutex
+	mu        sync.RWMutex
 	listeners map[string][]EventHandler
 }
 
@@ -47,14 +47,14 @@ func (e *EventBus) Forget(eventName string) {
 
 // Event names for model lifecycle events
 const (
-	EventCreating = "model.creating"
-	EventCreated  = "model.created"
-	EventUpdating = "model.updating"
-	EventUpdated  = "model.updated"
-	EventSaving   = "model.saving"
-	EventSaved    = "model.saved"
-	EventDeleting = "model.deleting"
-	EventDeleted  = "model.deleted"
+	EventCreating  = "model.creating"
+	EventCreated   = "model.created"
+	EventUpdating  = "model.updating"
+	EventUpdated   = "model.updated"
+	EventSaving    = "model.saving"
+	EventSaved     = "model.saved"
+	EventDeleting  = "model.deleting"
+	EventDeleted   = "model.deleted"
 	EventRestoring = "model.restoring"
 	EventRestored  = "model.restored"
 )

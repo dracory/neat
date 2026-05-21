@@ -8,14 +8,14 @@ import (
 
 // Factory implements the Factory interface for creating test data.
 type Factory struct {
-	orm  *Orm
+	orm   *Orm
 	count int
 }
 
 // NewFactory creates a new Factory instance.
 func NewFactory(orm *Orm) *Factory {
 	return &Factory{
-		orm:  orm,
+		orm:   orm,
 		count: 1,
 	}
 }
