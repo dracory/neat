@@ -1,0 +1,55 @@
+//go:build integration
+
+package models
+
+import (
+	"time"
+)
+
+// User represents a user model with associations
+type User struct {
+	ID        uint      `db:"id"`
+	Name      string    `db:"name"`
+	Avatar    string    `db:"avatar"`
+	Bio       *string   `db:"bio"`
+	Address   *Address  `db:"-"`
+	Books     []*Book   `db:"-"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+// Address represents an address model
+type Address struct {
+	ID        uint      `db:"id"`
+	Name      string    `db:"name"`
+	UserID    uint      `db:"user_id"`
+	User      *User     `db:"-"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+// Book represents a book model
+type Book struct {
+	ID        uint      `db:"id"`
+	Name      string    `db:"name"`
+	UserID    uint      `db:"user_id"`
+	User      *User     `db:"-"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+// People represents a people model
+type People struct {
+	ID        uint      `db:"id"`
+	Body      string    `db:"body"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+// JsonData represents a JSON data model
+type JsonData struct {
+	ID        uint      `db:"id"`
+	Data      string    `db:"data"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
