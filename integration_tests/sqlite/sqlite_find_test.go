@@ -133,7 +133,7 @@ func TestSQLiteIntegrationUpdate(t *testing.T) {
 	}
 
 	// Test Update
-	err = query.Model(&models.User{}).Where("id = ?", user.ID).Update("avatar", "new_avatar")
+	_, err = query.Model(&models.User{}).Where("id = ?", user.ID).Update("avatar", "new_avatar")
 	if err != nil {
 		t.Fatalf("Failed to update user: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestSQLiteIntegrationDelete(t *testing.T) {
 	}
 
 	// Test Delete
-	err = query.Model(&models.User{}).Where("id = ?", user.ID).Delete(&models.User{})
+	_, err = query.Model(&models.User{}).Where("id = ?", user.ID).Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to delete user: %v", err)
 	}
