@@ -653,7 +653,7 @@ Implement observer pattern for model lifecycle events.
 
 ---
 
-### Phase 7: Soft Deletes (Week 14)
+### Phase 7: Soft Deletes (Week 14) ✅ COMPLETED
 
 #### Objective
 Implement soft delete functionality.
@@ -691,7 +691,7 @@ Implement soft delete functionality.
 
 ---
 
-### Phase 8: Associations (Week 15-17)
+### Phase 8: Associations (Week 15-17) ✅ COMPLETED
 
 #### Objective
 Implement association handling for belongs-to, has-many, and has-one relationships.

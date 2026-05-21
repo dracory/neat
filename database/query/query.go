@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
+	"github.com/dracory/neat/database/association"
 	"github.com/dracory/neat/database/cursor"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
@@ -54,6 +56,9 @@ type Query struct {
 	withTrashed    bool
 	onlyTrashed    bool
 	withoutTrashed bool
+
+	// Eager loading state
+	withRelations []string
 }
 
 type whereClause struct {
@@ -486,6 +491,25 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	}, nil
 }
 
+// hasSoftDeleteCapability checks if the model has soft delete capability.
+func hasSoftDeleteCapability(model any) bool {
+	if model == nil {
+		return false
+	}
+
+	val := reflect.ValueOf(model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return false
+	}
+
+	// Check for DeletedAt field
+	deletedAtField := val.FieldByName("DeletedAt")
+	return deletedAtField.IsValid() && deletedAtField.Type() == reflect.TypeOf(&time.Time{})
+}
+
 // Delete deletes records from the database.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	// Fire Deleting event if not disabled
@@ -496,15 +520,31 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 		}
 	}
 
-	// Build DELETE query
-	builder := NewBuilder(q)
-	sql, args := builder.BuildDelete()
-	if sql == "" {
-		return nil, fmt.Errorf("failed to build DELETE query")
+	// Check if model has soft delete capability
+	useSoftDelete := hasSoftDeleteCapability(q.model)
+
+	var sql string
+	var args []any
+	var err error
+
+	if useSoftDelete {
+		// Use UPDATE to set deleted_at instead of DELETE
+		builder := NewBuilder(q)
+		now := time.Now()
+		sql, args = builder.BuildUpdate("deleted_at", now)
+		if sql == "" {
+			return nil, fmt.Errorf("failed to build SOFT DELETE query")
+		}
+	} else {
+		// Build DELETE query
+		builder := NewBuilder(q)
+		sql, args = builder.BuildDelete()
+		if sql == "" {
+			return nil, fmt.Errorf("failed to build DELETE query")
+		}
 	}
 
 	// Execute query
-	var err error
 	var result interface{ RowsAffected() (int64, error) }
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sql, args...)
@@ -1329,23 +1369,146 @@ func (q *Query) WithoutTrashed() contractsorm.Query {
 func (q *Query) Omit(columns ...string) contractsorm.Query { return q }
 
 func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Fire Restoring event if not disabled
+	if !q.withoutEvents && len(model) > 0 {
+		attributes := observer.ExtractModelAttributes(model[0])
+		if err := q.dispatcher.DispatchRestoring(q.ctx, model[0], q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("restoring event error: %w", err)
+		}
+	}
+
+	// Build UPDATE query to set deleted_at to NULL
+	builder := NewBuilder(q)
+	// This is a simplified implementation - in a real implementation, we'd need to
+	// properly handle the update to set deleted_at = NULL
+	sql, args := builder.BuildUpdate("deleted_at", nil)
+	if sql == "" {
+		return nil, fmt.Errorf("failed to build RESTORE query")
+	}
+
+	// Execute query
+	var err error
+	var result interface{ RowsAffected() (int64, error) }
+	if q.tx != nil {
+		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+	} else {
+		dbConn, err := q.DB()
+		if err != nil {
+			return nil, err
+		}
+		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute RESTORE query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	// Fire Restored event if not disabled
+	if !q.withoutEvents && len(model) > 0 {
+		attributes := observer.ExtractModelAttributes(model[0])
+		if err := q.dispatcher.DispatchRestored(q.ctx, model[0], q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("restored event error: %w", err)
+		}
+	}
+
+	// Get affected rows
+	rowsAffected, _ := result.RowsAffected()
+	return &contractsorm.Result{
+		RowsAffected: rowsAffected,
+	}, nil
 }
 
-func (q *Query) With(query string, args ...any) contractsorm.Query { return q }
-func (q *Query) Load(dest any, relation string, args ...any) error {
-	return fmt.Errorf("not implemented")
+func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
+	// Fire ForceDeleting event if not disabled
+	if !q.withoutEvents && q.model != nil {
+		attributes := observer.ExtractModelAttributes(q.model)
+		if err := q.dispatcher.DispatchForceDeleting(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("force_deleting event error: %w", err)
+		}
+	}
+
+	// Build DELETE query (permanent delete, not soft delete)
+	builder := NewBuilder(q)
+	sql, args := builder.BuildDelete()
+	if sql == "" {
+		return nil, fmt.Errorf("failed to build FORCE DELETE query")
+	}
+
+	// Execute query
+	var err error
+	var result interface{ RowsAffected() (int64, error) }
+	if q.tx != nil {
+		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+	} else {
+		dbConn, err := q.DB()
+		if err != nil {
+			return nil, err
+		}
+		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute FORCE DELETE query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	// Fire ForceDeleted event if not disabled
+	if !q.withoutEvents && q.model != nil {
+		attributes := observer.ExtractModelAttributes(q.model)
+		if err := q.dispatcher.DispatchForceDeleted(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("force_deleted event error: %w", err)
+		}
+	}
+
+	// Get affected rows
+	rowsAffected, _ := result.RowsAffected()
+	return &contractsorm.Result{
+		RowsAffected: rowsAffected,
+	}, nil
 }
+
+func (q *Query) With(query string, args ...any) contractsorm.Query {
+	newQuery := *q
+	newQuery.withRelations = append(newQuery.withRelations, query)
+	return &newQuery
+}
+
+func (q *Query) Load(dest any, relation string, args ...any) error {
+	// This is a simplified implementation - full lazy loading requires
+	// additional work to detect relationships and load them properly
+	return fmt.Errorf("lazy loading not fully implemented yet")
+}
+
 func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
-	return fmt.Errorf("not implemented")
+	// This is a simplified implementation - full lazy loading requires
+	// additional work to detect relationships and load them properly
+	return fmt.Errorf("lazy loading not fully implemented yet")
 }
 func (q *Query) Without(relations ...string) contractsorm.Query          { return q }
 func (q *Query) WithCount(query string, args ...any) contractsorm.Query  { return q }
 func (q *Query) WithExists(query string, args ...any) contractsorm.Query { return q }
-func (q *Query) Association(association string) contractsorm.Association { return nil }
+func (q *Query) Association(assocName string) contractsorm.Association {
+	// Return a base association - specific relationship types should be created
+	// based on the relationship metadata from the model
+	return association.NewAssociation(q, q.model, assocName)
+}
 
 func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 	var txOpts *sql.TxOptions
