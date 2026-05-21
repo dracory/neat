@@ -1,0 +1,122 @@
+package env
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+)
+
+// IsAir checks if the application is running using Air.
+func IsAir() bool {
+	for _, arg := range os.Args {
+		if strings.Contains(filepath.ToSlash(arg), "/storage/temp") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsArm returns whether the current CPU architecture is ARM.
+// IsArm 返回当前 CPU 架构是否为 ARM。
+func IsArm() bool {
+	return runtime.GOARCH == "arm" || runtime.GOARCH == "arm64"
+}
+
+func IsArtisan() bool {
+	for _, arg := range os.Args {
+		if arg == "artisan" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsDarwin returns whether the current operating system is Darwin.
+// IsDarwin 返回当前操作系统是否为 Darwin。
+func IsDarwin() bool {
+	return runtime.GOOS == "darwin"
+}
+
+// IsDirectlyRun checks if the application is running using go run .
+func IsDirectlyRun() bool {
+	executable, err := os.Executable()
+	if err != nil {
+		// If we can't determine the executable path, assume not directly run
+		return false
+	}
+
+	return strings.Contains(filepath.Base(executable), os.TempDir()) ||
+		(strings.Contains(filepath.ToSlash(executable), "/var/folders") && strings.Contains(filepath.ToSlash(executable), "/T/go-build")) // macOS
+}
+
+// IsGithub returns whether the current environment is github action.
+// IsGithub 返回当前系统环境是否为 github action。
+func IsGithub() bool {
+	_, exists := os.LookupEnv("GITHUB_ACTION")
+
+	return exists
+}
+
+// IsLinux returns whether the current operating system is Linux.
+// IsLinux 返回当前操作系统是否为 Linux。
+func IsLinux() bool {
+	return runtime.GOOS == "linux"
+}
+
+// IsTesting checks if the application is running in testing mode.
+func IsTesting() bool {
+	for _, arg := range os.Args {
+		if strings.Contains(arg, "-test.") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsWindows returns whether the current operating system is Windows.
+// IsWindows 返回当前操作系统是否为 Windows。
+func IsWindows() bool {
+	return runtime.GOOS == "windows"
+}
+
+// IsX86 returns whether the current CPU architecture is X86.
+// IsX86 返回当前 CPU 架构是否为 X86。
+func IsX86() bool {
+	return runtime.GOARCH == "386" || runtime.GOARCH == "amd64"
+}
+
+// Is64Bit returns whether the current CPU architecture is 64-bit.
+// Is64Bit 返回当前 CPU 架构是否为 64 位。
+func Is64Bit() bool {
+	return runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64"
+}
+
+func CurrentAbsolutePath() string {
+	executable, err := os.Executable()
+	if err != nil {
+		// Fallback to current working directory if executable path cannot be determined
+		if wd, err := os.Getwd(); err == nil {
+			return wd
+		}
+		return "."
+	}
+	res, err := filepath.EvalSymlinks(filepath.Dir(executable))
+	if err != nil {
+		// Fallback to executable directory if symlinks cannot be resolved
+		return filepath.Dir(executable)
+	}
+
+	if IsTesting() || IsAir() || IsDirectlyRun() {
+		res, err = os.Getwd()
+		if err != nil {
+			// Keep the original res if Getwd fails
+			return res
+		}
+	}
+
+	return res
+}
