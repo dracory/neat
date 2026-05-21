@@ -88,27 +88,22 @@ jobs:
     - name: Run Integration Tests - MySQL
       run: |
         echo "Testing MySQL integration with zero-panic error handling..."
-        go test -v -run "TestMySQL.*" ./integration_tests/mysql/...
+        go test -v -tags=integration -run "TestMySQL.*" ./integration_tests/mysql/...
 
     - name: Run Integration Tests - PostgreSQL
       run: |
         echo "Testing PostgreSQL integration with zero-panic error handling..."
-        go test -v -run "TestPostgres.*" ./integration_tests/postgres/...
+        go test -v -tags=integration -run "TestPostgres.*" ./integration_tests/postgres/...
 
     - name: Run Integration Tests - SQLite
       run: |
         echo "Testing SQLite integration with zero-panic error handling..."
-        go test -v -run "TestSQLite.*" ./integration_tests/sqlite/...
+        go test -v -tags=integration -run "TestSQLite.*" ./integration_tests/sqlite/...
 
     - name: Run Error Handling Integration Tests
       run: |
         echo "Testing error handling integration scenarios..."
-        go test -v -run "TestErrorHandlingIntegration" ./integration_tests/common/...
-
-    - name: Run Integration Tests - Turso
-      run: |
-        echo "Testing Turso integration..."
-        go test -v -tags=turso ./integration_tests/turso/...
+        go test -v -tags=integration -run "TestErrorHandlingIntegration" ./integration_tests/common/...
 
     services:
       # MySQL service

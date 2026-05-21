@@ -9,8 +9,6 @@ Integration tests require actual database connections to be set up. The tests ca
 - MySQL
 - PostgreSQL
 - SQLite
-- SQL Server
-- Turso
 
 ## Environment Variables
 
@@ -18,39 +16,42 @@ Before running integration tests, set up the following environment variables:
 
 ```bash
 # MySQL
-MYSQL_DSN="mysql://user:password@localhost:3306/testdb"
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=test
+MYSQL_USER=root
+MYSQL_PASS=root
 
 # PostgreSQL
-POSTGRES_DSN="postgres://user:password@localhost:5432/testdb?sslmode=disable"
-
-# SQLite
-SQLITE_DSN="sqlite:///path/to/database.db"
-
-# SQL Server
-SQLSERVER_DSN="sqlserver://user:password@localhost:1433?database=testdb"
-
-# Turso
-TURSO_DSN="libsql://test-url?authToken=test-token"
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5432
+POSTGRES_DATABASE=test
+POSTGRES_USER=test
+POSTGRES_PASS=test
+POSTGRES_SSLMODE=disable
 ```
 
 ## Running Tests
 
-To run integration tests for a specific database:
+To run integration tests with the integration build tag:
 
 ```bash
-# MySQL
-go test ./integration_tests/mysql/...
+# Run all integration tests
+go test -tags=integration ./integration_tests/...
 
-# PostgreSQL
-go test ./integration_tests/postgres/...
+# Run MySQL integration tests
+go test -tags=integration ./integration_tests/mysql/...
 
-# SQLite
-go test ./integration_tests/sqlite/...
+# Run PostgreSQL integration tests
+go test -tags=integration ./integration_tests/postgres/...
 
-# SQL Server
-go test ./integration_tests/sqlserver/...
+# Run SQLite integration tests
+go test -tags=integration ./integration_tests/sqlite/...
+
+# Run common integration tests
+go test -tags=integration ./integration_tests/common/...
 ```
 
-## Note
+## CI/CD
 
-The integration test infrastructure is currently being set up. This directory structure is a placeholder for future integration tests.
+Integration tests are automatically run in GitHub Actions using the integration-tests.yml workflow. This workflow sets up MySQL, PostgreSQL, and SQLite services and runs the tests with the integration build tag.
