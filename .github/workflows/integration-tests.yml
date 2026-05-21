@@ -1,0 +1,137 @@
+# This workflow runs integration tests with real database services
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: integration-tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: test
+      MYSQL_USER: root
+      MYSQL_PASS: root
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 55432
+      POSTGRES_DATABASE: test
+      POSTGRES_USER: test
+      POSTGRES_PASS: test
+      GITHUB_ACTIONS: true
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Wait for MySQL service
+      run: |
+        echo "Waiting for MySQL to be ready..."
+        for i in {1..30}; do
+          if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; then
+            echo "MySQL is ready!"
+            break
+          fi
+          echo "Attempt $i: MySQL not ready, waiting..."
+          sleep 2
+        done
+
+    - name: Verify MySQL connection
+      run: |
+        mysql --version
+        mysql --host 127.0.0.1 --port ${{ env.MYSQL_PORT }} -u${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASS }} -e "SHOW DATABASES;"
+
+    - name: Wait for PostgreSQL service
+      run: |
+        echo "Waiting for PostgreSQL to be ready..."
+        for i in {1..30}; do
+          if PGPASSWORD=${{ env.POSTGRES_PASS }} psql -h 127.0.0.1 -p ${{ env.POSTGRES_PORT }} -d ${{ env.POSTGRES_DATABASE }} -U ${{ env.POSTGRES_USER }} -c "SELECT 1;" > /dev/null 2>&1; then
+            echo "PostgreSQL is ready!"
+            break
+          fi
+          echo "Attempt $i: PostgreSQL not ready, waiting..."
+          sleep 2
+        done
+
+    - name: Verify PostgreSQL connection
+      run: |
+        PGPASSWORD=${{ env.POSTGRES_PASS }} psql -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -d ${{ env.POSTGRES_DATABASE }} -U ${{ env.POSTGRES_USER }} -c "SELECT 1;"
+
+    - name: Install MySQL client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mysql-client
+
+    - name: Install PostgreSQL client
+      run: |
+        sudo apt-get update
+        sudo apt-get install --yes postgresql-client
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.26'
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Run Integration Tests - MySQL
+      run: |
+        echo "Testing MySQL integration with zero-panic error handling..."
+        go test -v -run "TestMySQL.*" ./integration_tests/mysql/...
+
+    - name: Run Integration Tests - PostgreSQL
+      run: |
+        echo "Testing PostgreSQL integration with zero-panic error handling..."
+        go test -v -run "TestPostgres.*" ./integration_tests/postgres/...
+
+    - name: Run Integration Tests - SQLite
+      run: |
+        echo "Testing SQLite integration with zero-panic error handling..."
+        go test -v -run "TestSQLite.*" ./integration_tests/sqlite/...
+
+    - name: Run Error Handling Integration Tests
+      run: |
+        echo "Testing error handling integration scenarios..."
+        go test -v -run "TestErrorHandlingIntegration" ./integration_tests/common/...
+
+    - name: Run Integration Tests - Turso
+      run: |
+        echo "Testing Turso integration..."
+        go test -v -tags=turso ./integration_tests/turso/...
+
+    services:
+      # MySQL service
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=20s
+          --health-timeout=10s
+          --health-retries=10
+
+      # PostgreSQL service
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+        ports:
+          - "55432:5432"
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
