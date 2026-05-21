@@ -1,12 +1,21 @@
 package db
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 )
 
+const maxDSNLength = 4096
+
 // ParseDSN parses a DSN string and extracts connection information.
 func ParseDSN(dsn string) (ConnectionConfig, error) {
+	if dsn == "" {
+		return ConnectionConfig{}, fmt.Errorf("DSN cannot be empty")
+	}
+	if len(dsn) > maxDSNLength {
+		return ConnectionConfig{}, fmt.Errorf("DSN exceeds maximum length of %d characters", maxDSNLength)
+	}
 	config := ConnectionConfig{Dsn: dsn}
 
 	// Try to detect driver from DSN format

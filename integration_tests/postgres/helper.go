@@ -18,7 +18,7 @@ func GetPostgresConfig() neat.DBConfig {
 	port := getEnvInt("POSTGRES_PORT", 5432)
 	database := getEnv("POSTGRES_DATABASE", "test")
 	username := getEnv("POSTGRES_USER", "test")
-	password := getEnv("POSTGRES_PASS", "test")
+	password := getEnv("POSTGRES_PASS", "")
 	sslmode := getEnv("POSTGRES_SSLMODE", "disable")
 
 	return neat.DBConfig{
@@ -74,7 +74,7 @@ func SetupPostgresConnection(t *testing.T) *database.Database {
 	port := getEnvInt("POSTGRES_PORT", 5432)
 	database := getEnv("POSTGRES_DATABASE", "test")
 	username := getEnv("POSTGRES_USER", "test")
-	password := getEnv("POSTGRES_PASS", "test")
+	password := getEnv("POSTGRES_PASS", "")
 	sslmode := getEnv("POSTGRES_SSLMODE", "disable")
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		username, password, host, port, database, sslmode)

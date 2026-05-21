@@ -19,12 +19,12 @@ jobs:
       MYSQL_PORT: 3306
       MYSQL_DATABASE: test
       MYSQL_USER: root
-      MYSQL_PASS: root
+      MYSQL_PASS: ${{ secrets.MYSQL_TEST_PASS }}
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 55432
       POSTGRES_DATABASE: test
       POSTGRES_USER: test
-      POSTGRES_PASS: test
+      POSTGRES_PASS: ${{ secrets.POSTGRES_TEST_PASS }}
       GITHUB_ACTIONS: true
 
     steps:
@@ -38,7 +38,7 @@ jobs:
       run: |
         echo "Waiting for MySQL to be ready..."
         for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; then
+          if mysqladmin ping -h ${{ env.MYSQL_HOST }} -P ${{ env.MYSQL_PORT }} -u ${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASS }} --silent; then
             echo "MySQL is ready!"
             break
           fi
@@ -110,7 +110,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_TEST_PASS }}
           MYSQL_DATABASE: test
         ports:
           - "3306:3306"
@@ -124,7 +124,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_PASSWORD: test
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_TEST_PASS }}
           POSTGRES_DB: test
           POSTGRES_USER: test
         ports:

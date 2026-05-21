@@ -126,7 +126,7 @@ func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 	// Parse DSN
 	_, config, err := parseDSN(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse DSN: %w", err)
+		return nil, fmt.Errorf("failed to parse DSN %s: %w", redactDSN(dsn), err)
 	}
 
 	// Create DBConfig
@@ -152,8 +152,43 @@ func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 	return New(cfg, opts...)
 }
 
+// redactDSN removes credentials from a DSN string for safe logging/error messages.
+func redactDSN(dsn string) string {
+	if dsn == "" {
+		return dsn
+	}
+	// Handle URL-style DSNs (e.g., postgres://user:pass@host/db)
+	if strings.Contains(dsn, "://") {
+		parts := strings.SplitN(dsn, "://", 2)
+		if len(parts) == 2 {
+			scheme := parts[0]
+			rest := parts[1]
+			// Remove user:password@ part if present
+			if atIdx := strings.Index(rest, "@"); atIdx != -1 {
+				return scheme + "://[REDACTED]@" + rest[atIdx+1:]
+			}
+			return dsn
+		}
+	}
+	// Handle mysql:// DSNs with user:pass@tcp(host:port)/db format
+	if strings.HasPrefix(dsn, "mysql://") {
+		rest := strings.TrimPrefix(dsn, "mysql://")
+		if atIdx := strings.Index(rest, "@"); atIdx != -1 {
+			return "mysql://[REDACTED]@" + rest[atIdx+1:]
+		}
+	}
+	return dsn
+}
+
 // parseDSN parses a DSN string and returns the driver and connection config.
 func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
+	if dsn == "" {
+		return "", db.ConnectionConfig{}, fmt.Errorf("DSN cannot be empty")
+	}
+	if len(dsn) > 4096 {
+		return "", db.ConnectionConfig{}, fmt.Errorf("DSN exceeds maximum length of 4096 characters")
+	}
+
 	// Special handling for sqlite:// which url.Parse might fail on if it contains colons like :memory:
 	if strings.HasPrefix(dsn, "sqlite://") {
 		rawPath := strings.TrimPrefix(dsn, "sqlite://")
@@ -210,7 +245,7 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 
 			return "mysql", config, nil
 		}
-		return "", db.ConnectionConfig{}, fmt.Errorf("invalid DSN: %w", err)
+		return "", db.ConnectionConfig{}, fmt.Errorf("invalid DSN %s: %w", redactDSN(dsn), err)
 	}
 
 	driver := u.Scheme

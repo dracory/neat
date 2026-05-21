@@ -93,7 +93,8 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migratio
 func (r *Schema) Connection(name string) contractsschema.Schema {
 	s, err := NewSchema(r.config, r.log, r.orm.Connection(name), r.migrations)
 	if err != nil {
-		panic(err) // TODO: Return error instead of panic in future version
+		r.log.Errorf("failed to create schema for connection %s: %v", name, err)
+		return nil
 	}
 	return s
 }

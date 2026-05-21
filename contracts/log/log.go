@@ -14,29 +14,106 @@ func NewStdLogger() *StdLogger {
 	return &StdLogger{}
 }
 
+// sanitizeArgs redacts sensitive information from log arguments.
+func sanitizeArgs(args []any) []any {
+	result := make([]any, len(args))
+	for i, arg := range args {
+		if arg == nil {
+			result[i] = nil
+			continue
+		}
+		if str, ok := arg.(string); ok {
+			result[i] = sanitizeString(str)
+			continue
+		}
+		if err, ok := arg.(error); ok {
+			result[i] = sanitizeString(err.Error())
+			continue
+		}
+		result[i] = arg
+	}
+	return result
+}
+
+// sanitizeString redacts sensitive patterns from a string.
+func sanitizeString(s string) string {
+	if s == "" {
+		return s
+	}
+	// Redact password patterns
+	patterns := []string{
+		"password=", "passwd=", "pwd=",
+		"secret=", "token=", "api_key=",
+		"apikey=", "auth=", "bearer ",
+	}
+	for _, pattern := range patterns {
+		if idx := findCaseInsensitive(s, pattern); idx != -1 {
+			start := idx + len(pattern)
+			end := start
+			for end < len(s) && s[end] != '&' && s[end] != ' ' && s[end] != ',' {
+				end++
+			}
+			if end > start {
+				s = s[:start] + "[REDACTED]" + s[end:]
+			}
+		}
+	}
+	return s
+}
+
+// findCaseInsensitive finds the index of a substring (case-insensitive).
+func findCaseInsensitive(s, substr string) int {
+	sLower := toLower(s)
+	subLower := toLower(substr)
+	for i := 0; i <= len(sLower)-len(subLower); i++ {
+		if sLower[i:i+len(subLower)] == subLower {
+			return i
+		}
+	}
+	return -1
+}
+
+// toLower converts a string to lowercase.
+func toLower(s string) string {
+	result := make([]byte, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			c = c + ('a' - 'A')
+		}
+		result[i] = c
+	}
+	return string(result)
+}
+
 // Debugf logs a debug message.
 func (l *StdLogger) Debugf(format string, args ...any) {
-	fmt.Printf("[DEBUG] "+format+"\n", args...)
+	sanitized := sanitizeArgs(args)
+	fmt.Printf("[DEBUG] "+format+"\n", sanitized...)
 }
 
 // Infof logs an info message.
 func (l *StdLogger) Infof(format string, args ...any) {
-	fmt.Printf("[INFO] "+format+"\n", args...)
+	sanitized := sanitizeArgs(args)
+	fmt.Printf("[INFO] "+format+"\n", sanitized...)
 }
 
 // Warningf logs a warning message.
 func (l *StdLogger) Warningf(format string, args ...any) {
-	fmt.Printf("[WARN] "+format+"\n", args...)
+	sanitized := sanitizeArgs(args)
+	fmt.Printf("[WARN] "+format+"\n", sanitized...)
 }
 
 // Warning logs a warning message.
 func (l *StdLogger) Warning(args ...any) {
-	fmt.Printf("[WARN] %v\n", args...)
+	sanitized := sanitizeArgs(args)
+	fmt.Printf("[WARN] %v\n", sanitized...)
 }
 
 // Errorf logs an error message.
 func (l *StdLogger) Errorf(format string, args ...any) {
-	fmt.Printf("[ERROR] "+format+"\n", args...)
+	sanitized := sanitizeArgs(args)
+	fmt.Printf("[ERROR] "+format+"\n", sanitized...)
 }
 
 // NoopLogger is a no-op logger that discards all messages.
