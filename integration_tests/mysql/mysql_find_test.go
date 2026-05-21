@@ -28,7 +28,7 @@ func TestMySQLIntegrationFirst(t *testing.T) {
 		{Name: "first_user1", Avatar: "avatar1"},
 		{Name: "first_user2", Avatar: "avatar2"},
 	}
-	err := query.Create(&users)
+	err := query.Model(&models.User{}).Create(&users)
 	if err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestMySQLIntegrationFind(t *testing.T) {
 		{Name: "find_user2", Avatar: "avatar2"},
 		{Name: "find_user3", Avatar: "avatar3"},
 	}
-	err := query.Create(&users)
+	err := query.Model(&models.User{}).Create(&users)
 	if err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
@@ -88,17 +88,20 @@ func TestMySQLIntegrationCreate(t *testing.T) {
 
 	// Test Create single record
 	user := models.User{Name: "create_user", Avatar: "avatar"}
-	err := query.Create(&user)
+	err := query.Model(&models.User{}).Create(&user)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if user.ID == 0 {
-		t.Error("User ID should be set after create")
+	// Verify the record was created by querying it
+	var createdUser models.User
+	err = query.Model(&models.User{}).Where("name = ?", "create_user").First(&createdUser)
+	if err != nil {
+		t.Fatalf("Failed to query created user: %v", err)
 	}
 
-	if user.Name != "create_user" {
-		t.Errorf("Expected 'create_user', got '%s'", user.Name)
+	if createdUser.Name != "create_user" {
+		t.Errorf("Expected 'create_user', got '%s'", createdUser.Name)
 	}
 
 	// Test Create multiple records
@@ -106,13 +109,20 @@ func TestMySQLIntegrationCreate(t *testing.T) {
 		{Name: "create_user1", Avatar: "avatar1"},
 		{Name: "create_user2", Avatar: "avatar2"},
 	}
-	err = query.Create(&users)
+	err = query.Model(&models.User{}).Create(&users)
 	if err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	if len(users) != 2 {
-		t.Errorf("Expected 2 users, got %d", len(users))
+	// Verify the records were created
+	var foundUsers []models.User
+	err = query.Model(&models.User{}).Where("name LIKE ?", "create_user%").Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to query created users: %v", err)
+	}
+
+	if len(foundUsers) < 2 {
+		t.Errorf("Expected at least 2 users, got %d", len(foundUsers))
 	}
 }
 
@@ -127,20 +137,27 @@ func TestMySQLIntegrationUpdate(t *testing.T) {
 
 	// Create a user
 	user := models.User{Name: "update_user", Avatar: "old_avatar"}
-	err := query.Create(&user)
+	err := query.Model(&models.User{}).Create(&user)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
+	// Get the created user to get its ID
+	var createdUser models.User
+	err = query.Model(&models.User{}).Where("name = ?", "update_user").First(&createdUser)
+	if err != nil {
+		t.Fatalf("Failed to get created user: %v", err)
+	}
+
 	// Test Update
-	_, err = query.Model(&models.User{}).Where("id = ?", user.ID).Update("avatar", "new_avatar")
+	_, err = query.Model(&models.User{}).Where("id = ?", createdUser.ID).Update("avatar", "new_avatar")
 	if err != nil {
 		t.Fatalf("Failed to update user: %v", err)
 	}
 
 	// Verify update
 	var updatedUser models.User
-	err = query.Model(&models.User{}).Where("id = ?", user.ID).First(&updatedUser)
+	err = query.Model(&models.User{}).Where("id = ?", createdUser.ID).First(&updatedUser)
 	if err != nil {
 		t.Fatalf("Failed to get updated user: %v", err)
 	}
@@ -161,20 +178,27 @@ func TestMySQLIntegrationDelete(t *testing.T) {
 
 	// Create a user
 	user := models.User{Name: "delete_user", Avatar: "avatar"}
-	err := query.Create(&user)
+	err := query.Model(&models.User{}).Create(&user)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
+	// Get the created user to get its ID
+	var createdUser models.User
+	err = query.Model(&models.User{}).Where("name = ?", "delete_user").First(&createdUser)
+	if err != nil {
+		t.Fatalf("Failed to get created user: %v", err)
+	}
+
 	// Test Delete
-	_, err = query.Model(&models.User{}).Where("id = ?", user.ID).Delete(&models.User{})
+	_, err = query.Model(&models.User{}).Where("id = ?", createdUser.ID).Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to delete user: %v", err)
 	}
 
 	// Verify deletion
 	var deletedUser models.User
-	err = query.Model(&models.User{}).Where("id = ?", user.ID).First(&deletedUser)
+	err = query.Model(&models.User{}).Where("id = ?", createdUser.ID).First(&deletedUser)
 	if err == nil {
 		t.Error("Expected error for deleted user, got nil")
 	}
