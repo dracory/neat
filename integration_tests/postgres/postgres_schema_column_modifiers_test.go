@@ -1,0 +1,127 @@
+//go:build integration
+
+package postgres
+
+import (
+	"testing"
+
+	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/contracts/database/schema"
+)
+
+func TestPostgresSchemaColumnModifiers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupPostgresTest(t)
+
+	tableName := "test_column_modifiers"
+	_ = db.Schema().DropIfExists(tableName)
+
+	// Create a table with various modifiers
+	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
+		table.ID()
+		table.String("nullable_col").Nullable()
+		table.String("default_string").Default("hello")
+		table.Integer("default_int").Default(123)
+		table.Boolean("default_bool").Default(true)
+		table.Timestamp("use_current").UseCurrent()
+		table.String("collation_col").Collation("C")
+		table.String("comment_col").Comment("this is a comment")
+	})
+	if err != nil {
+		t.Fatalf("Failed to create table with modifiers: %v", err)
+	}
+
+	columns, err := db.Schema().GetColumns(tableName)
+	if err != nil {
+		t.Fatalf("Failed to get columns: %v", err)
+	}
+
+	colMap := make(map[string]schema.Column)
+	for _, col := range columns {
+		colMap[col.Name] = col
+	}
+
+	if !colMap["nullable_col"].Nullable {
+		t.Error("nullable_col should be nullable")
+	}
+	if colMap["default_string"].Default == "" || len(colMap["default_string"].Default) == 0 {
+		t.Error("default_string should have a default value")
+	}
+	if colMap["default_int"].Default == "" || len(colMap["default_int"].Default) == 0 {
+		t.Error("default_int should have a default value")
+	}
+	if colMap["default_bool"].Default == "" || len(colMap["default_bool"].Default) == 0 {
+		t.Error("default_bool should have a default value")
+	}
+	if colMap["use_current"].Default == "" || len(colMap["use_current"].Default) == 0 {
+		t.Error("use_current should have CURRENT_TIMESTAMP default")
+	}
+
+	if colMap["collation_col"].Collation != "C" {
+		t.Errorf("Expected collation 'C', got '%s'", colMap["collation_col"].Collation)
+	}
+	if colMap["comment_col"].Comment != "this is a comment" {
+		t.Errorf("Expected comment 'this is a comment', got '%s'", colMap["comment_col"].Comment)
+	}
+
+	// Test Change modifier
+	err = db.Schema().Table(tableName, func(table schema.Blueprint) {
+		table.Text("default_string").Change()
+		table.String("nullable_col").Change() // Remove nullable
+	})
+	if err != nil {
+		t.Fatalf("Failed to change columns: %v", err)
+	}
+
+	columns, err = db.Schema().GetColumns(tableName)
+	if err != nil {
+		t.Fatalf("Failed to get columns after change: %v", err)
+	}
+
+	for _, col := range columns {
+		if col.Name == "default_string" {
+			if len(col.Type) == 0 {
+				t.Error("Changed column should have type")
+			}
+		}
+		if col.Name == "nullable_col" {
+			if col.Nullable {
+				t.Error("nullable_col should not be nullable after change")
+			}
+		}
+	}
+
+	// Advanced Change cases for Postgres (Comment and Default)
+	err = db.Schema().Table(tableName, func(table schema.Blueprint) {
+		table.String("comment_col").Comment("new comment").Change()
+		table.String("default_string").Default("new default").Change()
+	})
+	if err != nil {
+		t.Fatalf("Failed to change advanced columns: %v", err)
+	}
+
+	columns, err = db.Schema().GetColumns(tableName)
+	if err != nil {
+		t.Fatalf("Failed to get columns after advanced change: %v", err)
+	}
+
+	colMap = make(map[string]schema.Column)
+	for _, col := range columns {
+		colMap[col.Name] = col
+	}
+
+	if colMap["comment_col"].Comment != "new comment" {
+		t.Errorf("Expected comment 'new comment', got '%s'", colMap["comment_col"].Comment)
+	}
+	if colMap["default_string"].Default == "" || len(colMap["default_string"].Default) == 0 {
+		t.Error("default_string should have a default value after advanced change")
+	}
+
+	err = db.Schema().Drop(tableName)
+	if err != nil {
+		t.Fatalf("Failed to drop table: %v", err)
+	}
+}
