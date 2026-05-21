@@ -34,7 +34,7 @@ func GetMySQLConfig() neat.DBConfig {
 	port := getEnvInt("MYSQL_PORT", 3306)
 	database := getEnv("MYSQL_DATABASE", "test")
 	username := getEnv("MYSQL_USER", "root")
-	password := getEnv("MYSQL_PASS", "")
+	password := getEnv("MYSQL_PASS", "root")
 
 	return neat.DBConfig{
 		Default: "mysql",
@@ -114,7 +114,7 @@ func SetupMySQLTest(t *testing.T) *database.Database {
 	port := getEnvInt("MYSQL_PORT", 3306)
 	database := getEnv("MYSQL_DATABASE", "test")
 	username := getEnv("MYSQL_USER", "root")
-	password := getEnv("MYSQL_PASS", "")
+	password := getEnv("MYSQL_PASS", "root")
 	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local&multiStatements=true",
 		username, password, host, port, database)
 
