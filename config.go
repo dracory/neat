@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/database/db"
 )
 
 // DBConfig holds the database configuration for the standalone module.
@@ -300,4 +303,48 @@ func splitPath(path string) []string {
 		parts = append(parts, current)
 	}
 	return parts
+}
+
+// New creates a new Database instance from a DBConfig.
+func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
+	// Convert neat.DBConfig to database.db.DBConfig
+	dbConfig := db.DBConfig{
+		Default:     cfg.Default,
+		Connections: make(map[string]db.ConnectionConfig),
+		Pool: db.PoolConfig{
+			MaxIdleConns:    cfg.Pool.MaxIdleConns,
+			MaxOpenConns:    cfg.Pool.MaxOpenConns,
+			ConnMaxLifetime: int(cfg.Pool.ConnMaxLifetime.Seconds()),
+			ConnMaxIdleTime: int(cfg.Pool.ConnMaxIdleTime.Seconds()),
+		},
+		Debug: cfg.Debug,
+	}
+
+	for name, conn := range cfg.Connections {
+		dbConfig.Connections[name] = db.ConnectionConfig{
+			Driver:       conn.Driver,
+			Dsn:          conn.Dsn,
+			Host:         conn.Host,
+			Port:         conn.Port,
+			Database:     conn.Database,
+			Username:     conn.Username,
+			Password:     conn.Password,
+			Charset:      conn.Charset,
+			Schema:       conn.Schema,
+			SSLMode:      conn.SSLMode,
+			Loc:          conn.Loc,
+			Timezone:     conn.Timezone,
+			Prefix:       conn.Prefix,
+			Singular:     conn.Singular,
+			NoLowerCase:  conn.NoLowerCase,
+			NameReplacer: conn.NameReplacer,
+		}
+	}
+
+	return database.New(dbConfig, opts...)
+}
+
+// NewFromDSN creates a new Database instance from a DSN string.
+func NewFromDSN(dsn string, opts ...database.Option) (*database.Database, error) {
+	return database.NewFromDSN(dsn, opts...)
 }
