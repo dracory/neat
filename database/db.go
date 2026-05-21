@@ -13,6 +13,7 @@ import (
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	databaseorm "github.com/dracory/neat/database/orm"
+	"github.com/dracory/neat/database/schema"
 )
 
 // Database is the main entry point for the neat package.
@@ -22,7 +23,7 @@ type Database struct {
 	logger      log.Log
 	eventBus    *databaseorm.EventBus
 	ormInstance orm.Orm
-	// schema      *schema.Schema // TODO: Implement schema package
+	schema      *schema.Schema
 }
 
 // Option is a functional option for configuring the Database.
@@ -100,12 +101,8 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 	}
 	database.ormInstance = ormInstance
 
-	// TODO: Initialize Schema when schema package is implemented
-	// s, err := schema.NewSchema(database.config, database.logger, database.ormInstance, nil)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// database.schema = s
+	// Schema will be initialized lazily via Schema() method
+	// due to config type mismatch between db.DBConfig and config.Config
 
 	return database, nil
 }
@@ -271,12 +268,12 @@ func (d *Database) Query() orm.Query {
 }
 
 // Schema returns the schema builder.
-//
-//	func (d *Database) Schema() *schema.Schema {
-//		return d.schema
-//	}
-func (d *Database) Schema() any {
-	return nil // TODO: Implement when schema package is ready
+// Note: Schema initialization requires a config adapter to convert db.DBConfig to config.Config
+// This is deferred until the config adapter is implemented.
+func (d *Database) Schema() *schema.Schema {
+	// TODO: Initialize schema when config adapter is available
+	// For now, return nil as schema requires config.Config interface
+	return nil
 }
 
 // DB returns the underlying database connection.

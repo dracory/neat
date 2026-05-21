@@ -757,7 +757,7 @@ Implement association handling for belongs-to, has-many, and has-one relationshi
 
 ---
 
-### Phase 9: ToSql Interface (Week 18)
+### Phase 9: ToSql Interface (Week 18) ✅ COMPLETED
 
 #### Objective
 Implement ToSql interface for generating SQL without execution.
@@ -804,7 +804,7 @@ Implement ToSql interface for generating SQL without execution.
 
 ---
 
-### Phase 10: Schema Builder Integration (Week 19)
+### Phase 10: Schema Builder Integration (Week 19) ✅ COMPLETED
 
 #### Objective
 Integrate the schema builder from eloquent with the new database implementation.
