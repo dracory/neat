@@ -5,12 +5,12 @@ package mysql
 import (
 	"testing"
 
-	"github.com/dracory/neat"
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
 // setupFindTest creates a database connection and sets up test tables
-func setupFindTest(t *testing.T) *neat.Database {
+func setupFindTest(t *testing.T) *database.Database {
 	return SetupMySQLConnection(t)
 }
 
