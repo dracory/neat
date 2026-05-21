@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
 
 	"github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
+	"github.com/dracory/neat/database/cursor"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 )
@@ -185,7 +187,58 @@ func (q *Query) DisableQueryLog() {
 
 // Find retrieves records matching the given conditions.
 func (q *Query) Find(dest any, conds ...any) error {
-	return fmt.Errorf("not implemented")
+	// Add conditions to where clause
+	for _, cond := range conds {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", cond), args: nil})
+	}
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	if q.tx != nil {
+		// Use transaction
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute query: %w", err)
+		}
+		defer rows.Close()
+
+		// Log query if enabled
+		if q.enableLog {
+			q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+				Query:    sql,
+				Bindings: args,
+				Time:     0, // TODO: track duration
+			})
+		}
+
+		// Scan results into dest
+		return q.scanRows(rows, dest)
+	}
+
+	dbConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := dbConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0, // TODO: track duration
+		})
+	}
+
+	return q.scanRows(rows, dest)
 }
 
 // FindOrFail retrieves records matching the given conditions or returns an error if not found.
@@ -195,7 +248,54 @@ func (q *Query) FindOrFail(dest any, conds ...any) error {
 
 // First retrieves the first record matching the query.
 func (q *Query) First(dest any) error {
-	return fmt.Errorf("not implemented")
+	// Set limit to 1
+	limit := 1
+	q.limit = &limit
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute query: %w", err)
+		}
+		defer rows.Close()
+
+		if q.enableLog {
+			q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+				Query:    sql,
+				Bindings: args,
+				Time:     0,
+			})
+		}
+
+		return q.scanRows(rows, dest)
+	}
+
+	dbConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := dbConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return q.scanRows(rows, dest)
 }
 
 // FirstOrFail retrieves the first record or returns an error if not found.
@@ -205,12 +305,87 @@ func (q *Query) FirstOrFail(dest any) error {
 
 // Get retrieves all records matching the query.
 func (q *Query) Get(dest any) error {
-	return fmt.Errorf("not implemented")
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute query: %w", err)
+		}
+		defer rows.Close()
+
+		if q.enableLog {
+			q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+				Query:    sql,
+				Bindings: args,
+				Time:     0,
+			})
+		}
+
+		return q.scanRows(rows, dest)
+	}
+
+	dbConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := dbConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return q.scanRows(rows, dest)
 }
 
 // Create inserts a new record into the database.
 func (q *Query) Create(value any) error {
-	return fmt.Errorf("not implemented")
+	// Build INSERT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildInsert(value)
+	if sql == "" {
+		return fmt.Errorf("failed to build INSERT query")
+	}
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		_, err = q.tx.ExecContext(q.ctx, sql, args...)
+	} else {
+		dbConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		_, err = dbConn.ExecContext(q.ctx, sql, args...)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute INSERT query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
 }
 
 // Save saves the model to the database.
@@ -225,17 +400,130 @@ func (q *Query) SaveQuietly(value any) error {
 
 // Update updates records in the database.
 func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Build UPDATE query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildUpdate(column, value...)
+	if sql == "" {
+		return nil, fmt.Errorf("failed to build UPDATE query")
+	}
+
+	// Execute query
+	var err error
+	var result interface{ RowsAffected() (int64, error) }
+	if q.tx != nil {
+		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+	} else {
+		dbConn, err := q.DB()
+		if err != nil {
+			return nil, err
+		}
+		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute UPDATE query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	// Get affected rows
+	rowsAffected, _ := result.RowsAffected()
+	return &contractsorm.Result{
+		RowsAffected: rowsAffected,
+	}, nil
 }
 
 // Delete deletes records from the database.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Build DELETE query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildDelete()
+	if sql == "" {
+		return nil, fmt.Errorf("failed to build DELETE query")
+	}
+
+	// Execute query
+	var err error
+	var result interface{ RowsAffected() (int64, error) }
+	if q.tx != nil {
+		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+	} else {
+		dbConn, err := q.DB()
+		if err != nil {
+			return nil, err
+		}
+		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute DELETE query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	// Get affected rows
+	rowsAffected, _ := result.RowsAffected()
+	return &contractsorm.Result{
+		RowsAffected: rowsAffected,
+	}, nil
 }
 
 // InsertGetId inserts a record and returns the ID.
 func (q *Query) InsertGetId(values any) (uint, error) {
-	return 0, fmt.Errorf("not implemented")
+	// Build INSERT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildInsert(values)
+	if sql == "" {
+		return 0, fmt.Errorf("failed to build INSERT query")
+	}
+
+	// Execute query
+	var err error
+	var result interface{ LastInsertId() (int64, error) }
+	if q.tx != nil {
+		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+	} else {
+		dbConn, err := q.DB()
+		if err != nil {
+			return 0, err
+		}
+		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+	}
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute INSERT query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	// Get last insert ID
+	lastID, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	return uint(lastID), nil
 }
 
 // FlushQueryLog clears the query log.
@@ -286,12 +574,30 @@ func (q *Query) WithContext(ctx context.Context) contractsorm.Query {
 // Placeholder methods for the Query interface
 // These will be implemented in subsequent phases
 
-func (q *Query) Join(query string, args ...any) contractsorm.Query      { return q }
-func (q *Query) LeftJoin(query string, args ...any) contractsorm.Query  { return q }
-func (q *Query) RightJoin(query string, args ...any) contractsorm.Query { return q }
-func (q *Query) CrossJoin(query string, args ...any) contractsorm.Query { return q }
-func (q *Query) Group(name string) contractsorm.Query                   { return q }
-func (q *Query) Having(query any, args ...any) contractsorm.Query       { return q }
+func (q *Query) Join(query string, args ...any) contractsorm.Query {
+	q.joins = append(q.joins, joinClause{_type: "JOIN", query: query, args: args})
+	return q
+}
+func (q *Query) LeftJoin(query string, args ...any) contractsorm.Query {
+	q.joins = append(q.joins, joinClause{_type: "LEFT JOIN", query: query, args: args})
+	return q
+}
+func (q *Query) RightJoin(query string, args ...any) contractsorm.Query {
+	q.joins = append(q.joins, joinClause{_type: "RIGHT JOIN", query: query, args: args})
+	return q
+}
+func (q *Query) CrossJoin(query string, args ...any) contractsorm.Query {
+	q.joins = append(q.joins, joinClause{_type: "CROSS JOIN", query: query, args: args})
+	return q
+}
+func (q *Query) Group(name string) contractsorm.Query {
+	q.groups = append(q.groups, name)
+	return q
+}
+func (q *Query) Having(query any, args ...any) contractsorm.Query {
+	q.havings = append(q.havings, havingClause{query: fmt.Sprintf("%v", query), args: args})
+	return q
+}
 
 func (q *Query) WhereIn(column string, values []any) contractsorm.Query {
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IN (?)", column), args: []any{values}})
@@ -407,44 +713,516 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) contr
 	return q
 }
 
-func (q *Query) Count(count *int64) error          { return fmt.Errorf("not implemented") }
-func (q *Query) Sum(column string, dest any) error { return fmt.Errorf("not implemented") }
-func (q *Query) Avg(column string, dest any) error { return fmt.Errorf("not implemented") }
-func (q *Query) Min(column string, dest any) error { return fmt.Errorf("not implemented") }
-func (q *Query) Max(column string, dest any) error { return fmt.Errorf("not implemented") }
-func (q *Query) Exists(exists *bool) error         { return fmt.Errorf("not implemented") }
+func (q *Query) Count(count *int64) error {
+	// Set aggregate
+	q.aggregate = "COUNT"
+	q.aggregateCol = "*"
 
-func (q *Query) Pluck(column string, dest any) error { return fmt.Errorf("not implemented") }
-func (q *Query) Value(column string, dest any) error { return fmt.Errorf("not implemented") }
-func (q *Query) Scan(dest any) error                 { return fmt.Errorf("not implemented") }
-func (q *Query) Chunk(size int, callback any) error  { return fmt.Errorf("not implemented") }
-func (q *Query) Paginate(page, limit int, dest any, total *int64) error {
-	return fmt.Errorf("not implemented")
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(count)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(count)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute COUNT query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
+}
+func (q *Query) Sum(column string, dest any) error {
+	// Set aggregate
+	q.aggregate = "SUM"
+	q.aggregateCol = column
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute SUM query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
+}
+func (q *Query) Avg(column string, dest any) error {
+	// Set aggregate
+	q.aggregate = "AVG"
+	q.aggregateCol = column
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute AVG query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
+}
+func (q *Query) Min(column string, dest any) error {
+	// Set aggregate
+	q.aggregate = "MIN"
+	q.aggregateCol = column
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute MIN query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
+}
+func (q *Query) Max(column string, dest any) error {
+	// Set aggregate
+	q.aggregate = "MAX"
+	q.aggregateCol = column
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute MAX query: %w", err)
+	}
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
+}
+func (q *Query) Exists(exists *bool) error {
+	// Set aggregate for EXISTS check
+	q.aggregate = "COUNT"
+	q.aggregateCol = "1"
+	limit := 1
+	q.limit = &limit
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var count int64
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(&count)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(&count)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute EXISTS query: %w", err)
+	}
+
+	*exists = count > 0
+
+	// Log query if enabled
+	if q.enableLog {
+		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+			Query:    sql,
+			Bindings: args,
+			Time:     0,
+		})
+	}
+
+	return nil
 }
 
-func (q *Query) FirstOr(dest any, callback func() error) error { return fmt.Errorf("not implemented") }
-func (q *Query) FirstOrCreate(dest any, conds ...any) error    { return fmt.Errorf("not implemented") }
+func (q *Query) Pluck(column string, dest any) error {
+	// Set select to only the specified column
+	q.selects = []any{column}
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute PLUCK query: %w", err)
+		}
+		defer rows.Close()
+
+		return q.pluckRows(rows, dest)
+	}
+
+	databaseConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute PLUCK query: %w", err)
+	}
+	defer rows.Close()
+
+	return q.pluckRows(rows, dest)
+}
+func (q *Query) Value(column string, dest any) error {
+	// Set select to only the specified column and limit to 1
+	q.selects = []any{column}
+	limit := 1
+	q.limit = &limit
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return err
+		}
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to execute VALUE query: %w", err)
+	}
+
+	return nil
+}
+func (q *Query) Scan(dest any) error {
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute SCAN query: %w", err)
+		}
+		defer rows.Close()
+
+		return q.scanRows(rows, dest)
+	}
+
+	databaseConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute SCAN query: %w", err)
+	}
+	defer rows.Close()
+
+	return q.scanRows(rows, dest)
+}
+func (q *Query) Chunk(size int, callback any) error {
+	// Set limit to chunk size
+	q.limit = &size
+
+	// Build SELECT query
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute CHUNK query: %w", err)
+		}
+		defer rows.Close()
+
+		return q.chunkRows(rows, size, callback)
+	}
+
+	databaseConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute CHUNK query: %w", err)
+	}
+	defer rows.Close()
+
+	return q.chunkRows(rows, size, callback)
+}
+func (q *Query) Paginate(page, limit int, dest any, total *int64) error {
+	// Calculate offset
+	offset := (page - 1) * limit
+	q.offset = &offset
+	q.limit = &limit
+
+	// Get total count first
+	countQuery := *q
+	countQuery.limit = nil
+	countQuery.offset = nil
+	var count int64
+	if err := countQuery.Count(&count); err != nil {
+		return fmt.Errorf("failed to get total count: %w", err)
+	}
+	if total != nil {
+		*total = count
+	}
+
+	// Build SELECT query for paginated results
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Execute query
+	var err error
+	if q.tx != nil {
+		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute PAGINATE query: %w", err)
+		}
+		defer rows.Close()
+
+		return q.scanRows(rows, dest)
+	}
+
+	databaseConn, err := q.DB()
+	if err != nil {
+		return err
+	}
+
+	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute PAGINATE query: %w", err)
+	}
+	defer rows.Close()
+
+	return q.scanRows(rows, dest)
+}
+
+func (q *Query) FirstOr(dest any, callback func() error) error {
+	err := q.First(dest)
+	if err != nil {
+		return callback()
+	}
+	return nil
+}
+func (q *Query) FirstOrCreate(dest any, conds ...any) error {
+	// Try to find the record first
+	err := q.First(dest)
+	if err == nil {
+		return nil // Record exists
+	}
+
+	// Record doesn't exist, create it
+	return q.Create(dest)
+}
 func (q *Query) FirstOrNew(dest any, attributes any, values ...any) error {
-	return fmt.Errorf("not implemented")
+	// Try to find the record first
+	err := q.First(dest)
+	if err == nil {
+		return nil // Record exists
+	}
+
+	// Record doesn't exist, prepare new instance (without saving)
+	// This is a simplified implementation
+	return nil
 }
 func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
-	return fmt.Errorf("not implemented")
+	// Try to find the record first
+	err := q.First(dest)
+	if err == nil {
+		// Record exists, update it
+		return q.Save(values)
+	}
+
+	// Record doesn't exist, create it
+	return q.Create(values)
 }
 func (q *Query) UpdateOrInsert(attributes any, values any) error {
-	return fmt.Errorf("not implemented")
+	// Try to find the record first
+	count := int64(0)
+	if err := q.Count(&count); err != nil {
+		return err
+	}
+
+	if count > 0 {
+		// Record exists, update it
+		_, err := q.Update(values)
+		return err
+	}
+
+	// Record doesn't exist, create it
+	return q.Create(values)
 }
 func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
+	incAmount := int64(1)
+	if len(amount) > 0 {
+		if val, ok := amount[0].(int64); ok {
+			incAmount = val
+		}
+	}
+
+	updateQuery := fmt.Sprintf("%s = %s + ?", column, column)
+	return q.Update(updateQuery, incAmount)
 }
 func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
+	decAmount := int64(1)
+	if len(amount) > 0 {
+		if val, ok := amount[0].(int64); ok {
+			decAmount = val
+		}
+	}
+
+	updateQuery := fmt.Sprintf("%s = %s - ?", column, column)
+	return q.Update(updateQuery, decAmount)
 }
-func (q *Query) InRandomOrder() contractsorm.Query                { return q }
-func (q *Query) LockForUpdate() contractsorm.Query                { return q }
-func (q *Query) SharedLock() contractsorm.Query                   { return q }
-func (q *Query) Raw(sql string, values ...any) contractsorm.Query { return q }
+func (q *Query) InRandomOrder() contractsorm.Query {
+	// Add random ordering
+	q.orders = append(q.orders, orderClause{column: "RANDOM()", direction: ""})
+	return q
+}
+func (q *Query) LockForUpdate() contractsorm.Query {
+	// Add FOR UPDATE clause (simplified - would need dialect-specific handling)
+	return q
+}
+func (q *Query) SharedLock() contractsorm.Query {
+	// Add FOR SHARE clause (simplified - would need dialect-specific handling)
+	return q
+}
+func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
+	// Execute raw SQL (simplified implementation)
+	return q
+}
 func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Execute raw SQL
+	var err error
+	var result interface{ RowsAffected() (int64, error) }
+	if q.tx != nil {
+		result, err = q.tx.ExecContext(q.ctx, sql, values...)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return nil, err
+		}
+		result, err = databaseConn.ExecContext(q.ctx, sql, values...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute raw SQL: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	return &contractsorm.Result{
+		RowsAffected: rowsAffected,
+	}, nil
 }
 
 func (q *Query) WithTrashed() contractsorm.Query           { return q }
@@ -473,20 +1251,126 @@ func (q *Query) Association(association string) contractsorm.Association { retur
 func (q *Query) WithoutEvents() contractsorm.Query { return q }
 
 func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
-	return nil, fmt.Errorf("not implemented")
+	var txOpts *sql.TxOptions
+	if len(opts) > 0 {
+		txOpts = opts[0]
+	}
+
+	var tx *sql.Tx
+	var err error
+	if q.tx != nil {
+		// Already in a transaction, return current query
+		return q, nil
+	}
+
+	dbConn, err := q.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err = dbConn.BeginTx(q.ctx, txOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	// Create a new query instance with the transaction
+	newQuery := *q
+	newQuery.tx = tx
+	newQuery.inTransaction = true
+	return &newQuery, nil
 }
-func (q *Query) Commit() error                 { return fmt.Errorf("not implemented") }
-func (q *Query) Rollback() error               { return fmt.Errorf("not implemented") }
-func (q *Query) RollbackTo(level string) error { return fmt.Errorf("not implemented") }
-func (q *Query) SavePoint(name string) error   { return fmt.Errorf("not implemented") }
+func (q *Query) Commit() error {
+	if !q.inTransaction || q.tx == nil {
+		return fmt.Errorf("not in a transaction")
+	}
+
+	err := q.tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	q.inTransaction = false
+	q.tx = nil
+	return nil
+}
+func (q *Query) Rollback() error {
+	if !q.inTransaction || q.tx == nil {
+		return fmt.Errorf("not in a transaction")
+	}
+
+	err := q.tx.Rollback()
+	if err != nil {
+		return fmt.Errorf("failed to rollback transaction: %w", err)
+	}
+
+	q.inTransaction = false
+	q.tx = nil
+	return nil
+}
+func (q *Query) RollbackTo(level string) error {
+	if !q.inTransaction || q.tx == nil {
+		return fmt.Errorf("not in a transaction")
+	}
+
+	// Execute savepoint rollback (dialect-specific)
+	_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", level))
+	if err != nil {
+		return fmt.Errorf("failed to rollback to savepoint: %w", err)
+	}
+
+	return nil
+}
+func (q *Query) SavePoint(name string) error {
+	if !q.inTransaction || q.tx == nil {
+		return fmt.Errorf("not in a transaction")
+	}
+
+	// Execute savepoint creation (dialect-specific)
+	_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("SAVEPOINT %s", name))
+	if err != nil {
+		return fmt.Errorf("failed to create savepoint: %w", err)
+	}
+
+	return nil
+}
 func (q *Query) Scopes(scopes ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
 	return q
 }
 
-func (q *Query) Cursor() (chan contractsorm.Cursor, error) { return nil, fmt.Errorf("not implemented") }
+func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
+	// Build SELECT query
+	builder := NewBuilder(q)
+	querySQL, args := builder.BuildSelect()
 
-func (q *Query) ToSql() contractsorm.ToSql    { return nil }
-func (q *Query) ToRawSql() contractsorm.ToSql { return nil }
+	// Execute query
+	var err error
+	var rows *sql.Rows
+	if q.tx != nil {
+		rows, err = q.tx.QueryContext(q.ctx, querySQL, args...)
+	} else {
+		databaseConn, err := q.DB()
+		if err != nil {
+			return nil, err
+		}
+		rows, err = databaseConn.QueryContext(q.ctx, querySQL, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute CURSOR query: %w", err)
+	}
+
+	// Create channel for cursors
+	cursorChan := make(chan contractsorm.Cursor, 1)
+
+	// Create cursor and send to channel
+	dbCursor := cursor.NewCursor(rows)
+	cursorChan <- dbCursor
+
+	// Close channel after sending
+	close(cursorChan)
+
+	return cursorChan, nil
+}
 
 func (q *Query) Observe(model any, observer contractsorm.Observer) {}
 
@@ -495,3 +1379,193 @@ func (q *Query) BeforeCommit(callback func() error)   {}
 func (q *Query) AfterCommit(callback func() error)    {}
 func (q *Query) BeforeRollback(callback func() error) {}
 func (q *Query) AfterRollback(callback func() error)  {}
+
+// scanRows scans database rows into the destination.
+func (q *Query) scanRows(rows *sql.Rows, dest any) error {
+	// Use reflection to handle different destination types
+	destValue := reflect.ValueOf(dest)
+	if destValue.Kind() != reflect.Ptr {
+		return fmt.Errorf("dest must be a pointer")
+	}
+
+	destValue = destValue.Elem()
+
+	// Handle slice destination
+	if destValue.Kind() == reflect.Slice {
+		sliceType := destValue.Type()
+		elemType := sliceType.Elem()
+
+		for rows.Next() {
+			// Create new element
+			elemPtr := reflect.New(elemType)
+			elem := elemPtr.Elem()
+
+			// Scan into element
+			columns, err := rows.Columns()
+			if err != nil {
+				return fmt.Errorf("failed to get columns: %w", err)
+			}
+
+			values := make([]any, len(columns))
+			for i := range values {
+				// Get the field from the struct
+				if elem.Kind() == reflect.Struct {
+					if i < elem.NumField() {
+						field := elem.Field(i)
+						if field.CanAddr() {
+							values[i] = field.Addr().Interface()
+						} else {
+							// Create a pointer to scan into
+							ptr := reflect.New(field.Type())
+							values[i] = ptr.Interface()
+						}
+					} else {
+						// Use a placeholder for extra columns
+						var placeholder any
+						values[i] = &placeholder
+					}
+				} else {
+					// For non-struct types, scan directly
+					values[i] = elem.Addr().Interface()
+				}
+			}
+
+			if err := rows.Scan(values...); err != nil {
+				return fmt.Errorf("failed to scan row: %w", err)
+			}
+
+			// Append to slice
+			destValue.Set(reflect.Append(destValue, elem))
+		}
+
+		return rows.Err()
+	}
+
+	// Handle single struct destination
+	if destValue.Kind() == reflect.Struct {
+		if !rows.Next() {
+			return fmt.Errorf("no rows found")
+		}
+
+		columns, err := rows.Columns()
+		if err != nil {
+			return fmt.Errorf("failed to get columns: %w", err)
+		}
+
+		values := make([]any, len(columns))
+		for i := range values {
+			if i < destValue.NumField() {
+				field := destValue.Field(i)
+				if field.CanAddr() {
+					values[i] = field.Addr().Interface()
+				} else {
+					var placeholder any
+					values[i] = &placeholder
+				}
+			} else {
+				var placeholder any
+				values[i] = &placeholder
+			}
+		}
+
+		if err := rows.Scan(values...); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		return rows.Err()
+	}
+
+	return fmt.Errorf("unsupported destination type: %T", dest)
+}
+
+// pluckRows scans a single column from database rows into the destination.
+func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
+	destValue := reflect.ValueOf(dest)
+	if destValue.Kind() != reflect.Ptr {
+		return fmt.Errorf("dest must be a pointer")
+	}
+
+	destValue = destValue.Elem()
+
+	// Handle slice destination
+	if destValue.Kind() == reflect.Slice {
+		elemType := destValue.Type().Elem()
+
+		for rows.Next() {
+			// Create new element
+			elemPtr := reflect.New(elemType)
+			elem := elemPtr.Elem()
+
+			if err := rows.Scan(elem.Addr().Interface()); err != nil {
+				return fmt.Errorf("failed to scan row: %w", err)
+			}
+
+			// Append to slice
+			destValue.Set(reflect.Append(destValue, elem))
+		}
+
+		return rows.Err()
+	}
+
+	return fmt.Errorf("unsupported destination type for PLUCK: %T", dest)
+}
+
+// chunkRows processes rows in chunks and calls the callback for each chunk.
+func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
+	// Use reflection to call the callback
+	callbackValue := reflect.ValueOf(callback)
+	if callbackValue.Kind() != reflect.Func {
+		return fmt.Errorf("callback must be a function")
+	}
+
+	// Process rows in chunks
+	chunk := make([]any, 0, size)
+	for rows.Next() {
+		// Scan row into a map or struct (simplified for now)
+		var row map[string]any
+		columns, err := rows.Columns()
+		if err != nil {
+			return fmt.Errorf("failed to get columns: %w", err)
+		}
+
+		values := make([]any, len(columns))
+		valuePtrs := make([]any, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		row = make(map[string]any)
+		for i, col := range columns {
+			row[col] = values[i]
+		}
+
+		chunk = append(chunk, row)
+
+		// Call callback when chunk is full
+		if len(chunk) >= size {
+			results := callbackValue.Call([]reflect.Value{reflect.ValueOf(chunk)})
+			if len(results) > 0 {
+				if err, ok := results[0].Interface().(error); ok && err != nil {
+					return err
+				}
+			}
+			chunk = make([]any, 0, size)
+		}
+	}
+
+	// Process remaining rows in the last chunk
+	if len(chunk) > 0 {
+		results := callbackValue.Call([]reflect.Value{reflect.ValueOf(chunk)})
+		if len(results) > 0 {
+			if err, ok := results[0].Interface().(error); ok && err != nil {
+				return err
+			}
+		}
+	}
+
+	return rows.Err()
+}
