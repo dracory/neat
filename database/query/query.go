@@ -12,6 +12,7 @@ import (
 	"github.com/dracory/neat/database/cursor"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
+	"github.com/dracory/neat/database/observer"
 )
 
 // Query implements the Query interface using native database/sql.
@@ -43,6 +44,16 @@ type Query struct {
 	// Transaction state
 	inTransaction bool
 	tx            *sql.Tx
+
+	// Observer state
+	modelToObserver []contractsorm.ModelToObserver
+	withoutEvents   bool
+	dispatcher      *observer.Dispatcher
+
+	// Soft delete state
+	withTrashed    bool
+	onlyTrashed    bool
+	withoutTrashed bool
 }
 
 type whereClause struct {
@@ -70,14 +81,17 @@ type orderClause struct {
 // NewQuery creates a new Query instance.
 func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection string, dbConfig *db.DBConfig, log log.Log) *Query {
 	return &Query{
-		ctx:        ctx,
-		db:         db,
-		driver:     drv,
-		connection: connection,
-		dbConfig:   dbConfig,
-		log:        log,
-		enableLog:  false,
-		queryLog:   make([]contractsorm.QueryLog, 0),
+		ctx:             ctx,
+		db:              db,
+		driver:          drv,
+		connection:      connection,
+		dbConfig:        dbConfig,
+		log:             log,
+		enableLog:       false,
+		queryLog:        make([]contractsorm.QueryLog, 0),
+		modelToObserver: make([]contractsorm.ModelToObserver, 0),
+		withoutEvents:   false,
+		dispatcher:      observer.NewDispatcher(log),
 	}
 }
 
@@ -353,6 +367,14 @@ func (q *Query) Get(dest any) error {
 
 // Create inserts a new record into the database.
 func (q *Query) Create(value any) error {
+	// Fire Creating event if not disabled
+	if !q.withoutEvents {
+		attributes := observer.ExtractModelAttributes(value)
+		if err := q.dispatcher.DispatchCreating(q.ctx, value, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return fmt.Errorf("creating event error: %w", err)
+		}
+	}
+
 	// Build INSERT query
 	builder := NewBuilder(q)
 	sql, args := builder.BuildInsert(value)
@@ -385,6 +407,14 @@ func (q *Query) Create(value any) error {
 		})
 	}
 
+	// Fire Created event if not disabled
+	if !q.withoutEvents {
+		attributes := observer.ExtractModelAttributes(value)
+		if err := q.dispatcher.DispatchCreated(q.ctx, value, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return fmt.Errorf("created event error: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -400,6 +430,14 @@ func (q *Query) SaveQuietly(value any) error {
 
 // Update updates records in the database.
 func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
+	// Fire Updating event if not disabled
+	if !q.withoutEvents && q.model != nil {
+		attributes := observer.ExtractModelAttributes(q.model)
+		if err := q.dispatcher.DispatchUpdating(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("updating event error: %w", err)
+		}
+	}
+
 	// Build UPDATE query
 	builder := NewBuilder(q)
 	sql, args := builder.BuildUpdate(column, value...)
@@ -433,6 +471,14 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 		})
 	}
 
+	// Fire Updated event if not disabled
+	if !q.withoutEvents && q.model != nil {
+		attributes := observer.ExtractModelAttributes(q.model)
+		if err := q.dispatcher.DispatchUpdated(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("updated event error: %w", err)
+		}
+	}
+
 	// Get affected rows
 	rowsAffected, _ := result.RowsAffected()
 	return &contractsorm.Result{
@@ -442,6 +488,14 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 
 // Delete deletes records from the database.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
+	// Fire Deleting event if not disabled
+	if !q.withoutEvents && q.model != nil {
+		attributes := observer.ExtractModelAttributes(q.model)
+		if err := q.dispatcher.DispatchDeleting(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("deleting event error: %w", err)
+		}
+	}
+
 	// Build DELETE query
 	builder := NewBuilder(q)
 	sql, args := builder.BuildDelete()
@@ -473,6 +527,14 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 			Bindings: args,
 			Time:     0,
 		})
+	}
+
+	// Fire Deleted event if not disabled
+	if !q.withoutEvents && q.model != nil {
+		attributes := observer.ExtractModelAttributes(q.model)
+		if err := q.dispatcher.DispatchDeleted(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return nil, fmt.Errorf("deleted event error: %w", err)
+		}
 	}
 
 	// Get affected rows
@@ -568,6 +630,21 @@ func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*s
 func (q *Query) WithContext(ctx context.Context) contractsorm.Query {
 	newQuery := *q
 	newQuery.ctx = ctx
+	return &newQuery
+}
+
+// Observe registers an observer for the given model.
+func (q *Query) Observe(model any, observer contractsorm.Observer) {
+	q.modelToObserver = append(q.modelToObserver, contractsorm.ModelToObserver{
+		Model:    model,
+		Observer: observer,
+	})
+}
+
+// WithoutEvents disables event firing for the query.
+func (q *Query) WithoutEvents() contractsorm.Query {
+	newQuery := *q
+	newQuery.withoutEvents = true
 	return &newQuery
 }
 
@@ -1225,10 +1302,32 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	}, nil
 }
 
-func (q *Query) WithTrashed() contractsorm.Query           { return q }
-func (q *Query) OnlyTrashed() contractsorm.Query           { return q }
-func (q *Query) WithoutTrashed() contractsorm.Query        { return q }
+func (q *Query) WithTrashed() contractsorm.Query {
+	newQuery := *q
+	newQuery.withTrashed = true
+	newQuery.onlyTrashed = false
+	newQuery.withoutTrashed = false
+	return &newQuery
+}
+
+func (q *Query) OnlyTrashed() contractsorm.Query {
+	newQuery := *q
+	newQuery.withTrashed = false
+	newQuery.onlyTrashed = true
+	newQuery.withoutTrashed = false
+	return &newQuery
+}
+
+func (q *Query) WithoutTrashed() contractsorm.Query {
+	newQuery := *q
+	newQuery.withTrashed = false
+	newQuery.onlyTrashed = false
+	newQuery.withoutTrashed = true
+	return &newQuery
+}
+
 func (q *Query) Omit(columns ...string) contractsorm.Query { return q }
+
 func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	return nil, fmt.Errorf("not implemented")
 }
@@ -1247,8 +1346,6 @@ func (q *Query) Without(relations ...string) contractsorm.Query          { retur
 func (q *Query) WithCount(query string, args ...any) contractsorm.Query  { return q }
 func (q *Query) WithExists(query string, args ...any) contractsorm.Query { return q }
 func (q *Query) Association(association string) contractsorm.Association { return nil }
-
-func (q *Query) WithoutEvents() contractsorm.Query { return q }
 
 func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 	var txOpts *sql.TxOptions
@@ -1371,8 +1468,6 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 
 	return cursorChan, nil
 }
-
-func (q *Query) Observe(model any, observer contractsorm.Observer) {}
 
 // Transaction callback methods (stubs for now)
 func (q *Query) BeforeCommit(callback func() error)   {}
