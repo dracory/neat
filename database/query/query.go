@@ -54,6 +54,22 @@ type Query struct {
 	withoutEvents   bool
 	dispatcher      *observer.Dispatcher
 
+	// Transaction lifecycle hooks
+	beforeCommit   []func() error
+	afterCommit    []func() error
+	beforeRollback []func() error
+	afterRollback  []func() error
+
+	// Lock state
+	lockForUpdate bool
+	sharedLock    bool
+
+	// Scopes
+	scopes []func(contractsorm.Query) contractsorm.Query
+
+	// Omit columns
+	omitColumns []string
+
 	// Soft delete state
 	withTrashed    bool
 	onlyTrashed    bool
@@ -105,6 +121,21 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 // Clone returns a new Query with shared connection state but empty query-builder state.
 func (q *Query) Clone() contractsorm.Query {
 	return NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
+}
+
+// applyScopes applies registered scope functions and returns the modified query.
+func (q *Query) applyScopes() *Query {
+	if len(q.scopes) == 0 {
+		return q
+	}
+	var result contractsorm.Query = q
+	for _, fn := range q.scopes {
+		result = fn(result)
+	}
+	if r, ok := result.(*Query); ok {
+		return r
+	}
+	return q
 }
 
 // Connection returns a new Query instance with the specified connection.
@@ -286,6 +317,7 @@ func (q *Query) DisableQueryLog() {
 
 // Find retrieves records matching the given conditions.
 func (q *Query) Find(dest any, conds ...any) error {
+	q = q.applyScopes()
 	// Add conditions to where clause
 	for _, cond := range conds {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", cond), args: nil})
@@ -342,11 +374,20 @@ func (q *Query) Find(dest any, conds ...any) error {
 
 // FindOrFail retrieves records matching the given conditions or returns an error if not found.
 func (q *Query) FindOrFail(dest any, conds ...any) error {
-	return fmt.Errorf("not implemented")
+	if err := q.Find(dest, conds...); err != nil {
+		return err
+	}
+	// For slice destinations, empty result is a failure
+	v := reflect.Indirect(reflect.ValueOf(dest))
+	if v.Kind() == reflect.Slice && v.Len() == 0 {
+		return fmt.Errorf("record not found")
+	}
+	return nil
 }
 
 // First retrieves the first record matching the query.
 func (q *Query) First(dest any) error {
+	q = q.applyScopes()
 	// Set limit to 1
 	limit := 1
 	q.limit = &limit
@@ -399,11 +440,20 @@ func (q *Query) First(dest any) error {
 
 // FirstOrFail retrieves the first record or returns an error if not found.
 func (q *Query) FirstOrFail(dest any) error {
-	return fmt.Errorf("not implemented")
+	if err := q.First(dest); err != nil {
+		return err
+	}
+	// If the dest is a struct and still zero, nothing was found
+	v := reflect.Indirect(reflect.ValueOf(dest))
+	if v.Kind() == reflect.Struct && v.IsZero() {
+		return fmt.Errorf("record not found")
+	}
+	return nil
 }
 
 // Get retrieves all records matching the query.
 func (q *Query) Get(dest any) error {
+	q = q.applyScopes()
 	// Build SELECT query
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
@@ -510,14 +560,44 @@ func (q *Query) Create(value any) error {
 	return nil
 }
 
-// Save saves the model to the database.
+// Save saves the model to the database (INSERT if no primary key, UPDATE otherwise).
 func (q *Query) Save(value any) error {
-	return fmt.Errorf("not implemented")
+	// Fire Saving event
+	if !q.withoutEvents {
+		attributes := observer.ExtractModelAttributes(value)
+		if err := q.dispatcher.DispatchSaving(q.ctx, value, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return fmt.Errorf("saving event error: %w", err)
+		}
+	}
+
+	id := getPrimaryKeyValue(value)
+	var saveErr error
+	if id != 0 {
+		// UPDATE: set WHERE id = <id> on a clone, then call Update with the value
+		clone := q.Clone().(*Query)
+		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{id}})
+		_, saveErr = clone.Update(value)
+	} else {
+		saveErr = q.Create(value)
+	}
+
+	if saveErr != nil {
+		return saveErr
+	}
+
+	// Fire Saved event
+	if !q.withoutEvents {
+		attributes := observer.ExtractModelAttributes(value)
+		if err := q.dispatcher.DispatchSaved(q.ctx, value, q.modelToObserver, nil, attributes, nil, q); err != nil {
+			return fmt.Errorf("saved event error: %w", err)
+		}
+	}
+	return nil
 }
 
 // SaveQuietly saves the model without firing events.
 func (q *Query) SaveQuietly(value any) error {
-	return fmt.Errorf("not implemented")
+	return q.WithoutEvents().(*Query).Save(value)
 }
 
 // Update updates records in the database.
@@ -737,19 +817,50 @@ func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*s
 
 	defer func() {
 		if p := recover(); p != nil {
-			txQ.tx.Rollback()
+			txQ.doRollback()
 			panic(p)
 		}
 	}()
 
 	if err := txFunc(txQuery); err != nil {
-		if rbErr := txQ.tx.Rollback(); rbErr != nil {
+		if rbErr := txQ.doRollback(); rbErr != nil {
 			return fmt.Errorf("transaction error: %v, rollback error: %w", err, rbErr)
 		}
 		return err
 	}
 
-	return txQ.tx.Commit()
+	return txQ.doCommit()
+}
+
+// doCommit runs beforeCommit hooks, commits, then runs afterCommit hooks.
+func (q *Query) doCommit() error {
+	for _, cb := range q.beforeCommit {
+		if err := cb(); err != nil {
+			_ = q.tx.Rollback()
+			return fmt.Errorf("beforeCommit hook error: %w", err)
+		}
+	}
+	if err := q.tx.Commit(); err != nil {
+		return err
+	}
+	for _, cb := range q.afterCommit {
+		if err := cb(); err != nil {
+			return fmt.Errorf("afterCommit hook error: %w", err)
+		}
+	}
+	return nil
+}
+
+// doRollback runs beforeRollback hooks, rolls back, then runs afterRollback hooks.
+func (q *Query) doRollback() error {
+	for _, cb := range q.beforeRollback {
+		_ = cb()
+	}
+	err := q.tx.Rollback()
+	for _, cb := range q.afterRollback {
+		_ = cb()
+	}
+	return err
 }
 
 // WithContext returns a new Query instance with the specified context.
@@ -867,15 +978,36 @@ func (q *Query) OrWhereNot(query any, args ...any) contractsorm.Query {
 	return q
 }
 func (q *Query) WhereAny(columns []string, operator string, value any) contractsorm.Query {
-	// TODO: Implement WhereAny
+	// (col1 op ? OR col2 op ? OR ...)
+	var parts []string
+	var args []any
+	for _, col := range columns {
+		parts = append(parts, fmt.Sprintf("%s %s ?", col, operator))
+		args = append(args, value)
+	}
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: "(" + strings.Join(parts, " OR ") + ")", args: args})
 	return q
 }
 func (q *Query) WhereAll(columns []string, operator string, value any) contractsorm.Query {
-	// TODO: Implement WhereAll
+	// (col1 op ? AND col2 op ? AND ...)
+	var parts []string
+	var args []any
+	for _, col := range columns {
+		parts = append(parts, fmt.Sprintf("%s %s ?", col, operator))
+		args = append(args, value)
+	}
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: "(" + strings.Join(parts, " AND ") + ")", args: args})
 	return q
 }
 func (q *Query) WhereNone(columns []string, operator string, value any) contractsorm.Query {
-	// TODO: Implement WhereNone
+	// NOT (col1 op ? OR col2 op ? OR ...)
+	var parts []string
+	var args []any
+	for _, col := range columns {
+		parts = append(parts, fmt.Sprintf("%s %s ?", col, operator))
+		args = append(args, value)
+	}
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: "NOT (" + strings.Join(parts, " OR ") + ")", args: args})
 	return q
 }
 
@@ -1388,17 +1520,25 @@ func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, e
 	return q.Update(updateQuery, decAmount)
 }
 func (q *Query) InRandomOrder() contractsorm.Query {
-	// Add random ordering
-	q.orders = append(q.orders, orderClause{column: "RANDOM()", direction: ""})
-	return q
+	var order string
+	if q.driver != nil && q.driver.Dialect() == "mysql" {
+		order = "RAND()"
+	} else {
+		order = "RANDOM()"
+	}
+	newQ := *q
+	newQ.orders = append(newQ.orders, orderClause{column: order, direction: ""})
+	return &newQ
 }
 func (q *Query) LockForUpdate() contractsorm.Query {
-	// Add FOR UPDATE clause (simplified - would need dialect-specific handling)
-	return q
+	newQ := *q
+	newQ.lockForUpdate = true
+	return &newQ
 }
 func (q *Query) SharedLock() contractsorm.Query {
-	// Add FOR SHARE clause (simplified - would need dialect-specific handling)
-	return q
+	newQ := *q
+	newQ.sharedLock = true
+	return &newQ
 }
 func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
 	// Execute raw SQL (simplified implementation)
@@ -1452,7 +1592,11 @@ func (q *Query) WithoutTrashed() contractsorm.Query {
 	return &newQuery
 }
 
-func (q *Query) Omit(columns ...string) contractsorm.Query { return q }
+func (q *Query) Omit(columns ...string) contractsorm.Query {
+	newQ := *q
+	newQ.omitColumns = append(newQ.omitColumns, columns...)
+	return &newQ
+}
 
 func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	// Fire Restoring event if not disabled
@@ -1679,8 +1823,10 @@ func (q *Query) SavePoint(name string) error {
 
 	return nil
 }
-func (q *Query) Scopes(scopes ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
-	return q
+func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
+	newQ := *q
+	newQ.scopes = append(newQ.scopes, funcs...)
+	return &newQ
 }
 
 func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
@@ -1718,11 +1864,25 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	return cursorChan, nil
 }
 
-// Transaction callback methods (stubs for now)
-func (q *Query) BeforeCommit(callback func() error)   {}
-func (q *Query) AfterCommit(callback func() error)    {}
-func (q *Query) BeforeRollback(callback func() error) {}
-func (q *Query) AfterRollback(callback func() error)  {}
+// BeforeCommit registers a callback to run before the transaction is committed.
+func (q *Query) BeforeCommit(callback func() error) {
+	q.beforeCommit = append(q.beforeCommit, callback)
+}
+
+// AfterCommit registers a callback to run after the transaction is committed.
+func (q *Query) AfterCommit(callback func() error) {
+	q.afterCommit = append(q.afterCommit, callback)
+}
+
+// BeforeRollback registers a callback to run before the transaction is rolled back.
+func (q *Query) BeforeRollback(callback func() error) {
+	q.beforeRollback = append(q.beforeRollback, callback)
+}
+
+// AfterRollback registers a callback to run after the transaction is rolled back.
+func (q *Query) AfterRollback(callback func() error) {
+	q.afterRollback = append(q.afterRollback, callback)
+}
 
 // scanRows scans database rows into the destination.
 func (q *Query) scanRows(rows *sql.Rows, dest any) error {
@@ -1965,6 +2125,33 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	}
 
 	return rows.Err()
+}
+
+// getPrimaryKeyValue returns the primary key value (ID/Id) of a struct as int64, 0 if absent or zero.
+func getPrimaryKeyValue(value any) int64 {
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return 0
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return 0
+	}
+	for _, name := range []string{"ID", "Id"} {
+		field := v.FieldByName(name)
+		if !field.IsValid() {
+			continue
+		}
+		switch field.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return int64(field.Uint())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return field.Int()
+		}
+	}
+	return 0
 }
 
 // setModelPrimaryKey sets the primary key field (ID or Id) on a struct model to the given value.

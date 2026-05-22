@@ -85,6 +85,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 		parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
 	}
 
+	// Locking clauses
+	if b.query.lockForUpdate {
+		parts = append(parts, "FOR UPDATE")
+	} else if b.query.sharedLock {
+		parts = append(parts, "LOCK IN SHARE MODE")
+	}
+
 	return strings.Join(parts, " "), args
 }
 
@@ -348,6 +355,18 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 				} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
 					continue
 				}
+			}
+
+			// Skip omitted columns
+			omitted := false
+			for _, omit := range b.query.omitColumns {
+				if omit == columnName {
+					omitted = true
+					break
+				}
+			}
+			if omitted {
+				continue
 			}
 
 			// Skip zero values except for boolean and explicit zero values
