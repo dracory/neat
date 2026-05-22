@@ -33,7 +33,7 @@ func TestSQLiteIntegrationJoin(t *testing.T) {
 	user1 = dbUser1
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := db.Query().Model(&models.Address{}).Create(&address1); err != nil {
+	if err := db.Query().Table("addresses").Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 

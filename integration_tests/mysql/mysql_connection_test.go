@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
+	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database"
 )
