@@ -2113,13 +2113,13 @@ func getPrimaryKeyValue(value any) int64 {
 func structFieldColumnName(f reflect.StructField) string {
 	for _, tag := range []string{"db", "neat", "gorm"} {
 		if v := f.Tag.Get(tag); v != "" && v != "-" {
-			// take the first semicolon-delimited part; for gorm/neat it may be "column:name"
+			// take the first semicolon-delimited part; for gorm it may be "column:name"
 			part := strings.SplitN(v, ";", 2)[0]
 			if strings.HasPrefix(part, "column:") {
 				return strings.TrimPrefix(part, "column:")
 			}
-			// for db tag the value is directly the column name
-			if tag == "db" {
+			// db and neat tags use the value directly as the column name
+			if tag == "db" || tag == "neat" {
 				return part
 			}
 		}
