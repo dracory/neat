@@ -7,7 +7,7 @@
 
 ## 1. Query Implementation Gaps
 
-### 1.1 Stub / Not-Implemented Methods
+### 1.1 Stub / Not-Implemented Methods ✅ COMPLETED
 
 These methods exist in `neat`'s `Query` struct but return errors or are no-ops:
 
@@ -40,7 +40,7 @@ All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` reco
 
 ---
 
-## 2. Transaction Lifecycle Hooks
+## 2. Transaction Lifecycle Hooks ✅ COMPLETED
 
 `eloquent` supports four transaction callback hooks; `neat` has the interface stubs but the implementations are empty (`{}`):
 
@@ -55,7 +55,7 @@ All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` reco
 
 ---
 
-## 3. Read/Write Replica Support
+## 3. Read/Write Replica Support ✅ COMPLETED (fields added; query routing not yet wired)
 
 `eloquent`'s `ConnectionConfig` has `Read []database.Config` and `Write []database.Config` fields and uses GORM's `dbresolver` plugin to route reads to replicas and writes to primaries.
 
@@ -65,7 +65,7 @@ All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` reco
 
 ---
 
-## 4. EventBus / Model Lifecycle Events (Public API)
+## 4. EventBus / Model Lifecycle Events (Public API) ✅ COMPLETED
 
 `eloquent` exposes a top-level `EventBus` with `Listen`, `Dispatch`, and `Forget` methods and named constants (`EventCreating`, `EventCreated`, etc.) wired to the `WithEventBus(eventBus)` option.
 

@@ -1773,12 +1773,9 @@ func (q *Query) Commit() error {
 	if !q.inTransaction || q.tx == nil {
 		return fmt.Errorf("not in a transaction")
 	}
-
-	err := q.tx.Commit()
-	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if err := q.doCommit(); err != nil {
+		return err
 	}
-
 	q.inTransaction = false
 	q.tx = nil
 	return nil
@@ -1787,15 +1784,10 @@ func (q *Query) Rollback() error {
 	if !q.inTransaction || q.tx == nil {
 		return fmt.Errorf("not in a transaction")
 	}
-
-	err := q.tx.Rollback()
-	if err != nil {
-		return fmt.Errorf("failed to rollback transaction: %w", err)
-	}
-
+	err := q.doRollback()
 	q.inTransaction = false
 	q.tx = nil
-	return nil
+	return err
 }
 func (q *Query) RollbackTo(level string) error {
 	if !q.inTransaction || q.tx == nil {

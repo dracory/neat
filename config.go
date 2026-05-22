@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/database/db"
 )
@@ -43,6 +44,8 @@ type ConnectionConfig struct {
 	Singular     bool
 	NoLowerCase  bool
 	NameReplacer any
+	Read         []contractsdb.Config
+	Write        []contractsdb.Config
 }
 
 // MigrationConfig holds migration configuration.
