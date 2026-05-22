@@ -124,31 +124,159 @@ This applies to both `BuildSelect` and `BuildDelete`. `Delete` already did a sof
 
 ---
 
-## 13. Integration Test Coverage Gaps (mysql)
+## 13. Unit Test Gaps — Tests That Don't Catch Regressions
 
-Eloquent has these test files that neat does not:
+**Root problem**: All existing unit tests (`database/query/to_sql_test.go`, `database/orm/orm_test.go`, `database/db/config_builder_test.go`) only assert non-empty / non-nil / non-panic. They would pass even if every implemented feature were reverted. The following unit tests need to be **created** to provide real regression coverage.
 
-| Test File | Description |
+### 13.1 `database/query/query_routing_test.go` ❌ MISSING
+
+Tests that `readConn()` / `writeConn()` / `ReadDB()` / `DB()` route to the correct `*sql.DB` instance.
+
+| Test | Asserts |
 |---|---|
-| `mysql_connection_test.go` | Connection lifecycle, ping, reconnect |
-| `mysql_query_omit_test.go` | Omit column behaviour |
-| `mysql_query_scopes_test.go` | Reusable query scopes |
-| `mysql_query_log_test.go` | Query log capture |
-| `mysql_query_lock_test.go` | SELECT FOR UPDATE / SHARE MODE |
-| `mysql_where_any_all_advanced_test.go` | WhereAny/WhereAll/WhereNone |
-| `mysql_soft_delete_test.go` | Full soft delete lifecycle |
+| `TestReadConnFallsBackToPrimary` | `readConn()` returns `db` when `readDB == nil` |
+| `TestReadConnUsesReplicaWhenSet` | `readConn()` returns `readDB` when set |
+| `TestWriteConnFallsBackToPrimary` | `writeConn()` returns `db` when `writeDB == nil` |
+| `TestWriteConnUsesWriteWhenSet` | `writeConn()` returns `writeDB` when set |
+| `TestNewQueryWithReplicasSetsFields` | `NewQueryWithReplicas` sets `readDB` and `writeDB` |
+| `TestClonePropagatesReplicas` | `Clone()` copies `readDB` and `writeDB` to the clone |
+| `TestDBErrorsDuringTransaction` | `DB()` returns error when `tx != nil` |
+| `TestReadDBErrorsDuringTransaction` | `ReadDB()` returns error when `tx != nil` |
+
+### 13.2 `database/query/query_log_test.go` ❌ MISSING
+
+Tests for query logging and slow threshold behaviour (§1.2 / §12).
+
+| Test | Asserts |
+|---|---|
+| `TestLogQueryRecordsDuration` | `QueryLog` entry has `Time > 0` after a query |
+| `TestLogQuerySlowThreshold` | Logger receives `Warningf` when elapsed ≥ `SlowThreshold` |
+| `TestLogQueryNoWarnBelowThreshold` | No warning logged when elapsed < `SlowThreshold` |
+| `TestEnableDisableQueryLog` | `EnableQueryLog`/`DisableQueryLog` toggle capture |
+| `TestFlushQueryLog` | `FlushQueryLog` empties the log |
+
+### 13.3 `database/query/soft_delete_builder_test.go` ❌ MISSING
+
+Tests that the query builder injects the correct `deleted_at` filter (§9).
+
+| Test | Asserts |
+|---|---|
+| `TestBuildSelectInjectsSoftDeleteFilter` | Generated SQL contains `deleted_at IS NULL` for soft-delete model |
+| `TestBuildSelectWithTrashedSkipsFilter` | `WithTrashed()` produces no `deleted_at` clause |
+| `TestBuildSelectOnlyTrashedFilter` | `OnlyTrashed()` produces `deleted_at IS NOT NULL` |
+| `TestBuildDeleteSoftDeleteUpdateNotHardDelete` | `BuildDelete` emits `UPDATE … SET deleted_at=` for soft-delete model |
+| `TestBuildSelectNoFilterForNonSoftDeleteModel` | Plain model gets no `deleted_at` in SQL |
+
+### 13.4 `database/query/where_exists_test.go` ❌ MISSING
+
+Tests for `WhereExists` subquery generation (§8).
+
+| Test | Asserts |
+|---|---|
+| `TestWhereExistsGeneratesExistsSql` | SQL contains `EXISTS (SELECT` |
+| `TestWhereExistsCallbackReceivesClone` | Callback's query is independent of outer query |
+
+### 13.5 `database/query/insert_get_id_test.go` ❌ MISSING
+
+Tests for `InsertGetId` driver branching (§6).
+
+| Test | Asserts |
+|---|---|
+| `TestInsertGetIdPostgresUsesReturning` | SQL generated contains `RETURNING id` for postgres driver |
+| `TestInsertGetIdMysqlUsesLastInsertId` | SQL generated does NOT contain `RETURNING` for mysql driver |
+
+### 13.6 `database/query/scan_mapping_test.go` ❌ MISSING
+
+Tests for name/tag-based struct scanning (§10).
+
+| Test | Asserts |
+|---|---|
+| `TestScanRowsByDbTag` | `db:"col"` tag maps column to field correctly |
+| `TestScanRowsByNeatTag` | `neat:"col"` tag maps column to field correctly |
+| `TestScanRowsByGormTag` | `gorm:"column:col"` maps correctly |
+| `TestScanRowsBySnakeCase` | Field `UserName` maps from column `user_name` with no tag |
+| `TestScanRowsUnmatchedColumnIgnored` | Extra columns in result don't panic or error |
+| `TestScanRowsIntoSlice` | Scanning multiple rows into `[]Struct` populates all elements |
+
+### 13.7 `database/query/connection_switch_test.go` ❌ MISSING
+
+Tests for `Query.Connection(name)` switching (§5).
+
+| Test | Asserts |
+|---|---|
+| `TestConnectionSwitchUnknownNameErrors` | `Connection("nonexistent")` returns non-nil error |
+| `TestConnectionSwitchReturnsNewQuery` | Returned query is a different instance from the original |
+| `TestConnectionSwitchUsesCorrectDriver` | Returned query's `Driver()` matches the named connection's driver |
+
+### 13.8 `database/db/config_builder_replica_test.go` ❌ MISSING
+
+Tests for `ReplicaConfig` fields on `ConnectionConfig` (§3).
+
+| Test | Asserts |
+|---|---|
+| `TestConnectionConfigReadFieldSet` | `Read` slice is stored and accessible |
+| `TestConnectionConfigWriteFieldSet` | `Write` slice is stored and accessible |
+| `TestReplicaConfigFields` | `ReplicaConfig` struct has all five fields (Host, Port, Database, Username, Password) |
+
+### 13.9 `database/orm/buildquery_replica_test.go` ❌ MISSING
+
+Tests that `buildQuery` in `orm.go` wires replicas correctly (§3).
+
+| Test | Asserts |
+|---|---|
+| `TestBuildQueryNoReplicasUsesNewQuery` | With empty `Read`/`Write`, returns plain `*query.Query` (no `readDB`) |
+| `TestBuildQueryWithReadReplicaOpensReadDB` | With `Read` set, returned query's `ReadDB()` differs from `DB()` |
+| `TestBuildQueryWritePrimaryOverridesPrimary` | With `Write` set, returned query's `DB()` is the write connection |
+
+### 13.10 `config_test.go` ❌ MISSING (top-level `neat` package)
+
+Tests for `neat.ReplicaConfig` propagation to `db.ConnectionConfig` (§3).
+
+| Test | Asserts |
+|---|---|
+| `TestReplicaConfigPropagatedToDbConfig` | `neat.New` with `Read`/`Write` replicas produces `db.ConnectionConfig` with matching replica entries |
+| `TestDatabaseTypeAlias` | `neat.Database` is assignable to `*database.Database` |
+
+### 13.11 `database/query/transaction_hooks_test.go` ❌ MISSING
+
+Tests for transaction lifecycle callbacks (§2).
+
+| Test | Asserts |
+|---|---|
+| `TestBeforeCommitCalledOnCommit` | Registered `BeforeCommit` callback executes before commit |
+| `TestAfterCommitCalledOnCommit` | Registered `AfterCommit` callback executes after commit |
+| `TestBeforeRollbackCalledOnRollback` | Registered `BeforeRollback` callback executes on rollback |
+| `TestAfterRollbackCalledOnRollback` | Registered `AfterRollback` callback executes after rollback |
+| `TestBeforeCommitErrorAbortsCommit` | If `BeforeCommit` callback returns error, transaction is rolled back |
 
 ---
 
-## Priority Recommendations
+## 14. Integration Test Coverage Gaps
 
-1. **High** — Fix struct scan field mapping (positional → name/tag based) — breaks real-world models.
-2. **High** — Implement `Save` / `SaveQuietly` — core ORM pattern.
-3. **High** — Implement `LockForUpdate` / `SharedLock` — required for concurrent writes.
-4. **Medium** — Implement transaction hooks (`BeforeCommit`, `AfterCommit`, `BeforeRollback`, `AfterRollback`).
-5. **Medium** — Add `Connection(name)` switching at `Database` level.
-6. **Medium** — Implement `WhereExists` and subquery support.
-7. **Medium** — Implement `Scopes`, `Omit`, `InRandomOrder`.
-8. **Low** — Add `EventBus` public API.
-9. **Low** — Add read/write replica support (`Read`/`Write` in `ConnectionConfig`).
-10. **Low** — Wire up `SlowThreshold` logging and query duration tracking.
+### Previously missing, now added
+- `mysql_connection_test.go`, `postgres_connection_test.go` — connection switching, read/write separation, pool settings
+- `postgres_raw_test.go`, `postgres_where_test.go`, `postgres_where_advanced_test.go`, `postgres_where_any_all_advanced_test.go`
+- `postgres_update_test.go`, `postgres_query_load_test.go`, `postgres_query_association_test.go`, `postgres_query_belongs_to_test.go`
+
+### Still missing integration coverage
+| Area | Gap |
+|---|---|
+| Read/write routing with real dual DB | No test that reads go to replica and writes go to primary using *different* hosts |
+| `InsertGetId` Postgres `RETURNING id` | No integration test asserting the returned ID is non-zero |
+| `Query.Connection(name)` switching | Integration test needed (connection test exercises `Database.Connection`, not `Query.Connection`) |
+| `SlowThreshold` warning in integration | No test that triggers and captures a slow-query log entry against a real DB |
+| Transaction hooks (`BeforeCommit` etc.) | Integration test needed to confirm callbacks fire with a real DB |
+
+---
+
+## Priority Recommendations (updated)
+
+1. **Critical** — Create `query_routing_test.go` (§13.1) — no unit test covers read/write routing at all.
+2. **Critical** — Create `soft_delete_builder_test.go` (§13.3) — no test verifies the SQL filter injection.
+3. **Critical** — Create `scan_mapping_test.go` (§13.6) — no test verifies tag-based column mapping.
+4. **High** — Create `insert_get_id_test.go` (§13.5) — postgres `RETURNING id` path has zero coverage.
+5. **High** — Create `transaction_hooks_test.go` (§13.11) — hooks are implemented but untested.
+6. **High** — Create `query_log_test.go` (§13.2) — slow threshold and duration tracking untested.
+7. **Medium** — Create `where_exists_test.go` (§13.4), `connection_switch_test.go` (§13.7).
+8. **Medium** — Create `config_builder_replica_test.go` (§13.8), `buildquery_replica_test.go` (§13.9), `config_test.go` (§13.10).
+9. **Low** — Fix existing `to_sql_test.go` assertions to check SQL correctness, not just non-empty.
