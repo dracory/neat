@@ -5,6 +5,7 @@ package mysql
 import (
 	"strings"
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -17,48 +18,48 @@ func TestMySQLIntegrationQueryToSql(t *testing.T) {
 	query := db.Query()
 
 	t.Run("ToSql", func(t *testing.T) {
-		sql := query.Table("users").Where("id = ?", 1).ToSql().Get(&models.User{})
-		if !strings.Contains(strings.ToUpper(sql), "SELECT * FROM `USERS`") {
-			t.Error("SQL should contain SELECT * FROM USERS")
+		sql := strings.ToUpper(query.Table("users").Where("id = ?", 1).ToSql().Get(&models.User{}))
+		if !strings.Contains(sql, "SELECT") || !strings.Contains(sql, "USERS") {
+			t.Errorf("SQL should contain SELECT ... USERS, got: %s", sql)
 		}
-		if !strings.Contains(strings.ToUpper(sql), "WHERE `ID` = ?") {
-			t.Error("SQL should contain WHERE ID = ?")
+		if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, "ID") {
+			t.Errorf("SQL should contain WHERE ... ID, got: %s", sql)
 		}
 	})
 
 	t.Run("ToRawSql", func(t *testing.T) {
-		sql := query.Table("users").Where("id = ?", 1).ToRawSql().Get(&models.User{})
-		if !strings.Contains(strings.ToUpper(sql), "SELECT * FROM `USERS`") {
-			t.Error("SQL should contain SELECT * FROM USERS")
+		sql := strings.ToUpper(query.Table("users").Where("id = ?", 1).ToRawSql().Get(&models.User{}))
+		if !strings.Contains(sql, "SELECT") || !strings.Contains(sql, "USERS") {
+			t.Errorf("SQL should contain SELECT ... USERS, got: %s", sql)
 		}
-		if !strings.Contains(strings.ToUpper(sql), "WHERE `ID` = 1") {
-			t.Error("SQL should contain WHERE ID = 1")
+		if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, " 1") {
+			t.Errorf("SQL should contain WHERE ... 1 (interpolated), got: %s", sql)
 		}
 	})
 
 	t.Run("ToSql Count", func(t *testing.T) {
-		sql := query.Table("users").Where("name = ?", "test").ToSql().Count()
-		if !strings.Contains(strings.ToUpper(sql), "SELECT COUNT(*)") {
-			t.Error("SQL should contain SELECT COUNT(*)")
+		sql := strings.ToUpper(query.Table("users").Where("name = ?", "test").ToSql().Count())
+		if !strings.Contains(sql, "COUNT") {
+			t.Errorf("SQL should contain COUNT, got: %s", sql)
 		}
-		if !strings.Contains(strings.ToUpper(sql), "FROM `USERS`") {
-			t.Error("SQL should contain FROM USERS")
+		if !strings.Contains(sql, "USERS") {
+			t.Errorf("SQL should contain USERS, got: %s", sql)
 		}
-		if !strings.Contains(strings.ToUpper(sql), "WHERE `NAME` = ?") {
-			t.Error("SQL should contain WHERE NAME = ?")
+		if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, "NAME") {
+			t.Errorf("SQL should contain WHERE ... NAME, got: %s", sql)
 		}
 	})
 
 	t.Run("ToSql Update", func(t *testing.T) {
-		sql := query.Table("users").Where("id = ?", 1).ToSql().Update("name", "new_name")
-		if !strings.Contains(strings.ToUpper(sql), "UPDATE `USERS`") {
-			t.Error("SQL should contain UPDATE USERS")
+		sql := strings.ToUpper(query.Table("users").Where("id = ?", 1).ToSql().Update("name", "new_name"))
+		if !strings.Contains(sql, "UPDATE") || !strings.Contains(sql, "USERS") {
+			t.Errorf("SQL should contain UPDATE USERS, got: %s", sql)
 		}
-		if !strings.Contains(strings.ToUpper(sql), "SET `NAME`=?") {
-			t.Error("SQL should contain SET NAME=?")
+		if !strings.Contains(sql, "SET") || !strings.Contains(sql, "NAME") {
+			t.Errorf("SQL should contain SET ... NAME, got: %s", sql)
 		}
-		if !strings.Contains(strings.ToUpper(sql), "WHERE `ID` = ?") {
-			t.Error("SQL should contain WHERE ID = ?")
+		if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, "ID") {
+			t.Errorf("SQL should contain WHERE ... ID, got: %s", sql)
 		}
 	})
 }

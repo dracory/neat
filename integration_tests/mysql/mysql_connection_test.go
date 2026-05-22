@@ -82,8 +82,9 @@ func TestMySQLIntegrationConnection(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get default connection: %v", err)
 		}
-		if conn.DatabaseName() != "mysql" {
-			t.Errorf("Expected connection name 'mysql', got '%s'", conn.DatabaseName())
+		expectedDB := getEnv("MYSQL_DATABASE", "test")
+		if conn.DatabaseName() != expectedDB {
+			t.Errorf("Expected database name '%s', got '%s'", expectedDB, conn.DatabaseName())
 		}
 	})
 

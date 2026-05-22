@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -109,6 +110,7 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 	if user5.Bio == nil {
 		t.Error("Bio should be set")
+		return
 	}
 	if *user5.Bio != "bio_updated" {
 		t.Errorf("Expected 'bio_updated', got '%s'", *user5.Bio)

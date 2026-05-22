@@ -112,22 +112,75 @@ func SetupMySQLTest(t *testing.T) *database.Database {
 
 	host := getEnv("MYSQL_HOST", "127.0.0.1")
 	port := getEnvInt("MYSQL_PORT", 3306)
-	database := getEnv("MYSQL_DATABASE", "test")
+	dbName := getEnv("MYSQL_DATABASE", "test")
 	username := getEnv("MYSQL_USER", "root")
 	password := getEnv("MYSQL_PASS", "root")
 	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local&multiStatements=true",
-		username, password, host, port, database)
+		username, password, host, port, dbName)
 
 	db, err := neat.NewFromDSN(dsn)
 	if err != nil {
 		t.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 
+	createMySQLTestTables(t, db)
+
 	t.Cleanup(func() {
 		db.Close()
 	})
 
 	return db
+}
+
+// createMySQLTestTables creates all tables required by the integration test models.
+func createMySQLTestTables(t *testing.T, db *database.Database) {
+	t.Helper()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("createMySQLTestTables: DB(): %v", err)
+	}
+	stmts := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+			id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
+			avatar     VARCHAR(255) NOT NULL DEFAULT '',
+			bio        TEXT,
+			deleted_at DATETIME,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+		`CREATE TABLE IF NOT EXISTS addresses (
+			id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
+			user_id    BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+		`CREATE TABLE IF NOT EXISTS books (
+			id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
+			user_id    BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+		`CREATE TABLE IF NOT EXISTS peoples (
+			id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			body       TEXT NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+		`CREATE TABLE IF NOT EXISTS json_datas (
+			id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			data       JSON NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+	}
+	for _, stmt := range stmts {
+		if _, err := sqlDB.Exec(stmt); err != nil {
+			t.Fatalf("createMySQLTestTables: %v", err)
+		}
+	}
 }
 
 // SetupMySQLConnection creates a database connection without setting up tables
