@@ -53,13 +53,11 @@ All query log entries in `neat` now record actual execution duration in millisec
 
 ---
 
-## 3. Read/Write Replica Support ✅ COMPLETED (fields added; query routing not yet wired)
+## 3. Read/Write Replica Support ✅ COMPLETED
 
-`eloquent`'s `ConnectionConfig` has `Read []database.Config` and `Write []database.Config` fields and uses GORM's `dbresolver` plugin to route reads to replicas and writes to primaries.
+`neat` exports `ReplicaConfig` and `ConnectionConfig.Read`/`Write` fields. `buildQuery` in `database/orm/orm.go` opens separate `*sql.DB` connections for read replicas and write primaries. `Query` has `readDB`/`writeDB` fields with `readConn()`/`writeConn()` helpers; all SELECT paths (`Find`, `First`, `Get`, aggregates, `Pluck`, `Scan`, `Chunk`, `Paginate`, `Cursor`) route to the read replica while write paths use the write primary. Integration tests cover both single-connection and read/write-separated configs.
 
-`neat`'s `ConnectionConfig` has **no** `Read`/`Write` fields — all queries go to a single connection. No read/write splitting is possible.
-
-**File**: `d:\PROJECTs\_modules_dracory\neat\config.go:29-46` vs `d:\PROJECTs\_modules_dracory\eloquent\config.go:28-47`.
+**Files**: `neat/config.go`, `neat/database/db/config_builder.go`, `neat/database/orm/orm.go`, `neat/database/query/query.go`.
 
 ---
 
