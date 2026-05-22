@@ -44,6 +44,7 @@ type Query struct {
 	limit        *int
 	offset       *int
 	distinct     bool
+	distinctCols []string
 	aggregate    string
 	aggregateCol string
 
@@ -151,6 +152,11 @@ func (q *Query) Clone() contractsorm.Query {
 	clone := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
 	clone.readDB = q.readDB
 	clone.writeDB = q.writeDB
+	clone.table = q.table
+	clone.model = q.model
+	clone.omitColumns = q.omitColumns
+	clone.distinct = q.distinct
+	clone.distinctCols = q.distinctCols
 	return clone
 }
 
@@ -346,6 +352,12 @@ func (q *Query) Offset(offset int) contractsorm.Query {
 // Distinct adds distinct to the query.
 func (q *Query) Distinct(args ...any) contractsorm.Query {
 	q.distinct = true
+	if len(args) > 0 {
+		q.distinctCols = make([]string, 0)
+		for _, arg := range args {
+			q.distinctCols = append(q.distinctCols, fmt.Sprintf("%v", arg))
+		}
+	}
 	return q
 }
 
@@ -803,6 +815,10 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 	}
 
 	q.logQuery(insertSQL, args, start)
+
+	// Write the ID back to the struct if it's a pointer-to-struct
+	setModelPrimaryKey(values, lastID)
+
 	return uint(lastID), nil
 }
 
@@ -1081,12 +1097,15 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) contr
 }
 
 func (q *Query) Count(count *int64) error {
-	// Set aggregate
-	q.aggregate = "COUNT"
-	q.aggregateCol = "*"
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.aggregate = "COUNT"
+	clone.aggregateCol = "*"
+	clone.distinct = q.distinct
+	clone.distinctCols = q.distinctCols
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -1364,10 +1383,7 @@ func (q *Query) Scan(dest any) error {
 	return q.scanRows(rows, dest)
 }
 func (q *Query) Chunk(size int, callback any) error {
-	// Set limit to chunk size
-	q.limit = &size
-
-	// Build SELECT query
+	// Build SELECT query without limit (we chunk in memory)
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
@@ -1484,19 +1500,67 @@ func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
 	return q.Create(values)
 }
 func (q *Query) UpdateOrInsert(attributes any, values any) error {
+	// Build WHERE conditions from attributes
+	clone := q.Clone().(*Query)
+
+	// Handle map[string]any for attributes
+	if attrs, ok := attributes.(map[string]any); ok {
+		for col, val := range attrs {
+			clone.Where(col, val)
+		}
+	} else {
+		// For structs, extract fields and build WHERE conditions
+		cols, vals, err := NewBuilder(q).extractSingleColumnsAndValues(attributes)
+		if err == nil {
+			for i, col := range cols {
+				clone.Where(col, vals[i])
+			}
+		}
+	}
+
 	// Try to find the record first
 	count := int64(0)
-	if err := q.Count(&count); err != nil {
+	if err := clone.Count(&count); err != nil {
 		return err
 	}
 
 	if count > 0 {
 		// Record exists, update it
-		_, err := q.Update(values)
+		// Use the original query with WHERE conditions from attributes
+		updateQ := q.Clone().(*Query)
+		if attrs, ok := attributes.(map[string]any); ok {
+			for col, val := range attrs {
+				updateQ.Where(col, val)
+			}
+		} else {
+			cols, vals, err := NewBuilder(q).extractSingleColumnsAndValues(attributes)
+			if err == nil {
+				for i, col := range cols {
+					updateQ.Where(col, vals[i])
+				}
+			}
+		}
+		_, err := updateQ.Update(values)
 		return err
 	}
 
 	// Record doesn't exist, create it
+	// Merge attributes and values for the insert
+	if attrsMap, ok := attributes.(map[string]any); ok {
+		if valsMap, ok := values.(map[string]any); ok {
+			// Merge both maps
+			merged := make(map[string]any)
+			for k, v := range attrsMap {
+				merged[k] = v
+			}
+			for k, v := range valsMap {
+				merged[k] = v
+			}
+			return q.Create(merged)
+		}
+	}
+
+	// For struct values or mixed types, just create with values
 	return q.Create(values)
 }
 func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, error) {
@@ -2029,11 +2093,28 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 		return fmt.Errorf("callback must be a function")
 	}
 
+	// Get callback parameter type
+	callbackType := callbackValue.Type()
+	if callbackType.NumIn() != 1 {
+		return fmt.Errorf("callback must accept exactly one parameter")
+	}
+
+	paramType := callbackType.In(0)
+
+	// Determine if we need to convert to a specific type
+	var isTypedSlice bool
+	var elemType reflect.Type
+
+	if paramType.Kind() == reflect.Slice {
+		isTypedSlice = true
+		elemType = paramType.Elem()
+	}
+
 	// Process rows in chunks
-	chunk := make([]any, 0, size)
+	chunk := make([]map[string]any, 0, size)
+
 	for rows.Next() {
-		// Scan row into a map or struct (simplified for now)
-		var row map[string]any
+		// Scan into a map
 		columns, err := rows.Columns()
 		if err != nil {
 			return fmt.Errorf("failed to get columns: %w", err)
@@ -2049,7 +2130,7 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		row = make(map[string]any)
+		row := make(map[string]any)
 		for i, col := range columns {
 			row[col] = values[i]
 		}
@@ -2058,19 +2139,71 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 
 		// Call callback when chunk is full
 		if len(chunk) >= size {
-			results := callbackValue.Call([]reflect.Value{reflect.ValueOf(chunk)})
+			var chunkValue reflect.Value
+			if isTypedSlice {
+				// Convert maps to typed slice
+				chunkValue = reflect.MakeSlice(paramType, 0, len(chunk))
+				for _, rowMap := range chunk {
+					elem := reflect.New(elemType).Elem()
+					// Map row data to struct fields
+					for key, val := range rowMap {
+						fieldName := toCamelCase(key)
+						field := elem.FieldByName(fieldName)
+						if field.IsValid() && field.CanSet() {
+							if val != nil {
+								// Convert value to field type
+								valReflect := reflect.ValueOf(val)
+								if valReflect.Type().ConvertibleTo(field.Type()) {
+									field.Set(valReflect.Convert(field.Type()))
+								}
+							}
+						}
+					}
+					chunkValue = reflect.Append(chunkValue, elem)
+				}
+			} else {
+				chunkValue = reflect.ValueOf(chunk)
+			}
+
+			results := callbackValue.Call([]reflect.Value{chunkValue})
 			if len(results) > 0 {
 				if err, ok := results[0].Interface().(error); ok && err != nil {
 					return err
 				}
 			}
-			chunk = make([]any, 0, size)
+			chunk = make([]map[string]any, 0, size)
 		}
 	}
 
 	// Process remaining rows in the last chunk
 	if len(chunk) > 0 {
-		results := callbackValue.Call([]reflect.Value{reflect.ValueOf(chunk)})
+		var chunkValue reflect.Value
+		if isTypedSlice {
+			// Convert maps to typed slice
+			chunkValue = reflect.MakeSlice(paramType, 0, len(chunk))
+			for _, rowMap := range chunk {
+				elem := reflect.New(elemType).Elem()
+				// Map row data to struct fields
+				for key, val := range rowMap {
+					fieldName := toCamelCase(key)
+					field := elem.FieldByName(fieldName)
+					if field.IsValid() && field.CanSet() {
+						if val != nil {
+							// Convert value to field type
+							valReflect := reflect.ValueOf(val)
+							if valReflect.Type().ConvertibleTo(field.Type()) {
+								field.Set(valReflect.Convert(field.Type()))
+							}
+						}
+					}
+				}
+				chunkValue = reflect.Append(chunkValue, elem)
+			}
+		} else {
+			chunkValue = reflect.ValueOf(chunk)
+		}
+
+		results := callbackValue.Call([]reflect.Value{chunkValue})
 		if len(results) > 0 {
 			if err, ok := results[0].Interface().(error); ok && err != nil {
 				return err
@@ -2079,6 +2212,17 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	}
 
 	return rows.Err()
+}
+
+// toCamelCase converts snake_case to CamelCase
+func toCamelCase(s string) string {
+	parts := strings.Split(s, "_")
+	for i := range parts {
+		if len(parts[i]) > 0 {
+			parts[i] = strings.ToUpper(parts[i][:1]) + strings.ToLower(parts[i][1:])
+		}
+	}
+	return strings.Join(parts, "")
 }
 
 // getPrimaryKeyValue returns the primary key value (ID/Id) of a struct as int64, 0 if absent or zero.

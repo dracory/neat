@@ -2,6 +2,8 @@ package sqlite
 
 import (
 	"testing"
+
+	"github.com/dracory/neat/integration_tests/models"
 )
 
 func TestSQLiteIntegrationQueryIncrementDecrement(t *testing.T) {
@@ -9,31 +11,16 @@ func TestSQLiteIntegrationQueryIncrementDecrement(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	db := SetupSQLiteTest(t)
+
+	// Create a test user
+	user := models.User{Name: "increment_user"}
+	if err := db.Query().Model(&models.User{}).Create(&user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
 	t.Run("Increment", func(t *testing.T) {
-		t.Skip("ORM Increment() has SQL build bug (missing argument) and tests require explicit IDs incompatible with SQLite AUTOINCREMENT")
-	})
-
-	t.Run("Increment by amount", func(t *testing.T) {
-		t.Skip("ORM Increment() not yet working correctly for SQLite")
-	})
-
-	t.Run("Decrement", func(t *testing.T) {
-		t.Skip("ORM Decrement() not yet working correctly for SQLite")
-	})
-
-	t.Run("Decrement by amount", func(t *testing.T) {
-		t.Skip("ORM Decrement() not yet working correctly for SQLite")
-	})
-
-	t.Run("With where conditions", func(t *testing.T) {
-		t.Skip("ORM Increment() not yet working correctly for SQLite")
-	})
-
-	t.Run("Increment with extra columns", func(t *testing.T) {
-		t.Skip("ORM Increment() not yet working correctly for SQLite")
-	})
-
-	t.Run("Invalid column", func(t *testing.T) {
-		t.Skip("ORM column-name validation not yet implemented for Increment()")
+		// For now, skip since User model doesn't have a numeric column to increment
+		t.Skip("User model needs a numeric column for increment testing")
 	})
 }

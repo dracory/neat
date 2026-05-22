@@ -25,7 +25,18 @@ func TestSQLiteIntegrationDistinct(t *testing.T) {
 	}
 
 	t.Run("Distinct single column", func(t *testing.T) {
-		t.Skip("ORM Select(col).Distinct().Scan() does not generate SELECT DISTINCT col — not yet implemented")
+		type Result struct {
+			Avatar string
+		}
+		var results []Result
+		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "distinct_user_%").
+			Select("avatar").Distinct().OrderBy("avatar", "asc").Scan(&results)
+		if err != nil {
+			t.Errorf("Distinct single column failed: %v", err)
+		}
+		if len(results) != 2 {
+			t.Errorf("Expected 2 distinct avatars, got %d", len(results))
+		}
 	})
 
 	t.Run("Distinct multiple columns", func(t *testing.T) {
@@ -45,7 +56,15 @@ func TestSQLiteIntegrationDistinct(t *testing.T) {
 	})
 
 	t.Run("Distinct with Count", func(t *testing.T) {
-		t.Skip("ORM Distinct(col).Count() does not generate COUNT(DISTINCT col) — not yet implemented")
+		var count int64
+		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "distinct_user_%").
+			Distinct("avatar").Count(&count)
+		if err != nil {
+			t.Errorf("Distinct with Count failed: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("Expected count 2, got %d", count)
+		}
 	})
 
 	t.Run("Distinct without arguments with Count", func(t *testing.T) {
@@ -53,6 +72,18 @@ func TestSQLiteIntegrationDistinct(t *testing.T) {
 	})
 
 	t.Run("Distinct with Select", func(t *testing.T) {
-		t.Skip("ORM Distinct(col).Scan() does not generate SELECT DISTINCT col — not yet implemented")
+		type Result struct {
+			Name   string
+			Avatar string
+		}
+		var results []Result
+		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "distinct_user_%").
+			Select("name", "avatar").Distinct().OrderBy("name", "asc").Scan(&results)
+		if err != nil {
+			t.Errorf("Distinct with Select failed: %v", err)
+		}
+		if len(results) != 3 {
+			t.Errorf("Expected 3 results, got %d", len(results))
+		}
 	})
 }

@@ -141,7 +141,20 @@ func TestSQLiteIntegrationGroupHaving(t *testing.T) {
 	})
 
 	t.Run("Multiple Having clauses", func(t *testing.T) {
-		t.Skip("ORM chained Having() calls generate invalid SQL (duplicate HAVING keyword) — not yet fixed")
+		type Result struct {
+			Avatar string
+			Count  int64
+		}
+		var results []Result
+		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
+			Select("avatar, COUNT(*) as count").Group("avatar").
+			Having("COUNT(*) > ?", 1).Having("COUNT(*) < ?", 5).Scan(&results)
+		if err != nil {
+			t.Errorf("Multiple Having clauses failed: %v", err)
+		}
+		if len(results) != 2 {
+			t.Errorf("Expected 2 results, got %d", len(results))
+		}
 	})
 
 	t.Run("Having with subquery callback", func(t *testing.T) {

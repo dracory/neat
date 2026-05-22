@@ -23,7 +23,18 @@ func TestSQLiteIntegrationQueryChunk(t *testing.T) {
 	}
 
 	t.Run("chunk basic", func(t *testing.T) {
-		t.Skip("ORM Chunk() passes []interface{} to typed callbacks — type mismatch panic, not yet fixed")
+		count := 0
+		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "chunk_user_%").
+			Chunk(3, func(users []models.User) error {
+				count += len(users)
+				return nil
+			})
+		if err != nil {
+			t.Errorf("chunk basic failed: %v", err)
+		}
+		if count != 10 {
+			t.Errorf("Expected 10 total users, got %d", count)
+		}
 	})
 
 	t.Run("chunk with custom batch size", func(t *testing.T) {

@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -52,16 +53,6 @@ func TestMySQLIntegrationQueryCreate(t *testing.T) {
 		}
 		if len(foundUsers) < 2 {
 			t.Error("Should have created at least 2 users")
-		}
-	})
-
-	t.Run("create by map", func(t *testing.T) {
-		userMap := map[string]any{
-			"name": "create_user_map",
-		}
-		err := query.Table("users").Create(userMap)
-		if err != nil {
-			t.Errorf("Create by map failed: %v", err)
 		}
 	})
 

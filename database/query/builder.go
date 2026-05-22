@@ -23,16 +23,55 @@ func (b *Builder) BuildSelect() (string, []any) {
 	var args []any
 
 	// SELECT clause
-	if len(b.query.selects) > 0 {
+	if b.query.aggregate != "" {
+		// When aggregate is set, ignore SELECT list and use aggregate function
+		// Handle COUNT with DISTINCT
+		if b.query.aggregate == "COUNT" && b.query.distinct && len(b.query.distinctCols) > 0 {
+			parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(b.query.distinctCols, ", ")))
+		} else {
+			parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
+		}
+	} else if len(b.query.selects) > 0 {
 		var selectParts []string
 		for _, s := range b.query.selects {
 			selectParts = append(selectParts, fmt.Sprintf("%v", s))
 		}
-		parts = append(parts, fmt.Sprintf("SELECT %s", strings.Join(selectParts, ", ")))
-	} else if b.query.aggregate != "" {
-		parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
+		// Prepend DISTINCT if set
+		if b.query.distinct {
+			parts = append(parts, fmt.Sprintf("SELECT DISTINCT %s", strings.Join(selectParts, ", ")))
+		} else {
+			parts = append(parts, fmt.Sprintf("SELECT %s", strings.Join(selectParts, ", ")))
+		}
 	} else {
-		parts = append(parts, "SELECT *")
+		// No explicit SELECT, derive from model
+		if b.query.model != nil {
+			cols, _, err := b.extractSingleColumnsAndValues(b.query.model)
+			if err == nil && len(cols) > 0 {
+				// Filter out omitted columns
+				var filteredCols []string
+				for _, col := range cols {
+					omitted := false
+					for _, omit := range b.query.omitColumns {
+						if omit == col {
+							omitted = true
+							break
+						}
+					}
+					if !omitted {
+						filteredCols = append(filteredCols, col)
+					}
+				}
+				if len(filteredCols) > 0 {
+					parts = append(parts, fmt.Sprintf("SELECT %s", strings.Join(filteredCols, ", ")))
+				} else {
+					parts = append(parts, "SELECT *")
+				}
+			} else {
+				parts = append(parts, "SELECT *")
+			}
+		} else {
+			parts = append(parts, "SELECT *")
+		}
 	}
 
 	// FROM clause
@@ -60,10 +99,12 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// HAVING clauses
 	if len(b.query.havings) > 0 {
+		var havingParts []string
 		for _, having := range b.query.havings {
-			parts = append(parts, fmt.Sprintf("HAVING %s", having.query))
+			havingParts = append(havingParts, having.query)
 			args = append(args, having.args...)
 		}
+		parts = append(parts, fmt.Sprintf("HAVING %s", strings.Join(havingParts, " AND ")))
 	}
 
 	// ORDER BY clauses
@@ -174,8 +215,15 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	} else if len(values) > 0 {
 		// Handle single column with value
 		if colStr, ok := column.(string); ok {
-			setParts = append(setParts, fmt.Sprintf("%s = ?", colStr))
-			args = append(args, values[0])
+			// Check if the column string is already a complete SET expression (contains =)
+			if strings.Contains(colStr, "=") {
+				// Use the expression as-is (for Increment/Decrement)
+				setParts = append(setParts, colStr)
+				args = append(args, values...)
+			} else {
+				setParts = append(setParts, fmt.Sprintf("%s = ?", colStr))
+				args = append(args, values[0])
+			}
 		}
 	} else {
 		// Handle struct or pointer-to-struct: extract fields as col=? pairs
@@ -329,7 +377,19 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 
 	// Handle map[string]any
 	if v.Kind() == reflect.Map {
-		for _, key := range v.MapKeys() {
+		// Sort keys for deterministic SQL generation
+		keys := v.MapKeys()
+		sortedKeys := make([]reflect.Value, len(keys))
+		copy(sortedKeys, keys)
+		// Sort by string key name
+		for i := 0; i < len(sortedKeys); i++ {
+			for j := i + 1; j < len(sortedKeys); j++ {
+				if sortedKeys[i].String() > sortedKeys[j].String() {
+					sortedKeys[i], sortedKeys[j] = sortedKeys[j], sortedKeys[i]
+				}
+			}
+		}
+		for _, key := range sortedKeys {
 			columns = append(columns, key.String())
 			values = append(values, v.MapIndex(key).Interface())
 		}
