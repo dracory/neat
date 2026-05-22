@@ -27,3 +27,8 @@ func SetupSQLiteConnection(t *testing.T) *database.Database {
 
 	return db
 }
+
+// SetupSQLiteTest creates a database connection and sets up test tables
+func SetupSQLiteTest(t *testing.T) *database.Database {
+	return SetupSQLiteConnection(t)
+}

@@ -235,7 +235,11 @@ func TestSQLiteSchemaTable(t *testing.T) {
 
 		// Check the actual table name in the DB
 		var actualName string
-		err = db2.DB().Raw("SELECT name FROM sqlite_master WHERE type='table' AND name=?", prefix+tableName).Scan(&actualName).Error
+		sqlDB, err := db2.DB()
+		if err != nil {
+			t.Fatalf("Failed to get sql.DB: %v", err)
+		}
+		err = sqlDB.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", prefix+tableName).Scan(&actualName)
 		if err != nil {
 			t.Fatalf("Failed to query actual table name: %v", err)
 		}
@@ -272,7 +276,11 @@ func TestSQLiteSchemaTable(t *testing.T) {
 			t.Error("New table name should exist after rename")
 		}
 
-		err = db2.DB().Raw("SELECT name FROM sqlite_master WHERE type='table' AND name=?", prefix+newTableName).Scan(&actualName).Error
+		sqlDB, err = db2.DB()
+		if err != nil {
+			t.Fatalf("Failed to get sql.DB: %v", err)
+		}
+		err = sqlDB.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", prefix+newTableName).Scan(&actualName)
 		if err != nil {
 			t.Fatalf("Failed to query actual table name after rename: %v", err)
 		}

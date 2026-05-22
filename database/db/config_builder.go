@@ -6,6 +6,230 @@ import (
 	"strings"
 )
 
+// GetString implements config.Config interface for DBConfig.
+func (c *DBConfig) GetString(path string, defaultValue ...any) string {
+	switch path {
+	case "database.default":
+		if c.Default != "" {
+			return c.Default
+		}
+		if len(defaultValue) > 0 {
+			return defaultValue[0].(string)
+		}
+		return ""
+	}
+
+	// Handle connection-specific paths
+	if strings.HasPrefix(path, "database.connections.") {
+		parts := splitPath(path)
+		if len(parts) >= 4 {
+			connName := parts[2]
+			field := parts[3]
+
+			conn, ok := c.Connections[connName]
+			if !ok && len(defaultValue) > 0 {
+				return defaultValue[0].(string)
+			}
+
+			switch field {
+			case "driver":
+				return conn.Driver
+			case "prefix":
+				return conn.Prefix
+			case "dsn":
+				return conn.Dsn
+			case "host":
+				return conn.Host
+			case "port":
+				return fmt.Sprintf("%d", conn.Port)
+			case "username":
+				return conn.Username
+			case "password":
+				return conn.Password
+			case "charset":
+				return conn.Charset
+			case "schema":
+				if conn.Schema != "" {
+					return conn.Schema
+				}
+				if len(defaultValue) > 0 {
+					return defaultValue[0].(string)
+				}
+				return "public"
+			case "loc":
+				return conn.Loc
+			case "sslmode":
+				return conn.SSLMode
+			case "timezone":
+				return conn.Timezone
+			case "database":
+				return conn.Database
+			}
+		}
+	}
+
+	if len(defaultValue) > 0 {
+		return defaultValue[0].(string)
+	}
+	return ""
+}
+
+// GetInt implements config.Config interface for DBConfig.
+func (c *DBConfig) GetInt(path string, defaultValue ...any) int {
+	switch path {
+	case "database.pool.max_idle_conns":
+		if c.Pool.MaxIdleConns > 0 {
+			return c.Pool.MaxIdleConns
+		}
+		if len(defaultValue) > 0 {
+			return defaultValue[0].(int)
+		}
+		return 10
+	case "database.pool.max_open_conns":
+		if c.Pool.MaxOpenConns > 0 {
+			return c.Pool.MaxOpenConns
+		}
+		if len(defaultValue) > 0 {
+			return defaultValue[0].(int)
+		}
+		return 100
+	case "database.pool.conn_max_idletime":
+		if c.Pool.ConnMaxIdleTime > 0 {
+			return c.Pool.ConnMaxIdleTime
+		}
+		if len(defaultValue) > 0 {
+			return defaultValue[0].(int)
+		}
+		return 3600
+	case "database.pool.conn_max_lifetime":
+		if c.Pool.ConnMaxLifetime > 0 {
+			return c.Pool.ConnMaxLifetime
+		}
+		if len(defaultValue) > 0 {
+			return defaultValue[0].(int)
+		}
+		return 3600
+	}
+
+	// Handle connection-specific port
+	if strings.HasPrefix(path, "database.connections.") {
+		parts := splitPath(path)
+		if len(parts) >= 4 {
+			connName := parts[2]
+			field := parts[3]
+
+			conn, ok := c.Connections[connName]
+			if ok && field == "port" {
+				return conn.Port
+			}
+		}
+	}
+
+	if len(defaultValue) > 0 {
+		return defaultValue[0].(int)
+	}
+	return 0
+}
+
+// GetBool implements config.Config interface for DBConfig.
+func (c *DBConfig) GetBool(path string, defaultValue ...any) bool {
+	switch path {
+	case "app.debug":
+		return c.Debug
+	}
+
+	// Handle connection-specific bool fields
+	if strings.HasPrefix(path, "database.connections.") {
+		parts := splitPath(path)
+		if len(parts) >= 4 {
+			connName := parts[2]
+			field := parts[3]
+
+			conn, ok := c.Connections[connName]
+			if ok {
+				switch field {
+				case "singular":
+					return conn.Singular
+				case "no_lower_case":
+					return conn.NoLowerCase
+				}
+			}
+		}
+	}
+
+	if len(defaultValue) > 0 {
+		return defaultValue[0].(bool)
+	}
+	return false
+}
+
+// Get implements config.Config interface for DBConfig.
+func (c *DBConfig) Get(path string, defaultValue ...any) any {
+	// Handle connection-specific maps
+	if strings.HasPrefix(path, "database.connections.") {
+		parts := splitPath(path)
+		if len(parts) >= 4 {
+			connName := parts[2]
+			field := parts[3]
+
+			conn, ok := c.Connections[connName]
+			if !ok {
+				if len(defaultValue) > 0 {
+					return defaultValue[0]
+				}
+				return nil
+			}
+
+			switch field {
+			case "read":
+				// Return single connection as array for simplicity
+				return []any{conn}
+			case "write":
+				return []any{conn}
+			case "name_replacer":
+				return conn.NameReplacer
+			}
+		}
+	}
+
+	if len(defaultValue) > 0 {
+		return defaultValue[0]
+	}
+	return nil
+}
+
+// Env implements config.Config interface for DBConfig (stub).
+func (c *DBConfig) Env(envName string, defaultValue ...any) any {
+	if len(defaultValue) > 0 {
+		return defaultValue[0]
+	}
+	return nil
+}
+
+// Add implements config.Config interface for DBConfig (stub).
+func (c *DBConfig) Add(name string, configuration any) {
+	// Not implemented for standalone module
+}
+
+func splitPath(path string) []string {
+	var parts []string
+	current := ""
+	for _, ch := range path {
+		if ch == '.' {
+			if current != "" {
+				parts = append(parts, current)
+				current = ""
+			}
+		} else {
+			current += string(ch)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+	return parts
+}
+
 // ConfigBuilder builds DSN strings from connection configuration.
 type ConfigBuilder struct {
 	config ConnectionConfig

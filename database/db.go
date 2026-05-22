@@ -101,8 +101,12 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 	}
 	database.ormInstance = ormInstance
 
-	// Schema will be initialized lazily via Schema() method
-	// due to config type mismatch between db.DBConfig and config.Config
+	// Initialize Schema
+	s, err := schema.NewSchema(database.config, database.logger, database.ormInstance, nil)
+	if err != nil {
+		return nil, err
+	}
+	database.schema = s
 
 	return database, nil
 }
@@ -303,12 +307,8 @@ func (d *Database) Query() orm.Query {
 }
 
 // Schema returns the schema builder.
-// Note: Schema initialization requires a config adapter to convert db.DBConfig to config.Config
-// This is deferred until the config adapter is implemented.
 func (d *Database) Schema() *schema.Schema {
-	// TODO: Initialize schema when config adapter is available
-	// For now, return nil as schema requires config.Config interface
-	return nil
+	return d.schema
 }
 
 // DB returns the underlying database connection.
@@ -341,11 +341,16 @@ func (d *Database) Connection(name string) (*Database, error) {
 		return nil, fmt.Errorf("connection %s not found", name)
 	}
 
-	// TODO: Handle schema connection when schema package is implemented
-	// schemaConn := d.schema.Connection(name)
-	// if schemaConn == nil {
-	// 	return nil, fmt.Errorf("schema connection %s not found", name)
-	// }
+	schemaConn := d.schema.Connection(name)
+	if schemaConn == nil {
+		return nil, fmt.Errorf("schema connection %s not found", name)
+	}
+
+	// Type assert from interface to concrete type
+	schemaInstance, ok := schemaConn.(*schema.Schema)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert connection to Schema instance")
+	}
 
 	newDB := &Database{
 		ctx:         d.ctx,
@@ -353,7 +358,7 @@ func (d *Database) Connection(name string) (*Database, error) {
 		logger:      d.logger,
 		eventBus:    d.eventBus,
 		ormInstance: ormConn,
-		// schema:      schemaInstance,
+		schema:      schemaInstance,
 	}
 
 	return newDB, nil
