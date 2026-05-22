@@ -14,20 +14,26 @@ func TestSQLiteIntegrationJoin(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	// Seed data
 	user1 := models.User{Name: "join_user1"}
 	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
 		t.Fatalf("Failed to create user1: %v", err)
 	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&user2); err != nil {
 		t.Fatalf("Failed to create user2: %v", err)
 	}
 
+	// Re-query to get the auto-assigned IDs
+	var dbUser1 models.User
+	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user1").First(&dbUser1); err != nil {
+		t.Fatalf("Failed to get user1 ID: %v", err)
+	}
+	user1 = dbUser1
+
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := db.Query().Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -290,7 +296,7 @@ func TestSQLiteIntegrationJoin(t *testing.T) {
 
 	t.Run("Multiple joins", func(t *testing.T) {
 		book1 := models.Book{Name: "book1", UserID: user1.ID}
-		if err := query.Create(&book1); err != nil {
+		if err := db.Query().Model(&models.Book{}).Create(&book1); err != nil {
 			t.Fatalf("Failed to create book1: %v", err)
 		}
 

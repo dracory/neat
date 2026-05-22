@@ -13,20 +13,19 @@ func TestSQLiteIntegrationQueryCount(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	t.Run("count basic", func(t *testing.T) {
 		user1 := models.User{Name: "count_user_1"}
 		user2 := models.User{Name: "count_user_1"}
-		if err := query.Model(&models.User{}).Create(&user1); err != nil {
+		if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
 			t.Fatalf("Failed to create user 1: %v", err)
 		}
-		if err := query.Model(&models.User{}).Create(&user2); err != nil {
+		if err := db.Query().Model(&models.User{}).Create(&user2); err != nil {
 			t.Fatalf("Failed to create user 2: %v", err)
 		}
 
 		var count int64
-		if err := query.Model(&models.User{}).Where("name = ?", "count_user_1").Count(&count); err != nil {
+		if err := db.Query().Model(&models.User{}).Where("name = ?", "count_user_1").Count(&count); err != nil {
 			t.Errorf("Count failed: %v", err)
 		}
 		if count != 2 {
@@ -35,17 +34,17 @@ func TestSQLiteIntegrationQueryCount(t *testing.T) {
 	})
 
 	t.Run("count with table", func(t *testing.T) {
-		user1 := models.User{Name: "count_table_user_1", Avatar: "avatar1"}
-		user2 := models.User{Name: "count_table_user_2", Avatar: "avatar2"}
-		if err := query.Model(&models.User{}).Create(&user1); err != nil {
+		user1 := models.User{Name: "count_table_user_1", Avatar: "avatar1_cnt"}
+		user2 := models.User{Name: "count_table_user_2", Avatar: "avatar2_cnt"}
+		if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
 			t.Fatalf("Failed to create user 1: %v", err)
 		}
-		if err := query.Model(&models.User{}).Create(&user2); err != nil {
+		if err := db.Query().Model(&models.User{}).Create(&user2); err != nil {
 			t.Fatalf("Failed to create user 2: %v", err)
 		}
 
 		var count int64
-		if err := query.Table("users").Where("avatar = ?", "avatar1").Count(&count); err != nil {
+		if err := db.Query().Table("users").Where("avatar = ?", "avatar1_cnt").Count(&count); err != nil {
 			t.Errorf("Count failed: %v", err)
 		}
 		if count != 1 {
