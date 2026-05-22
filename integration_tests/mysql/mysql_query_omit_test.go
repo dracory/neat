@@ -5,7 +5,6 @@ package mysql
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -57,7 +56,7 @@ func TestMySQLIntegrationQueryOmit(t *testing.T) {
 		createdUser.Name = "updated_name"
 		createdUser.Avatar = "updated_avatar"
 
-		err := query.Model(&models.User{}).Omit("Avatar").Where("id = ?", createdUser.ID).Update("name", "updated_name")
+		_, err := query.Model(&models.User{}).Omit("Avatar").Where("id = ?", createdUser.ID).Update("name", "updated_name")
 		if err != nil {
 			t.Errorf("Omit during update failed: %v", err)
 		}
