@@ -4,7 +4,6 @@ package mysql
 
 import (
 	"testing"
-
 	"github.com/dracory/neat/integration_tests/models"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )

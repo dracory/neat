@@ -5,7 +5,6 @@ package mysql
 import (
 	"strings"
 	"testing"
-
 	"github.com/dracory/neat/integration_tests/models"
 )
 

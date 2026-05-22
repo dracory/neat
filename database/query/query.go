@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/dracory/neat/contracts/database"
@@ -15,6 +16,7 @@ import (
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/observer"
+	"github.com/dracory/neat/support/str"
 )
 
 // Query implements the Query interface using native database/sql.
@@ -109,7 +111,80 @@ func (q *Query) Connection(name string) contractsorm.Query {
 // Model sets the model for the query.
 func (q *Query) Model(value any) contractsorm.Query {
 	q.model = value
+	if q.table == "" {
+		q.table = q.resolveTableName(value)
+	}
 	return q
+}
+
+// initializeRelations initializes association fields for relations requested via With.
+func (q *Query) initializeRelations(v reflect.Value) {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return
+	}
+
+	for _, relation := range q.withRelations {
+		field := v.FieldByName(relation)
+		if !field.IsValid() {
+			continue
+		}
+
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		} else if field.Kind() == reflect.Slice && field.IsNil() {
+			field.Set(reflect.MakeSlice(field.Type(), 0, 0))
+		}
+	}
+}
+
+// resolveTableName resolves the table name from the model.
+func (q *Query) resolveTableName(model any) string {
+	if model == nil {
+		return ""
+	}
+
+	v := reflect.ValueOf(model)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// Check for TableName() string method
+	if t, ok := model.(interface{ TableName() string }); ok {
+		return t.TableName()
+	}
+
+	// Also check pointer receiver
+	if v.CanAddr() {
+		if t, ok := v.Addr().Interface().(interface{ TableName() string }); ok {
+			return t.TableName()
+		}
+	}
+
+	// Fallback to snake_case and pluralized struct name
+	t := v.Type()
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+		t = t.Elem()
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+	}
+
+	if t.Kind() != reflect.Struct {
+		return ""
+	}
+
+	name := t.Name()
+	snake := str.Of(name).Snake().String()
+
+	// Simple pluralization
+	if !strings.HasSuffix(snake, "s") {
+		return snake + "s"
+	}
+
+	return snake
 }
 
 // Table sets the table for the query.
@@ -1692,6 +1767,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				return fmt.Errorf("failed to scan row: %w", err)
 			}
 
+		// Initialize relations if requested
+		if len(q.withRelations) > 0 {
+			q.initializeRelations(elem)
+		}
+
 			// Append to slice
 			destValue.Set(reflect.Append(destValue, elem))
 		}
@@ -1728,6 +1808,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 
 		if err := rows.Scan(values...); err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Initialize relations if requested
+		if len(q.withRelations) > 0 {
+			q.initializeRelations(destValue)
 		}
 
 		return rows.Err()
