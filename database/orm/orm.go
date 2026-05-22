@@ -130,7 +130,50 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		dbConnections[connection] = sqlDB
 	}
 
-	// Create query instance
+	// Open read-replica connection if configured (use first entry, round-robin could be added later)
+	var readSQLDB *sql.DB
+	if len(connConfig.Read) > 0 {
+		replica := connConfig.Read[0]
+		replicaCfg := connConfig
+		replicaCfg.Host = replica.Host
+		replicaCfg.Port = replica.Port
+		replicaCfg.Database = replica.Database
+		replicaCfg.Username = replica.Username
+		replicaCfg.Password = replica.Password
+		replicaDSN, err := db.NewConfigBuilder(replicaCfg).BuildDSN()
+		if err == nil {
+			readSQLDB, _ = dbDriver.Open(replicaDSN)
+		}
+	}
+
+	// Open write-primary connection if explicitly configured
+	var writeSQLDB *sql.DB
+	if len(connConfig.Write) > 0 {
+		primary := connConfig.Write[0]
+		primaryCfg := connConfig
+		primaryCfg.Host = primary.Host
+		primaryCfg.Port = primary.Port
+		primaryCfg.Database = primary.Database
+		primaryCfg.Username = primary.Username
+		primaryCfg.Password = primary.Password
+		primaryDSN, err := db.NewConfigBuilder(primaryCfg).BuildDSN()
+		if err == nil {
+			writeSQLDB, _ = dbDriver.Open(primaryDSN)
+		}
+	}
+
+	// Create query instance — use replica routing if replicas are configured
+	if readSQLDB != nil || writeSQLDB != nil {
+		writeConn := sqlDB
+		if writeSQLDB != nil {
+			writeConn = writeSQLDB
+		}
+		readConn := writeConn
+		if readSQLDB != nil {
+			readConn = readSQLDB
+		}
+		return query.NewQueryWithReplicas(ctx, writeConn, readConn, dbDriver, connection, dbConfig, log), nil
+	}
 	return query.NewQuery(ctx, sqlDB, dbDriver, connection, dbConfig, log), nil
 }
 

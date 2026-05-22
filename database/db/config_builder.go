@@ -347,6 +347,15 @@ func (b *ConfigBuilder) buildTursoDSN() (string, error) {
 	return fmt.Sprintf("libsql://%s", b.config.Database), nil
 }
 
+// ReplicaConfig holds host/port/credentials for a single read or write replica.
+type ReplicaConfig struct {
+	Host     string
+	Port     int
+	Database string
+	Username string
+	Password string
+}
+
 // ConnectionConfig represents a database connection configuration.
 type ConnectionConfig struct {
 	Driver       string
@@ -365,6 +374,8 @@ type ConnectionConfig struct {
 	Singular     bool
 	NoLowerCase  bool
 	NameReplacer any
+	Read         []ReplicaConfig // read replicas; if non-empty, SELECTs are routed here
+	Write        []ReplicaConfig // write primaries; if non-empty, mutating queries go here
 }
 
 // PoolConfig represents connection pool configuration.

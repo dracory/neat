@@ -64,6 +64,33 @@ func getEnvInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
+// SetupPostgresTest creates a database connection and registers cleanup.
+func SetupPostgresTest(t *testing.T) *database.Database {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	host := getEnv("POSTGRES_HOST", "127.0.0.1")
+	port := getEnvInt("POSTGRES_PORT", 55432)
+	db := getEnv("POSTGRES_DATABASE", "test")
+	username := getEnv("POSTGRES_USER", "test")
+	password := getEnv("POSTGRES_PASS", "test")
+	sslmode := getEnv("POSTGRES_SSLMODE", "disable")
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		username, password, host, port, db, sslmode)
+
+	conn, err := neat.NewFromDSN(dsn)
+	if err != nil {
+		t.Fatalf("Failed to connect to PostgreSQL: %v", err)
+	}
+
+	t.Cleanup(func() {
+		conn.Close()
+	})
+
+	return conn
+}
+
 // SetupPostgresConnection creates a database connection without setting up tables
 func SetupPostgresConnection(t *testing.T) *database.Database {
 	if testing.Short() {
@@ -71,7 +98,7 @@ func SetupPostgresConnection(t *testing.T) *database.Database {
 	}
 
 	host := getEnv("POSTGRES_HOST", "127.0.0.1")
-	port := getEnvInt("POSTGRES_PORT", 5432)
+	port := getEnvInt("POSTGRES_PORT", 55432)
 	database := getEnv("POSTGRES_DATABASE", "test")
 	username := getEnv("POSTGRES_USER", "test")
 	password := getEnv("POSTGRES_PASS", "test")

@@ -22,7 +22,9 @@ import (
 // Query implements the Query interface using native database/sql.
 type Query struct {
 	ctx        context.Context
-	db         *sql.DB
+	db         *sql.DB // primary (write) connection
+	readDB     *sql.DB // optional read-replica connection; nil means use db
+	writeDB    *sql.DB // optional explicit write connection; nil means use db
 	driver     driver.Driver
 	connection string
 	dbConfig   *db.DBConfig
@@ -106,6 +108,8 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 	return &Query{
 		ctx:             ctx,
 		db:              db,
+		readDB:          nil,
+		writeDB:         nil,
 		driver:          drv,
 		connection:      connection,
 		dbConfig:        dbConfig,
@@ -118,9 +122,36 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 	}
 }
 
+// NewQueryWithReplicas creates a Query with separate read and write sql.DB connections.
+func NewQueryWithReplicas(ctx context.Context, writeConn, readConn *sql.DB, drv driver.Driver, connection string, dbConfig *db.DBConfig, lg log.Log) *Query {
+	q := NewQuery(ctx, writeConn, drv, connection, dbConfig, lg)
+	q.readDB = readConn
+	q.writeDB = writeConn
+	return q
+}
+
+// readConn returns the connection to use for read (SELECT) queries.
+func (q *Query) readConn() *sql.DB {
+	if q.readDB != nil {
+		return q.readDB
+	}
+	return q.db
+}
+
+// writeConn returns the connection to use for write (INSERT/UPDATE/DELETE) queries.
+func (q *Query) writeConn() *sql.DB {
+	if q.writeDB != nil {
+		return q.writeDB
+	}
+	return q.db
+}
+
 // Clone returns a new Query with shared connection state but empty query-builder state.
 func (q *Query) Clone() contractsorm.Query {
-	return NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
+	clone := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
+	clone.readDB = q.readDB
+	clone.writeDB = q.writeDB
+	return clone
 }
 
 // applyScopes applies registered scope functions and returns the modified query.
@@ -318,12 +349,20 @@ func (q *Query) Distinct(args ...any) contractsorm.Query {
 	return q
 }
 
-// DB returns the underlying database connection.
+// DB returns the write (primary) database connection.
 func (q *Query) DB() (*sql.DB, error) {
 	if q.tx != nil {
 		return nil, fmt.Errorf("cannot get DB during transaction, use transaction methods instead")
 	}
-	return q.db, nil
+	return q.writeConn(), nil
+}
+
+// ReadDB returns the read-replica connection (falls back to primary if none configured).
+func (q *Query) ReadDB() (*sql.DB, error) {
+	if q.tx != nil {
+		return nil, fmt.Errorf("cannot get ReadDB during transaction")
+	}
+	return q.readConn(), nil
 }
 
 // InTransaction returns true if the query is in a transaction.
@@ -370,7 +409,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 		return q.scanRows(rows, dest)
 	}
 
-	dbConn, err := q.DB()
+	dbConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -419,7 +458,7 @@ func (q *Query) First(dest any) error {
 		return q.scanRows(rows, dest)
 	}
 
-	dbConn, err := q.DB()
+	dbConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -464,7 +503,7 @@ func (q *Query) Get(dest any) error {
 		return q.scanRows(rows, dest)
 	}
 
-	dbConn, err := q.DB()
+	dbConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -1056,7 +1095,7 @@ func (q *Query) Count(count *int64) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(count)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1087,7 +1126,7 @@ func (q *Query) Sum(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1118,7 +1157,7 @@ func (q *Query) Avg(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1149,7 +1188,7 @@ func (q *Query) Min(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1180,7 +1219,7 @@ func (q *Query) Max(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1214,7 +1253,7 @@ func (q *Query) Exists(exists *bool) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(&count)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1253,7 +1292,7 @@ func (q *Query) Pluck(column string, dest any) error {
 		return q.pluckRows(rows, dest)
 	}
 
-	databaseConn, err := q.DB()
+	databaseConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -1281,7 +1320,7 @@ func (q *Query) Value(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return err
 		}
@@ -1311,7 +1350,7 @@ func (q *Query) Scan(dest any) error {
 		return q.scanRows(rows, dest)
 	}
 
-	databaseConn, err := q.DB()
+	databaseConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -1344,7 +1383,7 @@ func (q *Query) Chunk(size int, callback any) error {
 		return q.chunkRows(rows, size, callback)
 	}
 
-	databaseConn, err := q.DB()
+	databaseConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -1391,7 +1430,7 @@ func (q *Query) Paginate(page, limit int, dest any, total *int64) error {
 		return q.scanRows(rows, dest)
 	}
 
-	databaseConn, err := q.DB()
+	databaseConn, err := q.ReadDB()
 	if err != nil {
 		return err
 	}
@@ -1781,7 +1820,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	if q.tx != nil {
 		rows, err = q.tx.QueryContext(q.ctx, querySQL, args...)
 	} else {
-		databaseConn, err := q.DB()
+		databaseConn, err := q.ReadDB()
 		if err != nil {
 			return nil, err
 		}

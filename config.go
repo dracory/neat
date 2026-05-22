@@ -325,7 +325,7 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 	}
 
 	for name, conn := range cfg.Connections {
-		dbConfig.Connections[name] = db.ConnectionConfig{
+		dbConn := db.ConnectionConfig{
 			Driver:       conn.Driver,
 			Dsn:          conn.Dsn,
 			Host:         conn.Host,
@@ -343,6 +343,19 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 			NoLowerCase:  conn.NoLowerCase,
 			NameReplacer: conn.NameReplacer,
 		}
+		for _, r := range conn.Read {
+			dbConn.Read = append(dbConn.Read, db.ReplicaConfig{
+				Host: r.Host, Port: r.Port, Database: r.Database,
+				Username: r.Username, Password: r.Password,
+			})
+		}
+		for _, w := range conn.Write {
+			dbConn.Write = append(dbConn.Write, db.ReplicaConfig{
+				Host: w.Host, Port: w.Port, Database: w.Database,
+				Username: w.Username, Password: w.Password,
+			})
+		}
+		dbConfig.Connections[name] = dbConn
 	}
 
 	return database.New(dbConfig, opts...)

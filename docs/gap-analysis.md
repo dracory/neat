@@ -85,37 +85,26 @@ All query log entries in `neat` now record actual execution duration in millisec
 
 ---
 
-## 7. JSON Where Clauses
+## 7. JSON Where Clauses ✅ COMPLETED
 
-`neat` has the JSON where methods in the contract but not implemented in the query builder:
-
-| Method | neat | eloquent |
-|---|---|---|
-| `WhereJsonContains` | Not in builder (no SQL generated) | Implemented |
-| `OrWhereJsonContains` | Not in builder | Implemented |
-| `WhereJsonDoesntContain` | Not in builder | Implemented |
-| `OrWhereJsonDoesntContain` | Not in builder | Implemented |
-| `WhereJsonContainsKey` | Not in builder | Implemented |
-| `OrWhereJsonContainsKey` | Not in builder | Implemented |
-| `WhereJsonDoesntContainKey` | Not in builder | Implemented |
-| `OrWhereJsonDoesntContainKey` | Not in builder | Implemented |
-| `WhereJsonLength` | Not in builder | Implemented |
+All 9 JSON where methods were already fully implemented in `neat` — they generate correct `JSON_CONTAINS`, `JSON_CONTAINS_PATH`, and `JSON_LENGTH` SQL. The original gap analysis was incorrect.
 
 ---
 
-## 8. Subquery / Nested WHERE Support
+## 8. Subquery / Nested WHERE Support ✅ COMPLETED (WhereExists)
 
-`eloquent` supports subqueries in `Where`, `WhereExists`, `Count` (with auto-subquery for GROUP BY / DISTINCT), and `Table` (derived table).
-
-`neat`'s builder has no subquery support — `WhereExists` is a no-op and `Table` / `Where` only accept strings.
+`WhereExists` is now implemented: the callback receives a cloned `Query`, builds its SELECT SQL, and the result is embedded as `EXISTS (SELECT ...)`. Full arbitrary subquery support in `Where`/`Table` is a larger scope; `WhereExists` covers the primary use case.
 
 ---
 
-## 9. Soft Delete via Model vs. Manual
+## 9. Soft Delete via Model vs. Manual ✅ COMPLETED
 
-`eloquent` soft-delete is model-driven: GORM auto-detects `DeletedAt gorm.DeletedAt` and handles filter injection globally per query.
+`neat` soft-delete is now fully automatic at the builder level. `buildWheresWithSoftDelete()` in `builder.go` inspects `hasSoftDeleteCapability(model)` and prepends:
+- `deleted_at IS NULL` by default (excludes soft-deleted rows)
+- `deleted_at IS NOT NULL` when `OnlyTrashed()` is active
+- No filter when `WithTrashed()` is active
 
-`neat` soft-delete is implemented manually in `query.go` with explicit `withTrashed` / `onlyTrashed` flags, but the `Delete` method does not automatically set `deleted_at` — it calls a hard `DELETE` unless the query builder checks the model's soft-delete capability at runtime. This needs audit.
+This applies to both `BuildSelect` and `BuildDelete`. `Delete` already did a soft-delete UPDATE when the model has `DeletedAt`.
 
 ---
 
@@ -125,11 +114,9 @@ All query log entries in `neat` now record actual execution duration in millisec
 
 ---
 
-## 11. `Turso` Driver Support
+## 11. `Turso` Driver Support ✅ COMPLETED (parsing)
 
-`eloquent` parses `turso://` DSNs and supports the Turso (libSQL) driver via `database/gorm/turso.go`.
-
-`neat` has a `turso` driver stub in `database/driver/` but `parseDSN` in `db.go` does not handle `turso://` scheme.
+`parseDSN` in `database/db.go` already handles `turso://` DSNs. The `Turso` driver struct exists in `database/driver/turso.go` but `Open` returns an error (libSQL dependency not yet added). DSN parsing and driver wiring are done; the actual libSQL connection requires adding the `tursodatabase/go-libsql` dependency separately.
 
 ---
 
