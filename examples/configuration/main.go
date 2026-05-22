@@ -21,11 +21,10 @@ func RunExample() error {
 	fmt.Println("=== Configuration with DSN ===")
 	db1, err := neat.NewFromDSN("sqlite://./example.db")
 	if err != nil {
-		stdlog.Printf("Error with DSN config: %v", err)
-	} else {
-		defer db1.Close()
-		fmt.Println("Database connected via DSN")
+		return fmt.Errorf("error with DSN config: %w", err)
 	}
+	defer db1.Close()
+	fmt.Println("Database connected via DSN")
 
 	// Example 2: Using configuration struct with connection pooling
 	fmt.Println("\n=== Configuration with Pool Settings ===")
@@ -47,11 +46,10 @@ func RunExample() error {
 
 	db2, err := neat.New(cfg)
 	if err != nil {
-		stdlog.Printf("Error with pool config: %v", err)
-	} else {
-		defer db2.Close()
-		fmt.Println("Database connected with pool configuration")
+		return fmt.Errorf("error with pool config: %w", err)
 	}
+	defer db2.Close()
+	fmt.Println("Database connected with pool configuration")
 
 	// Example 3: Multiple database connections
 	fmt.Println("\n=== Multiple Database Connections ===")
@@ -85,11 +83,10 @@ func RunExample() error {
 
 	db4, err := neat.New(multiCfg)
 	if err != nil {
-		stdlog.Printf("Error with multi-database config: %v", err)
-	} else {
-		defer db4.Close()
-		fmt.Println("Multiple databases configured successfully")
+		return fmt.Errorf("error with multi-database config: %w", err)
 	}
+	defer db4.Close()
+	fmt.Println("Multiple databases configured successfully")
 
 	// Example 4: MySQL-specific configuration
 	fmt.Println("\n=== MySQL-Specific Configuration ===")
@@ -110,11 +107,10 @@ func RunExample() error {
 
 	db5, err := neat.New(mysqlCfg)
 	if err != nil {
-		stdlog.Printf("Error with MySQL config: %v", err)
-	} else {
-		defer db5.Close()
-		fmt.Println("MySQL configured successfully")
+		return fmt.Errorf("error with MySQL config: %w", err)
 	}
+	defer db5.Close()
+	fmt.Println("MySQL configured successfully")
 
 	// Example 5: SQL Server configuration
 	fmt.Println("\n=== SQL Server Configuration ===")
@@ -134,11 +130,10 @@ func RunExample() error {
 
 	db6, err := neat.New(sqlserverCfg)
 	if err != nil {
-		stdlog.Printf("Error with SQL Server config: %v", err)
-	} else {
-		defer db6.Close()
-		fmt.Println("SQL Server configured successfully")
+		return fmt.Errorf("error with SQL Server config: %w", err)
 	}
+	defer db6.Close()
+	fmt.Println("SQL Server configured successfully")
 
 	// Example 6: Debug mode
 	fmt.Println("\n=== Debug Mode Configuration ===")
@@ -155,11 +150,10 @@ func RunExample() error {
 
 	db7, err := neat.New(debugCfg)
 	if err != nil {
-		stdlog.Printf("Error with debug config: %v", err)
-	} else {
-		defer db7.Close()
-		fmt.Println("Database configured in debug mode")
+		return fmt.Errorf("error with debug config: %w", err)
 	}
+	defer db7.Close()
+	fmt.Println("Database configured in debug mode")
 
 	return nil
 }

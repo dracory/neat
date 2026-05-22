@@ -36,10 +36,9 @@ func RunExample(dsn string) error {
 		blueprint.SoftDeletes()
 	})
 	if err != nil {
-		log.Printf("Error in migration 1: %v", err)
-	} else {
-		fmt.Println("Users table created")
+		return fmt.Errorf("error in migration 1: %w", err)
 	}
+	fmt.Println("Users table created")
 
 	// Migration 2: Create posts table with foreign key
 	fmt.Println("\n=== Migration: Create Posts Table ===")
@@ -55,10 +54,9 @@ func RunExample(dsn string) error {
 		// blueprint.Foreign("user_id")
 	})
 	if err != nil {
-		log.Printf("Error in migration 2: %v", err)
-	} else {
-		fmt.Println("Posts table created with foreign key")
+		return fmt.Errorf("error in migration 2: %w", err)
 	}
+	fmt.Println("Posts table created with foreign key")
 
 	// Migration 3: Create comments table
 	fmt.Println("\n=== Migration: Create Comments Table ===")
@@ -74,10 +72,9 @@ func RunExample(dsn string) error {
 		// blueprint.Foreign("user_id")
 	})
 	if err != nil {
-		log.Printf("Error in migration 3: %v", err)
-	} else {
-		fmt.Println("Comments table created with foreign keys")
+		return fmt.Errorf("error in migration 3: %w", err)
 	}
+	fmt.Println("Comments table created with foreign keys")
 
 	// Migration 4: Add indexes to posts table
 	fmt.Println("\n=== Migration: Add Indexes to Posts ===")
@@ -86,10 +83,9 @@ func RunExample(dsn string) error {
 		blueprint.Index("status")
 	})
 	if err != nil {
-		log.Printf("Error in migration 4: %v", err)
-	} else {
-		fmt.Println("Indexes added to posts table")
+		return fmt.Errorf("error in migration 4: %w", err)
 	}
+	fmt.Println("Indexes added to posts table")
 
 	// Migration 5: Add published_at column to posts
 	fmt.Println("\n=== Migration: Add published_at Column ===")
@@ -97,10 +93,9 @@ func RunExample(dsn string) error {
 		blueprint.Timestamp("published_at")
 	})
 	if err != nil {
-		log.Printf("Error in migration 5: %v", err)
-	} else {
-		fmt.Println("published_at column added to posts table")
+		return fmt.Errorf("error in migration 5: %w", err)
 	}
+	fmt.Println("published_at column added to posts table")
 
 	fmt.Println("\n=== All Migrations Completed ===")
 

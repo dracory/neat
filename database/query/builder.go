@@ -170,6 +170,15 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 			setParts = append(setParts, fmt.Sprintf("%s = ?", colStr))
 			args = append(args, values[0])
 		}
+	} else {
+		// Handle struct or pointer-to-struct: extract fields as col=? pairs
+		cols, vals, err := b.extractColumnsAndValues(column)
+		if err == nil {
+			for i, col := range cols {
+				setParts = append(setParts, fmt.Sprintf("%s = ?", col))
+				args = append(args, vals[i])
+			}
+		}
 	}
 
 	if len(setParts) > 0 {

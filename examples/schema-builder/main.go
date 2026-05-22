@@ -37,10 +37,9 @@ func RunExample(dsn string) error {
 		blueprint.SoftDeletes()
 	})
 	if err != nil {
-		log.Printf("Error creating table: %v", err)
-	} else {
-		fmt.Println("Table created successfully")
+		return fmt.Errorf("error creating table: %w", err)
 	}
+	fmt.Println("Table created successfully")
 
 	// Modify an existing table
 	fmt.Println("\n=== Modify Table ===")
@@ -50,10 +49,9 @@ func RunExample(dsn string) error {
 		blueprint.DropColumn("phone")
 	})
 	if err != nil {
-		log.Printf("Error modifying table: %v", err)
-	} else {
-		fmt.Println("Table modified successfully")
+		return fmt.Errorf("error modifying table: %w", err)
 	}
+	fmt.Println("Table modified successfully")
 
 	// Add indexes
 	fmt.Println("\n=== Add Index ===")
@@ -62,19 +60,17 @@ func RunExample(dsn string) error {
 		blueprint.Unique("name")
 	})
 	if err != nil {
-		log.Printf("Error adding indexes: %v", err)
-	} else {
-		fmt.Println("Indexes added successfully")
+		return fmt.Errorf("error adding indexes: %w", err)
 	}
+	fmt.Println("Indexes added successfully")
 
 	// Drop a table
 	fmt.Println("\n=== Drop Table ===")
 	err = db.Schema().Drop("users")
 	if err != nil {
-		log.Printf("Error dropping table: %v", err)
-	} else {
-		fmt.Println("Table dropped successfully")
+		return fmt.Errorf("error dropping table: %w", err)
 	}
+	fmt.Println("Table dropped successfully")
 
 	return nil
 }

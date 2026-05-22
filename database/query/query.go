@@ -462,31 +462,38 @@ func (q *Query) Create(value any) error {
 
 	// Build INSERT query
 	builder := NewBuilder(q)
-	sql, args := builder.BuildInsert(value)
-	if sql == "" {
+	sqlStr, args := builder.BuildInsert(value)
+	if sqlStr == "" {
 		return fmt.Errorf("failed to build INSERT query")
 	}
 
 	// Execute query
+	var result sql.Result
 	var err error
 	if q.tx != nil {
-		_, err = q.tx.ExecContext(q.ctx, sql, args...)
+		result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
 	} else {
-		dbConn, err := q.DB()
+		var dbConn *sql.DB
+		dbConn, err = q.DB()
 		if err != nil {
 			return err
 		}
-		_, err = dbConn.ExecContext(q.ctx, sql, args...)
+		result, err = dbConn.ExecContext(q.ctx, sqlStr, args...)
 	}
 
 	if err != nil {
 		return fmt.Errorf("failed to execute INSERT query: %w", err)
 	}
 
+	// Populate last insert ID back into the model's primary key field
+	if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
+		setModelPrimaryKey(value, lastID)
+	}
+
 	// Log query if enabled
 	if q.enableLog {
 		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
+			Query:    sqlStr,
 			Bindings: args,
 			Time:     0,
 		})
@@ -525,22 +532,23 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 
 	// Build UPDATE query
 	builder := NewBuilder(q)
-	sql, args := builder.BuildUpdate(column, value...)
-	if sql == "" {
+	sqlStr, args := builder.BuildUpdate(column, value...)
+	if sqlStr == "" {
 		return nil, fmt.Errorf("failed to build UPDATE query")
 	}
 
 	// Execute query
 	var err error
-	var result interface{ RowsAffected() (int64, error) }
+	var result sql.Result
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+		result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
 	} else {
-		dbConn, err := q.DB()
+		var dbConn *sql.DB
+		dbConn, err = q.DB()
 		if err != nil {
 			return nil, err
 		}
-		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+		result, err = dbConn.ExecContext(q.ctx, sqlStr, args...)
 	}
 
 	if err != nil {
@@ -550,7 +558,7 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	// Log query if enabled
 	if q.enableLog {
 		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
+			Query:    sqlStr,
 			Bindings: args,
 			Time:     0,
 		})
@@ -1957,4 +1965,30 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	}
 
 	return rows.Err()
+}
+
+// setModelPrimaryKey sets the primary key field (ID or Id) on a struct model to the given value.
+func setModelPrimaryKey(value any, id int64) {
+	v := reflect.ValueOf(value)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		return
+	}
+	v = v.Elem()
+	if v.Kind() != reflect.Struct {
+		return
+	}
+	for _, name := range []string{"ID", "Id"} {
+		field := v.FieldByName(name)
+		if !field.IsValid() || !field.CanSet() {
+			continue
+		}
+		switch field.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			field.SetUint(uint64(id))
+			return
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			field.SetInt(id)
+			return
+		}
+	}
 }
