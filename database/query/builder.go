@@ -46,9 +46,9 @@ func (b *Builder) BuildSelect() (string, []any) {
 		args = append(args, join.args...)
 	}
 
-	// WHERE clauses
-	if len(b.query.wheres) > 0 {
-		whereParts, whereArgs := b.buildWheres()
+	// WHERE clauses (with automatic soft-delete filter)
+	whereParts, whereArgs := b.buildWheresWithSoftDelete()
+	if whereParts != "" {
 		parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 		args = append(args, whereArgs...)
 	}
@@ -215,14 +215,40 @@ func (b *Builder) BuildDelete() (string, []any) {
 		parts = append(parts, fmt.Sprintf("FROM %s", b.query.table))
 	}
 
-	// WHERE clauses
-	if len(b.query.wheres) > 0 {
-		whereParts, whereArgs := b.buildWheres()
+	// WHERE clauses (with automatic soft-delete filter)
+	whereParts, whereArgs := b.buildWheresWithSoftDelete()
+	if whereParts != "" {
 		parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 		args = append(args, whereArgs...)
 	}
 
 	return strings.Join(parts, " "), args
+}
+
+// buildWheresWithSoftDelete prepends the soft-delete condition when the model has a
+// DeletedAt field and neither WithTrashed nor OnlyTrashed is set.
+func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
+	var prefix string
+	if hasSoftDeleteCapability(b.query.model) {
+		switch {
+		case b.query.onlyTrashed:
+			prefix = "deleted_at IS NOT NULL"
+		case b.query.withTrashed:
+			// include all rows — no filter
+		default:
+			prefix = "deleted_at IS NULL"
+		}
+	}
+
+	if len(b.query.wheres) == 0 {
+		return prefix, nil
+	}
+
+	base, args := b.buildWheres()
+	if prefix == "" {
+		return base, args
+	}
+	return prefix + " AND " + base, args
 }
 
 // buildWheres builds the WHERE clause from where clauses.

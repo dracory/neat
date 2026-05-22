@@ -956,7 +956,10 @@ func (q *Query) OrWhereColumn(first, operator, second string) contractsorm.Query
 	return q
 }
 func (q *Query) WhereExists(callback func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
-	// TODO: Implement subquery support
+	subQ := q.Clone().(*Query)
+	subQ = callback(subQ).(*Query)
+	subSQL, subArgs := NewBuilder(subQ).BuildSelect()
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("EXISTS (%s)", subSQL), args: subArgs})
 	return q
 }
 func (q *Query) WhereNot(query any, args ...any) contractsorm.Query {
