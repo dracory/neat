@@ -1,18 +1,28 @@
-# Advanced Queries Example
+# Advanced Queries
 
-This example demonstrates advanced query building capabilities in Neat ORM.
+This example demonstrates advanced query builder features for complex database operations.
 
 ## Features Demonstrated
 
-- Complex WHERE clauses
-- JOIN queries
+- Join queries with multiple tables
+- OR conditions in WHERE clauses
+- WhereIn for filtering by a list of values
+- WhereBetween for range queries
+- WhereNull and WhereNotNull for null checks
+- GroupBy and Having clauses
+- Multiple OrderBy clauses
+- Pagination with Offset and Limit
+- Aggregation functions (Count, Avg, Sum)
 - Subqueries
-- Aggregations (COUNT, SUM, AVG, etc.)
-- GROUP BY and HAVING
-- ORDER BY with multiple columns
-- Pagination (LIMIT/OFFSET)
-- Raw SQL queries
 
-## Note
+## Running the Example
 
-This example is a placeholder. Full implementation will be added once the query builder API is finalized.
+```bash
+cd examples/advanced-queries
+go run main.go
+```
+
+## Prerequisites
+
+- SQLite database (or modify the DSN to use your preferred database)
+- Appropriate tables with sample data (users, posts, orders)

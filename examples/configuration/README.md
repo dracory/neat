@@ -1,15 +1,25 @@
-# Configuration Example
+# Configuration
 
-This example demonstrates how to configure the database connection and ORM settings.
+This example demonstrates various configuration options for setting up database connections.
 
 ## Features Demonstrated
 
-- Using DSN strings
-- Using DBConfig struct
-- Connection pool configuration
+- Simple DSN-based configuration
+- Configuration struct with connection pooling settings
+- Custom logger integration
 - Multiple database connections
-- Environment-specific configuration
+- MySQL-specific configuration (charset, collation, strict mode)
+- SQL Server configuration
+- Debug mode for development
 
-## Note
+## Running the Example
 
-This example is a placeholder. Full implementation will be added once the configuration API is finalized.
+```bash
+cd examples/configuration
+go run main.go
+```
+
+## Prerequisites
+
+- Appropriate database servers running (PostgreSQL, MySQL, SQL Server) or modify the connection details
+- Valid credentials for each database type

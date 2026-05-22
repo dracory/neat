@@ -1,17 +1,24 @@
-# Schema Builder Example
+# Schema Builder
 
 This example demonstrates how to use the schema builder to create and modify database tables.
 
 ## Features Demonstrated
 
-- Creating tables
-- Adding columns
-- Modifying tables
+- Creating new tables with various column types
+- Adding columns to existing tables
+- Dropping columns from tables
+- Adding indexes (unique and non-unique)
 - Dropping tables
-- Adding indexes
-- Adding foreign keys
-- Column types and constraints
+- Using default values and nullable columns
+- Timestamps and soft deletes
 
-## Note
+## Running the Example
 
-This example is a placeholder. Full implementation will be added once the schema builder API is finalized and the config adapter is implemented.
+```bash
+cd examples/schema-builder
+go run main.go
+```
+
+## Prerequisites
+
+- SQLite database (or modify the DSN to use your preferred database)

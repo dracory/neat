@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // SQLite implements the Driver interface for SQLite databases.
@@ -17,7 +17,7 @@ func NewSQLite() *SQLite {
 
 // Open opens a connection to the SQLite database.
 func (s *SQLite) Open(dsn string) (*sql.DB, error) {
-	return sql.Open("sqlite3", dsn)
+	return sql.Open("sqlite", dsn)
 }
 
 // Close closes the SQLite database connection.

@@ -102,6 +102,11 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 	}
 }
 
+// Clone returns a new Query with shared connection state but empty query-builder state.
+func (q *Query) Clone() contractsorm.Query {
+	return NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
+}
+
 // Connection returns a new Query instance with the specified connection.
 func (q *Query) Connection(name string) contractsorm.Query {
 	// This will be implemented when the ORM is fully integrated
@@ -715,30 +720,28 @@ func (q *Query) GetQueryLog() []contractsorm.QueryLog {
 
 // Transaction runs a callback wrapped in a database transaction.
 func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*sql.TxOptions) error {
-	var txOpts *sql.TxOptions
-	if len(opts) > 0 {
-		txOpts = opts[0]
-	}
-	tx, err := q.db.BeginTx(q.ctx, txOpts)
+	txQuery, err := q.Begin(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
+	txQ := txQuery.(*Query)
+
 	defer func() {
 		if p := recover(); p != nil {
-			tx.Rollback()
+			txQ.tx.Rollback()
 			panic(p)
 		}
 	}()
 
-	if err := txFunc(q); err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
+	if err := txFunc(txQuery); err != nil {
+		if rbErr := txQ.tx.Rollback(); rbErr != nil {
 			return fmt.Errorf("transaction error: %v, rollback error: %w", err, rbErr)
 		}
 		return err
 	}
 
-	return tx.Commit()
+	return txQ.tx.Commit()
 }
 
 // WithContext returns a new Query instance with the specified context.
@@ -1728,49 +1731,63 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 		sliceType := destValue.Type()
 		elemType := sliceType.Elem()
 
+		columns, err := rows.Columns()
+		if err != nil {
+			return fmt.Errorf("failed to get columns: %w", err)
+		}
+
 		for rows.Next() {
 			// Create new element
 			elemPtr := reflect.New(elemType)
 			elem := elemPtr.Elem()
 
 			// Scan into element
-			columns, err := rows.Columns()
-			if err != nil {
-				return fmt.Errorf("failed to get columns: %w", err)
-			}
-
 			values := make([]any, len(columns))
-			for i := range values {
-				// Get the field from the struct
-				if elem.Kind() == reflect.Struct {
+
+			if elem.Kind() == reflect.Map {
+				// Scan into a temporary []any then build the map
+				ptrs := make([]any, len(columns))
+				for i := range values {
+					ptrs[i] = &values[i]
+				}
+				if err := rows.Scan(ptrs...); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
+				m := reflect.MakeMap(elemType)
+				keyType := elemType.Key()
+				for i, col := range columns {
+					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+				}
+				elem.Set(m)
+			} else if elem.Kind() == reflect.Struct {
+				for i := range values {
 					if i < elem.NumField() {
 						field := elem.Field(i)
 						if field.CanAddr() {
 							values[i] = field.Addr().Interface()
 						} else {
-							// Create a pointer to scan into
 							ptr := reflect.New(field.Type())
 							values[i] = ptr.Interface()
 						}
 					} else {
-						// Use a placeholder for extra columns
 						var placeholder any
 						values[i] = &placeholder
 					}
-				} else {
-					// For non-struct types, scan directly
-					values[i] = elem.Addr().Interface()
+				}
+				if err := rows.Scan(values...); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
+			} else {
+				// Scalar slice element (e.g. []string, []int)
+				if err := rows.Scan(elem.Addr().Interface()); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
 				}
 			}
 
-			if err := rows.Scan(values...); err != nil {
-				return fmt.Errorf("failed to scan row: %w", err)
+			// Initialize relations if requested
+			if len(q.withRelations) > 0 {
+				q.initializeRelations(elem)
 			}
-
-		// Initialize relations if requested
-		if len(q.withRelations) > 0 {
-			q.initializeRelations(elem)
-		}
 
 			// Append to slice
 			destValue.Set(reflect.Append(destValue, elem))
@@ -1814,6 +1831,35 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 		if len(q.withRelations) > 0 {
 			q.initializeRelations(destValue)
 		}
+
+		return rows.Err()
+	}
+
+	// Handle single map destination (*map[string]any)
+	if destValue.Kind() == reflect.Map {
+		if !rows.Next() {
+			return nil
+		}
+
+		columns, err := rows.Columns()
+		if err != nil {
+			return fmt.Errorf("failed to get columns: %w", err)
+		}
+
+		values := make([]any, len(columns))
+		ptrs := make([]any, len(columns))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		m := make(map[string]any, len(columns))
+		for i, col := range columns {
+			m[col] = values[i]
+		}
+		destValue.Set(reflect.ValueOf(m))
 
 		return rows.Err()
 	}

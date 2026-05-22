@@ -218,8 +218,23 @@ func (b *Builder) buildWheres() (string, []any) {
 		if i > 0 {
 			parts = append(parts, strings.ToUpper(where._type))
 		}
-		parts = append(parts, where.query)
-		args = append(args, where.args...)
+
+		// Expand IN (?) / NOT IN (?) when the single arg is a []any slice.
+		clauseQuery := where.query
+		clauseArgs := where.args
+		if len(clauseArgs) == 1 {
+			if slice, ok := clauseArgs[0].([]any); ok {
+				placeholders := make([]string, len(slice))
+				for j := range slice {
+					placeholders[j] = "?"
+				}
+				clauseQuery = strings.Replace(clauseQuery, "(?)", "("+strings.Join(placeholders, ", ")+")", 1)
+				clauseArgs = slice
+			}
+		}
+
+		parts = append(parts, clauseQuery)
+		args = append(args, clauseArgs...)
 	}
 
 	return strings.Join(parts, " "), args

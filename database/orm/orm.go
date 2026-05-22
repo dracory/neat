@@ -114,9 +114,16 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 			return nil, fmt.Errorf("failed to open database connection: %w", err)
 		}
 
-		// Configure connection pool from DBConfig
-		sqlDB.SetMaxIdleConns(dbConfig.Pool.MaxIdleConns)
-		sqlDB.SetMaxOpenConns(dbConfig.Pool.MaxOpenConns)
+		// Configure connection pool from DBConfig.
+		// In-memory SQLite: each physical connection has its own isolated database,
+		// so pin to a single connection so DDL and DML always share the same DB.
+		if connConfig.Driver == "sqlite" && (dsn == ":memory:" || dsn == "") {
+			sqlDB.SetMaxOpenConns(1)
+			sqlDB.SetMaxIdleConns(1)
+		} else {
+			sqlDB.SetMaxIdleConns(dbConfig.Pool.MaxIdleConns)
+			sqlDB.SetMaxOpenConns(dbConfig.Pool.MaxOpenConns)
+		}
 		sqlDB.SetConnMaxLifetime(time.Duration(dbConfig.Pool.ConnMaxLifetime) * time.Second)
 		sqlDB.SetConnMaxIdleTime(time.Duration(dbConfig.Pool.ConnMaxIdleTime) * time.Second)
 
@@ -238,12 +245,18 @@ func (r *Orm) Observe(model any, observer contractsorm.Observer) {
 }
 
 func (r *Orm) Query() contractsorm.Query {
-	if r.ctx != context.Background() && r.query != nil {
+	if r.query == nil {
+		return nil
+	}
+	if r.ctx != context.Background() {
 		if queryWithContext, ok := r.query.(contractsorm.QueryWithContext); ok {
 			return queryWithContext.WithContext(r.ctx)
 		}
 	}
-
+	// Return a fresh clone so each call chain starts with clean state.
+	if cloneable, ok := r.query.(interface{ Clone() contractsorm.Query }); ok {
+		return cloneable.Clone()
+	}
 	return r.query
 }
 
