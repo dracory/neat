@@ -5,8 +5,6 @@ package mysql
 import (
 	"fmt"
 	"testing"
-
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/contracts/database/schema"
 )
 

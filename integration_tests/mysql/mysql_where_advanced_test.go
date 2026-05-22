@@ -4,8 +4,6 @@ package mysql
 
 import (
 	"testing"
-
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
@@ -37,7 +35,7 @@ func TestMySQLIntegrationWhereColumn(t *testing.T) {
 
 	// Update user2 to have different name and avatar
 	user2.Avatar = "user2_avatar"
-	err = query.Model(&models.User{}).Where("id = ?", user2.ID).Update("avatar", "user2_avatar")
+	_, err = query.Model(&models.User{}).Where("id = ?", user2.ID).Update("avatar", "user2_avatar")
 	if err != nil {
 		t.Fatalf("Failed to update user2: %v", err)
 	}

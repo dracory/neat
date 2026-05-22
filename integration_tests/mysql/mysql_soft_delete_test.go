@@ -4,8 +4,6 @@ package mysql
 
 import (
 	"testing"
-
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -62,7 +60,7 @@ func TestMySQLIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if !foundUser.DeletedAt.Valid {
+	if foundUser.DeletedAt == nil {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }
@@ -166,7 +164,7 @@ func TestMySQLIntegrationForceDelete(t *testing.T) {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
-	if !softDeletedUser.DeletedAt.Valid {
+	if softDeletedUser.DeletedAt == nil {
 		t.Error("User should be soft deleted")
 	}
 

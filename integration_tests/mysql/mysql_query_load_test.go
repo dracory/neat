@@ -4,10 +4,7 @@ package mysql
 
 import (
 	"testing"
-
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
 func TestMySQLIntegrationQueryLoad(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // Builder handles SQL query building.
@@ -110,12 +111,31 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(columns, ", ")))
 		parts = append(parts, "VALUES")
 
-		// Build placeholders
-		placeholders := make([]string, len(values))
-		for i := range placeholders {
-			placeholders[i] = "?"
+		// Handle bulk insert
+		v := reflect.ValueOf(value)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
 		}
-		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+
+		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+			rowPlaceholders := make([]string, v.Len())
+			for i := 0; i < v.Len(); i++ {
+				placeholders := make([]string, len(columns))
+				for j := range placeholders {
+					placeholders[j] = "?"
+				}
+				rowPlaceholders[i] = fmt.Sprintf("(%s)", strings.Join(placeholders, ", "))
+			}
+			parts = append(parts, strings.Join(rowPlaceholders, ", "))
+		} else {
+			// Single insert
+			placeholders := make([]string, len(columns))
+			for i := range placeholders {
+				placeholders[i] = "?"
+			}
+			parts = append(parts, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+		}
+
 		args = append(args, values...)
 	}
 
@@ -205,26 +225,61 @@ func (b *Builder) buildWheres() (string, []any) {
 	return strings.Join(parts, " "), args
 }
 
-// extractColumnsAndValues extracts column names and values from a struct or map.
+// extractColumnsAndValues extracts column names and values from a struct, map, or slice.
 func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
-	var columns []string
-	var values []any
-
-	// Handle map[string]any
-	if m, ok := value.(map[string]any); ok {
-		for col, val := range m {
-			columns = append(columns, col)
-			values = append(values, val)
-		}
-		return columns, values, nil
-	}
-
-	// Handle struct using reflection
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
 
+	// Handle slice/array for bulk insert
+	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		if v.Len() == 0 {
+			return nil, nil, nil
+		}
+
+		var allColumns []string
+		var allValues []any
+
+		for i := 0; i < v.Len(); i++ {
+			elem := v.Index(i).Interface()
+			cols, vals, err := b.extractSingleColumnsAndValues(elem)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if i == 0 {
+				allColumns = cols
+			}
+			allValues = append(allValues, vals...)
+		}
+
+		return allColumns, allValues, nil
+	}
+
+	return b.extractSingleColumnsAndValues(value)
+}
+
+// extractSingleColumnsAndValues extracts column names and values from a single struct or map.
+func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, error) {
+	var columns []string
+	var values []any
+
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// Handle map[string]any
+	if v.Kind() == reflect.Map {
+		for _, key := range v.MapKeys() {
+			columns = append(columns, key.String())
+			values = append(values, v.MapIndex(key).Interface())
+		}
+		return columns, values, nil
+	}
+
+	// Handle struct using reflection
 	if v.Kind() == reflect.Struct {
 		t := v.Type()
 		for i := 0; i < v.NumField(); i++ {
@@ -238,7 +293,12 @@ func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
 
 			// Get column name from tag or field name
 			columnName := field.Name
-			if tag := field.Tag.Get("neat"); tag != "" {
+			if tag := field.Tag.Get("db"); tag != "" {
+				if tag == "-" {
+					continue
+				}
+				columnName = tag
+			} else if tag := field.Tag.Get("neat"); tag != "" {
 				if parts := strings.Split(tag, ";"); len(parts) > 0 {
 					if colPart := strings.Split(parts[0], ":"); len(colPart) > 1 {
 						columnName = colPart[1]
@@ -252,8 +312,22 @@ func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
 				}
 			}
 
+			// Skip slice/struct fields that are not handled as basic types
+			if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Ptr) &&
+				fieldValue.Type() != reflect.TypeOf(time.Time{}) {
+				// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
+				if fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil() {
+					elem := fieldValue.Elem()
+					if elem.Kind() == reflect.Struct {
+						continue
+					}
+				} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
+					continue
+				}
+			}
+
 			// Skip zero values except for boolean and explicit zero values
-			if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool {
+			if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Type() != reflect.TypeOf(time.Time{}) {
 				continue
 			}
 

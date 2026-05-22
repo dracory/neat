@@ -6,8 +6,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
@@ -101,7 +99,8 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			result.Name = "updated_by_tx1"
-			return tx.Model(&models.User{}).Update("name", "updated_by_tx1")
+			_, err = tx.Model(&models.User{}).Update("name", "updated_by_tx1")
+			return err
 		})
 		if err != nil {
 			t.Errorf("Transaction 1 failed: %v", err)
@@ -127,7 +126,8 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 			if result.Name != "updated_by_tx1" {
 				t.Errorf("Expected 'updated_by_tx1', got '%s'", result.Name)
 			}
-			return tx.Model(&models.User{}).Update("name", "updated_by_tx2")
+			_, err = tx.Model(&models.User{}).Update("name", "updated_by_tx2")
+			return err
 		})
 		if err != nil {
 			t.Errorf("Transaction 2 failed: %v", err)
