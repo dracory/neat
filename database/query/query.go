@@ -138,10 +138,41 @@ func (q *Query) applyScopes() *Query {
 	return q
 }
 
-// Connection returns a new Query instance with the specified connection.
+// Connection returns a new Query instance scoped to the named connection.
 func (q *Query) Connection(name string) contractsorm.Query {
-	// This will be implemented when the ORM is fully integrated
-	return q
+	if name == "" || q.dbConfig == nil {
+		return q
+	}
+	connCfg, ok := q.dbConfig.Connections[name]
+	if !ok {
+		return q
+	}
+	drv := newDriverForDialect(connCfg.Driver)
+	dsn, err := db.NewConfigBuilder(connCfg).BuildDSN()
+	if err != nil {
+		return q
+	}
+	sqlDB, err := drv.Open(dsn)
+	if err != nil {
+		return q
+	}
+	return NewQuery(q.ctx, sqlDB, drv, name, q.dbConfig, q.log)
+}
+
+// newDriverForDialect returns a Driver for the given dialect name.
+func newDriverForDialect(dialect string) driver.Driver {
+	switch dialect {
+	case "mysql":
+		return driver.NewMySQL()
+	case "postgres":
+		return driver.NewPostgreSQL()
+	case "sqlserver":
+		return driver.NewSQLServer()
+	case "turso":
+		return driver.NewTurso()
+	default:
+		return driver.NewSQLite()
+	}
 }
 
 // Model sets the model for the query.
@@ -327,25 +358,15 @@ func (q *Query) Find(dest any, conds ...any) error {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
+	start := time.Now()
 	// Execute query
 	if q.tx != nil {
-		// Use transaction
 		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
 		if err != nil {
 			return fmt.Errorf("failed to execute query: %w", err)
 		}
 		defer rows.Close()
-
-		// Log query if enabled
-		if q.enableLog {
-			q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-				Query:    sql,
-				Bindings: args,
-				Time:     0, // TODO: track duration
-			})
-		}
-
-		// Scan results into dest
+		q.logQuery(sql, args, start)
 		return q.scanRows(rows, dest)
 	}
 
@@ -359,16 +380,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-
-	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0, // TODO: track duration
-		})
-	}
-
+	q.logQuery(sql, args, start)
 	return q.scanRows(rows, dest)
 }
 
@@ -396,23 +408,14 @@ func (q *Query) First(dest any) error {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	// Execute query
-	var err error
+	start := time.Now()
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
 		if err != nil {
 			return fmt.Errorf("failed to execute query: %w", err)
 		}
 		defer rows.Close()
-
-		if q.enableLog {
-			q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-				Query:    sql,
-				Bindings: args,
-				Time:     0,
-			})
-		}
-
+		q.logQuery(sql, args, start)
 		return q.scanRows(rows, dest)
 	}
 
@@ -426,15 +429,7 @@ func (q *Query) First(dest any) error {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
-
+	q.logQuery(sql, args, start)
 	return q.scanRows(rows, dest)
 }
 
@@ -458,23 +453,14 @@ func (q *Query) Get(dest any) error {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	// Execute query
-	var err error
+	start := time.Now()
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
 		if err != nil {
 			return fmt.Errorf("failed to execute query: %w", err)
 		}
 		defer rows.Close()
-
-		if q.enableLog {
-			q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-				Query:    sql,
-				Bindings: args,
-				Time:     0,
-			})
-		}
-
+		q.logQuery(sql, args, start)
 		return q.scanRows(rows, dest)
 	}
 
@@ -488,15 +474,7 @@ func (q *Query) Get(dest any) error {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
-
+	q.logQuery(sql, args, start)
 	return q.scanRows(rows, dest)
 }
 
@@ -520,6 +498,7 @@ func (q *Query) Create(value any) error {
 	// Execute query
 	var result sql.Result
 	var err error
+	start := time.Now()
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
 	} else {
@@ -534,19 +513,11 @@ func (q *Query) Create(value any) error {
 	if err != nil {
 		return fmt.Errorf("failed to execute INSERT query: %w", err)
 	}
+	q.logQuery(sqlStr, args, start)
 
 	// Populate last insert ID back into the model's primary key field
 	if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
 		setModelPrimaryKey(value, lastID)
-	}
-
-	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sqlStr,
-			Bindings: args,
-			Time:     0,
-		})
 	}
 
 	// Fire Created event if not disabled
@@ -620,6 +591,7 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	// Execute query
 	var err error
 	var result sql.Result
+	start := time.Now()
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
 	} else {
@@ -634,15 +606,7 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute UPDATE query: %w", err)
 	}
-
-	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sqlStr,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sqlStr, args, start)
 
 	// Fire Updated event if not disabled
 	if !q.withoutEvents && q.model != nil {
@@ -691,7 +655,7 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	// Check if model has soft delete capability
 	useSoftDelete := hasSoftDeleteCapability(q.model)
 
-	var sql string
+	var deleteSQL string
 	var args []any
 	var err error
 
@@ -699,43 +663,37 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 		// Use UPDATE to set deleted_at instead of DELETE
 		builder := NewBuilder(q)
 		now := time.Now()
-		sql, args = builder.BuildUpdate("deleted_at", now)
-		if sql == "" {
+		deleteSQL, args = builder.BuildUpdate("deleted_at", now)
+		if deleteSQL == "" {
 			return nil, fmt.Errorf("failed to build SOFT DELETE query")
 		}
 	} else {
 		// Build DELETE query
 		builder := NewBuilder(q)
-		sql, args = builder.BuildDelete()
-		if sql == "" {
+		deleteSQL, args = builder.BuildDelete()
+		if deleteSQL == "" {
 			return nil, fmt.Errorf("failed to build DELETE query")
 		}
 	}
 
 	// Execute query
 	var result interface{ RowsAffected() (int64, error) }
+	start := time.Now()
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+		result, err = q.tx.ExecContext(q.ctx, deleteSQL, args...)
 	} else {
-		dbConn, err := q.DB()
+		var dbConn *sql.DB
+		dbConn, err = q.DB()
 		if err != nil {
 			return nil, err
 		}
-		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+		result, err = dbConn.ExecContext(q.ctx, deleteSQL, args...)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute DELETE query: %w", err)
 	}
-
-	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(deleteSQL, args, start)
 
 	// Fire Deleted event if not disabled
 	if !q.withoutEvents && q.model != nil {
@@ -756,44 +714,76 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 func (q *Query) InsertGetId(values any) (uint, error) {
 	// Build INSERT query
 	builder := NewBuilder(q)
-	sql, args := builder.BuildInsert(values)
-	if sql == "" {
+	insertSQL, args := builder.BuildInsert(values)
+	if insertSQL == "" {
 		return 0, fmt.Errorf("failed to build INSERT query")
 	}
 
-	// Execute query
-	var err error
-	var result interface{ LastInsertId() (int64, error) }
-	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sql, args...)
-	} else {
-		dbConn, err := q.DB()
-		if err != nil {
-			return 0, err
+	// Postgres: use RETURNING id to get inserted ID
+	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
+	if isPostgres {
+		insertSQL = insertSQL + " RETURNING id"
+	}
+
+	start := time.Now()
+	var lastID int64
+
+	if isPostgres {
+		var row *sql.Row
+		if q.tx != nil {
+			row = q.tx.QueryRowContext(q.ctx, insertSQL, args...)
+		} else {
+			dbConn, err := q.DB()
+			if err != nil {
+				return 0, err
+			}
+			row = dbConn.QueryRowContext(q.ctx, insertSQL, args...)
 		}
-		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+		if err := row.Scan(&lastID); err != nil {
+			return 0, fmt.Errorf("failed to get inserted ID: %w", err)
+		}
+	} else {
+		var err error
+		var result sql.Result
+		if q.tx != nil {
+			result, err = q.tx.ExecContext(q.ctx, insertSQL, args...)
+		} else {
+			dbConn, err2 := q.DB()
+			if err2 != nil {
+				return 0, err2
+			}
+			result, err = dbConn.ExecContext(q.ctx, insertSQL, args...)
+		}
+		if err != nil {
+			return 0, fmt.Errorf("failed to execute INSERT query: %w", err)
+		}
+		lastID, err = result.LastInsertId()
+		if err != nil {
+			return 0, fmt.Errorf("failed to get last insert ID: %w", err)
+		}
 	}
 
-	if err != nil {
-		return 0, fmt.Errorf("failed to execute INSERT query: %w", err)
-	}
+	q.logQuery(insertSQL, args, start)
+	return uint(lastID), nil
+}
 
-	// Log query if enabled
+// logQuery appends a QueryLog entry with the actual execution duration.
+// It also emits a warning via the logger when SlowThreshold is configured and exceeded.
+func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
+	elapsed := float64(time.Since(start).Milliseconds())
 	if q.enableLog {
 		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
 			Query:    sql,
-			Bindings: args,
-			Time:     0,
+			Bindings: bindings,
+			Time:     elapsed,
 		})
 	}
-
-	// Get last insert ID
-	lastID, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get last insert ID: %w", err)
+	// Slow-query warning
+	if q.dbConfig != nil && q.dbConfig.SlowThreshold > 0 && elapsed >= float64(q.dbConfig.SlowThreshold) {
+		if q.log != nil {
+			q.log.Warningf("[slow query %.1fms] %s %v", elapsed, sql, bindings)
+		}
 	}
-
-	return uint(lastID), nil
 }
 
 // FlushQueryLog clears the query log.
@@ -1058,6 +1048,7 @@ func (q *Query) Count(count *int64) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	start := time.Now()
 	var err error
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(count)
@@ -1074,13 +1065,7 @@ func (q *Query) Count(count *int64) error {
 	}
 
 	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	return nil
 }
@@ -1094,6 +1079,7 @@ func (q *Query) Sum(column string, dest any) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	start := time.Now()
 	var err error
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
@@ -1110,13 +1096,7 @@ func (q *Query) Sum(column string, dest any) error {
 	}
 
 	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	return nil
 }
@@ -1130,6 +1110,7 @@ func (q *Query) Avg(column string, dest any) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	start := time.Now()
 	var err error
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
@@ -1146,13 +1127,7 @@ func (q *Query) Avg(column string, dest any) error {
 	}
 
 	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	return nil
 }
@@ -1166,6 +1141,7 @@ func (q *Query) Min(column string, dest any) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	start := time.Now()
 	var err error
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
@@ -1182,13 +1158,7 @@ func (q *Query) Min(column string, dest any) error {
 	}
 
 	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	return nil
 }
@@ -1202,6 +1172,7 @@ func (q *Query) Max(column string, dest any) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	start := time.Now()
 	var err error
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
@@ -1218,13 +1189,7 @@ func (q *Query) Max(column string, dest any) error {
 	}
 
 	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	return nil
 }
@@ -1240,6 +1205,7 @@ func (q *Query) Exists(exists *bool) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	start := time.Now()
 	var count int64
 	var err error
 	if q.tx != nil {
@@ -1259,13 +1225,7 @@ func (q *Query) Exists(exists *bool) error {
 	*exists = count > 0
 
 	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	return nil
 }
@@ -1619,6 +1579,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	// Execute query
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
+	start := time.Now()
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sql, args...)
 	} else {
@@ -1632,15 +1593,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute RESTORE query: %w", err)
 	}
-
-	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	// Fire Restored event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
@@ -1676,6 +1629,7 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	// Execute query
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
+	start := time.Now()
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sql, args...)
 	} else {
@@ -1689,15 +1643,7 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute FORCE DELETE query: %w", err)
 	}
-
-	// Log query if enabled
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
-			Query:    sql,
-			Bindings: args,
-			Time:     0,
-		})
-	}
+	q.logQuery(sql, args, start)
 
 	// Fire ForceDeleted event if not disabled
 	if !q.withoutEvents && q.model != nil {
@@ -1920,23 +1866,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				}
 				elem.Set(m)
 			} else if elem.Kind() == reflect.Struct {
-				for i := range values {
-					if i < elem.NumField() {
-						field := elem.Field(i)
-						if field.CanAddr() {
-							values[i] = field.Addr().Interface()
-						} else {
-							ptr := reflect.New(field.Type())
-							values[i] = ptr.Interface()
-						}
-					} else {
-						var placeholder any
-						values[i] = &placeholder
-					}
-				}
+				values = structScanDests(elem, columns)
 				if err := rows.Scan(values...); err != nil {
 					return fmt.Errorf("failed to scan row: %w", err)
 				}
+				copyScanResults(elem, columns, values)
 			} else {
 				// Scalar slice element (e.g. []string, []int)
 				if err := rows.Scan(elem.Addr().Interface()); err != nil {
@@ -1967,25 +1901,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 			return fmt.Errorf("failed to get columns: %w", err)
 		}
 
-		values := make([]any, len(columns))
-		for i := range values {
-			if i < destValue.NumField() {
-				field := destValue.Field(i)
-				if field.CanAddr() {
-					values[i] = field.Addr().Interface()
-				} else {
-					var placeholder any
-					values[i] = &placeholder
-				}
-			} else {
-				var placeholder any
-				values[i] = &placeholder
-			}
-		}
-
+		values := structScanDests(destValue, columns)
 		if err := rows.Scan(values...); err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
+		copyScanResults(destValue, columns, values)
 
 		// Initialize relations if requested
 		if len(q.withRelations) > 0 {
@@ -2144,6 +2064,100 @@ func getPrimaryKeyValue(value any) int64 {
 		}
 	}
 	return 0
+}
+
+// structFieldColumnName returns the column name for a struct field by checking
+// db, neat, gorm tags (in that order), then falling back to a snake_case of the field name.
+func structFieldColumnName(f reflect.StructField) string {
+	for _, tag := range []string{"db", "neat", "gorm"} {
+		if v := f.Tag.Get(tag); v != "" && v != "-" {
+			// take the first semicolon-delimited part; for gorm/neat it may be "column:name"
+			part := strings.SplitN(v, ";", 2)[0]
+			if strings.HasPrefix(part, "column:") {
+				return strings.TrimPrefix(part, "column:")
+			}
+			// for db tag the value is directly the column name
+			if tag == "db" {
+				return part
+			}
+		}
+	}
+	// snake_case the Go field name
+	return camelToSnake(f.Name)
+}
+
+// camelToSnake converts CamelCase to snake_case.
+func camelToSnake(s string) string {
+	var out []rune
+	for i, r := range s {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			out = append(out, '_')
+		}
+		out = append(out, []rune(strings.ToLower(string(r)))...)
+	}
+	return string(out)
+}
+
+// structScanDests builds a scan-destination slice aligned to columns.
+// Each element is either a pointer to the matching struct field or a *any placeholder.
+// Non-addressable fields get a *T temporary that copyScanResults will copy back.
+func structScanDests(v reflect.Value, columns []string) []any {
+	// Build column → field index map
+	t := v.Type()
+	colToField := make(map[string]int, t.NumField())
+	for i := 0; i < t.NumField(); i++ {
+		col := structFieldColumnName(t.Field(i))
+		colToField[strings.ToLower(col)] = i
+	}
+
+	dests := make([]any, len(columns))
+	for i, col := range columns {
+		key := strings.ToLower(col)
+		if fi, ok := colToField[key]; ok {
+			field := v.Field(fi)
+			if field.CanAddr() {
+				dests[i] = field.Addr().Interface()
+			} else {
+				// allocate a temporary pointer of the field's type
+				ptr := reflect.New(field.Type())
+				dests[i] = ptr.Interface()
+			}
+		} else {
+			var placeholder any
+			dests[i] = &placeholder
+		}
+	}
+	return dests
+}
+
+// copyScanResults copies values from non-addressable temporaries back into struct fields.
+// For addressable fields the scan wrote directly into them; this is a no-op for those.
+func copyScanResults(v reflect.Value, columns []string, dests []any) {
+	t := v.Type()
+	colToField := make(map[string]int, t.NumField())
+	for i := 0; i < t.NumField(); i++ {
+		col := structFieldColumnName(t.Field(i))
+		colToField[strings.ToLower(col)] = i
+	}
+	for i, col := range columns {
+		key := strings.ToLower(col)
+		fi, ok := colToField[key]
+		if !ok {
+			continue
+		}
+		field := v.Field(fi)
+		if field.CanAddr() {
+			continue // already written by Scan
+		}
+		// copy from the temporary pointer
+		ptrVal := reflect.ValueOf(dests[i])
+		if ptrVal.Kind() == reflect.Ptr && !ptrVal.IsNil() {
+			val := ptrVal.Elem()
+			if val.Type().AssignableTo(field.Type()) && field.CanSet() {
+				field.Set(val)
+			}
+		}
+	}
 }
 
 // setModelPrimaryKey sets the primary key field (ID or Id) on a struct model to the given value.

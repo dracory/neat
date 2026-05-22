@@ -32,11 +32,9 @@ These methods exist in `neat`'s `Query` struct but return errors or are no-ops:
 | `Scopes` | No-op (`return q`) | Fully implemented |
 | `Omit` | No-op (`return q`) | Fully implemented |
 
-### 1.2 Query Logging Duration
+### 1.2 Query Logging Duration ✅ COMPLETED
 
-All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` records actual execution duration in milliseconds.
-
-**File**: `d:\PROJECTs\_modules_dracory\neat\database\query\query.go` — multiple `Time: 0, // TODO: track duration` entries.
+All query log entries in `neat` now record actual execution duration in milliseconds via the `logQuery(sql, bindings, start)` helper. Slow-query warnings are emitted to the logger when `DBConfig.SlowThreshold` (ms) is set and exceeded.
 
 ---
 
@@ -75,23 +73,15 @@ All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` reco
 
 ---
 
-## 5. Connection Switching (`Database.Connection`)
+## 5. Connection Switching (`Database.Connection`) ✅ COMPLETED
 
-`eloquent`'s `Database.Connection(name)` returns a new `Database` scoped to a named connection, with separate ORM and schema instances.
-
-`neat`'s `Database` struct has no `Connection(name)` method. The `Query.Connection(name)` method exists but returns `q` unchanged (no-op).
-
-**Files**:  
-- `d:\PROJECTs\_modules_dracory\eloquent\db.go:306-342`  
-- `d:\PROJECTs\_modules_dracory\neat\database\query\query.go:110-114` (no-op)
+`Database.Connection(name)` was already fully implemented in `neat`. `Query.Connection(name)` was a no-op and is now implemented: it looks up the named connection in `dbConfig`, constructs the appropriate driver via `newDriverForDialect`, builds the DSN, opens a new `*sql.DB`, and returns a fresh `Query` scoped to that connection.
 
 ---
 
-## 6. `InsertGetId` Implementation
+## 6. `InsertGetId` Implementation ✅ COMPLETED
 
-`eloquent` has a complete `InsertGetId` that handles Postgres (`RETURNING id`), MySQL (`SELECT LAST_INSERT_ID()`), and SQLite (`SELECT last_insert_rowid()`).
-
-`neat` has `InsertGetId` in the contract but the implementation is not visible in the query file (likely missing or stub). The `Create` method now sets the ID via reflection (`setModelPrimaryKey`) but `InsertGetId` as a standalone method needs verification.
+`InsertGetId` is now fully implemented with driver-aware ID retrieval: Postgres uses `INSERT ... RETURNING id` with `QueryRowContext`, all other drivers use `ExecContext` + `LastInsertId()`. The previous variable-shadowing bug (`err` in else-branch) is also fixed.
 
 ---
 
@@ -129,16 +119,9 @@ All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` reco
 
 ---
 
-## 10. Struct Scan Field Mapping
+## 10. Struct Scan Field Mapping ✅ COMPLETED
 
-`eloquent` uses GORM's full struct reflection with `gorm:"column:name"` tags, naming strategies (snake_case, prefix, singular), and `TableName()` method support.
-
-`neat`'s struct scan in `scanRows` maps columns to fields **by position** (column index → field index), not by name or tag. This breaks if:
-- Columns are returned in a different order than struct fields are declared.
-- The struct has more fields than columns (or vice versa).
-- The model uses `gorm:"column:..."` tags to remap column names.
-
-**File**: `d:\PROJECTs\_modules_dracory\neat\database\query\query.go:1762-1780`.
+`neat`'s `scanRows` now uses name/tag-based mapping via `structScanDests` and `copyScanResults` helpers. Column names are matched to struct fields by checking `db`, `neat`, and `gorm` tags (in that order), falling back to a snake_case conversion of the Go field name. Unmatched columns scan into a `*any` placeholder.
 
 ---
 
@@ -150,11 +133,9 @@ All query log entries in `neat` record `Time: 0` (TODO in code). `eloquent` reco
 
 ---
 
-## 12. `SlowThreshold` / Debug Logging
+## 12. `SlowThreshold` / Debug Logging ✅ COMPLETED
 
-`eloquent` uses `SlowThreshold` from config to log slow queries via its custom GORM logger.
-
-`neat` stores `SlowThreshold` in `DBConfig` but never uses it — no slow query logging is wired up.
+`SlowThreshold` is now propagated from `neat.DBConfig` → `db.DBConfig` → `Query`. The `logQuery` helper emits a `Warningf` log entry whenever a query's elapsed time meets or exceeds the threshold (in milliseconds).
 
 ---
 

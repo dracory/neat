@@ -320,7 +320,8 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 			ConnMaxLifetime: int(cfg.Pool.ConnMaxLifetime.Seconds()),
 			ConnMaxIdleTime: int(cfg.Pool.ConnMaxIdleTime.Seconds()),
 		},
-		Debug: cfg.Debug,
+		Debug:         cfg.Debug,
+		SlowThreshold: cfg.SlowThreshold,
 	}
 
 	for name, conn := range cfg.Connections {

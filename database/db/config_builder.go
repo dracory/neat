@@ -377,8 +377,9 @@ type PoolConfig struct {
 
 // DBConfig represents the database configuration.
 type DBConfig struct {
-	Default     string
-	Connections map[string]ConnectionConfig
-	Pool        PoolConfig
-	Debug       bool
+	Default       string
+	Connections   map[string]ConnectionConfig
+	Pool          PoolConfig
+	Debug         bool
+	SlowThreshold int // slow query threshold in milliseconds (0 = disabled)
 }
