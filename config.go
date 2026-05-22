@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/database/db"
 )
@@ -26,6 +25,18 @@ type DBConfig struct {
 	SlowThreshold int
 }
 
+// ReplicaConfig holds connection details for a single read or write replica.
+type ReplicaConfig struct {
+	Host     string
+	Port     int
+	Database string
+	Username string
+	Password string
+}
+
+// Database is an alias for the database.Database type.
+type Database = database.Database
+
 // ConnectionConfig holds configuration for a single database connection.
 type ConnectionConfig struct {
 	Driver       string // "postgres", "mysql", "sqlite", "sqlserver", "turso"
@@ -44,8 +55,8 @@ type ConnectionConfig struct {
 	Singular     bool
 	NoLowerCase  bool
 	NameReplacer any
-	Read         []contractsdb.Config
-	Write        []contractsdb.Config
+	Read         []ReplicaConfig
+	Write        []ReplicaConfig
 }
 
 // MigrationConfig holds migration configuration.

@@ -15,7 +15,7 @@ import (
 // GetPostgresConfig returns a PostgreSQL connection config from environment variables
 func GetPostgresConfig() neat.DBConfig {
 	host := getEnv("POSTGRES_HOST", "127.0.0.1")
-	port := getEnvInt("POSTGRES_PORT", 5432)
+	port := getEnvInt("POSTGRES_PORT", 55432)
 	database := getEnv("POSTGRES_DATABASE", "test")
 	username := getEnv("POSTGRES_USER", "test")
 	password := getEnv("POSTGRES_PASS", "test")
