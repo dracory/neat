@@ -1,11 +1,8 @@
-//go:build integration
-
 package sqlite
 
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -62,7 +59,7 @@ func TestSQLiteIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt.Time.IsZero() {
+	if foundUser.DeletedAt == nil || foundUser.DeletedAt.IsZero() {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }
@@ -160,7 +157,7 @@ func TestSQLiteIntegrationForceDelete(t *testing.T) {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
-	if softDeletedUser.DeletedAt.Time.IsZero() {
+	if softDeletedUser.DeletedAt == nil || softDeletedUser.DeletedAt.IsZero() {
 		t.Error("User should be soft deleted")
 	}
 

@@ -1,5 +1,3 @@
-//go:build integration
-
 package sqlite
 
 import (
@@ -11,7 +9,7 @@ import (
 
 // setupFindTest creates a database connection and sets up test tables
 func setupFindTest(t *testing.T) *database.Database {
-	return SetupSQLiteConnection(t)
+	return SetupSQLiteTest(t)
 }
 
 // TestSQLiteIntegrationFirst tests First operation

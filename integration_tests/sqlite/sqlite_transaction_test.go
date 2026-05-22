@@ -1,5 +1,3 @@
-//go:build integration
-
 package sqlite
 
 import (
@@ -7,9 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dracory/neat/database"
-	"github.com/dracory/neat/integration_tests/models"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/integration_tests/models"
 )
 
 func TestSQLiteTransactionCommit(t *testing.T) {

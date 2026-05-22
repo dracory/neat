@@ -1,11 +1,8 @@
-//go:build integration
-
 package sqlite
 
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 

@@ -1,5 +1,3 @@
-//go:build integration
-
 package sqlite
 
 import (
@@ -364,7 +362,7 @@ func TestSQLiteIntegrationJoin(t *testing.T) {
 }
 
 func isSQLiteVersionAtLeast(t *testing.T, db *neat.Database, major, minor, patch int) bool {
-	sqlDB, err := db.DB().DB()
+	sqlDB, err := db.DB()
 	if err != nil {
 		t.Logf("failed to get underlying sql.DB: %v", err)
 		return false
