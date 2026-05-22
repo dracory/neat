@@ -1,54 +1,30 @@
-package query
+package query_test
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/dracory/neat/database/query"
 )
-
-// fakeDialectDriver implements driver.Driver with a configurable Dialect().
-type fakeDialectDriver struct {
-	dialect string
-}
-
-func (f *fakeDialectDriver) Open(dsn string) (*sql.DB, error)           { return nil, nil }
-func (f *fakeDialectDriver) Close(db *sql.DB) error                     { return nil }
-func (f *fakeDialectDriver) Ping(ctx context.Context, db *sql.DB) error { return nil }
-func (f *fakeDialectDriver) BeginTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions) (*sql.Tx, error) {
-	return nil, nil
-}
-func (f *fakeDialectDriver) Dialect() string { return f.dialect }
-func (f *fakeDialectDriver) Placeholder(n int) string {
-	if f.dialect == "postgres" {
-		return fmt.Sprintf("$%d", n)
-	}
-	return "?"
-}
 
 // TestInsertGetIdPostgresAppendReturning verifies that the RETURNING id clause is
 // appended to the INSERT SQL when the driver dialect is "postgres".
 func TestInsertGetIdPostgresAppendReturning(t *testing.T) {
-	q := openSQLiteQuery(t)
+	w := openSQLiteQuery(t)
+	w.Q.Driver() // sanity: driver exists
 
-	// Swap the driver for a fake postgres dialect driver.
-	q.driver = &fakeDialectDriver{dialect: "postgres"}
-	q.table = "users"
+	// Use a fake postgres-dialect wrapper for the insert SQL build check.
+	fakePg := &query.FakeDriver{DialectName: "postgres"}
+	pgW := query.WrapQuery(query.NewTestQuery(w.PrimaryDB(), fakePg, query.MakeDBConfig(), nil))
+	pgW.SetTable("users")
 
-	// Build the INSERT SQL directly (don't execute — we just verify the SQL).
-	builder := NewBuilder(q)
-	insertSQL, _ := builder.BuildInsert(map[string]any{"name": "alice"})
+	insertSQL, _ := pgW.BuildInsertSQL(map[string]any{"name": "alice"})
 	if insertSQL == "" {
 		t.Fatal("expected non-empty INSERT SQL")
 	}
-
-	// InsertGetId appends " RETURNING id" for postgres before executing.
-	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
-	if !isPostgres {
+	if !pgW.IsPostgres() {
 		t.Fatal("precondition: driver should be recognised as postgres")
 	}
-
 	finalSQL := insertSQL + " RETURNING id"
 	if !strings.Contains(finalSQL, "RETURNING id") {
 		t.Errorf("expected SQL to contain 'RETURNING id', got: %s", finalSQL)
@@ -58,21 +34,18 @@ func TestInsertGetIdPostgresAppendReturning(t *testing.T) {
 // TestInsertGetIdNonPostgresNoReturning verifies that no RETURNING clause is
 // appended for non-postgres dialects.
 func TestInsertGetIdNonPostgresNoReturning(t *testing.T) {
-	q := openSQLiteQuery(t)
-	q.driver = &fakeDialectDriver{dialect: "mysql"}
-	q.table = "users"
+	w := openSQLiteQuery(t)
+	fakeMy := &query.FakeDriver{DialectName: "mysql"}
+	myW := query.WrapQuery(query.NewTestQuery(w.PrimaryDB(), fakeMy, query.MakeDBConfig(), nil))
+	myW.SetTable("users")
 
-	builder := NewBuilder(q)
-	insertSQL, _ := builder.BuildInsert(map[string]any{"name": "alice"})
+	insertSQL, _ := myW.BuildInsertSQL(map[string]any{"name": "alice"})
 	if insertSQL == "" {
 		t.Fatal("expected non-empty INSERT SQL")
 	}
-
-	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
-	if isPostgres {
+	if myW.IsPostgres() {
 		t.Fatal("precondition: driver should not be postgres")
 	}
-	// For non-postgres the SQL should not contain RETURNING.
 	if strings.Contains(insertSQL, "RETURNING") {
 		t.Errorf("expected no 'RETURNING' in SQL for mysql dialect, got: %s", insertSQL)
 	}
@@ -81,11 +54,11 @@ func TestInsertGetIdNonPostgresNoReturning(t *testing.T) {
 // TestInsertGetIdSQLiteReturnsLastInsertId is an end-to-end test using a real
 // SQLite in-memory DB and verifies that InsertGetId returns a non-zero ID.
 func TestInsertGetIdSQLiteReturnsLastInsertId(t *testing.T) {
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE iid_users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
-	q.table = "iid_users"
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE iid_users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
+	w.SetTable("iid_users")
 
-	id, err := q.InsertGetId(map[string]any{"name": "bob"})
+	id, err := w.Q.InsertGetId(map[string]any{"name": "bob"})
 	if err != nil {
 		t.Fatalf("InsertGetId failed: %v", err)
 	}

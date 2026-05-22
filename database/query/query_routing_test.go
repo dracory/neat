@@ -1,12 +1,11 @@
-package query
+package query_test
 
 import (
-	"context"
 	"database/sql"
 	"testing"
 
-	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
+	"github.com/dracory/neat/database/query"
 	_ "modernc.org/sqlite"
 )
 
@@ -19,25 +18,15 @@ func newSentinelDB() *sql.DB {
 	return db
 }
 
-func testDBConfig() *db.DBConfig {
-	return &db.DBConfig{
-		Default: "default",
-		Connections: map[string]db.ConnectionConfig{
-			"default": {Driver: "sqlite", Database: ":memory:"},
-		},
-	}
-}
-
 // --- readConn / writeConn fallback ---
 
 func TestReadConnFallsBackToPrimary(t *testing.T) {
 	primary := newSentinelDB()
 	defer primary.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	// readDB is nil — must return primary
-	if got := q.readConn(); got != primary {
-		t.Errorf("readConn() should return primary when readDB is nil")
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	if got := w.ReadConn(); got != primary {
+		t.Errorf("ReadConn() should return primary when readDB is nil")
 	}
 }
 
@@ -47,11 +36,10 @@ func TestReadConnUsesReplicaWhenSet(t *testing.T) {
 	defer primary.Close()
 	defer replica.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.readDB = replica
-
-	if got := q.readConn(); got != replica {
-		t.Errorf("readConn() should return readDB when set")
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetReadDB(replica)
+	if got := w.ReadConn(); got != replica {
+		t.Errorf("ReadConn() should return readDB when set")
 	}
 }
 
@@ -59,9 +47,9 @@ func TestWriteConnFallsBackToPrimary(t *testing.T) {
 	primary := newSentinelDB()
 	defer primary.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	if got := q.writeConn(); got != primary {
-		t.Errorf("writeConn() should return primary when writeDB is nil")
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	if got := w.WriteConn(); got != primary {
+		t.Errorf("WriteConn() should return primary when writeDB is nil")
 	}
 }
 
@@ -71,15 +59,14 @@ func TestWriteConnUsesWriteWhenSet(t *testing.T) {
 	defer primary.Close()
 	defer write.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.writeDB = write
-
-	if got := q.writeConn(); got != write {
-		t.Errorf("writeConn() should return writeDB when set")
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetWriteDB(write)
+	if got := w.WriteConn(); got != write {
+		t.Errorf("WriteConn() should return writeDB when set")
 	}
 }
 
-// --- NewQueryWithReplicas ---
+// --- NewTestQueryWithReplicas ---
 
 func TestNewQueryWithReplicasSetsFields(t *testing.T) {
 	primary := newSentinelDB()
@@ -88,16 +75,17 @@ func TestNewQueryWithReplicasSetsFields(t *testing.T) {
 	defer readReplica.Close()
 
 	drv := driver.NewSQLite()
-	q := NewQueryWithReplicas(context.Background(), primary, readReplica, drv, "default", testDBConfig(), nil)
+	q := query.NewTestQueryWithReplicas(primary, readReplica, drv, query.MakeDBConfig())
+	w := query.WrapQuery(q)
 
-	if q.readDB != readReplica {
-		t.Errorf("NewQueryWithReplicas: readDB not set correctly")
+	if w.ReadDB() != readReplica {
+		t.Errorf("NewTestQueryWithReplicas: ReadDB not set correctly")
 	}
-	if q.writeDB != primary {
-		t.Errorf("NewQueryWithReplicas: writeDB should equal writeConn arg")
+	if w.WriteDB() != primary {
+		t.Errorf("NewTestQueryWithReplicas: WriteDB should equal write arg")
 	}
-	if q.db != primary {
-		t.Errorf("NewQueryWithReplicas: primary db field not set")
+	if w.PrimaryDB() != primary {
+		t.Errorf("NewTestQueryWithReplicas: PrimaryDB not set")
 	}
 }
 
@@ -111,16 +99,17 @@ func TestClonePropagatesReplicas(t *testing.T) {
 	defer readReplica.Close()
 	defer write.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.readDB = readReplica
-	q.writeDB = write
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetReadDB(readReplica)
+	w.SetWriteDB(write)
 
-	clone := q.Clone().(*Query)
+	cloneQ := w.Q.Clone()
+	cloneW := query.WrapQuery(cloneQ.(*query.Query))
 
-	if clone.readDB != readReplica {
+	if cloneW.ReadDB() != readReplica {
 		t.Errorf("Clone() did not propagate readDB")
 	}
-	if clone.writeDB != write {
+	if cloneW.WriteDB() != write {
 		t.Errorf("Clone() did not propagate writeDB")
 	}
 }
@@ -131,10 +120,10 @@ func TestDBErrorsDuringTransaction(t *testing.T) {
 	primary := newSentinelDB()
 	defer primary.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.tx = &sql.Tx{} // non-nil tx signals active transaction
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetTx(&sql.Tx{})
 
-	_, err := q.DB()
+	_, err := w.Q.DB()
 	if err == nil {
 		t.Errorf("DB() should return error during active transaction")
 	}
@@ -144,10 +133,10 @@ func TestReadDBErrorsDuringTransaction(t *testing.T) {
 	primary := newSentinelDB()
 	defer primary.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.tx = &sql.Tx{}
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetTx(&sql.Tx{})
 
-	_, err := q.ReadDB()
+	_, err := w.Q.ReadDB()
 	if err == nil {
 		t.Errorf("ReadDB() should return error during active transaction")
 	}
@@ -161,10 +150,10 @@ func TestDBReturnsWriteConn(t *testing.T) {
 	defer primary.Close()
 	defer write.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.writeDB = write
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetWriteDB(write)
 
-	got, err := q.DB()
+	got, err := w.Q.DB()
 	if err != nil {
 		t.Fatalf("DB() unexpected error: %v", err)
 	}
@@ -179,10 +168,10 @@ func TestReadDBReturnsReadConn(t *testing.T) {
 	defer primary.Close()
 	defer replica.Close()
 
-	q := NewQuery(context.Background(), primary, nil, "", testDBConfig(), nil)
-	q.readDB = replica
+	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
+	w.SetReadDB(replica)
 
-	got, err := q.ReadDB()
+	got, err := w.Q.ReadDB()
 	if err != nil {
 		t.Fatalf("ReadDB() unexpected error: %v", err)
 	}

@@ -1,10 +1,11 @@
-package query
+package query_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dracory/neat/database/query"
 )
 
 // softModel has a *time.Time DeletedAt — detected as soft-deletable.
@@ -20,65 +21,65 @@ type hardModel struct {
 	Name string
 }
 
-func newSoftQuery(model any) *Query {
-	q := NewQuery(context.Background(), nil, nil, "", testDBConfig(), nil)
-	q.table = "soft_models"
-	q.model = model
-	return q
+func newSoftQuery(model any) *query.TestQuery {
+	w := query.WrapQuery(query.NewTestQuery(nil, nil, query.MakeDBConfig(), nil))
+	w.SetTable("soft_models")
+	w.SetModel(model)
+	return w
 }
 
 // TestBuildSelectInjectsSoftDeleteFilter verifies that `deleted_at IS NULL` is
 // injected automatically for models with a *time.Time DeletedAt field.
 func TestBuildSelectInjectsSoftDeleteFilter(t *testing.T) {
-	q := newSoftQuery(&softModel{})
-	sql, _ := NewBuilder(q).BuildSelect()
+	w := newSoftQuery(&softModel{})
+	sqlStr, _ := w.BuildSelectSQL()
 
-	if !strings.Contains(sql, "deleted_at IS NULL") {
-		t.Errorf("expected 'deleted_at IS NULL' in SQL, got: %s", sql)
+	if !strings.Contains(sqlStr, "deleted_at IS NULL") {
+		t.Errorf("expected 'deleted_at IS NULL' in SQL, got: %s", sqlStr)
 	}
 }
 
 // TestBuildSelectWithTrashedSkipsFilter verifies WithTrashed() suppresses the filter.
 func TestBuildSelectWithTrashedSkipsFilter(t *testing.T) {
-	q := newSoftQuery(&softModel{})
-	q.withTrashed = true
-	sql, _ := NewBuilder(q).BuildSelect()
+	w := newSoftQuery(&softModel{})
+	w.SetWithTrashed(true)
+	sqlStr, _ := w.BuildSelectSQL()
 
-	if strings.Contains(sql, "deleted_at") {
-		t.Errorf("expected no 'deleted_at' clause with WithTrashed, got: %s", sql)
+	if strings.Contains(sqlStr, "deleted_at") {
+		t.Errorf("expected no 'deleted_at' clause with WithTrashed, got: %s", sqlStr)
 	}
 }
 
 // TestBuildSelectOnlyTrashedFilter verifies OnlyTrashed() uses IS NOT NULL.
 func TestBuildSelectOnlyTrashedFilter(t *testing.T) {
-	q := newSoftQuery(&softModel{})
-	q.onlyTrashed = true
-	sql, _ := NewBuilder(q).BuildSelect()
+	w := newSoftQuery(&softModel{})
+	w.SetOnlyTrashed(true)
+	sqlStr, _ := w.BuildSelectSQL()
 
-	if !strings.Contains(sql, "deleted_at IS NOT NULL") {
-		t.Errorf("expected 'deleted_at IS NOT NULL' in SQL, got: %s", sql)
+	if !strings.Contains(sqlStr, "deleted_at IS NOT NULL") {
+		t.Errorf("expected 'deleted_at IS NOT NULL' in SQL, got: %s", sqlStr)
 	}
 }
 
 // TestBuildSelectNoFilterForNonSoftDeleteModel verifies plain models get no filter.
 func TestBuildSelectNoFilterForNonSoftDeleteModel(t *testing.T) {
-	q := NewQuery(context.Background(), nil, nil, "", testDBConfig(), nil)
-	q.table = "hard_models"
-	q.model = &hardModel{}
-	sql, _ := NewBuilder(q).BuildSelect()
+	w := query.WrapQuery(query.NewTestQuery(nil, nil, query.MakeDBConfig(), nil))
+	w.SetTable("hard_models")
+	w.SetModel(&hardModel{})
+	sqlStr, _ := w.BuildSelectSQL()
 
-	if strings.Contains(sql, "deleted_at") {
-		t.Errorf("expected no 'deleted_at' clause for non-soft-delete model, got: %s", sql)
+	if strings.Contains(sqlStr, "deleted_at") {
+		t.Errorf("expected no 'deleted_at' clause for non-soft-delete model, got: %s", sqlStr)
 	}
 }
 
 // TestBuildSelectNoFilterWhenModelNil verifies nil model gets no soft-delete filter.
 func TestBuildSelectNoFilterWhenModelNil(t *testing.T) {
-	q := NewQuery(context.Background(), nil, nil, "", testDBConfig(), nil)
-	q.table = "users"
-	sql, _ := NewBuilder(q).BuildSelect()
+	w := query.WrapQuery(query.NewTestQuery(nil, nil, query.MakeDBConfig(), nil))
+	w.SetTable("users")
+	sqlStr, _ := w.BuildSelectSQL()
 
-	if strings.Contains(sql, "deleted_at") {
-		t.Errorf("expected no 'deleted_at' clause when model is nil, got: %s", sql)
+	if strings.Contains(sqlStr, "deleted_at") {
+		t.Errorf("expected no 'deleted_at' clause when model is nil, got: %s", sqlStr)
 	}
 }

@@ -1,7 +1,6 @@
-package query
+package query_test
 
 import (
-	"context"
 	"strings"
 	"sync"
 	"testing"
@@ -9,7 +8,7 @@ import (
 
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
-	"github.com/dracory/neat/database/driver"
+	"github.com/dracory/neat/database/query"
 )
 
 // capturingLogger records all Warningf calls for assertion.
@@ -45,77 +44,67 @@ func (l *capturingLogger) warningContains(s string) bool {
 
 var _ log.Log = (*capturingLogger)(nil)
 
-// openSQLiteQueryWithConfig returns a Query with a real SQLite DB and a custom DBConfig.
-func openSQLiteQueryWithConfig(t *testing.T, cfg *db.DBConfig, lg log.Log) *Query {
+// openSQLiteQueryWithConfig returns a TestQuery wrapper backed by SQLite with a custom DBConfig.
+func openSQLiteQueryWithConfig(t *testing.T, cfg *db.DBConfig, lg log.Log) *query.TestQuery {
 	t.Helper()
-	drv := driver.NewSQLite()
-	sqlDB, err := drv.Open(":memory:")
-	if err != nil {
-		t.Fatalf("openSQLiteQueryWithConfig: %v", err)
-	}
-	t.Cleanup(func() { sqlDB.Close() })
-	return NewQuery(context.Background(), sqlDB, drv, "default", cfg, lg)
+	return query.WrapQuery(query.NewTestQueryWithConfig(t, cfg, lg))
 }
 
 func logTestDBConfig(slowThresholdMs int) *db.DBConfig {
-	return &db.DBConfig{
-		Default: "default",
-		Connections: map[string]db.ConnectionConfig{
-			"default": {Driver: "sqlite", Database: ":memory:"},
-		},
-		SlowThreshold: slowThresholdMs,
-	}
+	cfg := query.MakeDBConfig()
+	cfg.SlowThreshold = slowThresholdMs
+	return cfg
 }
 
 // --- EnableQueryLog / DisableQueryLog / FlushQueryLog ---
 
 func TestEnableQueryLogCapturesEntries(t *testing.T) {
-	q := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
-	execSQL(t, q, "CREATE TABLE ql_test (id INTEGER)")
-	execSQL(t, q, "INSERT INTO ql_test VALUES (1)")
+	w := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
+	execSQL(t, w, "CREATE TABLE ql_test (id INTEGER)")
+	execSQL(t, w, "INSERT INTO ql_test VALUES (1)")
 
-	q.EnableQueryLog()
-	q.table = "ql_test"
+	w.Q.EnableQueryLog()
+	w.SetTable("ql_test")
 	var result []map[string]any
-	_ = q.Get(&result)
+	_ = w.Q.Get(&result)
 
-	logs := q.GetQueryLog()
+	logs := w.Q.GetQueryLog()
 	if len(logs) == 0 {
 		t.Error("expected at least one query log entry after EnableQueryLog")
 	}
 }
 
 func TestDisableQueryLogSuppressesEntries(t *testing.T) {
-	q := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
-	execSQL(t, q, "CREATE TABLE ql_off (id INTEGER)")
-	execSQL(t, q, "INSERT INTO ql_off VALUES (1)")
+	w := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
+	execSQL(t, w, "CREATE TABLE ql_off (id INTEGER)")
+	execSQL(t, w, "INSERT INTO ql_off VALUES (1)")
 
-	q.EnableQueryLog()
-	q.DisableQueryLog()
-	q.table = "ql_off"
+	w.Q.EnableQueryLog()
+	w.Q.DisableQueryLog()
+	w.SetTable("ql_off")
 	var result []map[string]any
-	_ = q.Get(&result)
+	_ = w.Q.Get(&result)
 
-	if len(q.GetQueryLog()) != 0 {
+	if len(w.Q.GetQueryLog()) != 0 {
 		t.Error("expected no log entries after DisableQueryLog")
 	}
 }
 
 func TestFlushQueryLogClearsEntries(t *testing.T) {
-	q := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
-	execSQL(t, q, "CREATE TABLE ql_flush (id INTEGER)")
-	execSQL(t, q, "INSERT INTO ql_flush VALUES (1)")
+	w := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
+	execSQL(t, w, "CREATE TABLE ql_flush (id INTEGER)")
+	execSQL(t, w, "INSERT INTO ql_flush VALUES (1)")
 
-	q.EnableQueryLog()
-	q.table = "ql_flush"
+	w.Q.EnableQueryLog()
+	w.SetTable("ql_flush")
 	var result []map[string]any
-	_ = q.Get(&result)
+	_ = w.Q.Get(&result)
 
-	if len(q.GetQueryLog()) == 0 {
+	if len(w.Q.GetQueryLog()) == 0 {
 		t.Fatal("precondition: expected log entries before flush")
 	}
-	q.FlushQueryLog()
-	if len(q.GetQueryLog()) != 0 {
+	w.Q.FlushQueryLog()
+	if len(w.Q.GetQueryLog()) != 0 {
 		t.Error("expected empty log after FlushQueryLog")
 	}
 }
@@ -123,16 +112,16 @@ func TestFlushQueryLogClearsEntries(t *testing.T) {
 // --- QueryLog entry has Time >= 0 ---
 
 func TestLogQueryRecordsDuration(t *testing.T) {
-	q := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
-	execSQL(t, q, "CREATE TABLE ql_dur (id INTEGER)")
-	execSQL(t, q, "INSERT INTO ql_dur VALUES (1)")
+	w := openSQLiteQueryWithConfig(t, logTestDBConfig(0), nil)
+	execSQL(t, w, "CREATE TABLE ql_dur (id INTEGER)")
+	execSQL(t, w, "INSERT INTO ql_dur VALUES (1)")
 
-	q.EnableQueryLog()
-	q.table = "ql_dur"
+	w.Q.EnableQueryLog()
+	w.SetTable("ql_dur")
 	var result []map[string]any
-	_ = q.Get(&result)
+	_ = w.Q.Get(&result)
 
-	logs := q.GetQueryLog()
+	logs := w.Q.GetQueryLog()
 	if len(logs) == 0 {
 		t.Fatal("expected query log entry")
 	}
@@ -145,12 +134,10 @@ func TestLogQueryRecordsDuration(t *testing.T) {
 
 func TestLogQuerySlowThresholdEmitsWarning(t *testing.T) {
 	lg := &capturingLogger{}
-	// threshold of 1ms — call logQuery directly with elapsed=1ms to guarantee trigger
-	q := openSQLiteQueryWithConfig(t, logTestDBConfig(1), lg)
+	w := openSQLiteQueryWithConfig(t, logTestDBConfig(1), lg)
 
-	// Call logQuery directly so we control the elapsed time precisely.
 	startTime := time.Now().Add(-time.Millisecond * 2) // 2ms ago
-	q.logQuery("SELECT 1", nil, startTime)
+	w.LogQuery("SELECT 1", nil, startTime)
 
 	if !lg.hasWarning() {
 		t.Error("expected slow-query warning when elapsed >= SlowThreshold")
@@ -159,10 +146,10 @@ func TestLogQuerySlowThresholdEmitsWarning(t *testing.T) {
 
 func TestLogQuerySlowThresholdContainsSlow(t *testing.T) {
 	lg := &capturingLogger{}
-	q := openSQLiteQueryWithConfig(t, logTestDBConfig(1), lg)
+	w := openSQLiteQueryWithConfig(t, logTestDBConfig(1), lg)
 
 	startTime := time.Now().Add(-time.Millisecond * 2) // 2ms elapsed
-	q.logQuery("SELECT 1", nil, startTime)
+	w.LogQuery("SELECT 1", nil, startTime)
 
 	if !lg.warningContains("slow query") {
 		t.Error("expected warning message to contain 'slow query'")
@@ -171,20 +158,19 @@ func TestLogQuerySlowThresholdContainsSlow(t *testing.T) {
 
 func TestLogQueryNoWarnWhenThresholdNotSet(t *testing.T) {
 	lg := &capturingLogger{}
-	// SlowThreshold=0 in DBConfig but we'll leave it unset (use nil dbConfig check)
 	cfg := &db.DBConfig{
 		Default:       "default",
 		Connections:   map[string]db.ConnectionConfig{"default": {Driver: "sqlite", Database: ":memory:"}},
 		SlowThreshold: -1, // negative → disabled
 	}
-	q := openSQLiteQueryWithConfig(t, cfg, lg)
-	execSQL(t, q, "CREATE TABLE ql_nowarn (id INTEGER)")
-	execSQL(t, q, "INSERT INTO ql_nowarn VALUES (1)")
+	w := openSQLiteQueryWithConfig(t, cfg, lg)
+	execSQL(t, w, "CREATE TABLE ql_nowarn (id INTEGER)")
+	execSQL(t, w, "INSERT INTO ql_nowarn VALUES (1)")
 
-	q.EnableQueryLog()
-	q.table = "ql_nowarn"
+	w.Q.EnableQueryLog()
+	w.SetTable("ql_nowarn")
 	var result []map[string]any
-	_ = q.Get(&result)
+	_ = w.Q.Get(&result)
 
 	if lg.hasWarning() {
 		t.Error("expected no warning when SlowThreshold is negative")

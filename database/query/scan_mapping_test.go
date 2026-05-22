@@ -1,37 +1,12 @@
-package query
+package query_test
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/dracory/neat/database/driver"
+	"github.com/dracory/neat/database/query"
 )
-
-// openSQLiteQuery returns a Query backed by a real in-memory SQLite DB.
-func openSQLiteQuery(t *testing.T) *Query {
-	t.Helper()
-	drv := driver.NewSQLite()
-	sqlDB, err := drv.Open(":memory:")
-	if err != nil {
-		t.Fatalf("failed to open sqlite: %v", err)
-	}
-	t.Cleanup(func() { sqlDB.Close() })
-	return NewQuery(context.Background(), sqlDB, drv, "default", testDBConfig(), nil)
-}
-
-// execSQL is a helper to execute raw DDL/DML against the query's DB.
-func execSQL(t *testing.T, q *Query, stmt string) {
-	t.Helper()
-	db, err := q.DB()
-	if err != nil {
-		t.Fatalf("DB() error: %v", err)
-	}
-	if _, err := db.ExecContext(context.Background(), stmt); err != nil {
-		t.Fatalf("execSQL %q: %v", stmt, err)
-	}
-}
 
 // --- db tag ---
 
@@ -40,13 +15,13 @@ type dbTagModel struct {
 }
 
 func TestScanRowsByDbTag(t *testing.T) {
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE test_db_tag (my_col TEXT)")
-	execSQL(t, q, "INSERT INTO test_db_tag VALUES ('hello')")
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_db_tag (my_col TEXT)")
+	execSQL(t, w, "INSERT INTO test_db_tag VALUES ('hello')")
 
-	q.table = "test_db_tag"
+	w.SetTable("test_db_tag")
 	var result dbTagModel
-	if err := q.Find(&result); err != nil {
+	if err := w.Q.Find(&result); err != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
 	if result.MyCol != "hello" {
@@ -61,13 +36,13 @@ type neatTagModel struct {
 }
 
 func TestScanRowsByNeatTag(t *testing.T) {
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE test_neat_tag (my_col TEXT)")
-	execSQL(t, q, "INSERT INTO test_neat_tag VALUES ('world')")
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_neat_tag (my_col TEXT)")
+	execSQL(t, w, "INSERT INTO test_neat_tag VALUES ('world')")
 
-	q.table = "test_neat_tag"
+	w.SetTable("test_neat_tag")
 	var result neatTagModel
-	if err := q.Find(&result); err != nil {
+	if err := w.Q.Find(&result); err != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
 	if result.MyCol != "world" {
@@ -82,13 +57,13 @@ type snakeCaseModel struct {
 }
 
 func TestScanRowsBySnakeCase(t *testing.T) {
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE test_snake (user_name TEXT)")
-	execSQL(t, q, "INSERT INTO test_snake VALUES ('snake')")
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_snake (user_name TEXT)")
+	execSQL(t, w, "INSERT INTO test_snake VALUES ('snake')")
 
-	q.table = "test_snake"
+	w.SetTable("test_snake")
 	var result snakeCaseModel
-	if err := q.Find(&result); err != nil {
+	if err := w.Q.Find(&result); err != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
 	if result.UserName != "snake" {
@@ -103,13 +78,13 @@ type narrowModel struct {
 }
 
 func TestScanRowsUnmatchedColumnIgnored(t *testing.T) {
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE test_wide (name TEXT, extra TEXT, another INTEGER)")
-	execSQL(t, q, "INSERT INTO test_wide VALUES ('alice', 'ignored', 42)")
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_wide (name TEXT, extra TEXT, another INTEGER)")
+	execSQL(t, w, "INSERT INTO test_wide VALUES ('alice', 'ignored', 42)")
 
-	q.table = "test_wide"
+	w.SetTable("test_wide")
 	var result narrowModel
-	if err := q.Find(&result); err != nil {
+	if err := w.Q.Find(&result); err != nil {
 		t.Fatalf("Find should not error on extra columns: %v", err)
 	}
 	if result.Name != "alice" {
@@ -125,13 +100,13 @@ type rowModel struct {
 }
 
 func TestScanRowsIntoSlice(t *testing.T) {
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE test_slice (id INTEGER, name TEXT)")
-	execSQL(t, q, "INSERT INTO test_slice VALUES (1,'a'),(2,'b'),(3,'c')")
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_slice (id INTEGER, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_slice VALUES (1,'a'),(2,'b'),(3,'c')")
 
-	q.table = "test_slice"
+	w.SetTable("test_slice")
 	var results []rowModel
-	if err := q.Find(&results); err != nil {
+	if err := w.Q.Find(&results); err != nil {
 		t.Fatalf("Find into slice failed: %v", err)
 	}
 	if len(results) != 3 {
@@ -151,7 +126,7 @@ func TestStructFieldColumnNameDbTagPriority(t *testing.T) {
 	type m struct {
 		F string `db:"db_col" neat:"neat_col" gorm:"column:gorm_col"`
 	}
-	col := structFieldColumnName(reflectTypeOf(m{}).Field(0))
+	col := query.StructFieldColumnName(reflect.TypeOf(m{}).Field(0))
 	if col != "db_col" {
 		t.Errorf("expected db tag to win, got %q", col)
 	}
@@ -161,7 +136,7 @@ func TestStructFieldColumnNameNeatTagFallback(t *testing.T) {
 	type m struct {
 		F string `neat:"neat_col" gorm:"column:gorm_col"`
 	}
-	col := structFieldColumnName(reflectTypeOf(m{}).Field(0))
+	col := query.StructFieldColumnName(reflect.TypeOf(m{}).Field(0))
 	if col != "neat_col" {
 		t.Errorf("expected neat tag fallback, got %q", col)
 	}
@@ -171,7 +146,7 @@ func TestStructFieldColumnNameGormTagFallback(t *testing.T) {
 	type m struct {
 		F string `gorm:"column:gorm_col"`
 	}
-	col := structFieldColumnName(reflectTypeOf(m{}).Field(0))
+	col := query.StructFieldColumnName(reflect.TypeOf(m{}).Field(0))
 	if col != "gorm_col" {
 		t.Errorf("expected gorm tag fallback, got %q", col)
 	}
@@ -181,11 +156,8 @@ func TestStructFieldColumnNameSnakeCaseFallback(t *testing.T) {
 	type m struct {
 		MyFieldName string
 	}
-	col := structFieldColumnName(reflectTypeOf(m{}).Field(0))
+	col := query.StructFieldColumnName(reflect.TypeOf(m{}).Field(0))
 	if !strings.Contains(col, "my_field_name") {
 		t.Errorf("expected snake_case fallback, got %q", col)
 	}
 }
-
-// reflectTypeOf is a tiny helper to extract reflect.Type from a value.
-func reflectTypeOf(v any) reflect.Type { return reflect.TypeOf(v) }

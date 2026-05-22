@@ -1,26 +1,27 @@
-package query
+package query_test
 
 import (
 	"errors"
 	"testing"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/database/query"
 )
 
-// openSQLiteForTx returns a query backed by an in-memory SQLite DB with a simple table.
-func openSQLiteForTx(t *testing.T) *Query {
+// openSQLiteForTx returns a TestQuery wrapper with a simple table already created.
+func openSQLiteForTx(t *testing.T) *query.TestQuery {
 	t.Helper()
-	q := openSQLiteQuery(t)
-	execSQL(t, q, "CREATE TABLE tx_hooks (id INTEGER, val TEXT)")
-	return q
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE tx_hooks (id INTEGER, val TEXT)")
+	return w
 }
 
 func TestBeforeCommitCalledOnCommit(t *testing.T) {
-	q := openSQLiteForTx(t)
+	w := openSQLiteForTx(t)
 
 	called := false
-	err := q.Transaction(func(tx contractsorm.Query) error {
-		tx.(*Query).BeforeCommit(func() error {
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		tx.(*query.Query).BeforeCommit(func() error {
 			called = true
 			return nil
 		})
@@ -35,11 +36,11 @@ func TestBeforeCommitCalledOnCommit(t *testing.T) {
 }
 
 func TestAfterCommitCalledOnCommit(t *testing.T) {
-	q := openSQLiteForTx(t)
+	w := openSQLiteForTx(t)
 
 	called := false
-	err := q.Transaction(func(tx contractsorm.Query) error {
-		tx.(*Query).AfterCommit(func() error {
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		tx.(*query.Query).AfterCommit(func() error {
 			called = true
 			return nil
 		})
@@ -54,11 +55,11 @@ func TestAfterCommitCalledOnCommit(t *testing.T) {
 }
 
 func TestBeforeRollbackCalledOnRollback(t *testing.T) {
-	q := openSQLiteForTx(t)
+	w := openSQLiteForTx(t)
 
 	called := false
-	_ = q.Transaction(func(tx contractsorm.Query) error {
-		tx.(*Query).BeforeRollback(func() error {
+	_ = w.Q.Transaction(func(tx contractsorm.Query) error {
+		tx.(*query.Query).BeforeRollback(func() error {
 			called = true
 			return nil
 		})
@@ -70,11 +71,11 @@ func TestBeforeRollbackCalledOnRollback(t *testing.T) {
 }
 
 func TestAfterRollbackCalledOnRollback(t *testing.T) {
-	q := openSQLiteForTx(t)
+	w := openSQLiteForTx(t)
 
 	called := false
-	_ = q.Transaction(func(tx contractsorm.Query) error {
-		tx.(*Query).AfterRollback(func() error {
+	_ = w.Q.Transaction(func(tx contractsorm.Query) error {
+		tx.(*query.Query).AfterRollback(func() error {
 			called = true
 			return nil
 		})
@@ -86,11 +87,11 @@ func TestAfterRollbackCalledOnRollback(t *testing.T) {
 }
 
 func TestBeforeCommitErrorAbortsCommit(t *testing.T) {
-	q := openSQLiteForTx(t)
+	w := openSQLiteForTx(t)
 
 	hookErr := errors.New("hook abort")
-	err := q.Transaction(func(tx contractsorm.Query) error {
-		tx.(*Query).BeforeCommit(func() error {
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		tx.(*query.Query).BeforeCommit(func() error {
 			return hookErr
 		})
 		return nil
@@ -104,9 +105,9 @@ func TestBeforeCommitErrorAbortsCommit(t *testing.T) {
 }
 
 func TestTransactionCommitSucceeds(t *testing.T) {
-	q := openSQLiteForTx(t)
+	w := openSQLiteForTx(t)
 
-	err := q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
 		return nil
 	})
 	if err != nil {

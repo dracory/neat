@@ -1,4 +1,4 @@
-package query
+package query_test
 
 import (
 	"testing"
@@ -19,12 +19,11 @@ func twoConnectionDBConfig() *db.DBConfig {
 // TestConnectionSwitchUnknownNameReturnsSelf verifies that Connection() with an
 // unknown name returns the original query (current behaviour — no error signal).
 func TestConnectionSwitchUnknownNameReturnsSelf(t *testing.T) {
-	q := openSQLiteQuery(t)
-	q.dbConfig = twoConnectionDBConfig()
+	w := openSQLiteQuery(t)
+	w.SetDBConfig(twoConnectionDBConfig())
 
-	returned := q.Connection("nonexistent")
-	// Unknown name → returns original query unchanged
-	if returned != q {
+	returned := w.Q.Connection("nonexistent")
+	if returned != w.Q {
 		t.Error("expected Connection('nonexistent') to return the original query")
 	}
 }
@@ -32,14 +31,14 @@ func TestConnectionSwitchUnknownNameReturnsSelf(t *testing.T) {
 // TestConnectionSwitchReturnsNewQuery verifies that Connection() returns a
 // different Query instance from the original for a valid connection name.
 func TestConnectionSwitchReturnsNewQuery(t *testing.T) {
-	q := openSQLiteQuery(t)
-	q.dbConfig = twoConnectionDBConfig()
+	w := openSQLiteQuery(t)
+	w.SetDBConfig(twoConnectionDBConfig())
 
-	newQ := q.Connection("secondary")
+	newQ := w.Q.Connection("secondary")
 	if newQ == nil {
 		t.Fatal("expected non-nil query from Connection()")
 	}
-	if newQ == q {
+	if newQ == w.Q {
 		t.Error("expected Connection() to return a new Query instance, not the same")
 	}
 }
@@ -47,10 +46,10 @@ func TestConnectionSwitchReturnsNewQuery(t *testing.T) {
 // TestConnectionSwitchUsesCorrectDriver verifies that the returned query uses
 // the driver configured for the named connection.
 func TestConnectionSwitchUsesCorrectDriver(t *testing.T) {
-	q := openSQLiteQuery(t)
-	q.dbConfig = twoConnectionDBConfig()
+	w := openSQLiteQuery(t)
+	w.SetDBConfig(twoConnectionDBConfig())
 
-	newQ := q.Connection("secondary")
+	newQ := w.Q.Connection("secondary")
 	got := string(newQ.Driver())
 	if got != "sqlite" {
 		t.Errorf("expected driver 'sqlite' for secondary connection, got %q", got)
@@ -60,11 +59,11 @@ func TestConnectionSwitchUsesCorrectDriver(t *testing.T) {
 // TestConnectionSwitchEmptyNameReturnsSelf verifies that Connection("") returns
 // the original query.
 func TestConnectionSwitchEmptyNameReturnsSelf(t *testing.T) {
-	q := openSQLiteQuery(t)
-	q.dbConfig = twoConnectionDBConfig()
+	w := openSQLiteQuery(t)
+	w.SetDBConfig(twoConnectionDBConfig())
 
-	returned := q.Connection("")
-	if returned != q {
+	returned := w.Q.Connection("")
+	if returned != w.Q {
 		t.Error("expected Connection('') to return the original query")
 	}
 }
