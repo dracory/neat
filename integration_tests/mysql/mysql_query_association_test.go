@@ -5,7 +5,6 @@ package mysql
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -36,7 +35,6 @@ func TestMySQLIntegrationQueryAssociation(t *testing.T) {
 			t.Fatalf("Failed to get created user: %v", err)
 		}
 
-		var userAddress models.Address
 		// Note: neat may not have Association() method, skip this test
 		t.Skip("Association method not currently supported in neat")
 	})

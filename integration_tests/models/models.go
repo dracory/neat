@@ -4,10 +4,13 @@ package models
 
 import (
 	"time"
+
+	"github.com/dracory/neat/database/soft_delete"
 )
 
 // User represents a user model with associations
 type User struct {
+	soft_delete.SoftDeletes
 	ID        uint      `db:"id"`
 	Name      string    `db:"name"`
 	Avatar    string    `db:"avatar"`
