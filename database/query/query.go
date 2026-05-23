@@ -34,6 +34,7 @@ type Query struct {
 
 	// Query state
 	table        string
+	tableArgs    []any
 	model        any
 	selects      []selectClause
 	wheres       []whereClause
@@ -164,15 +165,60 @@ func (q *Query) writeConn() *sql.DB {
 
 // Clone returns a new Query with shared connection state but empty query-builder state.
 func (q *Query) Clone() contractsorm.Query {
-	clone := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
-	clone.readDB = q.readDB
-	clone.writeDB = q.writeDB
+	clone := q.newQuery()
 	clone.table = q.table
+	clone.tableArgs = append([]any{}, q.tableArgs...)
 	clone.model = q.model
-	clone.omitColumns = q.omitColumns
+	clone.omitColumns = append([]string{}, q.omitColumns...)
 	clone.distinct = q.distinct
-	clone.distinctCols = q.distinctCols
-	clone.wheres = q.wheres
+	clone.distinctCols = append([]string{}, q.distinctCols...)
+
+	clone.wheres = make([]whereClause, len(q.wheres))
+	for i, w := range q.wheres {
+		clone.wheres[i] = w
+		clone.wheres[i].args = append([]any{}, w.args...)
+	}
+
+	clone.selects = make([]selectClause, len(q.selects))
+	for i, s := range q.selects {
+		clone.selects[i] = s
+		clone.selects[i].args = append([]any{}, s.args...)
+	}
+
+	clone.joins = make([]joinClause, len(q.joins))
+	for i, j := range q.joins {
+		clone.joins[i] = j
+		clone.joins[i].args = append([]any{}, j.args...)
+	}
+
+	clone.havings = make([]havingClause, len(q.havings))
+	for i, h := range q.havings {
+		clone.havings[i] = h
+		clone.havings[i].args = append([]any{}, h.args...)
+	}
+
+	clone.groups = append([]string{}, q.groups...)
+	clone.orders = append([]orderClause{}, q.orders...)
+
+	if q.limit != nil {
+		limit := *q.limit
+		clone.limit = &limit
+	}
+	if q.offset != nil {
+		offset := *q.offset
+		clone.offset = &offset
+	}
+
+	clone.withTrashed = q.withTrashed
+	clone.onlyTrashed = q.onlyTrashed
+	clone.withoutTrashed = q.withoutTrashed
+	clone.rawSQL = q.rawSQL
+	clone.rawArgs = append([]any{}, q.rawArgs...)
+	clone.lockForUpdate = q.lockForUpdate
+	clone.sharedLock = q.sharedLock
+	clone.scopes = append([]func(contractsorm.Query) contractsorm.Query{}, q.scopes...)
+	clone.withRelations = append([]string{}, q.withRelations...)
+
 	return clone
 }
 
@@ -310,30 +356,66 @@ func (q *Query) resolveTableName(model any) string {
 // Table sets the table for the query.
 func (q *Query) Table(name string, args ...any) contractsorm.Query {
 	q.table = name
+	q.tableArgs = nil
+	// If it's a subquery callback
+	if strings.Contains(name, "(") && strings.Contains(name, ")") && len(args) > 0 {
+		for _, arg := range args {
+			if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
+				subQuery := fn(q.newQuery())
+				builder := NewBuilder(subQuery.(*Query))
+				subSQL, subArgs := builder.BuildSelect()
+				q.table = strings.Replace(q.table, "?", fmt.Sprintf("(%s)", subSQL), 1)
+				q.tableArgs = append(q.tableArgs, subArgs...)
+			} else {
+				q.tableArgs = append(q.tableArgs, arg)
+			}
+		}
+	} else {
+		q.tableArgs = args
+	}
 	return q
 }
 
 // Select adds columns to the select clause.
+func (q *Query) newQuery() *Query {
+	newQ := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
+	newQ.readDB = q.readDB
+	newQ.writeDB = q.writeDB
+	newQ.enableLog = q.enableLog
+	return newQ
+}
+
 func (q *Query) Select(query any, args ...any) contractsorm.Query {
 	// Process args to handle func(Query)Query callbacks
+	var queryStr string
+	if slice, ok := query.([]string); ok {
+		queryStr = strings.Join(slice, ", ")
+	} else {
+		queryStr = fmt.Sprintf("%v", query)
+	}
+
 	processedArgs := make([]any, 0, len(args))
 	for _, arg := range args {
 		// Check if arg is a func(Query)Query callback
 		if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
 			// Invoke the callback with a clone of the current query
-			subQuery := fn(q.Clone())
+			subQuery := fn(q.newQuery())
 			// Build the subquery SQL
 			builder := NewBuilder(subQuery.(*Query))
 			subSQL, subArgs := builder.BuildSelect()
-			// Replace the callback with the subquery SQL
-			processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+			// Replace the first ? in the query string with the subquery SQL
+			if strings.Contains(queryStr, "?") {
+				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
+			} else {
+				processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+			}
 			// Append subquery args
 			processedArgs = append(processedArgs, subArgs...)
 		} else {
 			processedArgs = append(processedArgs, arg)
 		}
 	}
-	q.selects = append(q.selects, selectClause{expr: fmt.Sprintf("%v", query), args: processedArgs})
+	q.selects = append(q.selects, selectClause{expr: queryStr, args: processedArgs})
 	return q
 }
 
@@ -760,9 +842,9 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	var args []any
 	var err error
 
-	if useSoftDelete {
+	if useSoftDelete && !q.withTrashed && !q.onlyTrashed {
 		// Use UPDATE to set deleted_at instead of DELETE
-		builder := NewBuilder(q)
+		builder := NewBuilder(q.WithTrashed().(*Query))
 		now := time.Now()
 		deleteSQL, args = builder.BuildUpdate("deleted_at", now)
 		if deleteSQL == "" {
@@ -1005,24 +1087,29 @@ func (q *Query) Group(name string) contractsorm.Query {
 }
 func (q *Query) Having(query any, args ...any) contractsorm.Query {
 	// Process args to handle func(Query)Query callbacks
+	queryStr := fmt.Sprintf("%v", query)
 	processedArgs := make([]any, 0, len(args))
 	for _, arg := range args {
 		// Check if arg is a func(Query)Query callback
 		if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
 			// Invoke the callback with a clone of the current query
-			subQuery := fn(q.Clone())
+			subQuery := fn(q.newQuery())
 			// Build the subquery SQL
 			builder := NewBuilder(subQuery.(*Query))
 			subSQL, subArgs := builder.BuildSelect()
-			// Replace the callback with the subquery SQL
-			processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+			// Replace the first ? in the query string with the subquery SQL
+			if strings.Contains(queryStr, "?") {
+				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
+			} else {
+				processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+			}
 			// Append subquery args
 			processedArgs = append(processedArgs, subArgs...)
 		} else {
 			processedArgs = append(processedArgs, arg)
 		}
 	}
-	q.havings = append(q.havings, havingClause{query: fmt.Sprintf("%v", query), args: processedArgs})
+	q.havings = append(q.havings, havingClause{query: queryStr, args: processedArgs})
 	return q
 }
 
@@ -1127,13 +1214,20 @@ func (q *Query) WhereNone(columns []string, operator string, value any) contract
 	return q
 }
 
+func (q *Query) splitJsonColumn(column string) (string, string) {
+	if !strings.Contains(column, "->") {
+		return column, ""
+	}
+	parts := strings.SplitN(column, "->", 2)
+	return parts[0], "." + parts[1]
+}
+
 func (q *Query) WhereJsonContains(column string, value any) contractsorm.Query {
 	// SQLite uses different JSON functions than MySQL/Postgres
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		// SQLite: json_extract(json, path) = value
-		// Convert -> to JSON path format
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", column, path), args: []any{value}})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", col, path), args: []any{value}})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -1141,8 +1235,8 @@ func (q *Query) WhereJsonContains(column string, value any) contractsorm.Query {
 }
 func (q *Query) OrWhereJsonContains(column string, value any) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", column, path), args: []any{value}})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", col, path), args: []any{value}})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -1150,8 +1244,8 @@ func (q *Query) OrWhereJsonContains(column string, value any) contractsorm.Query
 }
 func (q *Query) WhereJsonDoesntContain(column string, value any) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", column, path), args: []any{value}})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", col, path), args: []any{value}})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -1159,8 +1253,8 @@ func (q *Query) WhereJsonDoesntContain(column string, value any) contractsorm.Qu
 }
 func (q *Query) OrWhereJsonDoesntContain(column string, value any) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", column, path), args: []any{value}})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", col, path), args: []any{value}})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -1169,8 +1263,8 @@ func (q *Query) OrWhereJsonDoesntContain(column string, value any) contractsorm.
 func (q *Query) WhereJsonContainsKey(column string) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		// SQLite: json_type(json, path) is not null
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", column, path), args: nil})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", col, path), args: nil})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -1178,8 +1272,8 @@ func (q *Query) WhereJsonContainsKey(column string) contractsorm.Query {
 }
 func (q *Query) OrWhereJsonContainsKey(column string) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", column, path), args: nil})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", col, path), args: nil})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -1187,8 +1281,8 @@ func (q *Query) OrWhereJsonContainsKey(column string) contractsorm.Query {
 }
 func (q *Query) WhereJsonDoesntContainKey(column string) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", column, path), args: nil})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", col, path), args: nil})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -1196,8 +1290,8 @@ func (q *Query) WhereJsonDoesntContainKey(column string) contractsorm.Query {
 }
 func (q *Query) OrWhereJsonDoesntContainKey(column string) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", column, path), args: nil})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", col, path), args: nil})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -1206,8 +1300,8 @@ func (q *Query) OrWhereJsonDoesntContainKey(column string) contractsorm.Query {
 func (q *Query) WhereJsonLength(column string, operator string, value any) contractsorm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		// SQLite: json_array_length(json, path)
-		path := strings.ReplaceAll(column, "->", ".")
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '$%s') %s ?", column, path, operator), args: []any{value}})
+		col, path := q.splitJsonColumn(column)
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '$%s') %s ?", col, path, operator), args: []any{value}})
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, operator), args: []any{value}})
 	}
@@ -1715,14 +1809,14 @@ func (q *Query) InRandomOrder() contractsorm.Query {
 	return &newQ
 }
 func (q *Query) LockForUpdate() contractsorm.Query {
-	newQ := *q
+	newQ := q.Clone().(*Query)
 	newQ.lockForUpdate = true
-	return &newQ
+	return newQ
 }
 func (q *Query) SharedLock() contractsorm.Query {
-	newQ := *q
+	newQ := q.Clone().(*Query)
 	newQ.sharedLock = true
-	return &newQ
+	return newQ
 }
 func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
 	// Store raw SQL for later use
@@ -1795,10 +1889,8 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	// Build UPDATE query to set deleted_at to NULL
-	builder := NewBuilder(q)
-	// This is a simplified implementation - in a real implementation, we'd need to
-	// properly handle the update to set deleted_at = NULL
-	sql, args := builder.BuildUpdate("deleted_at", nil)
+	builder := NewBuilder(q.WithTrashed().(*Query))
+	sql, args := builder.BuildUpdate(map[string]any{"deleted_at": nil})
 	if sql == "" {
 		return nil, fmt.Errorf("failed to build RESTORE query")
 	}
@@ -2186,14 +2278,33 @@ func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
 	// Handle slice destination
 	if destValue.Kind() == reflect.Slice {
 		elemType := destValue.Type().Elem()
+		columns, _ := rows.Columns()
 
 		for rows.Next() {
 			// Create new element
 			elemPtr := reflect.New(elemType)
 			elem := elemPtr.Elem()
 
-			if err := rows.Scan(elem.Addr().Interface()); err != nil {
-				return fmt.Errorf("failed to scan row: %w", err)
+			if elem.Kind() == reflect.Map {
+				// Scan into a temporary []any then build the map
+				values := make([]any, len(columns))
+				ptrs := make([]any, len(columns))
+				for i := range values {
+					ptrs[i] = &values[i]
+				}
+				if err := rows.Scan(ptrs...); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
+				m := reflect.MakeMap(elemType)
+				keyType := elemType.Key()
+				for i, col := range columns {
+					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+				}
+				elem.Set(m)
+			} else {
+				if err := rows.Scan(elem.Addr().Interface()); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
 			}
 
 			// Append to slice
@@ -2405,23 +2516,40 @@ func camelToSnake(s string) string {
 	return string(out)
 }
 
+func getColumnToIndexPath(t reflect.Type) map[string][]int {
+	m := make(map[string][]int)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Anonymous && f.Type.Kind() == reflect.Struct {
+			for k, path := range getColumnToIndexPath(f.Type) {
+				if _, ok := m[k]; !ok {
+					newPath := make([]int, len(path)+1)
+					newPath[0] = i
+					copy(newPath[1:], path)
+					m[k] = newPath
+				}
+			}
+			continue
+		}
+		col := strings.ToLower(structFieldColumnName(f))
+		if _, ok := m[col]; !ok {
+			m[col] = f.Index
+		}
+	}
+	return m
+}
+
 // structScanDests builds a scan-destination slice aligned to columns.
 // Each element is either a pointer to the matching struct field or a *any placeholder.
 // Non-addressable fields get a *T temporary that copyScanResults will copy back.
 func structScanDests(v reflect.Value, columns []string) []any {
-	// Build column → field index map
-	t := v.Type()
-	colToField := make(map[string]int, t.NumField())
-	for i := 0; i < t.NumField(); i++ {
-		col := structFieldColumnName(t.Field(i))
-		colToField[strings.ToLower(col)] = i
-	}
+	colToPath := getColumnToIndexPath(v.Type())
 
 	dests := make([]any, len(columns))
 	for i, col := range columns {
 		key := strings.ToLower(col)
-		if fi, ok := colToField[key]; ok {
-			field := v.Field(fi)
+		if path, ok := colToPath[key]; ok {
+			field := v.FieldByIndex(path)
 			if field.CanAddr() {
 				dests[i] = field.Addr().Interface()
 			} else {
@@ -2440,19 +2568,14 @@ func structScanDests(v reflect.Value, columns []string) []any {
 // copyScanResults copies values from non-addressable temporaries back into struct fields.
 // For addressable fields the scan wrote directly into them; this is a no-op for those.
 func copyScanResults(v reflect.Value, columns []string, dests []any) {
-	t := v.Type()
-	colToField := make(map[string]int, t.NumField())
-	for i := 0; i < t.NumField(); i++ {
-		col := structFieldColumnName(t.Field(i))
-		colToField[strings.ToLower(col)] = i
-	}
+	colToPath := getColumnToIndexPath(v.Type())
 	for i, col := range columns {
 		key := strings.ToLower(col)
-		fi, ok := colToField[key]
+		path, ok := colToPath[key]
 		if !ok {
 			continue
 		}
-		field := v.Field(fi)
+		field := v.FieldByIndex(path)
 		if field.CanAddr() {
 			continue // already written by Scan
 		}

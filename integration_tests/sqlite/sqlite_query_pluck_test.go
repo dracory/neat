@@ -65,18 +65,6 @@ func TestSQLiteIntegrationPluck(t *testing.T) {
 	})
 
 	t.Run("Pluck into maps", func(t *testing.T) {
-		// Goravel/GORM Pluck into map usually means plucking two columns: key and value.
-		// However, our Pluck interface only takes one column name.
-		// Let's check how GORM handles it. In GORM, Pluck only plucks one column.
-		// If we want a map, we usually use Scan or Find.
-
-		// Some ORMs allow Pluck("name", "id", &map[string]uint)
-		// But our interface is Pluck(column string, dest any) error
-
-		// Let's see if we can pluck into a map of [string]any where any is the column value
-		// This doesn't make much sense for a single column Pluck.
-
-		// If the user wants a map, they might be expecting Pluck to support it.
 		// For now, let's test if it can pluck into a slice of maps or something.
 		var results []map[string]any
 		err := db.Query().Model(&models.User{}).Where("name = ?", "pluck_user_1").Select("name", "avatar").Scan(&results)
@@ -84,7 +72,7 @@ func TestSQLiteIntegrationPluck(t *testing.T) {
 			t.Errorf("Pluck into maps failed: %v", err)
 		}
 		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
+			t.Fatalf("Expected 1 result, got %d", len(results))
 		}
 		if results[0]["name"] != "pluck_user_1" {
 			t.Errorf("Expected 'pluck_user_1', got '%v'", results[0]["name"])
