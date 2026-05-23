@@ -123,6 +123,26 @@ func TestSQLiteIntegrationPluck(t *testing.T) {
 	})
 
 	t.Run("Pluck with Distinct", func(t *testing.T) {
-		t.Skip("ORM Distinct() does not apply to Pluck queries — returns all values including duplicates")
+		var avatars []string
+		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").Distinct("avatar").OrderBy("avatar", "asc").Pluck("avatar", &avatars)
+		if err != nil {
+			t.Errorf("Pluck with Distinct failed: %v", err)
+		}
+		if len(avatars) != 2 {
+			t.Errorf("Expected 2 avatars, got %d", len(avatars))
+		}
+		foundAvatar1 := false
+		foundAvatar2 := false
+		for _, avatar := range avatars {
+			if avatar == "avatar1" {
+				foundAvatar1 = true
+			}
+			if avatar == "avatar2" {
+				foundAvatar2 = true
+			}
+		}
+		if !foundAvatar1 || !foundAvatar2 {
+			t.Errorf("Expected to find both avatar1 and avatar2")
+		}
 	})
 }

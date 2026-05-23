@@ -17,6 +17,20 @@ func NewBuilder(q *Query) *Builder {
 	return &Builder{query: q}
 }
 
+// quoteIdentifier wraps an identifier in the appropriate quotes for the dialect.
+func (b *Builder) quoteIdentifier(name string) string {
+	if b.query.driver == nil {
+		return name
+	}
+	dialect := b.query.driver.Dialect()
+	switch dialect {
+	case "mysql":
+		return fmt.Sprintf("`%s`", name)
+	default: // sqlite, postgres, sqlserver, turso
+		return fmt.Sprintf(`"%s"`, name)
+	}
+}
+
 // BuildSelect builds a SELECT query from the query state.
 func (b *Builder) BuildSelect() (string, []any) {
 	var parts []string
@@ -34,7 +48,8 @@ func (b *Builder) BuildSelect() (string, []any) {
 	} else if len(b.query.selects) > 0 {
 		var selectParts []string
 		for _, s := range b.query.selects {
-			selectParts = append(selectParts, fmt.Sprintf("%v", s))
+			selectParts = append(selectParts, s.expr)
+			args = append(args, s.args...)
 		}
 		// Prepend DISTINCT if set
 		if b.query.distinct {
@@ -76,7 +91,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// FROM clause
 	if b.query.table != "" {
-		parts = append(parts, fmt.Sprintf("FROM %s", b.query.table))
+		parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
 	}
 
 	// JOIN clauses
@@ -123,6 +138,10 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// OFFSET clause
 	if b.query.offset != nil {
+		// SQLite requires LIMIT when using OFFSET
+		if b.query.limit == nil && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+			parts = append(parts, "LIMIT -1")
+		}
 		parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
 	}
 
@@ -146,7 +165,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 
 	// INTO clause
 	if b.query.table != "" {
-		parts = append(parts, fmt.Sprintf("INTO %s", b.query.table))
+		parts = append(parts, fmt.Sprintf("INTO %s", b.quoteIdentifier(b.query.table)))
 	}
 
 	// Extract columns and values from the value
@@ -156,7 +175,12 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 	}
 
 	if len(columns) > 0 {
-		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(columns, ", ")))
+		// Quote column names
+		quotedColumns := make([]string, len(columns))
+		for i, col := range columns {
+			quotedColumns[i] = b.quoteIdentifier(col)
+		}
+		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(quotedColumns, ", ")))
 		parts = append(parts, "VALUES")
 
 		// Handle bulk insert
@@ -200,7 +224,7 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 
 	// Table name
 	if b.query.table != "" {
-		parts = append(parts, b.query.table)
+		parts = append(parts, b.quoteIdentifier(b.query.table))
 	}
 
 	// SET clause
@@ -209,7 +233,18 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	// Handle map[string]any for column/value pairs
 	if m, ok := column.(map[string]any); ok {
 		for col, val := range m {
-			setParts = append(setParts, fmt.Sprintf("%s = ?", col))
+			// Skip omitted columns
+			omitted := false
+			for _, omit := range b.query.omitColumns {
+				if omit == col {
+					omitted = true
+					break
+				}
+			}
+			if omitted {
+				continue
+			}
+			setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(col)))
 			args = append(args, val)
 		}
 	} else if len(values) > 0 {
@@ -221,7 +256,7 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 				setParts = append(setParts, colStr)
 				args = append(args, values...)
 			} else {
-				setParts = append(setParts, fmt.Sprintf("%s = ?", colStr))
+				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
 				args = append(args, values[0])
 			}
 		}
@@ -230,7 +265,18 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 		cols, vals, err := b.extractColumnsAndValues(column)
 		if err == nil {
 			for i, col := range cols {
-				setParts = append(setParts, fmt.Sprintf("%s = ?", col))
+				// Skip omitted columns
+				omitted := false
+				for _, omit := range b.query.omitColumns {
+					if omit == col {
+						omitted = true
+						break
+					}
+				}
+				if omitted {
+					continue
+				}
+				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(col)))
 				args = append(args, vals[i])
 			}
 		}
@@ -260,7 +306,7 @@ func (b *Builder) BuildDelete() (string, []any) {
 
 	// FROM clause
 	if b.query.table != "" {
-		parts = append(parts, fmt.Sprintf("FROM %s", b.query.table))
+		parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
 	}
 
 	// WHERE clauses (with automatic soft-delete filter)

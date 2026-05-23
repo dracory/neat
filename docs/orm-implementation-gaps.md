@@ -159,7 +159,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-13: `Omit()` does not exclude columns from SELECT
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: `Omit()` stores column names in `q.omit` but `BuildSelect` never reads `q.omit` to filter the SELECT list.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_omit_test.go` — `Omit during select`
@@ -171,7 +171,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-14: `Omit().Save()` generates invalid SQL (`near "SET": syntax error`)
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: `Save` (which is built on top of `Update`) with `Omit` applied generates SQL without a valid SET clause — either empty or malformed.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_omit_test.go` — `Omit during update`
@@ -183,7 +183,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-15: `Order(expr).OrderBy(col, dir)` generates invalid SQL
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: When both `Order(rawExpr)` and `OrderBy(col, dir)` are called, the builder appends them incorrectly, resulting in e.g. `ORDER BY LENGTH(name) DESC name asc` (missing comma, or conflated direction).  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_order_limit_offset_test.go` — `OrderBy with expressions`
@@ -195,7 +195,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-16: `Offset()` without `Limit()` generates invalid SQL in SQLite
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: `BuildSelect` emits `OFFSET n` without a preceding `LIMIT` clause. SQLite requires `LIMIT -1 OFFSET n` (or any LIMIT) when using OFFSET.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_order_limit_offset_test.go` — `Offset clause`
@@ -218,7 +218,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-18: `Distinct()` does not apply to `Pluck`
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: The `Pluck` method builds its own query string independently of `BuildSelect` and does not consult `q.distinct`.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_pluck_test.go` — `Pluck with Distinct`
@@ -230,7 +230,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-19: `Select(rawSQL, args...)` causes argument index mismatch
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: When `Select("(SELECT name FROM t WHERE id = ?) as sub", userID)` is used alongside `Where("id = ?", id)`, the extra args from `Select` shift the positional `?` indices, causing `missing argument with index N`.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_select_test.go` — `Select with raw subqueries`
@@ -253,7 +253,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-21: `ToSql()` / `ToRawSql()` do not quote identifiers
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: The `ToSql` / `ToRawSql` wrappers call `BuildSelect` which does not quote table/column names. Tests that check for `` `users` `` (MySQL) or `"users"` (SQLite/Postgres) quoting fail.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_to_sql_test.go` — `ToSql`, `ToRawSql`, `ToSql Count`, `ToRawSql Count`, `ToSql Update`, `ToSql Delete`
@@ -265,7 +265,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-22: `UpdateOrInsert()` does not work with `Table()` (no `Model()`)
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: `UpdateOrInsert` internally calls `Create` / `Update` which both hit the `BuildInsert`/`BuildUpdate` map path. The table-only + map path is broken (see GAP-02).  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_update_or_insert_test.go` — all subtests
@@ -313,26 +313,26 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## Priority Order
 
-| Priority | GAP | Feature |
-|---|---|---|
-| P1 | GAP-02, GAP-04 | `Create(map)` / `InsertGetId(map)` with `Table()` |
-| P1 | GAP-01 | Batch `Create` for slices |
-| P1 | GAP-22 | `UpdateOrInsert` |
-| P2 | GAP-05 | `Chunk()` typed callbacks |
-| P2 | GAP-10 | `Increment`/`Decrement` SQL |
-| P2 | GAP-06, GAP-07 | `Distinct` in SELECT and COUNT |
-| P2 | GAP-08 | Chained `Having()` |
-| P2 | GAP-13, GAP-14 | `Omit()` in SELECT and UPDATE |
-| P3 | GAP-03 | `InsertGetId` writes back struct ID |
-| P3 | GAP-15 | `Order(expr).OrderBy()` |
-| P3 | GAP-16 | `Offset` without `Limit` (SQLite) |
-| P3 | GAP-17 | `Count` ignores `Select` alias |
-| P3 | GAP-18 | `Distinct` on `Pluck` |
-| P3 | GAP-19 | `Select` with raw subquery args |
-| P3 | GAP-21 | `ToSql` identifier quoting |
-| P4 | GAP-09 | `Having` callback subqueries |
-| P4 | GAP-11 | JSON methods on SQLite |
-| P4 | GAP-12 | Lock clauses on SQLite |
-| P4 | GAP-20 | `Select` callback subqueries |
-| P4 | GAP-23 | `db.EnableQueryLog()` proxy |
-| P4 | GAP-24 | `Raw()` as map value in `Create` |
+| Priority | GAP | Feature | Status |
+|---|---|---|---|
+| P1 | GAP-02, GAP-04 | `Create(map)` / `InsertGetId(map)` with `Table()` | ✅ DONE |
+| P1 | GAP-01 | Batch `Create` for slices | ✅ DONE |
+| P1 | GAP-22 | `UpdateOrInsert` | ✅ DONE |
+| P2 | GAP-05 | `Chunk()` typed callbacks | ✅ DONE |
+| P2 | GAP-10 | `Increment`/`Decrement` SQL | ✅ DONE |
+| P2 | GAP-06, GAP-07 | `Distinct` in SELECT and COUNT | ✅ DONE |
+| P2 | GAP-08 | Chained `Having()` | ✅ DONE |
+| P2 | GAP-13, GAP-14 | `Omit()` in SELECT and UPDATE | ✅ DONE |
+| P3 | GAP-03 | `InsertGetId` writes back struct ID | ✅ DONE |
+| P3 | GAP-15 | `Order(expr).OrderBy()` | ✅ DONE |
+| P3 | GAP-16 | `Offset` without `Limit` (SQLite) | ✅ DONE |
+| P3 | GAP-17 | `Count` ignores `Select` alias | ✅ DONE |
+| P3 | GAP-18 | `Distinct` on `Pluck` | ✅ DONE |
+| P3 | GAP-19 | `Select` with raw subquery args | ✅ DONE |
+| P3 | GAP-21 | `ToSql` identifier quoting | ✅ DONE |
+| P4 | GAP-09 | `Having` callback subqueries | ❌ Open |
+| P4 | GAP-11 | JSON methods on SQLite | ❌ Open |
+| P4 | GAP-12 | Lock clauses on SQLite | ❌ Open |
+| P4 | GAP-20 | `Select` callback subqueries | ❌ Open |
+| P4 | GAP-23 | `db.EnableQueryLog()` proxy | ✅ DONE |
+| P4 | GAP-24 | `Raw()` as map value in `Create` | ❌ Open |

@@ -35,7 +35,7 @@ type Query struct {
 	// Query state
 	table        string
 	model        any
-	selects      []any
+	selects      []selectClause
 	wheres       []whereClause
 	joins        []joinClause
 	groups       []string
@@ -97,6 +97,11 @@ type joinClause struct {
 type havingClause struct {
 	query string
 	args  []any
+}
+
+type selectClause struct {
+	expr string
+	args []any
 }
 
 type orderClause struct {
@@ -299,7 +304,7 @@ func (q *Query) Table(name string, args ...any) contractsorm.Query {
 
 // Select adds columns to the select clause.
 func (q *Query) Select(query any, args ...any) contractsorm.Query {
-	q.selects = append(q.selects, query)
+	q.selects = append(q.selects, selectClause{expr: fmt.Sprintf("%v", query), args: args})
 	return q
 }
 
@@ -317,7 +322,23 @@ func (q *Query) OrWhere(query any, args ...any) contractsorm.Query {
 
 // Order adds an order by clause to the query.
 func (q *Query) Order(value any) contractsorm.Query {
-	q.orders = append(q.orders, orderClause{column: fmt.Sprintf("%v", value), direction: "asc"})
+	expr := fmt.Sprintf("%v", value)
+	// Check if the expression already contains a direction keyword
+	upperExpr := strings.ToUpper(expr)
+	if strings.Contains(upperExpr, " DESC") {
+		// Remove the direction from the expression and set it properly
+		expr = strings.TrimSuffix(expr, " DESC")
+		expr = strings.TrimSuffix(expr, " desc")
+		q.orders = append(q.orders, orderClause{column: expr, direction: "desc"})
+	} else if strings.Contains(upperExpr, " ASC") {
+		// Remove the direction from the expression and set it properly
+		expr = strings.TrimSuffix(expr, " ASC")
+		expr = strings.TrimSuffix(expr, " asc")
+		q.orders = append(q.orders, orderClause{column: expr, direction: "asc"})
+	} else {
+		// No direction specified, default to asc
+		q.orders = append(q.orders, orderClause{column: expr, direction: "asc"})
+	}
 	return q
 }
 
@@ -1293,7 +1314,7 @@ func (q *Query) Exists(exists *bool) error {
 
 func (q *Query) Pluck(column string, dest any) error {
 	// Set select to only the specified column
-	q.selects = []any{column}
+	q.selects = []selectClause{{expr: column}}
 
 	// Build SELECT query
 	builder := NewBuilder(q)
@@ -1326,7 +1347,7 @@ func (q *Query) Pluck(column string, dest any) error {
 }
 func (q *Query) Value(column string, dest any) error {
 	// Set select to only the specified column and limit to 1
-	q.selects = []any{column}
+	q.selects = []selectClause{{expr: column}}
 	limit := 1
 	q.limit = &limit
 

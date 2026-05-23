@@ -111,7 +111,15 @@ func TestSQLiteIntegrationOrderLimitOffset(t *testing.T) {
 	})
 
 	t.Run("OrderBy with expressions", func(t *testing.T) {
-		t.Skip("ORM Order(expr).OrderBy() generates invalid SQL (near 'asc': syntax error) — not yet fixed")
+		var results []models.User
+		// SQLite expression
+		err := db.Query().Model(&models.User{}).Order("LENGTH(name) DESC").OrderBy("name", "asc").Get(&results)
+		if err != nil {
+			t.Errorf("OrderBy with expressions failed: %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("Expected non-empty results")
+		}
 	})
 
 	t.Run("Limit clause", func(t *testing.T) {
@@ -169,7 +177,15 @@ func TestSQLiteIntegrationOrderLimitOffset(t *testing.T) {
 	})
 
 	t.Run("Offset clause", func(t *testing.T) {
-		t.Skip("ORM OFFSET without LIMIT generates invalid SQL in SQLite — not yet fixed")
+		var results []models.User
+		err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Offset(2).Get(&results)
+		if err != nil {
+			t.Errorf("Offset clause failed: %v", err)
+		}
+		// Total was 5 + 1 added in "Multiple OrderBy clauses" = 6.
+		if len(results) != 4 {
+			t.Errorf("Expected 4 results, got %d", len(results))
+		}
 	})
 
 	t.Run("Offset with Limit", func(t *testing.T) {

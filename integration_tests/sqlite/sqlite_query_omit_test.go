@@ -20,10 +20,37 @@ func TestSQLiteIntegrationQueryOmit(t *testing.T) {
 	}
 
 	t.Run("Omit during select", func(t *testing.T) {
-		t.Skip("GAP-13: Omit during select needs more work - column mapping issue")
+		var result models.User
+		err := db.Query().Model(&models.User{}).Omit("avatar").Where("name = ?", "omit_user").First(&result)
+		if err != nil {
+			t.Errorf("Omit during select failed: %v", err)
+		}
+		if result.Avatar != "" {
+			t.Errorf("Expected empty avatar, got '%s'", result.Avatar)
+		}
+		if result.Name != "omit_user" {
+			t.Errorf("Expected 'omit_user', got '%s'", result.Name)
+		}
 	})
 
 	t.Run("Omit during update", func(t *testing.T) {
-		t.Skip("ORM Omit().Save() generates invalid SQL (near SET: syntax error) — not yet fixed")
+		user.Name = "omit_user_updated"
+		user.Avatar = "should_not_update"
+		err := db.Query().Model(&models.User{}).Omit("avatar").Where("name = ?", "omit_user").Save(&user)
+		if err != nil {
+			t.Errorf("Omit during update failed: %v", err)
+		}
+
+		var result models.User
+		err = db.Query().Model(&models.User{}).Where("name = ?", "omit_user_updated").First(&result)
+		if err != nil {
+			t.Errorf("Failed to find updated user: %v", err)
+		}
+		if result.Avatar != "omit_avatar" {
+			t.Errorf("Expected avatar to remain 'omit_avatar', got '%s'", result.Avatar)
+		}
+		if result.Name != "omit_user_updated" {
+			t.Errorf("Expected 'omit_user_updated', got '%s'", result.Name)
+		}
 	})
 }

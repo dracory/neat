@@ -79,7 +79,7 @@ func (t *ToSql) Get(dest any) string {
 
 // Pluck generates the SQL for a SELECT query with a single column.
 func (t *ToSql) Pluck(column string, dest any) string {
-	t.query.selects = []any{column}
+	t.query.selects = []selectClause{{expr: column}}
 	builder := NewBuilder(t.query)
 	sql, _ := builder.BuildSelect()
 	return t.replacePlaceholders(sql)
@@ -87,7 +87,7 @@ func (t *ToSql) Pluck(column string, dest any) string {
 
 // Value generates the SQL for a SELECT query with a single column and LIMIT 1.
 func (t *ToSql) Value(column string, dest any) string {
-	t.query.selects = []any{column}
+	t.query.selects = []selectClause{{expr: column}}
 	limit := 1
 	t.query.limit = &limit
 	builder := NewBuilder(t.query)
