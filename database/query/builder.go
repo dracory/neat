@@ -146,10 +146,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 	}
 
 	// Locking clauses
-	if b.query.lockForUpdate {
-		parts = append(parts, "FOR UPDATE")
-	} else if b.query.sharedLock {
-		parts = append(parts, "LOCK IN SHARE MODE")
+	// Skip lock clauses for SQLite as it doesn't support them
+	if b.query.driver == nil || b.query.driver.Dialect() != "sqlite" {
+		if b.query.lockForUpdate {
+			parts = append(parts, "FOR UPDATE")
+		} else if b.query.sharedLock {
+			parts = append(parts, "LOCK IN SHARE MODE")
+		}
 	}
 
 	return strings.Join(parts, " "), args
@@ -200,15 +203,22 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 			}
 			parts = append(parts, strings.Join(rowPlaceholders, ", "))
 		} else {
-			// Single insert
+			// Single insert - check for raw SQL expressions
 			placeholders := make([]string, len(columns))
-			for i := range placeholders {
-				placeholders[i] = "?"
+			for i, val := range values {
+				// Check if value is a *Query with raw SQL
+				if q, ok := val.(*Query); ok && q.rawSQL != "" {
+					// Use raw SQL expression directly instead of placeholder
+					placeholders[i] = q.rawSQL
+					// Append raw args
+					args = append(args, q.rawArgs...)
+				} else {
+					placeholders[i] = "?"
+					args = append(args, val)
+				}
 			}
 			parts = append(parts, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
 		}
-
-		args = append(args, values...)
 	}
 
 	return strings.Join(parts, " "), args
@@ -437,7 +447,14 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 		}
 		for _, key := range sortedKeys {
 			columns = append(columns, key.String())
-			values = append(values, v.MapIndex(key).Interface())
+			val := v.MapIndex(key).Interface()
+			// Check if the value is a *Query with raw SQL (for Raw() expressions)
+			if q, ok := val.(*Query); ok && q.rawSQL != "" {
+				// Use the raw SQL expression directly as the value
+				values = append(values, q.rawSQL)
+			} else {
+				values = append(values, val)
+			}
 		}
 		return columns, values, nil
 	}

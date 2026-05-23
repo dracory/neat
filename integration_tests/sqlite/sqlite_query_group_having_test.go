@@ -3,6 +3,7 @@ package sqlite
 import (
 	"testing"
 
+	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -158,10 +159,58 @@ func TestSQLiteIntegrationGroupHaving(t *testing.T) {
 	})
 
 	t.Run("Having with subquery callback", func(t *testing.T) {
-		t.Skip("ORM Having() does not support func(Query)Query callback subqueries — not yet implemented")
+		type Result struct {
+			Avatar string
+			Count  int64
+		}
+		var results []Result
+		err := query.Model(&models.User{}).
+			Where("name LIKE ?", "group_user_%").
+			Group("avatar").
+			Select("avatar, COUNT(*) as count").
+			Having("COUNT(*) > (?)", func(q contractsorm.Query) contractsorm.Query {
+				return q.Model(&models.User{}).Where("avatar = ?", "avatar1").Where("name LIKE ?", "group_user_%").Select("COUNT(*)")
+			}).
+			Scan(&results)
+		if err != nil {
+			t.Errorf("Having with subquery callback failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("Expected 1 result, got %d", len(results))
+		}
+		if results[0].Avatar != "avatar2" {
+			t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
+		}
+		if results[0].Count != 3 {
+			t.Errorf("Expected count 3, got %d", results[0].Count)
+		}
 	})
 
 	t.Run("Having with subquery in args", func(t *testing.T) {
-		t.Skip("ORM Having() does not support func(Query)Query callback subqueries — not yet implemented")
+		type Result struct {
+			Avatar string
+			Count  int64
+		}
+		var results []Result
+		err := query.Model(&models.User{}).
+			Where("name LIKE ?", "group_user_%").
+			Group("avatar").
+			Select("avatar, COUNT(*) as count").
+			Having("COUNT(*) = (?)", func(q contractsorm.Query) contractsorm.Query {
+				return q.Model(&models.User{}).Where("avatar = ?", "avatar2").Where("name LIKE ?", "group_user_%").Select("COUNT(*)")
+			}).
+			Scan(&results)
+		if err != nil {
+			t.Errorf("Having with subquery in args failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("Expected 1 result, got %d", len(results))
+		}
+		if results[0].Avatar != "avatar2" {
+			t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
+		}
+		if results[0].Count != 3 {
+			t.Errorf("Expected count 3, got %d", results[0].Count)
+		}
 	})
 }

@@ -63,6 +63,10 @@ type Query struct {
 	beforeRollback []func() error
 	afterRollback  []func() error
 
+	// Raw SQL state
+	rawSQL  string
+	rawArgs []any
+
 	// Lock state
 	lockForUpdate bool
 	sharedLock    bool
@@ -102,6 +106,12 @@ type havingClause struct {
 type selectClause struct {
 	expr string
 	args []any
+}
+
+// RawExpression represents a raw SQL expression that can be used as a value in maps
+type RawExpression struct {
+	SQL  string
+	Args []any
 }
 
 type orderClause struct {
@@ -304,7 +314,25 @@ func (q *Query) Table(name string, args ...any) contractsorm.Query {
 
 // Select adds columns to the select clause.
 func (q *Query) Select(query any, args ...any) contractsorm.Query {
-	q.selects = append(q.selects, selectClause{expr: fmt.Sprintf("%v", query), args: args})
+	// Process args to handle func(Query)Query callbacks
+	processedArgs := make([]any, 0, len(args))
+	for _, arg := range args {
+		// Check if arg is a func(Query)Query callback
+		if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
+			// Invoke the callback with a clone of the current query
+			subQuery := fn(q.Clone())
+			// Build the subquery SQL
+			builder := NewBuilder(subQuery.(*Query))
+			subSQL, subArgs := builder.BuildSelect()
+			// Replace the callback with the subquery SQL
+			processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+			// Append subquery args
+			processedArgs = append(processedArgs, subArgs...)
+		} else {
+			processedArgs = append(processedArgs, arg)
+		}
+	}
+	q.selects = append(q.selects, selectClause{expr: fmt.Sprintf("%v", query), args: processedArgs})
 	return q
 }
 
@@ -975,7 +1003,25 @@ func (q *Query) Group(name string) contractsorm.Query {
 	return q
 }
 func (q *Query) Having(query any, args ...any) contractsorm.Query {
-	q.havings = append(q.havings, havingClause{query: fmt.Sprintf("%v", query), args: args})
+	// Process args to handle func(Query)Query callbacks
+	processedArgs := make([]any, 0, len(args))
+	for _, arg := range args {
+		// Check if arg is a func(Query)Query callback
+		if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
+			// Invoke the callback with a clone of the current query
+			subQuery := fn(q.Clone())
+			// Build the subquery SQL
+			builder := NewBuilder(subQuery.(*Query))
+			subSQL, subArgs := builder.BuildSelect()
+			// Replace the callback with the subquery SQL
+			processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+			// Append subquery args
+			processedArgs = append(processedArgs, subArgs...)
+		} else {
+			processedArgs = append(processedArgs, arg)
+		}
+	}
+	q.havings = append(q.havings, havingClause{query: fmt.Sprintf("%v", query), args: processedArgs})
 	return q
 }
 
@@ -1081,39 +1127,89 @@ func (q *Query) WhereNone(columns []string, operator string, value any) contract
 }
 
 func (q *Query) WhereJsonContains(column string, value any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	// SQLite uses different JSON functions than MySQL/Postgres
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		// SQLite: json_extract(json, path) = value
+		// Convert -> to JSON path format
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", column, path), args: []any{value}})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	}
 	return q
 }
 func (q *Query) OrWhereJsonContains(column string, value any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", column, path), args: []any{value}})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	}
 	return q
 }
 func (q *Query) WhereJsonDoesntContain(column string, value any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", column, path), args: []any{value}})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	}
 	return q
 }
 func (q *Query) OrWhereJsonDoesntContain(column string, value any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", column, path), args: []any{value}})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+	}
 	return q
 }
 func (q *Query) WhereJsonContainsKey(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		// SQLite: json_type(json, path) is not null
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", column, path), args: nil})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	}
 	return q
 }
 func (q *Query) OrWhereJsonContainsKey(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", column, path), args: nil})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	}
 	return q
 }
 func (q *Query) WhereJsonDoesntContainKey(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", column, path), args: nil})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	}
 	return q
 }
 func (q *Query) OrWhereJsonDoesntContainKey(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", column, path), args: nil})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+	}
 	return q
 }
 func (q *Query) WhereJsonLength(column string, operator string, value any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, operator), args: []any{value}})
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		// SQLite: json_array_length(json, path)
+		path := strings.ReplaceAll(column, "->", ".")
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '$%s') %s ?", column, path, operator), args: []any{value}})
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, operator), args: []any{value}})
+	}
 	return q
 }
 
@@ -1628,8 +1724,11 @@ func (q *Query) SharedLock() contractsorm.Query {
 	return &newQ
 }
 func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
-	// Execute raw SQL (simplified implementation)
-	return q
+	// Store raw SQL for later use
+	newQ := *q
+	newQ.rawSQL = sql
+	newQ.rawArgs = values
+	return &newQ
 }
 func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	// Execute raw SQL

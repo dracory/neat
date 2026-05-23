@@ -137,7 +137,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-11: JSON path methods generate invalid SQL for SQLite
 
-**Status**: ❌ Open (SQLite-specific)  
+**Status**: ✅ DONE (SQLite-specific)  
 **Root cause**: `WhereJsonContains`, `WhereJsonContainsKey`, `WhereJsonLength`, `WhereJsonDoesntContain`, `WhereJsonDoesntContainKey` generate MySQL `JSON_CONTAINS()`/`JSON_CONTAINS_PATH()` syntax. SQLite requires `json_extract()` / `json_type()` / `json_array_length()`.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_json_test.go` — all subtests
@@ -148,7 +148,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-12: `LockForUpdate()` / `SharedLock()` generate MySQL syntax on SQLite
 
-**Status**: ❌ Open (SQLite-specific)  
+**Status**: ✅ DONE (SQLite-specific)  
 **Root cause**: `BuildSelect` always appends `FOR UPDATE` or `LOCK IN SHARE MODE`. SQLite does not support either clause.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_lock_test.go` — `TestSQLiteLockForUpdate`, `TestSQLiteSharedLock`
@@ -242,7 +242,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-20: `Select(func(q Query)Query, alias)` subquery callbacks not implemented
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: `Select` only handles `string` and `[]string` types. A `func(Query)Query` callback for building subqueries is not supported.  
 **Failing tests**:
 - `integration_tests/sqlite/sqlite_query_select_test.go` — `Select with subquery callbacks`
@@ -288,7 +288,7 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 
 ## GAP-24: ORM `Raw()` returns `*Query` — cannot be used as a map value in `Create()`
 
-**Status**: ❌ Open  
+**Status**: ✅ DONE  
 **Root cause**: `db.Query().Raw("ST_PointFromText(?)", "POINT(1 1)")` returns a `*Query` struct. When passed as a value in `map[string]any{"location": <*Query>}`, the sql driver reports `unsupported type query.Query, a struct`.  
 **Failing tests**:
 - `integration_tests/mysql/mysql_query_spatial_test.go` — all subtests
@@ -330,9 +330,9 @@ When a feature is implemented, remove the `t.Skip(...)` from the relevant test(s
 | P3 | GAP-18 | `Distinct` on `Pluck` | ✅ DONE |
 | P3 | GAP-19 | `Select` with raw subquery args | ✅ DONE |
 | P3 | GAP-21 | `ToSql` identifier quoting | ✅ DONE |
-| P4 | GAP-09 | `Having` callback subqueries | ❌ Open |
-| P4 | GAP-11 | JSON methods on SQLite | ❌ Open |
-| P4 | GAP-12 | Lock clauses on SQLite | ❌ Open |
-| P4 | GAP-20 | `Select` callback subqueries | ❌ Open |
+| P4 | GAP-09 | `Having` callback subqueries | ✅ DONE |
+| P4 | GAP-11 | JSON methods on SQLite | ✅ DONE |
+| P4 | GAP-12 | Lock clauses on SQLite | ✅ DONE |
+| P4 | GAP-20 | `Select` callback subqueries | ✅ DONE |
 | P4 | GAP-23 | `db.EnableQueryLog()` proxy | ✅ DONE |
-| P4 | GAP-24 | `Raw()` as map value in `Create` | ❌ Open |
+| P4 | GAP-24 | `Raw()` as map value in `Create` | ✅ DONE |
