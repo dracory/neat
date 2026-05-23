@@ -79,7 +79,7 @@ func TestSQLiteIntegrationPluck(t *testing.T) {
 		// If the user wants a map, they might be expecting Pluck to support it.
 		// For now, let's test if it can pluck into a slice of maps or something.
 		var results []map[string]any
-		err := db.Query().Table("users").Where("name = ?", "pluck_user_1").Select("name", "avatar").Scan(&results)
+		err := db.Query().Model(&models.User{}).Where("name = ?", "pluck_user_1").Select("name", "avatar").Scan(&results)
 		if err != nil {
 			t.Errorf("Pluck into maps failed: %v", err)
 		}

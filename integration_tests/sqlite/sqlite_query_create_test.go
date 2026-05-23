@@ -13,9 +13,9 @@ func TestSQLiteIntegrationQueryCreate(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	t.Run("create by struct", func(t *testing.T) {
+		query := db.Query()
 		user := models.User{Name: "create_user"}
 		err := query.Model(&models.User{}).Create(&user)
 		if err != nil {
@@ -34,6 +34,7 @@ func TestSQLiteIntegrationQueryCreate(t *testing.T) {
 	})
 
 	t.Run("batch create by struct", func(t *testing.T) {
+		query := db.Query()
 		users := []models.User{
 			{Name: "batch_create_user_1"},
 			{Name: "batch_create_user_2"},
@@ -49,12 +50,17 @@ func TestSQLiteIntegrationQueryCreate(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to query created users: %v", err)
 		}
+		t.Logf("Found %d users with name like batch_create_user%%", len(foundUsers))
+		for _, u := range foundUsers {
+			t.Logf("User: ID=%d, Name=%s", u.ID, u.Name)
+		}
 		if len(foundUsers) < 2 {
 			t.Error("Should have created at least 2 users")
 		}
 	})
 
 	t.Run("create by map", func(t *testing.T) {
+		query := db.Query()
 		userMap := map[string]any{
 			"name": "create_user_map",
 		}
@@ -65,6 +71,7 @@ func TestSQLiteIntegrationQueryCreate(t *testing.T) {
 	})
 
 	t.Run("insert get id by struct", func(t *testing.T) {
+		query := db.Query()
 		user := models.User{Name: "insert_get_id_user"}
 		id, err := query.Model(&models.User{}).InsertGetId(&user)
 		if err != nil {
@@ -79,6 +86,7 @@ func TestSQLiteIntegrationQueryCreate(t *testing.T) {
 	})
 
 	t.Run("insert get id by map", func(t *testing.T) {
+		query := db.Query()
 		id, err := query.Table("users").InsertGetId(map[string]any{
 			"name": "insert_get_id_by_map_name",
 		})

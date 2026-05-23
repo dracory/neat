@@ -30,7 +30,30 @@ func SetupSQLiteConnection(t *testing.T) *database.Database {
 func SetupSQLiteTest(t *testing.T) *database.Database {
 	db := SetupSQLiteConnection(t)
 	createTestTables(t, db)
+	// Clean up any existing data before each test
+	cleanupTestData(t, db)
 	return db
+}
+
+// cleanupTestData removes all data from test tables
+func cleanupTestData(t *testing.T, db *database.Database) {
+	t.Helper()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("cleanupTestData: DB(): %v", err)
+	}
+	stmts := []string{
+		`DELETE FROM users`,
+		`DELETE FROM addresses`,
+		`DELETE FROM books`,
+		`DELETE FROM peoples`,
+		`DELETE FROM json_datas`,
+	}
+	for _, stmt := range stmts {
+		if _, err := sqlDB.Exec(stmt); err != nil {
+			t.Fatalf("cleanupTestData: %v", err)
+		}
+	}
 }
 
 // createTestTables creates all tables required by the integration test models.

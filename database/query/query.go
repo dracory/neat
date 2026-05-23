@@ -172,6 +172,7 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.omitColumns = q.omitColumns
 	clone.distinct = q.distinct
 	clone.distinctCols = q.distinctCols
+	clone.wheres = q.wheres
 	return clone
 }
 

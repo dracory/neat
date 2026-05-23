@@ -60,8 +60,8 @@ func (b *Builder) BuildSelect() (string, []any) {
 	} else {
 		// No explicit SELECT, derive from model
 		if b.query.model != nil {
-			cols, _, err := b.extractSingleColumnsAndValues(b.query.model)
-			if err == nil && len(cols) > 0 {
+			cols := b.extractColumnNames(b.query.model)
+			if len(cols) > 0 {
 				// Filter out omitted columns
 				var filteredCols []string
 				for _, col := range cols {
@@ -202,22 +202,15 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 				rowPlaceholders[i] = fmt.Sprintf("(%s)", strings.Join(placeholders, ", "))
 			}
 			parts = append(parts, strings.Join(rowPlaceholders, ", "))
+			args = append(args, values...)
 		} else {
-			// Single insert - check for raw SQL expressions
+			// Single insert
 			placeholders := make([]string, len(columns))
-			for i, val := range values {
-				// Check if value is a *Query with raw SQL
-				if q, ok := val.(*Query); ok && q.rawSQL != "" {
-					// Use raw SQL expression directly instead of placeholder
-					placeholders[i] = q.rawSQL
-					// Append raw args
-					args = append(args, q.rawArgs...)
-				} else {
-					placeholders[i] = "?"
-					args = append(args, val)
-				}
+			for i := range placeholders {
+				placeholders[i] = "?"
 			}
 			parts = append(parts, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+			args = append(args, values...)
 		}
 	}
 
@@ -447,14 +440,7 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 		}
 		for _, key := range sortedKeys {
 			columns = append(columns, key.String())
-			val := v.MapIndex(key).Interface()
-			// Check if the value is a *Query with raw SQL (for Raw() expressions)
-			if q, ok := val.(*Query); ok && q.rawSQL != "" {
-				// Use the raw SQL expression directly as the value
-				values = append(values, q.rawSQL)
-			} else {
-				values = append(values, val)
-			}
+			values = append(values, v.MapIndex(key).Interface())
 		}
 		return columns, values, nil
 	}
@@ -503,6 +489,11 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 					}
 				} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
 					continue
+				} else if fieldValue.Kind() == reflect.Ptr {
+					// Skip nil pointers except for deleted_at (soft delete)
+					if columnName != "deleted_at" {
+						continue
+					}
 				}
 			}
 
@@ -518,8 +509,9 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 				continue
 			}
 
-			// Skip zero values except for boolean and explicit zero values
-			if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Type() != reflect.TypeOf(time.Time{}) {
+			// Skip zero values except for boolean, time.Time, and deleted_at (soft delete)
+			// For deleted_at (nil pointer), we want to include it as NULL in INSERT
+			if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Type() != reflect.TypeOf(time.Time{}) && !(columnName == "deleted_at" && fieldValue.Kind() == reflect.Ptr) {
 				continue
 			}
 
@@ -530,4 +522,74 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 	}
 
 	return nil, nil, fmt.Errorf("unsupported value type for INSERT: %T", value)
+}
+
+// extractColumnNames extracts column names from a struct without checking values.
+// This is used for SELECT clause generation where we want all columns regardless of their values.
+func (b *Builder) extractColumnNames(value any) []string {
+	var columns []string
+
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return columns
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		// Skip unexported fields
+		if !fieldValue.CanInterface() {
+			continue
+		}
+
+		// Get column name from tag or field name
+		columnName := field.Name
+		if tag := field.Tag.Get("db"); tag != "" {
+			if tag == "-" {
+				continue
+			}
+			columnName = tag
+		} else if tag := field.Tag.Get("neat"); tag != "" {
+			if parts := strings.Split(tag, ";"); len(parts) > 0 {
+				if colPart := strings.Split(parts[0], ":"); len(colPart) > 1 {
+					columnName = colPart[1]
+				}
+			}
+		} else if tag := field.Tag.Get("gorm"); tag != "" {
+			if parts := strings.Split(tag, ";"); len(parts) > 0 {
+				if colPart := strings.Split(parts[0], ":"); len(colPart) > 1 {
+					columnName = colPart[1]
+				}
+			}
+		}
+
+		// Skip slice/struct fields that are not handled as basic types
+		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Ptr) &&
+			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
+			// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
+			if fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil() {
+				elem := fieldValue.Elem()
+				if elem.Kind() == reflect.Struct {
+					continue
+				}
+			} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
+				continue
+			} else if fieldValue.Kind() == reflect.Ptr {
+				// Skip nil pointers except for deleted_at (soft delete)
+				if columnName != "deleted_at" {
+					continue
+				}
+			}
+		}
+
+		columns = append(columns, columnName)
+	}
+
+	return columns
 }
