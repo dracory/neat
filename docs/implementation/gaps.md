@@ -1,20 +1,14 @@
 # Neat Implementation Gaps
 
-**Date**: May 2026  
+**Date**: May 23, 2026
+**Last reviewed**: May 23, 2026
 **Purpose**: Catalogue remaining implementation gaps in the neat ORM project.
 
 ---
 
 ## ORM Feature Gaps
 
-### GAP-09: `Having()` does not support `func(Query)Query` callback subqueries
-
-**Status**: ❌ Open  
-**Root cause**: `Having` only accepts string + args. There is no code path for a callback that builds a subquery.  
-**Failing tests**:
-- `integration_tests/sqlite/sqlite_query_group_having_test.go` — `Having with subquery callback`, `Having with subquery in args`
-
-**Implementation hint**: Add a callback overload check in the `Having` method, similar to how `Where` handles closures.
+✅ **All ORM feature gaps have been completed.** The `Having()` method now supports `func(Query)Query` callback subqueries (implemented in database/query/query.go lines 1006-1027).
 
 ---
 
