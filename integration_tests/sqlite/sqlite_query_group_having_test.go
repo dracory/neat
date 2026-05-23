@@ -164,7 +164,7 @@ func TestSQLiteIntegrationGroupHaving(t *testing.T) {
 			Count  int64
 		}
 		var results []Result
-		err := query.Model(&models.User{}).
+		err := db.Query().Model(&models.User{}).
 			Where("name LIKE ?", "group_user_%").
 			Group("avatar").
 			Select("avatar, COUNT(*) as count").
@@ -176,7 +176,7 @@ func TestSQLiteIntegrationGroupHaving(t *testing.T) {
 			t.Errorf("Having with subquery callback failed: %v", err)
 		}
 		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
+			t.Fatalf("Expected 1 result, got %d", len(results))
 		}
 		if results[0].Avatar != "avatar2" {
 			t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
