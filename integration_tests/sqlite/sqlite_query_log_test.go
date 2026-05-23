@@ -1,7 +1,11 @@
+//go:build integration
+
 package sqlite
 
 import (
 	"testing"
+
+	"github.com/dracory/neat/integration_tests/models"
 )
 
 func TestSQLiteIntegrationQueryLog(t *testing.T) {
@@ -9,23 +13,68 @@ func TestSQLiteIntegrationQueryLog(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	db := SetupSQLiteTest(t)
+
 	t.Run("EnableQueryLog and capture queries", func(t *testing.T) {
-		t.Skip("database.Database does not expose EnableQueryLog/GetQueryLog — query logging only available on Query instances")
+		db.EnableQueryLog()
+
+		// Run some queries
+		var users []models.User
+		err := db.Query().Model(&models.User{}).Find(&users)
+		if err != nil {
+			t.Errorf("Query failed: %v", err)
+		}
+
+		logs := db.GetQueryLog()
+		if len(logs) == 0 {
+			t.Error("Expected logs to be captured")
+		}
+		if len(logs) > 0 {
+			logContent := logs[0].Query
+			if len(logContent) == 0 {
+				t.Error("Log query should not be empty")
+			}
+		}
 	})
 
 	t.Run("FlushQueryLog", func(t *testing.T) {
-		t.Skip("database.Database does not expose FlushQueryLog — not yet implemented at DB level")
+		db.EnableQueryLog()
+
+		var users []models.User
+		_ = db.Query().Model(&models.User{}).Find(&users)
+
+		if len(db.GetQueryLog()) == 0 {
+			t.Error("Expected logs before flush")
+		}
+
+		db.FlushQueryLog()
+		if len(db.GetQueryLog()) != 0 {
+			t.Error("Expected no logs after flush")
+		}
 	})
 
 	t.Run("DisableQueryLog", func(t *testing.T) {
-		t.Skip("database.Database does not expose DisableQueryLog — not yet implemented at DB level")
-	})
+		db.EnableQueryLog()
+		db.DisableQueryLog()
 
-	t.Run("Query Log with bindings", func(t *testing.T) {
-		t.Skip("database.Database does not expose EnableQueryLog — not yet implemented at DB level")
+		var users []models.User
+		_ = db.Query().Model(&models.User{}).Find(&users)
+
+		if len(db.GetQueryLog()) != 0 {
+			t.Error("Expected no logs after disable")
+		}
 	})
 
 	t.Run("Query Log on specific query builder", func(t *testing.T) {
-		t.Skip("Query.EnableQueryLog/GetQueryLog on query builder — not yet implemented")
+		query := db.Query()
+		query.EnableQueryLog()
+
+		var users []models.User
+		_ = query.Model(&models.User{}).Find(&users)
+
+		logs := query.GetQueryLog()
+		if len(logs) == 0 {
+			t.Error("Expected logs to be captured on query builder")
+		}
 	})
 }
