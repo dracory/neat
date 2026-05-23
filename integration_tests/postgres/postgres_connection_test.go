@@ -82,8 +82,8 @@ func TestPostgreSQLIntegrationConnection(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get default connection: %v", err)
 		}
-		if conn.DatabaseName() != "postgres" {
-			t.Errorf("Expected connection name 'postgres', got '%s'", conn.DatabaseName())
+		if conn.Name() != "default" {
+			t.Errorf("Expected connection name 'default', got '%s'", conn.Name())
 		}
 	})
 

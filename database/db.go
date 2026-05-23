@@ -374,6 +374,11 @@ func (d *Database) DatabaseName() string {
 	return d.ormInstance.DatabaseName()
 }
 
+// Name returns the name of the current connection.
+func (d *Database) Name() string {
+	return d.ormInstance.Name()
+}
+
 // DisableQueryLog disables the capturing of executed queries.
 func (d *Database) DisableQueryLog() {
 	d.ormInstance.DisableQueryLog()
