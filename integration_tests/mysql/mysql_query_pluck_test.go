@@ -4,18 +4,25 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func TestMySQLIntegrationPluck(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
+func seedPluckTestData(t *testing.T, db interface{}) {
+	var query interface {
+		Model(interface{}) interface{ Create(interface{}) error }
+	}
+	switch v := db.(type) {
+	case interface {
+		Query() interface {
+			Model(interface{}) interface{ Create(interface{}) error }
+		}
+	}:
+		query = v.Query()
+	default:
+		query = db
 	}
 
-	db := SetupMySQLTest(t)
-	query := db.Query()
-
-	// Seed data
 	users := []models.User{
 		{Name: "pluck_user_1", Avatar: "avatar1"},
 		{Name: "pluck_user_2", Avatar: "avatar2"},
@@ -27,51 +34,65 @@ func TestMySQLIntegrationPluck(t *testing.T) {
 			t.Fatalf("Failed to create user: %v", err)
 		}
 	}
+}
 
-	t.Run("Pluck single column into slice", func(t *testing.T) {
-		var names []string
-		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").OrderBy("name", "asc").Pluck("name", &names)
-		if err != nil {
-			t.Errorf("Pluck failed: %v", err)
-		}
-		if len(names) != 3 {
-			t.Errorf("Expected 3 names, got %d", len(names))
-		}
-		if names[0] != "pluck_user_1" {
-			t.Errorf("Expected 'pluck_user_1', got '%s'", names[0])
-		}
-		if names[1] != "pluck_user_2" {
-			t.Errorf("Expected 'pluck_user_2', got '%s'", names[1])
-		}
-		if names[2] != "pluck_user_3" {
-			t.Errorf("Expected 'pluck_user_3', got '%s'", names[2])
-		}
-	})
+func TestMySQLIntegrationPluckSingleColumn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-	t.Run("Pluck with Distinct", func(t *testing.T) {
-		var avatars []string
-		err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").Distinct("avatar").OrderBy("avatar", "asc").Pluck("avatar", &avatars)
-		if err != nil {
-			t.Errorf("Pluck with distinct failed: %v", err)
+	db := SetupMySQLTest(t)
+	seedPluckTestData(t, db)
+
+	var names []string
+	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").OrderBy("name", "asc").Pluck("name", &names)
+	if err != nil {
+		t.Errorf("Pluck failed: %v", err)
+	}
+	if len(names) != 3 {
+		t.Errorf("Expected 3 names, got %d", len(names))
+	}
+	if names[0] != "pluck_user_1" {
+		t.Errorf("Expected 'pluck_user_1', got '%s'", names[0])
+	}
+	if names[1] != "pluck_user_2" {
+		t.Errorf("Expected 'pluck_user_2', got '%s'", names[1])
+	}
+	if names[2] != "pluck_user_3" {
+		t.Errorf("Expected 'pluck_user_3', got '%s'", names[2])
+	}
+}
+
+func TestMySQLIntegrationPluckWithDistinct(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	seedPluckTestData(t, db)
+
+	var avatars []string
+	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").Distinct("avatar").OrderBy("avatar", "asc").Pluck("avatar", &avatars)
+	if err != nil {
+		t.Errorf("Pluck with distinct failed: %v", err)
+	}
+	if len(avatars) != 2 {
+		t.Errorf("Expected 2 avatars, got %d", len(avatars))
+	}
+	foundAvatar1 := false
+	foundAvatar2 := false
+	for _, avatar := range avatars {
+		if avatar == "avatar1" {
+			foundAvatar1 = true
 		}
-		if len(avatars) != 2 {
-			t.Errorf("Expected 2 avatars, got %d", len(avatars))
+		if avatar == "avatar2" {
+			foundAvatar2 = true
 		}
-		foundAvatar1 := false
-		foundAvatar2 := false
-		for _, avatar := range avatars {
-			if avatar == "avatar1" {
-				foundAvatar1 = true
-			}
-			if avatar == "avatar2" {
-				foundAvatar2 = true
-			}
-		}
-		if !foundAvatar1 {
-			t.Error("Expected to find 'avatar1'")
-		}
-		if !foundAvatar2 {
-			t.Error("Expected to find 'avatar2'")
-		}
-	})
+	}
+	if !foundAvatar1 {
+		t.Error("Expected to find 'avatar1'")
+	}
+	if !foundAvatar2 {
+		t.Error("Expected to find 'avatar2'")
+	}
 }
