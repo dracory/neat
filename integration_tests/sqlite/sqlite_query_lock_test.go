@@ -24,7 +24,7 @@ func TestSQLiteLockForUpdate(t *testing.T) {
 	// SQLite doesn't support FOR UPDATE, but the ORM should handle it gracefully
 	// by ignoring the lock clause for SQLite dialect
 	var result models.User
-	err := db.Query().LockForUpdate().Where("name = ?", "lock_user").First(&result)
+	err := db.Query().Model(&models.User{}).LockForUpdate().Where("name = ?", "lock_user").First(&result)
 	if err != nil {
 		t.Errorf("LockForUpdate query failed: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestSQLiteSharedLock(t *testing.T) {
 	// SQLite doesn't support LOCK IN SHARE MODE, but the ORM should handle it gracefully
 	// by ignoring the lock clause for SQLite dialect
 	var result models.User
-	err := db.Query().SharedLock().Where("name = ?", "shared_lock_user").First(&result)
+	err := db.Query().Model(&models.User{}).SharedLock().Where("name = ?", "shared_lock_user").First(&result)
 	if err != nil {
 		t.Errorf("SharedLock query failed: %v", err)
 	}
