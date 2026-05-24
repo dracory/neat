@@ -5,17 +5,16 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func TestSQLiteIntegrationJoin(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
+type joinTestData struct {
+	user1 models.User
+	user2 models.User
+}
 
-	db := SetupSQLiteTest(t)
-
-	// Seed data
+func seedJoinTestData(t *testing.T, db *database.Database) joinTestData {
 	user1 := models.User{Name: "join_user1"}
 	user2 := models.User{Name: "join_user2"}
 	if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
@@ -25,7 +24,6 @@ func TestSQLiteIntegrationJoin(t *testing.T) {
 		t.Fatalf("Failed to create user2: %v", err)
 	}
 
-	// Re-query to get the auto-assigned IDs
 	var dbUser1 models.User
 	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user1").First(&dbUser1); err != nil {
 		t.Fatalf("Failed to get user1 ID: %v", err)
@@ -37,334 +35,436 @@ func TestSQLiteIntegrationJoin(t *testing.T) {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
-	t.Run("Inner Join", func(t *testing.T) {
-		var results []struct {
-			UserName    string `gorm:"column:name"`
-			AddressName string `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users").
-			Join("addresses ON addresses.user_id = users.id").
-			Select("users.name, addresses.name as address_name").
-			Where("users.id = ?", user1.ID).
-			Scan(&results)
+	return joinTestData{user1: user1, user2: user2}
+}
 
-		if err != nil {
-			t.Errorf("Inner Join failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-		if results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-		}
-		if results[0].AddressName != "address1" {
-			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
-		}
-	})
+func TestSQLiteIntegrationJoinInner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-	t.Run("Inner Join with conditions", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:name"`
-		}
-		err := db.Query().Table("users").
-			Join("addresses ON addresses.user_id = users.id AND addresses.name = ?", "address1").
-			Select("users.name").
-			Scan(&results)
+	db := SetupSQLiteTest(t)
+	data := seedJoinTestData(t, db)
 
-		if err != nil {
-			t.Errorf("Inner Join with conditions failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+	var results []struct {
+		UserName    string `gorm:"column:name"`
+		AddressName string `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users").
+		Join("addresses ON addresses.user_id = users.id").
+		Select("users.name, addresses.name as address_name").
+		Where("users.id = ?", data.user1.ID).
+		Scan(&results)
 
-	t.Run("Inner Join with aliases", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:name"`
-		}
-		err := db.Query().Table("users as u").
-			Join("addresses as a ON a.user_id = u.id").
-			Select("u.name").
-			Scan(&results)
+	if err != nil {
+		t.Errorf("Inner Join failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+	if results[0].UserName != "join_user1" {
+		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+	}
+	if results[0].AddressName != "address1" {
+		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	}
+}
 
-		if err != nil {
-			t.Errorf("Inner Join with aliases failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+func TestSQLiteIntegrationJoinInnerWithConditions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-	t.Run("Left Join", func(t *testing.T) {
-		var results []struct {
-			UserName    string  `gorm:"column:name"`
-			AddressName *string `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users").
-			LeftJoin("addresses ON addresses.user_id = users.id").
-			Select("users.name, addresses.name as address_name").
-			OrderBy("users.name", "asc").
-			Scan(&results)
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
 
-		if err != nil {
-			t.Errorf("Left Join failed: %v", err)
-		}
-		if len(results) != 2 {
-			t.Errorf("Expected 2 results, got %d", len(results))
-		}
-		if results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-		}
-		if results[0].AddressName == nil {
-			t.Error("Expected AddressName to be non-nil for join_user1")
-		}
-		if results[1].UserName != "join_user2" {
-			t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
-		}
-		if results[1].AddressName != nil {
-			t.Error("Expected AddressName to be nil for join_user2")
-		}
-	})
+	var results []struct {
+		UserName string `gorm:"column:name"`
+	}
+	err := db.Query().Table("users").
+		Join("addresses ON addresses.user_id = users.id AND addresses.name = ?", "address1").
+		Select("users.name").
+		Scan(&results)
 
-	t.Run("Left Join with conditions", func(t *testing.T) {
-		var results []struct {
-			UserName    string  `gorm:"column:name"`
-			AddressName *string `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users").
-			LeftJoin("addresses ON addresses.user_id = users.id AND addresses.name = ?", "non-existent").
-			Select("users.name, addresses.name as address_name").
-			OrderBy("users.name", "asc").
-			Scan(&results)
+	if err != nil {
+		t.Errorf("Inner Join with conditions failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+}
 
-		if err != nil {
-			t.Errorf("Left Join with conditions failed: %v", err)
-		}
-		if len(results) != 2 {
-			t.Errorf("Expected 2 results, got %d", len(results))
-		}
-		if results[0].AddressName != nil {
-			t.Error("Expected AddressName to be nil")
-		}
-		if results[1].AddressName != nil {
-			t.Error("Expected AddressName to be nil")
-		}
-	})
+func TestSQLiteIntegrationJoinInnerWithAliases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-	t.Run("Left Join with aliases", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:name"`
-		}
-		err := db.Query().Table("users as u").
-			LeftJoin("addresses as a ON a.user_id = u.id").
-			Select("u.name").
-			Scan(&results)
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
 
-		if err != nil {
-			t.Errorf("Left Join with aliases failed: %v", err)
-		}
-		if len(results) != 2 {
-			t.Errorf("Expected 2 results, got %d", len(results))
-		}
-	})
+	var results []struct {
+		UserName string `gorm:"column:name"`
+	}
+	err := db.Query().Table("users as u").
+		Join("addresses as a ON a.user_id = u.id").
+		Select("u.name").
+		Scan(&results)
 
-	t.Run("Right Join", func(t *testing.T) {
-		// SQLite supports RIGHT JOIN since 3.39.0.
-		if !isSQLiteVersionAtLeast(t, db, 3, 39, 0) {
-			t.Skip("RIGHT JOIN requires SQLite 3.39.0 or higher")
-		}
+	if err != nil {
+		t.Errorf("Inner Join with aliases failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+}
 
-		var results []struct {
-			UserName    *string `gorm:"column:name"`
-			AddressName string  `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users").
-			RightJoin("addresses ON addresses.user_id = users.id").
-			Select("users.name, addresses.name as address_name").
-			Scan(&results)
+func TestSQLiteIntegrationJoinLeft(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-		if err != nil {
-			t.Errorf("Right Join failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-		if results[0].UserName == nil || *results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%v'", results[0].UserName)
-		}
-		if results[0].AddressName != "address1" {
-			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
-		}
-	})
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
 
-	t.Run("Right Join with conditions", func(t *testing.T) {
-		if !isSQLiteVersionAtLeast(t, db, 3, 39, 0) {
-			t.Skip("RIGHT JOIN requires SQLite 3.39.0 or higher")
-		}
+	var results []struct {
+		UserName    string  `gorm:"column:name"`
+		AddressName *string `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users").
+		LeftJoin("addresses ON addresses.user_id = users.id").
+		Select("users.name, addresses.name as address_name").
+		OrderBy("users.name", "asc").
+		Scan(&results)
 
-		var results []struct {
-			AddressName string `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users").
-			RightJoin("addresses ON addresses.user_id = users.id AND users.name = ?", "non-existent").
-			Select("addresses.name as address_name").
-			Scan(&results)
+	if err != nil {
+		t.Errorf("Left Join failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+	if results[0].UserName != "join_user1" {
+		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+	}
+	if results[0].AddressName == nil {
+		t.Error("Expected AddressName to be non-nil for join_user1")
+	}
+	if results[1].UserName != "join_user2" {
+		t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
+	}
+	if results[1].AddressName != nil {
+		t.Error("Expected AddressName to be nil for join_user2")
+	}
+}
 
-		if err != nil {
-			t.Errorf("Right Join with conditions failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+func TestSQLiteIntegrationJoinLeftWithConditions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-	t.Run("Right Join with aliases", func(t *testing.T) {
-		if !isSQLiteVersionAtLeast(t, db, 3, 39, 0) {
-			t.Skip("RIGHT JOIN requires SQLite 3.39.0 or higher")
-		}
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
 
-		var results []struct {
-			AddressName string `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users as u").
-			RightJoin("addresses as a ON a.user_id = u.id").
-			Select("a.name as address_name").
-			Scan(&results)
+	var results []struct {
+		UserName    string  `gorm:"column:name"`
+		AddressName *string `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users").
+		LeftJoin("addresses ON addresses.user_id = users.id AND addresses.name = ?", "non-existent").
+		Select("users.name, addresses.name as address_name").
+		OrderBy("users.name", "asc").
+		Scan(&results)
 
-		if err != nil {
-			t.Errorf("Right Join with aliases failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+	if err != nil {
+		t.Errorf("Left Join with conditions failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+	if results[0].AddressName != nil {
+		t.Error("Expected AddressName to be nil")
+	}
+	if results[1].AddressName != nil {
+		t.Error("Expected AddressName to be nil")
+	}
+}
 
-	t.Run("Cross Join", func(t *testing.T) {
-		var results []struct {
-			UserName    string `gorm:"column:user_name"`
-			AddressName string `gorm:"column:address_name"`
-		}
-		err := db.Query().Table("users").
-			CrossJoin("addresses").
-			Select("users.name as user_name, addresses.name as address_name").
-			Scan(&results)
+func TestSQLiteIntegrationJoinLeftWithAliases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-		if err != nil {
-			t.Errorf("Cross Join failed: %v", err)
-		}
-		// 2 users * 1 address = 2 results
-		if len(results) != 2 {
-			t.Errorf("Expected 2 results, got %d", len(results))
-		}
-	})
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
 
-	t.Run("Cross Join with conditions", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:user_name"`
-		}
-		err := db.Query().Table("users").
-			CrossJoin("addresses").
-			Where("addresses.user_id = users.id").
-			Select("users.name as user_name").
-			Scan(&results)
+	var results []struct {
+		UserName string `gorm:"column:name"`
+	}
+	err := db.Query().Table("users as u").
+		LeftJoin("addresses as a ON a.user_id = u.id").
+		Select("u.name").
+		Scan(&results)
 
-		if err != nil {
-			t.Errorf("Cross Join with conditions failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+	if err != nil {
+		t.Errorf("Left Join with aliases failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+}
 
-	t.Run("Cross Join with Select", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:name"`
-		}
-		err := db.Query().Table("users").
-			CrossJoin("addresses").
-			Select("users.name").
-			Scan(&results)
+func TestSQLiteIntegrationJoinRight(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-		if err != nil {
-			t.Errorf("Cross Join with Select failed: %v", err)
-		}
-		if len(results) != 2 {
-			t.Errorf("Expected 2 results, got %d", len(results))
-		}
-	})
+	db := SetupSQLiteTest(t)
+	if !isSQLiteVersionAtLeast(t, db, 3, 39, 0) {
+		t.Skip("RIGHT JOIN requires SQLite 3.39.0 or higher")
+	}
+	seedJoinTestData(t, db)
 
-	t.Run("Multiple joins", func(t *testing.T) {
-		book1 := models.Book{Name: "book1", UserID: user1.ID}
-		if err := db.Query().Model(&models.Book{}).Create(&book1); err != nil {
-			t.Fatalf("Failed to create book1: %v", err)
-		}
+	var results []struct {
+		UserName    *string `gorm:"column:name"`
+		AddressName string  `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users").
+		RightJoin("addresses ON addresses.user_id = users.id").
+		Select("users.name, addresses.name as address_name").
+		Scan(&results)
 
-		var results []struct {
-			UserName    string `gorm:"column:user_name"`
-			AddressName string `gorm:"column:address_name"`
-			BookName    string `gorm:"column:book_name"`
-		}
-		err := db.Query().Table("users").
-			Join("addresses ON addresses.user_id = users.id").
-			Join("books ON books.user_id = users.id").
-			Select("users.name as user_name, addresses.name as address_name, books.name as book_name").
-			Scan(&results)
+	if err != nil {
+		t.Errorf("Right Join failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+	if results[0].UserName == nil || *results[0].UserName != "join_user1" {
+		t.Errorf("Expected 'join_user1', got '%v'", results[0].UserName)
+	}
+	if results[0].AddressName != "address1" {
+		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	}
+}
 
-		if err != nil {
-			t.Errorf("Multiple joins failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-		if results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-		}
-		if results[0].AddressName != "address1" {
-			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
-		}
-		if results[0].BookName != "book1" {
-			t.Errorf("Expected 'book1', got '%s'", results[0].BookName)
-		}
-	})
+func TestSQLiteIntegrationJoinRightWithConditions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-	t.Run("Join chaining", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:name"`
-		}
-		err := db.Query().Table("users").
-			Join("addresses ON addresses.user_id = users.id").
-			LeftJoin("books ON books.user_id = users.id").
-			Select("users.name").
-			Scan(&results)
+	db := SetupSQLiteTest(t)
+	if !isSQLiteVersionAtLeast(t, db, 3, 39, 0) {
+		t.Skip("RIGHT JOIN requires SQLite 3.39.0 or higher")
+	}
+	seedJoinTestData(t, db)
 
-		if err != nil {
-			t.Errorf("Join chaining failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+	var results []struct {
+		AddressName string `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users").
+		RightJoin("addresses ON addresses.user_id = users.id AND users.name = ?", "non-existent").
+		Select("addresses.name as address_name").
+		Scan(&results)
 
-	t.Run("Complex join scenarios", func(t *testing.T) {
-		var results []struct {
-			UserName string `gorm:"column:name"`
-		}
-		err := db.Query().Table("users").
-			Join("addresses ON addresses.user_id = users.id").
-			LeftJoin("books ON books.user_id = users.id").
-			Where("addresses.name = ?", "address1").
-			OrWhere("books.name = ?", "non-existent").
-			Select("users.name").
-			Scan(&results)
+	if err != nil {
+		t.Errorf("Right Join with conditions failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+}
 
-		if err != nil {
-			t.Errorf("Complex join scenarios failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Errorf("Expected 1 result, got %d", len(results))
-		}
-	})
+func TestSQLiteIntegrationJoinRightWithAliases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	if !isSQLiteVersionAtLeast(t, db, 3, 39, 0) {
+		t.Skip("RIGHT JOIN requires SQLite 3.39.0 or higher")
+	}
+	seedJoinTestData(t, db)
+
+	var results []struct {
+		AddressName string `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users as u").
+		RightJoin("addresses as a ON a.user_id = u.id").
+		Select("a.name as address_name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Right Join with aliases failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+}
+
+func TestSQLiteIntegrationJoinCross(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
+
+	var results []struct {
+		UserName    string `gorm:"column:user_name"`
+		AddressName string `gorm:"column:address_name"`
+	}
+	err := db.Query().Table("users").
+		CrossJoin("addresses").
+		Select("users.name as user_name, addresses.name as address_name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Cross Join failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+}
+
+func TestSQLiteIntegrationJoinCrossWithConditions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
+
+	var results []struct {
+		UserName string `gorm:"column:user_name"`
+	}
+	err := db.Query().Table("users").
+		CrossJoin("addresses").
+		Where("addresses.user_id = users.id").
+		Select("users.name as user_name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Cross Join with conditions failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+}
+
+func TestSQLiteIntegrationJoinCrossWithSelect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
+
+	var results []struct {
+		UserName string `gorm:"column:name"`
+	}
+	err := db.Query().Table("users").
+		CrossJoin("addresses").
+		Select("users.name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Cross Join with Select failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+}
+
+func TestSQLiteIntegrationJoinMultiple(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	data := seedJoinTestData(t, db)
+
+	book1 := models.Book{Name: "book1", UserID: data.user1.ID}
+	if err := db.Query().Model(&models.Book{}).Create(&book1); err != nil {
+		t.Fatalf("Failed to create book1: %v", err)
+	}
+
+	var results []struct {
+		UserName    string `gorm:"column:user_name"`
+		AddressName string `gorm:"column:address_name"`
+		BookName    string `gorm:"column:book_name"`
+	}
+	err := db.Query().Table("users").
+		Join("addresses ON addresses.user_id = users.id").
+		Join("books ON books.user_id = users.id").
+		Select("users.name as user_name, addresses.name as address_name, books.name as book_name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Multiple joins failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+	if results[0].UserName != "join_user1" {
+		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+	}
+	if results[0].AddressName != "address1" {
+		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	}
+	if results[0].BookName != "book1" {
+		t.Errorf("Expected 'book1', got '%s'", results[0].BookName)
+	}
+}
+
+func TestSQLiteIntegrationJoinChaining(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
+
+	var results []struct {
+		UserName string `gorm:"column:name"`
+	}
+	err := db.Query().Table("users").
+		Join("addresses ON addresses.user_id = users.id").
+		LeftJoin("books ON books.user_id = users.id").
+		Select("users.name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Join chaining failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+}
+
+func TestSQLiteIntegrationJoinComplex(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupSQLiteTest(t)
+	seedJoinTestData(t, db)
+
+	var results []struct {
+		UserName string `gorm:"column:name"`
+	}
+	err := db.Query().Table("users").
+		Join("addresses ON addresses.user_id = users.id").
+		LeftJoin("books ON books.user_id = users.id").
+		Where("addresses.name = ?", "address1").
+		OrWhere("books.name = ?", "non-existent").
+		Select("users.name").
+		Scan(&results)
+
+	if err != nil {
+		t.Errorf("Complex join scenarios failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
 }
 
 func isSQLiteVersionAtLeast(t *testing.T, db *neat.Database, major, minor, patch int) bool {
