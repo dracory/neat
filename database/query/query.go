@@ -1308,7 +1308,26 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) contr
 	return q
 }
 
+func (q *Query) validateAggregate(column string, dest any) error {
+	if dest == nil {
+		return fmt.Errorf("destination cannot be nil")
+	}
+
+	// Validate column name: alphanumeric, underscores, dots or *
+	for _, r := range column {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '.' || r == '*') {
+			return fmt.Errorf("invalid column name: %s", column)
+		}
+	}
+
+	return nil
+}
+
 func (q *Query) Count(count *int64) error {
+	if err := q.validateAggregate("*", count); err != nil {
+		return err
+	}
+
 	// Use a clone to avoid mutating the query state
 	clone := q.Clone().(*Query)
 	clone.aggregate = "COUNT"
@@ -1343,6 +1362,10 @@ func (q *Query) Count(count *int64) error {
 	return nil
 }
 func (q *Query) Sum(column string, dest any) error {
+	if err := q.validateAggregate(column, dest); err != nil {
+		return err
+	}
+
 	// Set aggregate
 	q.aggregate = "SUM"
 	q.aggregateCol = column
@@ -1374,6 +1397,10 @@ func (q *Query) Sum(column string, dest any) error {
 	return nil
 }
 func (q *Query) Avg(column string, dest any) error {
+	if err := q.validateAggregate(column, dest); err != nil {
+		return err
+	}
+
 	// Set aggregate
 	q.aggregate = "AVG"
 	q.aggregateCol = column
@@ -1405,6 +1432,10 @@ func (q *Query) Avg(column string, dest any) error {
 	return nil
 }
 func (q *Query) Min(column string, dest any) error {
+	if err := q.validateAggregate(column, dest); err != nil {
+		return err
+	}
+
 	// Set aggregate
 	q.aggregate = "MIN"
 	q.aggregateCol = column
@@ -1436,6 +1467,10 @@ func (q *Query) Min(column string, dest any) error {
 	return nil
 }
 func (q *Query) Max(column string, dest any) error {
+	if err := q.validateAggregate(column, dest); err != nil {
+		return err
+	}
+
 	// Set aggregate
 	q.aggregate = "MAX"
 	q.aggregateCol = column
