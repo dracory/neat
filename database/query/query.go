@@ -1005,6 +1005,7 @@ func (q *Query) Group(name string) contractsorm.Query {
 }
 func (q *Query) Having(query any, args ...any) contractsorm.Query {
 	// Process args to handle func(Query)Query callbacks
+	queryStr := fmt.Sprintf("%v", query)
 	processedArgs := make([]any, 0, len(args))
 	for _, arg := range args {
 		// Check if arg is a func(Query)Query callback
@@ -1014,15 +1015,15 @@ func (q *Query) Having(query any, args ...any) contractsorm.Query {
 			// Build the subquery SQL
 			builder := NewBuilder(subQuery.(*Query))
 			subSQL, subArgs := builder.BuildSelect()
-			// Replace the callback with the subquery SQL
-			processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
-			// Append subquery args
+			// Inline the subquery SQL into the query string, replacing the first ?
+			queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
+			// Append subquery bound args
 			processedArgs = append(processedArgs, subArgs...)
 		} else {
 			processedArgs = append(processedArgs, arg)
 		}
 	}
-	q.havings = append(q.havings, havingClause{query: fmt.Sprintf("%v", query), args: processedArgs})
+	q.havings = append(q.havings, havingClause{query: queryStr, args: processedArgs})
 	return q
 }
 

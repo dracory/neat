@@ -62,9 +62,7 @@
 |---|---|---|
 | Read/write routing with real dual DB | Medium | No test that reads go to replica and writes go to primary using *different* hosts |
 | `InsertGetId` Postgres `RETURNING id` | Medium | No integration test asserting the returned ID is non-zero |
-| `Query.Connection(name)` switching | Medium | Integration test needed (connection test exercises `Database.Connection`, not `Query.Connection`) |
 | `SlowThreshold` warning in integration | Low | No test that triggers and captures a slow-query log entry against a real DB |
-| Transaction hooks (`BeforeCommit` etc.) | Medium | Integration test needed to confirm callbacks fire with a real DB |
 
 ---
 
@@ -83,10 +81,6 @@
 3. **Add database/query/query_test.go**
    - Tests full query builder functionality
    - Can be implemented with mocks
-
-4. **Fix GAP-09: Having callback subqueries**
-   - Add callback support to Having method
-   - Required for full GROUP BY/HAVING functionality
 
 ### Medium Priority
 
@@ -108,8 +102,6 @@
 
 5. **Integration test coverage gaps**
    - Read/write routing with real dual DB
-   - Query.Connection switching
-   - Transaction hooks
 
 ### Low Priority
 
@@ -138,3 +130,9 @@ Some tests have dependencies on other components:
 - **Completed items removed**: All ORM feature gaps (GAP-01 through GAP-08, GAP-10 through GAP-24) have been completed and removed from this document.
 - **Test files marked as EXISTS**: Test files that already exist (config_test.go, database/db/config_builder_test.go, database/schema/blueprint_test.go, database/schema/column_test.go, database/query/to_sql_test.go, database/query/query_bench_test.go, etc.) are not listed as gaps.
 - **Integration tests**: MySQL, PostgreSQL, and SQLite integration tests are complete. SQL Server and Turso integration tests are still missing.
+- **Recently completed test coverage** (commit 36e2056, May 23, 2026):
+  - Added `database/db_test.go` with comprehensive Database method tests
+  - Added `database/query/connection_switch_test.go` for Query.Connection switching
+  - Added `database/query/insert_get_id_test.go` for InsertGetId functionality
+  - Added `database/query/transaction_hooks_test.go` for transaction hooks
+  - Added `database/query/query_routing_test.go` for read/write routing

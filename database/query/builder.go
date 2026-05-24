@@ -91,7 +91,12 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// FROM clause
 	if b.query.table != "" {
-		parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
+		// Don't quote table expressions that contain aliases (e.g., "users as u")
+		tableExpr := b.query.table
+		if !strings.Contains(strings.ToLower(tableExpr), " as ") {
+			tableExpr = b.quoteIdentifier(tableExpr)
+		}
+		parts = append(parts, fmt.Sprintf("FROM %s", tableExpr))
 	}
 
 	// JOIN clauses
@@ -309,7 +314,12 @@ func (b *Builder) BuildDelete() (string, []any) {
 
 	// FROM clause
 	if b.query.table != "" {
-		parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
+		// Don't quote table expressions that contain aliases (e.g., "users as u")
+		tableExpr := b.query.table
+		if !strings.Contains(strings.ToLower(tableExpr), " as ") {
+			tableExpr = b.quoteIdentifier(tableExpr)
+		}
+		parts = append(parts, fmt.Sprintf("FROM %s", tableExpr))
 	}
 
 	// WHERE clauses (with automatic soft-delete filter)
