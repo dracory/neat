@@ -23,7 +23,7 @@ func (r Sqlserver) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			Autoincrement: dbColumn.Autoincrement,
 			Collation:     dbColumn.Collation,
 			Comment:       dbColumn.Comment,
-			Default:       dbColumn.Default,
+			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      cast.ToBool(dbColumn.Nullable),
 			Type:          getType(dbColumn),

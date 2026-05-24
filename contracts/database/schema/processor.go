@@ -10,7 +10,7 @@ type DBColumn struct {
 	Autoincrement bool
 	Collation     string
 	Comment       string
-	Default       string
+	Default       *string
 	Extra         string
 	Length        int
 	Name          string

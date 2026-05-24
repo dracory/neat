@@ -45,8 +45,12 @@ func TestBuildSelectWithTrashedSkipsFilter(t *testing.T) {
 	w.SetWithTrashed(true)
 	sqlStr, _ := w.BuildSelectSQL()
 
-	if strings.Contains(sqlStr, "deleted_at") {
-		t.Errorf("expected no 'deleted_at' clause with WithTrashed, got: %s", sqlStr)
+	// Check if "deleted_at IS NULL" or "deleted_at IS NOT NULL" exists after "WHERE"
+	if whereIdx := strings.Index(sqlStr, "WHERE"); whereIdx != -1 {
+		whereClause := sqlStr[whereIdx:]
+		if strings.Contains(whereClause, "deleted_at") {
+			t.Errorf("expected no 'deleted_at' filter in WHERE clause with WithTrashed, got: %s", sqlStr)
+		}
 	}
 }
 

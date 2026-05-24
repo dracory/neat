@@ -38,7 +38,7 @@ func (r Sqlite) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 		columns = append(columns, schema.Column{
 			Autoincrement: primaryKeyNum == 1 && dbColumn.Primary && ttype == "integer",
 			Collation:     dbColumn.Collation,
-			Default:       dbColumn.Default,
+			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      cast.ToBool(dbColumn.Nullable),
 			Type:          ttype,

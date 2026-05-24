@@ -3,6 +3,8 @@ package processors
 import (
 	"strings"
 
+	"github.com/spf13/cast"
+
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -29,7 +31,7 @@ func (r Mysql) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			Autoincrement: autoIncrement,
 			Collation:     dbColumn.Collation,
 			Comment:       dbColumn.Comment,
-			Default:       dbColumn.Default,
+			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      nullable,
 			Type:          dbColumn.Type,

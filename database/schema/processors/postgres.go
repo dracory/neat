@@ -20,7 +20,7 @@ func (r Postgres) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 	var columns []schema.Column
 	for _, dbColumn := range dbColumns {
 		var autoincrement bool
-		if str.Of(dbColumn.Default).StartsWith("nextval(") {
+		if str.Of(cast.ToString(dbColumn.Default)).StartsWith("nextval(") {
 			autoincrement = true
 		}
 
@@ -28,7 +28,7 @@ func (r Postgres) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			Autoincrement: autoincrement,
 			Collation:     dbColumn.Collation,
 			Comment:       dbColumn.Comment,
-			Default:       dbColumn.Default,
+			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      cast.ToBool(dbColumn.Nullable),
 			Type:          dbColumn.Type,

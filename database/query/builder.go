@@ -33,6 +33,10 @@ func (b *Builder) quoteIdentifier(name string) string {
 
 // BuildSelect builds a SELECT query from the query state.
 func (b *Builder) BuildSelect() (string, []any) {
+	if b.query.rawSQL != "" {
+		return b.query.rawSQL, b.query.rawArgs
+	}
+
 	var parts []string
 	var args []any
 
@@ -581,11 +585,6 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 
 		if (fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
 			fieldType != reflect.TypeOf(time.Time{}) {
-			continue
-		}
-
-		// Exclude deleted_at from default SELECT
-		if columnName == "deleted_at" {
 			continue
 		}
 
