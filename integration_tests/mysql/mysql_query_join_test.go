@@ -4,27 +4,18 @@ package mysql
 
 import (
 	"testing"
+	"time"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedJoinTestData(t *testing.T, db interface{}) (int64, int64) {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
+func seedJoinTestData(t *testing.T, db *database.Database) (uint, uint) {
+	query := db.Query()
+	now := time.Now()
 
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
+	user1 := models.User{Name: "join_user1", CreatedAt: now, UpdatedAt: now}
+	user2 := models.User{Name: "join_user2", CreatedAt: now, UpdatedAt: now}
 	if err := query.Model(&models.User{}).Create(&user1); err != nil {
 		t.Fatalf("Failed to create user1: %v", err)
 	}
@@ -40,7 +31,7 @@ func seedJoinTestData(t *testing.T, db interface{}) (int64, int64) {
 		t.Fatalf("Failed to get created user2: %v", err)
 	}
 
-	address1 := models.Address{Name: "address1", UserID: createdUser1.ID}
+	address1 := models.Address{Name: "address1", UserID: createdUser1.ID, CreatedAt: now, UpdatedAt: now}
 	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
