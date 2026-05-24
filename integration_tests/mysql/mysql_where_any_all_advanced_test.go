@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -118,7 +119,6 @@ func TestMySQLIntegrationWhereNone(t *testing.T) {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	// Test WhereNone: NOT (name='test' OR avatar='test')
 	var noneUsers []models.User
 	err = query.Model(&models.User{}).WhereNone([]string{"name", "avatar"}, "=", "test").Find(&noneUsers)
 	if err != nil {
@@ -128,7 +128,6 @@ func TestMySQLIntegrationWhereNone(t *testing.T) {
 		t.Errorf("Expected 'none' user for WhereNone, got %v", noneUsers)
 	}
 
-	// Test WhereNone with operators: NOT (name LIKE 'test%' OR avatar LIKE 'test%')
 	var noneLikeUsers []models.User
 	err = query.Model(&models.User{}).WhereNone([]string{"name", "avatar"}, "LIKE", "test%").Find(&noneLikeUsers)
 	if err != nil {
@@ -138,7 +137,6 @@ func TestMySQLIntegrationWhereNone(t *testing.T) {
 		t.Errorf("Expected 'none' user for WhereNone LIKE, got %v", noneLikeUsers)
 	}
 
-	// Test WhereNone combined with Where: name='none' AND NOT (avatar='test')
 	var combinedUsers []models.User
 	err = query.Model(&models.User{}).Where("name = ?", "none").WhereNone([]string{"avatar"}, "=", "test").Find(&combinedUsers)
 	if err != nil {
@@ -169,8 +167,6 @@ func TestMySQLIntegrationWhereNoneAdvanced(t *testing.T) {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	// Multiple WhereNone calls: NOT (name='test1' OR avatar='test1') AND NOT (name='test2' OR avatar='test2')
-	// Only 'none' matches both.
 	var foundUsers []models.User
 	err = query.Model(&models.User{}).
 		WhereNone([]string{"name", "avatar"}, "=", "test1").
@@ -200,95 +196,163 @@ func TestMySQLIntegrationWhereEdgeCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
+}
 
-	tests := []struct {
-		name     string
-		testFunc func() error
-		wantErr  bool
-	}{
-		{
-			name: "WhereAny empty columns",
-			testFunc: func() error {
-				var found []models.User
-				db := SetupMySQLTest(t)
-				return db.Query().Model(&models.User{}).WhereAny([]string{}, "=", "test1").Find(&found)
-			},
-			wantErr: false,
-		},
-		{
-			name: "WhereAny invalid operator",
-			testFunc: func() error {
-				var found []models.User
-				return query.Model(&models.User{}).WhereAny([]string{"name"}, "INVALID", "test1").Find(&found)
-			},
-			wantErr: true,
-		},
-		{
-			name: "WhereAny invalid column",
-			testFunc: func() error {
-				var found []models.User
-				return query.Model(&models.User{}).WhereAny([]string{"invalid column"}, "=", "test1").Find(&found)
-			},
-			wantErr: true,
-		},
-		{
-			name: "WhereAll empty columns",
-			testFunc: func() error {
-				var found []models.User
-				db := SetupMySQLTest(t)
-				return db.Query().Model(&models.User{}).WhereAll([]string{}, "=", "test1").Find(&found)
-			},
-			wantErr: false,
-		},
-		{
-			name: "WhereAll invalid operator",
-			testFunc: func() error {
-				var found []models.User
-				return query.Model(&models.User{}).WhereAll([]string{"name"}, "INVALID", "test1").Find(&found)
-			},
-			wantErr: true,
-		},
-		{
-			name: "WhereAll invalid column",
-			testFunc: func() error {
-				var found []models.User
-				return query.Model(&models.User{}).WhereAll([]string{"invalid column"}, "=", "test1").Find(&found)
-			},
-			wantErr: true,
-		},
-		{
-			name: "WhereNone empty columns",
-			testFunc: func() error {
-				var found []models.User
-				db := SetupMySQLTest(t)
-				return db.Query().Model(&models.User{}).WhereNone([]string{}, "=", "test1").Find(&found)
-			},
-			wantErr: false,
-		},
-		{
-			name: "WhereNone invalid operator",
-			testFunc: func() error {
-				var found []models.User
-				return query.Model(&models.User{}).WhereNone([]string{"name"}, "INVALID", "test1").Find(&found)
-			},
-			wantErr: true,
-		},
-		{
-			name: "WhereNone invalid column",
-			testFunc: func() error {
-				var found []models.User
-				return query.Model(&models.User{}).WhereNone([]string{"invalid column"}, "=", "test1").Find(&found)
-			},
-			wantErr: true,
-		},
+func TestMySQLIntegrationWhereAnyEmptyColumns(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.testFunc()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Expected error: %v, got: %v", tt.wantErr, err)
-			}
-		})
+	db := SetupMySQLTest(t)
+	var found []models.User
+	err := db.Query().Model(&models.User{}).WhereAny([]string{}, "=", "test1").Find(&found)
+	if err != nil {
+		t.Errorf("WhereAny with empty columns failed: %v", err)
+	}
+}
+
+func TestMySQLIntegrationWhereAnyInvalidOperator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "test1", Avatar: "test1"},
+	}
+	query.Model(&models.User{}).Create(&users)
+
+	var found []models.User
+	err := query.Model(&models.User{}).WhereAny([]string{"name"}, "INVALID", "test1").Find(&found)
+	if err == nil {
+		t.Error("Expected error for invalid operator in WhereAny, got nil")
+	}
+}
+
+func TestMySQLIntegrationWhereAnyInvalidColumn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "test1", Avatar: "test1"},
+	}
+	query.Model(&models.User{}).Create(&users)
+
+	var found []models.User
+	err := query.Model(&models.User{}).WhereAny([]string{"invalid column"}, "=", "test1").Find(&found)
+	if err == nil {
+		t.Error("Expected error for invalid column in WhereAny, got nil")
+	}
+}
+
+func TestMySQLIntegrationWhereAllEmptyColumns(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	var found []models.User
+	err := db.Query().Model(&models.User{}).WhereAll([]string{}, "=", "test1").Find(&found)
+	if err != nil {
+		t.Errorf("WhereAll with empty columns failed: %v", err)
+	}
+}
+
+func TestMySQLIntegrationWhereAllInvalidOperator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "test1", Avatar: "test1"},
+	}
+	query.Model(&models.User{}).Create(&users)
+
+	var found []models.User
+	err := query.Model(&models.User{}).WhereAll([]string{"name"}, "INVALID", "test1").Find(&found)
+	if err == nil {
+		t.Error("Expected error for invalid operator in WhereAll, got nil")
+	}
+}
+
+func TestMySQLIntegrationWhereAllInvalidColumn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "test1", Avatar: "test1"},
+	}
+	query.Model(&models.User{}).Create(&users)
+
+	var found []models.User
+	err := query.Model(&models.User{}).WhereAll([]string{"invalid column"}, "=", "test1").Find(&found)
+	if err == nil {
+		t.Error("Expected error for invalid column in WhereAll, got nil")
+	}
+}
+
+func TestMySQLIntegrationWhereNoneEmptyColumns(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	var found []models.User
+	err := db.Query().Model(&models.User{}).WhereNone([]string{}, "=", "test1").Find(&found)
+	if err != nil {
+		t.Errorf("WhereNone with empty columns failed: %v", err)
+	}
+}
+
+func TestMySQLIntegrationWhereNoneInvalidOperator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "test1", Avatar: "test1"},
+	}
+	query.Model(&models.User{}).Create(&users)
+
+	var found []models.User
+	err := query.Model(&models.User{}).WhereNone([]string{"name"}, "INVALID", "test1").Find(&found)
+	if err == nil {
+		t.Error("Expected error for invalid operator in WhereNone, got nil")
+	}
+}
+
+func TestMySQLIntegrationWhereNoneInvalidColumn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "test1", Avatar: "test1"},
+	}
+	query.Model(&models.User{}).Create(&users)
+
+	var found []models.User
+	err := query.Model(&models.User{}).WhereNone([]string{"invalid column"}, "=", "test1").Find(&found)
+	if err == nil {
+		t.Error("Expected error for invalid column in WhereNone, got nil")
 	}
 }

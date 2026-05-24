@@ -12,7 +12,7 @@ import (
 	"github.com/dracory/neat/database"
 )
 
-func TestMySQLIntegrationConnection(t *testing.T) {
+func TestMySQLIntegrationConnectionSwitch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -26,74 +26,100 @@ func TestMySQLIntegrationConnection(t *testing.T) {
 	}
 	defer db.Close()
 
-	setupTable := func(conn *neat.Database, tableName string) {
-		_ = conn.Schema().Drop(tableName)
-		err := conn.Schema().Create(tableName, func(table contractsschema.Blueprint) {
-			table.ID()
-			table.String("name")
-		})
-		if err != nil {
-			t.Fatalf("Failed to create table %s: %v", tableName, err)
-		}
+	conn1 := db
+	conn2, err := db.Connection("mysql2")
+	if err != nil {
+		t.Fatalf("Failed to get mysql2 connection: %v", err)
 	}
 
-	t.Run("Switch between connections", func(t *testing.T) {
-		conn1 := db
-		conn2, err := db.Connection("mysql2")
-		if err != nil {
-			t.Fatalf("Failed to get mysql2 connection: %v", err)
-		}
+	tableName1 := "users_conn1"
+	tableName2 := "users_conn2"
 
-		tableName1 := "users_conn1"
-		tableName2 := "users_conn2"
-
-		setupTable(conn1, tableName1)
-		setupTable(conn2, tableName2)
-
-		defer func() {
-			_ = conn1.Schema().Drop(tableName1)
-			_ = conn2.Schema().Drop(tableName2)
-		}()
-
-		err = conn1.Query().Table(tableName1).Create(map[string]any{"name": "user1"})
-		if err != nil {
-			t.Errorf("Insert into conn1 failed: %v", err)
-		}
-
-		err = conn2.Query().Table(tableName2).Create(map[string]any{"name": "user2"})
-		if err != nil {
-			t.Errorf("Insert into conn2 failed: %v", err)
-		}
-
-		var count int64
-		err = conn1.Query().Table(tableName1).Count(&count)
-		if err != nil || count != 1 {
-			t.Errorf("Expected count=1 on conn1, got %d, err=%v", count, err)
-		}
-
-		err = conn2.Query().Table(tableName2).Count(&count)
-		if err != nil || count != 1 {
-			t.Errorf("Expected count=1 on conn2, got %d, err=%v", count, err)
-		}
+	_ = conn1.Schema().Drop(tableName1)
+	err = conn1.Schema().Create(tableName1, func(table contractsschema.Blueprint) {
+		table.ID()
+		table.String("name")
 	})
+	if err != nil {
+		t.Fatalf("Failed to create table %s: %v", tableName1, err)
+	}
 
-	t.Run("Default connection name", func(t *testing.T) {
-		conn, err := db.Connection("")
-		if err != nil {
-			t.Fatalf("Failed to get default connection: %v", err)
-		}
-		expectedConn := "default"
-		if conn.Name() != expectedConn {
-			t.Errorf("Expected connection name '%s', got '%s'", expectedConn, conn.Name())
-		}
+	_ = conn2.Schema().Drop(tableName2)
+	err = conn2.Schema().Create(tableName2, func(table contractsschema.Blueprint) {
+		table.ID()
+		table.String("name")
 	})
+	if err != nil {
+		t.Fatalf("Failed to create table %s: %v", tableName2, err)
+	}
 
-	t.Run("Non-existent connection returns error", func(t *testing.T) {
-		_, err := db.Connection("nonexistent")
-		if err == nil {
-			t.Error("Expected error for non-existent connection")
-		}
-	})
+	defer func() {
+		_ = conn1.Schema().Drop(tableName1)
+		_ = conn2.Schema().Drop(tableName2)
+	}()
+
+	err = conn1.Query().Table(tableName1).Create(map[string]any{"name": "user1"})
+	if err != nil {
+		t.Errorf("Insert into conn1 failed: %v", err)
+	}
+
+	err = conn2.Query().Table(tableName2).Create(map[string]any{"name": "user2"})
+	if err != nil {
+		t.Errorf("Insert into conn2 failed: %v", err)
+	}
+
+	var count int64
+	err = conn1.Query().Table(tableName1).Count(&count)
+	if err != nil || count != 1 {
+		t.Errorf("Expected count=1 on conn1, got %d, err=%v", count, err)
+	}
+
+	err = conn2.Query().Table(tableName2).Count(&count)
+	if err != nil || count != 1 {
+		t.Errorf("Expected count=1 on conn2, got %d, err=%v", count, err)
+	}
+}
+
+func TestMySQLIntegrationConnectionDefaultName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	config := GetMySQLConfig()
+
+	db, err := neat.New(config, database.WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	conn, err := db.Connection("")
+	if err != nil {
+		t.Fatalf("Failed to get default connection: %v", err)
+	}
+	expectedConn := "default"
+	if conn.Name() != expectedConn {
+		t.Errorf("Expected connection name '%s', got '%s'", expectedConn, conn.Name())
+	}
+}
+
+func TestMySQLIntegrationConnectionNonExistent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	config := GetMySQLConfig()
+
+	db, err := neat.New(config, database.WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Connection("nonexistent")
+	if err == nil {
+		t.Error("Expected error for non-existent connection")
+	}
 }
 
 func TestMySQLIntegrationReadWriteSeparation(t *testing.T) {
