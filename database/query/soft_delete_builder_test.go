@@ -83,3 +83,18 @@ func TestBuildSelectNoFilterWhenModelNil(t *testing.T) {
 		t.Errorf("expected no 'deleted_at' clause when model is nil, got: %s", sqlStr)
 	}
 }
+
+type pointerModel struct {
+	ID   int
+	Name *string
+}
+
+func TestSelectPointerField(t *testing.T) {
+	w := query.WrapQuery(query.NewTestQuery(nil, nil, query.MakeDBConfig(), nil))
+	w.SetModel(&pointerModel{})
+	sqlStr, _ := w.BuildSelectSQL()
+
+	if !strings.Contains(sqlStr, "name") {
+		t.Errorf("expected 'name' in SELECT, got: %s", sqlStr)
+	}
+}
