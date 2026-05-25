@@ -19,16 +19,47 @@ func NewBuilder(q *Query) *Builder {
 
 // quoteIdentifier wraps an identifier in the appropriate quotes for the dialect.
 func (b *Builder) quoteIdentifier(name string) string {
-	if b.query.driver == nil {
+	if b.query.driver == nil || name == "*" || name == "" {
 		return name
 	}
+
 	dialect := b.query.driver.Dialect()
-	switch dialect {
-	case "mysql":
-		return fmt.Sprintf("`%s`", name)
-	default: // sqlite, postgres, sqlserver, turso
-		return fmt.Sprintf(`"%s"`, name)
+	quoteChar := "\""
+	if dialect == "mysql" {
+		quoteChar = "`"
 	}
+
+	// If already quoted, return as is
+	if (strings.HasPrefix(name, "\"") && strings.HasSuffix(name, "\"")) ||
+		(strings.HasPrefix(name, "`") && strings.HasSuffix(name, "`")) {
+		return name
+	}
+
+	// Handle dotted names (e.g., table.column)
+	if strings.Contains(name, ".") {
+		parts := strings.Split(name, ".")
+		for i, part := range parts {
+			parts[i] = b.quoteIdentifier(part)
+		}
+		return strings.Join(parts, ".")
+	}
+
+	// Handle " AS " alias (case insensitive)
+	upperName := strings.ToUpper(name)
+	if idx := strings.Index(upperName, " AS "); idx != -1 {
+		identifier := strings.TrimSpace(name[:idx])
+		alias := strings.TrimSpace(name[idx+4:])
+		return fmt.Sprintf("%s AS %s", b.quoteIdentifier(identifier), b.quoteIdentifier(alias))
+	}
+
+	// Handle space alias (e.g., "users u")
+	if idx := strings.Index(name, " "); idx != -1 {
+		identifier := strings.TrimSpace(name[:idx])
+		alias := strings.TrimSpace(name[idx+1:])
+		return fmt.Sprintf("%s %s", b.quoteIdentifier(identifier), b.quoteIdentifier(alias))
+	}
+
+	return fmt.Sprintf("%s%s%s", quoteChar, name, quoteChar)
 }
 
 // BuildSelect builds a SELECT query from the query state.
