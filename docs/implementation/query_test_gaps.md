@@ -237,12 +237,17 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** Medium - Important for query reusability
 
 #### 11. Context Handling
-**File:** `query_accessors.go`  
-**Missing Tests:**
-- `WithContext()` method
-- Context propagation
-- Context cancellation
-- Context with transactions
+**File:** `query_accessors.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestWithContextReturnsNewQuery` - Verifies WithContext returns new query instance
+- `TestWithContextSetsContext` - Verifies context is set on new query
+- `TestWithContextPreservesOriginalContext` - Verifies original query context is preserved
+- `TestContextPropagationToClone` - Verifies context propagates through Clone
+- `TestContextCancellationPreventsQuery` - Verifies cancelled context prevents query execution
+- `TestContextWithValue` - Verifies context values are preserved
+- `TestContextWithTransaction` - Verifies context is preserved in transactions
+- `TestContextPropagationThroughChainedMethods` - Verifies context propagates through method chaining
 
 **Impact:** Medium - Important for request-scoped queries
 

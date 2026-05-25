@@ -52,14 +52,16 @@ func (w *TestQuery) ReadDB() *sql.DB    { return w.Q.readDB }
 func (w *TestQuery) WriteDB() *sql.DB   { return w.Q.writeDB }
 func (w *TestQuery) PrimaryDB() *sql.DB { return w.Q.db }
 
-func (w *TestQuery) SetReadDB(d *sql.DB)          { w.Q.readDB = d }
-func (w *TestQuery) SetWriteDB(d *sql.DB)         { w.Q.writeDB = d }
-func (w *TestQuery) SetTx(tx *sql.Tx)             { w.Q.tx = tx }
-func (w *TestQuery) SetTable(t string)            { w.Q.table = t }
-func (w *TestQuery) SetModel(m any)               { w.Q.model = m }
-func (w *TestQuery) SetWithTrashed(v bool)        { w.Q.withTrashed = v }
-func (w *TestQuery) SetOnlyTrashed(v bool)        { w.Q.onlyTrashed = v }
-func (w *TestQuery) SetDBConfig(cfg *db.DBConfig) { w.Q.dbConfig = cfg }
+func (w *TestQuery) SetReadDB(d *sql.DB)            { w.Q.readDB = d }
+func (w *TestQuery) SetWriteDB(d *sql.DB)           { w.Q.writeDB = d }
+func (w *TestQuery) SetTx(tx *sql.Tx)               { w.Q.tx = tx }
+func (w *TestQuery) SetTable(t string)              { w.Q.table = t }
+func (w *TestQuery) SetModel(m any)                 { w.Q.model = m }
+func (w *TestQuery) SetWithTrashed(v bool)          { w.Q.withTrashed = v }
+func (w *TestQuery) SetOnlyTrashed(v bool)          { w.Q.onlyTrashed = v }
+func (w *TestQuery) SetDBConfig(cfg *db.DBConfig)   { w.Q.dbConfig = cfg }
+func (w *TestQuery) SetContext(ctx context.Context) { w.Q.ctx = ctx }
+func (w *TestQuery) Context() context.Context       { return w.Q.ctx }
 
 func (w *TestQuery) GetTable() string { return w.Q.table }
 
