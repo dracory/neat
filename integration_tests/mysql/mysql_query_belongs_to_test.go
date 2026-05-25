@@ -19,19 +19,25 @@ func TestMySQLIntegrationQueryBelongsToWith(t *testing.T) {
 	query := db.Query()
 	now := time.Now()
 
+	// Create user first
 	user := &models.User{
-		Name: "belongs_to_name",
+		Name:      "belongs_to_name",
 		CreatedAt: now,
 		UpdatedAt: now,
-		Address: &models.Address{
-			Name: "belongs_to_address",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
+	}
+	if err := query.Model(&models.User{}).Create(user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if err := query.Model(&models.User{}).Create(user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+	// Create address with user_id
+	address := &models.Address{
+		Name:      "belongs_to_address",
+		UserID:    user.ID,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := query.Model(&models.Address{}).Create(address); err != nil {
+		t.Fatalf("Failed to create address: %v", err)
 	}
 
 	var userAddress models.Address
@@ -58,19 +64,25 @@ func TestMySQLIntegrationQueryBelongsToWithout(t *testing.T) {
 	query := db.Query()
 	now := time.Now()
 
+	// Create user first
 	user := &models.User{
-		Name: "belongs_to_without_user",
+		Name:      "belongs_to_without_user",
 		CreatedAt: now,
 		UpdatedAt: now,
-		Address: &models.Address{
-			Name: "belongs_to_without_address",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
+	}
+	if err := query.Model(&models.User{}).Create(user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if err := query.Model(&models.User{}).Create(user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+	// Create address with user_id
+	address := &models.Address{
+		Name:      "belongs_to_without_address",
+		UserID:    user.ID,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := query.Model(&models.Address{}).Create(address); err != nil {
+		t.Fatalf("Failed to create address: %v", err)
 	}
 
 	var userAddress models.Address
@@ -92,19 +104,25 @@ func TestMySQLIntegrationQueryBelongsToWithConstraints(t *testing.T) {
 	query := db.Query()
 	now := time.Now()
 
+	// Create user first
 	user := &models.User{
-		Name: "constrained_user",
+		Name:      "constrained_user",
 		CreatedAt: now,
 		UpdatedAt: now,
-		Address: &models.Address{
-			Name: "constrained_address",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
+	}
+	if err := query.Model(&models.User{}).Create(user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if err := query.Model(&models.User{}).Create(user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+	// Create address with user_id
+	address := &models.Address{
+		Name:      "constrained_address",
+		UserID:    user.ID,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := query.Model(&models.Address{}).Create(address); err != nil {
+		t.Fatalf("Failed to create address: %v", err)
 	}
 
 	var userAddress models.Address
@@ -149,8 +167,8 @@ func TestMySQLIntegrationQueryMultipleBelongsTo(t *testing.T) {
 	}
 
 	book := &models.Book{
-		Name:   "multi_belongs_book",
-		UserID: user.ID,
+		Name:      "multi_belongs_book",
+		UserID:    user.ID,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

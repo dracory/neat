@@ -1,4 +1,4 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
@@ -17,15 +17,21 @@ func TestPostgreSQLIntegrationQueryBelongsToWith(t *testing.T) {
 	db := SetupPostgresTest(t)
 	query := db.Query()
 
+	// Create user first
 	user := &models.User{
 		Name: "belongs_to_name",
-		Address: &models.Address{
-			Name: "belongs_to_address",
-		},
+	}
+	if err := query.Model(&models.User{}).Create(user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if err := query.Model(&models.User{}).Create(user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+	// Create address with user_id
+	address := &models.Address{
+		Name:   "belongs_to_address",
+		UserID: user.ID,
+	}
+	if err := query.Model(&models.Address{}).Create(address); err != nil {
+		t.Fatalf("Failed to create address: %v", err)
 	}
 
 	var userAddress models.Address
@@ -51,15 +57,21 @@ func TestPostgreSQLIntegrationQueryBelongsToWithout(t *testing.T) {
 	db := SetupPostgresTest(t)
 	query := db.Query()
 
+	// Create user first
 	user := &models.User{
 		Name: "belongs_to_without_user",
-		Address: &models.Address{
-			Name: "belongs_to_without_address",
-		},
+	}
+	if err := query.Model(&models.User{}).Create(user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if err := query.Model(&models.User{}).Create(user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+	// Create address with user_id
+	address := &models.Address{
+		Name:   "belongs_to_without_address",
+		UserID: user.ID,
+	}
+	if err := query.Model(&models.Address{}).Create(address); err != nil {
+		t.Fatalf("Failed to create address: %v", err)
 	}
 
 	var userAddress models.Address
@@ -80,15 +92,21 @@ func TestPostgreSQLIntegrationQueryBelongsToWithConstraints(t *testing.T) {
 	db := SetupPostgresTest(t)
 	query := db.Query()
 
+	// Create user first
 	user := &models.User{
 		Name: "constrained_user",
-		Address: &models.Address{
-			Name: "constrained_address",
-		},
+	}
+	if err := query.Model(&models.User{}).Create(user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	if err := query.Model(&models.User{}).Create(user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+	// Create address with user_id
+	address := &models.Address{
+		Name:   "constrained_address",
+		UserID: user.ID,
+	}
+	if err := query.Model(&models.Address{}).Create(address); err != nil {
+		t.Fatalf("Failed to create address: %v", err)
 	}
 
 	var userAddress models.Address
