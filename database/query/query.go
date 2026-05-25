@@ -1173,47 +1173,47 @@ func (q *Query) Having(query any, args ...any) contractsorm.Query {
 }
 
 func (q *Query) WhereIn(column string, values []any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IN (?)", column), args: []any{values}})
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IN (?)", NewBuilder(q).quoteIdentifier(column)), args: []any{values}})
 	return q
 }
 func (q *Query) WhereNotIn(column string, values []any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s NOT IN (?)", column), args: []any{values}})
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s NOT IN (?)", NewBuilder(q).quoteIdentifier(column)), args: []any{values}})
 	return q
 }
 func (q *Query) OrWhereIn(column string, values []any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IN (?)", column), args: []any{values}})
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IN (?)", NewBuilder(q).quoteIdentifier(column)), args: []any{values}})
 	return q
 }
 func (q *Query) OrWhereNotIn(column string, values []any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s NOT IN (?)", column), args: []any{values}})
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s NOT IN (?)", NewBuilder(q).quoteIdentifier(column)), args: []any{values}})
 	return q
 }
 func (q *Query) WhereBetween(column string, x, y any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s BETWEEN ? AND ?", column), args: []any{x, y}})
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s BETWEEN ? AND ?", NewBuilder(q).quoteIdentifier(column)), args: []any{x, y}})
 	return q
 }
 func (q *Query) WhereNotBetween(column string, x, y any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s NOT BETWEEN ? AND ?", column), args: []any{x, y}})
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s NOT BETWEEN ? AND ?", NewBuilder(q).quoteIdentifier(column)), args: []any{x, y}})
 	return q
 }
 func (q *Query) OrWhereBetween(column string, x, y any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s BETWEEN ? AND ?", column), args: []any{x, y}})
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s BETWEEN ? AND ?", NewBuilder(q).quoteIdentifier(column)), args: []any{x, y}})
 	return q
 }
 func (q *Query) OrWhereNotBetween(column string, x, y any) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s NOT BETWEEN ? AND ?", column), args: []any{x, y}})
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s NOT BETWEEN ? AND ?", NewBuilder(q).quoteIdentifier(column)), args: []any{x, y}})
 	return q
 }
 func (q *Query) WhereNull(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NULL", column), args: nil})
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NULL", NewBuilder(q).quoteIdentifier(column)), args: nil})
 	return q
 }
 func (q *Query) WhereNotNull(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NOT NULL", column), args: nil})
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NOT NULL", NewBuilder(q).quoteIdentifier(column)), args: nil})
 	return q
 }
 func (q *Query) OrWhereNull(column string) contractsorm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IS NULL", column), args: nil})
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IS NULL", NewBuilder(q).quoteIdentifier(column)), args: nil})
 	return q
 }
 func (q *Query) WhereColumn(first, operator, second string) contractsorm.Query {

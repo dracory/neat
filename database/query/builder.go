@@ -433,11 +433,142 @@ func (b *Builder) buildWheres() (string, []any) {
 			}
 		}
 
+		// Quote identifiers in the WHERE clause
+		clauseQuery = b.quoteWhereIdentifiers(clauseQuery)
+
 		parts = append(parts, clauseQuery)
 		args = append(args, clauseArgs...)
 	}
 
 	return strings.Join(parts, " "), args
+}
+
+// quoteWhereIdentifiers quotes column names in WHERE clauses.
+// It uses a conservative approach that only quotes simple identifiers
+// to avoid breaking complex expressions, function calls, or subqueries.
+func (b *Builder) quoteWhereIdentifiers(query string) string {
+	// SQL keywords that should never be quoted
+	sqlKeywords := map[string]bool{
+		"AND": true, "OR": true, "NOT": true, "NULL": true,
+		"TRUE": true, "FALSE": true, "IS": true, "IN": true,
+		"LIKE": true, "BETWEEN": true, "SELECT": true, "FROM": true,
+		"WHERE": true, "JOIN": true, "ON": true, "AS": true,
+		"GROUP": true, "ORDER": true, "BY": true, "HAVING": true,
+		"LIMIT": true, "OFFSET": true, "CASE": true, "WHEN": true,
+		"THEN": true, "ELSE": true, "END": true, "EXISTS": true,
+	}
+
+	// Collect all replacements first, then apply them in reverse order
+	type replacement struct {
+		start int
+		end   int
+		value string
+	}
+	var replacements []replacement
+
+	// Tokenize the query to identify potential column names
+	// We look for simple identifiers that appear before operators
+	// Only use operators with leading space to avoid matching inside quoted identifiers
+	operators := []string{" != ", " <> ", " >= ", " <= ", " LIKE ", " NOT LIKE ", " = ", " > ", " < ", " IS ", " IS NOT ", " IN ", " NOT IN ", " BETWEEN ", " NOT BETWEEN "}
+
+	for _, op := range operators {
+		start := 0
+		for {
+			idx := strings.Index(strings.ToUpper(query[start:]), strings.ToUpper(op))
+			if idx == -1 {
+				break
+			}
+			idx += start
+
+			// Get text before operator
+			beforeOp := query[:idx]
+			trimmed := strings.TrimSpace(beforeOp)
+
+			// Get last word (potential column name)
+			lastSpace := strings.LastIndex(trimmed, " ")
+			var colName string
+			if lastSpace == -1 {
+				colName = trimmed
+			} else {
+				colName = trimmed[lastSpace+1:]
+			}
+
+			// Only quote if it's a simple identifier:
+			// - Not already quoted
+			// - Not a SQL keyword
+			// - Contains only alphanumeric characters and underscores
+			// - Doesn't contain dots (table.column handled separately)
+			// - Doesn't contain parentheses (function calls)
+			// - Doesn't start with a number
+			if colName != "" &&
+				!strings.HasPrefix(colName, "\"") && !strings.HasPrefix(colName, "`") &&
+				!sqlKeywords[strings.ToUpper(colName)] &&
+				isSimpleIdentifier(colName) {
+				quotedCol := b.quoteIdentifier(colName)
+				// Find the last occurrence of colName in beforeOp
+				colIdx := strings.LastIndex(beforeOp, colName)
+				if colIdx != -1 {
+					replacements = append(replacements, replacement{
+						start: colIdx,
+						end:   colIdx + len(colName),
+						value: quotedCol,
+					})
+				}
+			}
+			start = idx + len(op)
+		}
+	}
+
+	// Sort replacements by start position descending
+	for i := 0; i < len(replacements); i++ {
+		for j := i + 1; j < len(replacements); j++ {
+			if replacements[i].start < replacements[j].start {
+				replacements[i], replacements[j] = replacements[j], replacements[i]
+			}
+		}
+	}
+
+	// Apply replacements from end to start
+	result := query
+	for _, r := range replacements {
+		result = result[:r.start] + r.value + result[r.end:]
+	}
+
+	return result
+}
+
+// isSimpleIdentifier checks if a string is a simple column identifier
+// that can be safely quoted. Returns false for:
+// - Identifiers with dots (table.column)
+// - Identifiers with parentheses (function calls)
+// - Identifiers starting with numbers
+// - Empty strings
+func isSimpleIdentifier(s string) bool {
+	if s == "" {
+		return false
+	}
+
+	// Check for dots (table.column) or parentheses (function calls)
+	if strings.Contains(s, ".") || strings.Contains(s, "(") || strings.Contains(s, ")") {
+		return false
+	}
+
+	// Check if starts with a number
+	if s[0] >= '0' && s[0] <= '9' {
+		return false
+	}
+
+	// Check if contains only valid identifier characters
+	for _, r := range s {
+		isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+		isDigit := r >= '0' && r <= '9'
+		isUnderscore := r == '_'
+		if !isLetter && !isDigit && !isUnderscore {
+			return false
+		}
+	}
+
+	return true
 }
 
 // extractColumnsAndValues extracts column names and values from a struct, map, or slice.
