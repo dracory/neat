@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"time"
 
+	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
@@ -64,6 +65,11 @@ func (w *TestQuery) SetContext(ctx context.Context) { w.Q.ctx = ctx }
 func (w *TestQuery) Context() context.Context       { return w.Q.ctx }
 
 func (w *TestQuery) GetTable() string { return w.Q.table }
+
+func (w *TestQuery) GetModelToObserver() []contractsorm.ModelToObserver { return w.Q.modelToObserver }
+func (w *TestQuery) GetWithoutEvents() bool                             { return w.Q.withoutEvents }
+func (w *TestQuery) GetDistinct() bool                                  { return w.Q.distinct }
+func (w *TestQuery) GetDistinctCols() []string                          { return w.Q.distinctCols }
 
 func (w *TestQuery) ReadConn() *sql.DB  { return w.Q.readConn() }
 func (w *TestQuery) WriteConn() *sql.DB { return w.Q.writeConn() }

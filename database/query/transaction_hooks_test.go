@@ -174,3 +174,119 @@ func TestNestedTransactionWithOperations(t *testing.T) {
 		t.Errorf("expected 2 records, got %d", count)
 	}
 }
+
+func TestNestedTransactionSavepointRollback(t *testing.T) {
+	w := openSQLiteForTx(t)
+
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		_, err := tx.Exec("INSERT INTO tx_hooks (id, val) VALUES (1, 'outer')")
+		if err != nil {
+			return err
+		}
+
+		// Inner transaction rolls back (savepoint)
+		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+			_, err := innerTx.Exec("INSERT INTO tx_hooks (id, val) VALUES (2, 'inner')")
+			if err != nil {
+				return err
+			}
+			return errors.New("force inner rollback")
+		})
+
+		// Outer transaction continues
+		_, err = tx.Exec("INSERT INTO tx_hooks (id, val) VALUES (3, 'outer2')")
+		return err
+	})
+	if err != nil {
+		t.Fatalf("nested transaction with savepoint rollback should not fail: %v", err)
+	}
+
+	// Verify only outer records were committed (inner was rolled back)
+	var count int
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("failed to get DB: %v", err)
+	}
+	err = db.QueryRow("SELECT COUNT(*) FROM tx_hooks").Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count records: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 records (outer only), got %d", count)
+	}
+}
+
+func TestDeeplyNestedTransactions(t *testing.T) {
+	w := openSQLiteForTx(t)
+
+	err := w.Q.Transaction(func(tx1 contractsorm.Query) error {
+		_, err := tx1.Exec("INSERT INTO tx_hooks (id, val) VALUES (1, 'level1')")
+		if err != nil {
+			return err
+		}
+
+		return tx1.Transaction(func(tx2 contractsorm.Query) error {
+			_, err := tx2.Exec("INSERT INTO tx_hooks (id, val) VALUES (2, 'level2')")
+			if err != nil {
+				return err
+			}
+
+			return tx2.Transaction(func(tx3 contractsorm.Query) error {
+				_, err := tx3.Exec("INSERT INTO tx_hooks (id, val) VALUES (3, 'level3')")
+				return err
+			})
+		})
+	})
+	if err != nil {
+		t.Fatalf("deeply nested transaction should not fail: %v", err)
+	}
+
+	// Verify all records were committed
+	var count int
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("failed to get DB: %v", err)
+	}
+	err = db.QueryRow("SELECT COUNT(*) FROM tx_hooks").Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count records: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("expected 3 records, got %d", count)
+	}
+}
+
+func TestNestedTransactionWithHooks(t *testing.T) {
+	w := openSQLiteForTx(t)
+
+	outerBeforeCommit := false
+	outerAfterCommit := false
+
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		tx.(*query.Query).BeforeCommit(func() error {
+			outerBeforeCommit = true
+			return nil
+		})
+		tx.(*query.Query).AfterCommit(func() error {
+			outerAfterCommit = true
+			return nil
+		})
+
+		// Inner transaction (savepoint) - hooks may not be called for savepoints
+		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+			return nil
+		})
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("nested transaction with hooks should not fail: %v", err)
+	}
+
+	if !outerBeforeCommit {
+		t.Error("expected outer BeforeCommit to be called")
+	}
+	if !outerAfterCommit {
+		t.Error("expected outer AfterCommit to be called")
+	}
+}

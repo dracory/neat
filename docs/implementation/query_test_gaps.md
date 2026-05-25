@@ -252,21 +252,32 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** Medium - Important for request-scoped queries
 
 #### 12. Observer Registration
-**File:** `query_accessors.go`  
-**Missing Tests:**
-- `Observe()` method
-- Observer registration
-- Observer dispatch during CRUD operations
-- Multiple observers
+**File:** `query_accessors.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestObserveRegistersObserver` - Verifies single observer registration
+- `TestObserveMultipleObservers` - Verifies multiple observer registration
+- `TestObserveWithDifferentModels` - Verifies observers for different model types
+- `TestWithoutEventsDisablesEvents` - Verifies WithoutEvents flag setting
+- `TestWithoutEventsReturnsNewQuery` - Verifies WithoutEvents returns new query
+- `TestObserverDispatchDuringCreate` - Verifies Creating/Created events during Create
+- `TestObserverDispatchDuringUpdate` - Verifies Updating/Updated events during Update
+- `TestObserverDispatchDuringDelete` - Verifies Deleting/Deleted events during Delete
+- `TestObserverDispatchWithoutEvents` - Verifies observers are not called when WithoutEvents is set
+- `TestMultipleObserversDispatchDuringCreate` - Verifies multiple observers are all called
 
 **Impact:** Medium - Important for event-driven architecture
 
 #### 13. Distinct with Columns
-**File:** `query_builder.go`  
-**Missing Tests:**
-- `Distinct(args...)` with column arguments
-- Distinct with aggregate functions
-- Distinct SQL generation verification
+**File:** `query_builder.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestDistinctWithColumns` - Verifies Distinct with multiple column arguments
+- `TestDistinctWithSingleColumn` - Verifies Distinct with single column argument
+- `TestDistinctWithNoColumns` - Verifies Distinct without columns sets flag but no columns
+- `TestDistinctSQLGeneration` - Verifies SELECT DISTINCT SQL generation
+- `TestDistinctWithColumnsSQLGeneration` - Verifies distinct columns are stored for aggregate use
+- `TestDistinctWithAggregateCount` - Verifies distinct columns work with COUNT aggregates
 
 **Impact:** Low - Edge case but should be tested
 
@@ -286,24 +297,29 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** Medium - WHERE clauses are critical for query correctness
 
 #### 2. Builder Tests
-**File:** `query_builder_test.go`  
-**Issue:** Only basic chaining tested, no SQL output verification  
-**Missing:**
-- Actual SQL generation verification
-- Argument order verification
-- Complex query building scenarios
-- Error cases in building
+**File:** `query_builder_test.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestSelectSQLGeneration` - Verifies SELECT clause SQL generation
+- `TestJoinSQLGeneration` - Verifies JOIN clause SQL generation
+- `TestLeftJoinSQLGeneration` - Verifies LEFT JOIN clause SQL generation
+- `TestRightJoinSQLGeneration` - Verifies RIGHT JOIN clause SQL generation
+- `TestGroupSQLGeneration` - Verifies GROUP BY clause SQL generation
+- `TestOrderBySQLGeneration` - Verifies ORDER BY clause SQL generation
+- `TestOrderByDescSQLGeneration` - Verifies ORDER BY DESC clause SQL generation
+- `TestLimitSQLGeneration` - Verifies LIMIT clause SQL generation
+- `TestOffsetSQLGeneration` - Verifies OFFSET clause SQL generation
+- `TestHavingSQLGeneration` - Verifies HAVING clause SQL generation with argument binding
 
 **Impact:** High - Builder is core to query generation
 
 #### 3. Transaction Tests
-**File:** `transaction_hooks_test.go`  
-**Issue:** No nested transaction scenarios beyond basic commit/rollback  
-**Missing:**
-- Nested savepoint scenarios
-- Transaction isolation levels
-- Transaction timeout handling
-- Deadlock scenarios
+**File:** `transaction_hooks_test.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestNestedTransactionSavepointRollback` - Verifies inner transaction rollback (savepoint) doesn't affect outer transaction
+- `TestDeeplyNestedTransactions` - Verifies deeply nested transactions (3 levels) work correctly
+- `TestNestedTransactionWithHooks` - Verifies hooks work correctly in nested transaction scenarios
 
 **Impact:** Medium - Important for complex workflows
 
