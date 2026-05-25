@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/dracory/neat/database/driver"
@@ -18,7 +19,7 @@ func TestMySQLBacktickQuoting(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	if !contains(sql, "`users`") {
+	if !strings.Contains(sql, "`users`") {
 		t.Errorf("Expected backtick quoting for MySQL, got: %s", sql)
 	}
 
@@ -36,11 +37,11 @@ func TestMySQLLimitOffsetSyntax(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	if !contains(sql, "LIMIT") {
+	if !strings.Contains(sql, "LIMIT") {
 		t.Error("Expected LIMIT clause in MySQL SQL")
 	}
 
-	if !contains(sql, "OFFSET") {
+	if !strings.Contains(sql, "OFFSET") {
 		t.Error("Expected OFFSET clause in MySQL SQL")
 	}
 
@@ -82,7 +83,7 @@ func TestPostgreSQLDoubleQuoteQuoting(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	if !contains(sql, `"users"`) {
+	if !strings.Contains(sql, `"users"`) {
 		t.Errorf("Expected double-quote quoting for PostgreSQL, got: %s", sql)
 	}
 
@@ -100,11 +101,11 @@ func TestPostgreSQLLimitOffsetSyntax(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	if !contains(sql, "LIMIT") {
+	if !strings.Contains(sql, "LIMIT") {
 		t.Error("Expected LIMIT clause in PostgreSQL SQL")
 	}
 
-	if !contains(sql, "OFFSET") {
+	if !strings.Contains(sql, "OFFSET") {
 		t.Error("Expected OFFSET clause in PostgreSQL SQL")
 	}
 
@@ -158,7 +159,7 @@ func TestSQLiteNoQuoting(t *testing.T) {
 	sql, args := builder.BuildSelect()
 
 	// SQLite doesn't require quoting for simple identifiers
-	if !contains(sql, "users") {
+	if !strings.Contains(sql, "users") {
 		t.Errorf("Expected table name without special quoting for SQLite, got: %s", sql)
 	}
 
@@ -176,11 +177,11 @@ func TestSQLiteLimitOffsetSyntax(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	if !contains(sql, "LIMIT") {
+	if !strings.Contains(sql, "LIMIT") {
 		t.Error("Expected LIMIT clause in SQLite SQL")
 	}
 
-	if !contains(sql, "OFFSET") {
+	if !strings.Contains(sql, "OFFSET") {
 		t.Error("Expected OFFSET clause in SQLite SQL")
 	}
 
@@ -198,7 +199,7 @@ func TestSQLiteJsonExtract(t *testing.T) {
 	sql, args := builder.BuildSelect()
 
 	// SQLite uses json_extract() for JSON queries
-	if !contains(sql, "json_extract") {
+	if !strings.Contains(sql, "json_extract") {
 		t.Errorf("Expected json_extract in SQLite SQL, got: %s", sql)
 	}
 
@@ -270,11 +271,11 @@ func TestTursoLimitOffsetSyntax(t *testing.T) {
 	sql, args := builder.BuildSelect()
 
 	// Turso should use SQLite syntax
-	if !contains(sql, "LIMIT") {
+	if !strings.Contains(sql, "LIMIT") {
 		t.Error("Expected LIMIT clause in Turso SQL")
 	}
 
-	if !contains(sql, "OFFSET") {
+	if !strings.Contains(sql, "OFFSET") {
 		t.Error("Expected OFFSET clause in Turso SQL")
 	}
 
@@ -305,7 +306,7 @@ func TestCrossDialectWhereClause(t *testing.T) {
 			builder := NewBuilder(q)
 			sql, args := builder.BuildSelect()
 
-			if !contains(sql, "WHERE") {
+			if !strings.Contains(sql, "WHERE") {
 				t.Errorf("Expected WHERE clause in %s, got: %s", tc.name, sql)
 			}
 
@@ -336,11 +337,11 @@ func TestCrossDialectOrderBy(t *testing.T) {
 			builder := NewBuilder(q)
 			sql, args := builder.BuildSelect()
 
-			if !contains(sql, "ORDER BY") {
+			if !strings.Contains(sql, "ORDER BY") {
 				t.Errorf("Expected ORDER BY clause in %s, got: %s", tc.name, sql)
 			}
 
-			if !contains(sql, "DESC") {
+			if !strings.Contains(sql, "DESC") {
 				t.Errorf("Expected DESC in %s, got: %s", tc.name, sql)
 			}
 
@@ -371,7 +372,7 @@ func TestCrossDialectJoin(t *testing.T) {
 			builder := NewBuilder(q)
 			sql, args := builder.BuildSelect()
 
-			if !contains(sql, "JOIN") {
+			if !strings.Contains(sql, "JOIN") {
 				t.Errorf("Expected JOIN clause in %s, got: %s", tc.name, sql)
 			}
 
@@ -401,7 +402,7 @@ func TestCrossDialectGroupBy(t *testing.T) {
 			builder := NewBuilder(q)
 			sql, args := builder.BuildSelect()
 
-			if !contains(sql, "GROUP BY") {
+			if !strings.Contains(sql, "GROUP BY") {
 				t.Errorf("Expected GROUP BY clause in %s, got: %s", tc.name, sql)
 			}
 
@@ -433,7 +434,7 @@ func TestCrossDialectHaving(t *testing.T) {
 			builder := NewBuilder(q)
 			sql, args := builder.BuildSelect()
 
-			if !contains(sql, "HAVING") {
+			if !strings.Contains(sql, "HAVING") {
 				t.Errorf("Expected HAVING clause in %s, got: %s", tc.name, sql)
 			}
 
@@ -467,7 +468,7 @@ func TestCrossDialectInsert(t *testing.T) {
 				t.Errorf("Expected SQL to be generated for INSERT in %s", tc.name)
 			}
 
-			if !contains(sql, "INSERT") {
+			if !strings.Contains(sql, "INSERT") {
 				t.Errorf("Expected INSERT in %s, got: %s", tc.name, sql)
 			}
 		})
@@ -498,7 +499,7 @@ func TestCrossDialectUpdate(t *testing.T) {
 				t.Errorf("Expected SQL to be generated for UPDATE in %s", tc.name)
 			}
 
-			if !contains(sql, "UPDATE") {
+			if !strings.Contains(sql, "UPDATE") {
 				t.Errorf("Expected UPDATE in %s, got: %s", tc.name, sql)
 			}
 		})
@@ -529,7 +530,7 @@ func TestCrossDialectDelete(t *testing.T) {
 				t.Errorf("Expected SQL to be generated for DELETE in %s", tc.name)
 			}
 
-			if !contains(sql, "DELETE") {
+			if !strings.Contains(sql, "DELETE") {
 				t.Errorf("Expected DELETE in %s, got: %s", tc.name, sql)
 			}
 		})
@@ -577,12 +578,17 @@ func TestDialectLockClauses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			q := NewQuery(context.Background(), nil, tc.driver, "", nil, nil)
 			q.Table("users")
-			q = q.LockForUpdate().(*Query)
+			lockedQ := q.LockForUpdate()
+			var ok bool
+			q, ok = lockedQ.(*Query)
+			if !ok {
+				t.Fatalf("LockForUpdate did not return *Query")
+			}
 
 			builder := NewBuilder(q)
 			sql, _ := builder.BuildSelect()
 
-			if !contains(sql, "FOR UPDATE") {
+			if !strings.Contains(sql, "FOR UPDATE") {
 				t.Errorf("Expected FOR UPDATE in %s, got: %s", tc.name, sql)
 			}
 		})
