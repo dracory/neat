@@ -111,6 +111,15 @@ The test suite for the `database/query` package has moderate coverage with good 
 
 **Impact:** High - Eager loading is a core ORM feature
 
+**Status:** ✅ Completed
+- Added `TestLoadRelations` - Basic eager loading execution
+- Added `TestLoadRelationsWithConstraintCallback` - Relation constraint callbacks
+- Added `TestLoadRelationsWithForeignKeyResolution` - Foreign key resolution (snake_case support)
+- Added `TestLoadRelationsRecursivePrevention` - Recursive loading prevention
+- Added `TestLoadRelationsWithDifferentModelTypes` - Different model types (Comment/User)
+- Added `TestLoadRelationsWithZeroForeignKey` - Zero foreign key handling
+- Added `TestLoadRelationsWithMissingForeignKeyField` - Missing foreign key field handling
+
 #### 4. Cursor Streaming
 **File:** `query_scan.go`  
 **Missing Tests:**
