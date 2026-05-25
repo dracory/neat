@@ -286,15 +286,31 @@ The test suite for the `database/query` package has moderate coverage with good 
 ### Limited Depth Issues
 
 #### 1. WHERE Clause Tests
-**File:** `query_where_test.go`  
-**Issue:** Tests only check non-nil return, not SQL generation or execution  
-**Missing:**
-- SQL output verification
-- Argument binding verification
-- Dialect-specific SQL differences
-- Complex WHERE clause combinations
-
-**Impact:** Medium - WHERE clauses are critical for query correctness
+**File:** `query_where_test.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestWhereIn_SqlOutput` - Verifies IN clause expansion and placeholder generation
+- `TestOrWhereIn_SqlOutput` - Verifies OR logic with IN clauses
+- `TestWhereBetween_SqlOutput` - Verifies BETWEEN clause generation
+- `TestWhereNull_SqlOutput` - Verifies IS NULL clause
+- `TestWhereNotNull_SqlOutput` - Verifies IS NOT NULL clause
+- `TestWhereColumn_SqlOutput` - Verifies column-to-column comparisons
+- `TestWhereNot_SqlOutput` - Verifies NOT clause generation
+- `TestWhereAny_SqlOutput` - Verifies WHERE ANY logic
+- `TestWhereAll_SqlOutput` - Verifies WHERE ALL logic
+- `TestWhereNone_SqlOutput` - Verifies WHERE NONE logic
+- `TestWhereIn_MySqlDialect` - Verifies MySQL backtick quoting
+- `TestWhereIn_PostgresDialect` - Verifies PostgreSQL double-quote quoting
+- `TestWhereBetween_DialectComparison` - Tests all three dialects (MySQL, PostgreSQL, SQLite)
+- `TestWhereMultipleConditions` - Tests multiple AND conditions
+- `TestWhereAndOrCombination` - Tests AND/OR mixing
+- `TestWhereInAndBetween` - Tests IN and BETWEEN together
+- `TestWhereNullAndNotNull` - Tests NULL and NOT NULL together
+- `TestWhereNestedConditions` - Tests parenthesized conditions
+- `TestWhereColumnComparison` - Tests column comparisons with regular conditions
+- `TestWhereJsonContains_SqlOutput` - Verifies JSON contains clause
+- `TestWhereJsonContainsKey_SqlOutput` - Verifies JSON key path clause
+- `TestWhereJsonLength_SqlOutput` - Verifies JSON length clause
 
 #### 2. Builder Tests
 **File:** `query_builder_test.go`
