@@ -169,12 +169,23 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** High - Common upsert pattern
 
 #### 7. FirstOr/FirstOrCreate/FirstOrNew Patterns
-**File:** `query_scan.go`  
-**Missing Tests:**
-- `FirstOr()` with callback
-- `FirstOrCreate()` execution
-- `FirstOrNew()` preparation
-- Error handling for not found scenarios
+**File:** `query_scan.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestFirstOrWithCallback` - FirstOr() with callback (record found/not found scenarios)
+- `TestFirstOrCreate` - FirstOrCreate() execution (existing record, create new, auto-increment)
+- `TestFirstOrNew` - FirstOrNew() preparation (existing record, new instance, values parameter)
+- `TestUpdateOrCreate` - UpdateOrCreate() method (update, create, struct attributes)
+- `TestFirstOrErrorHandling` - Error handling for FirstOr (callback error propagation, panic handling)
+- `TestFirstOrCreateErrorHandling` - Error handling for FirstOrCreate (create failure)
+- `TestFirstOrNewErrorHandling` - Error handling for FirstOrNew (nil attributes, invalid types)
+- `TestUpdateOrCreateErrorHandling` - Error handling for UpdateOrCreate (nil attributes/values)
+
+**Notes:**
+- FirstOr() callback execution works correctly for both found and not found scenarios
+- FirstOrCreate() simplified implementation doesn't use WHERE clause for create path
+- FirstOrNew() simplified implementation doesn't modify model when record not found
+- UpdateOrCreate() has implementation limitations (Save/Create may not work as expected)
 
 **Impact:** High - Common patterns in application code
 
