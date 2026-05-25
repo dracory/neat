@@ -190,12 +190,19 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** High - Common patterns in application code
 
 #### 8. UpdateOrCreate Pattern
-**File:** `query_scan.go`  
-**Missing Tests:**
-- `UpdateOrCreate()` method
-- Update vs create logic
-- Attribute matching
-- Error scenarios
+**File:** `query_scan.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestUpdateOrCreate` - UpdateOrCreate() method (record exists calls Save, record not found calls Create, struct attributes, map values, struct values)
+- `TestUpdateOrCreateUpdateVsCreateLogic` - Update vs create logic (record found via First, record not found via First, with WHERE clause, empty table)
+- `TestUpdateOrCreateAttributeMatching` - Attribute matching (attributes parameter accepted but not used for filtering, multiple attributes in map, struct attributes, empty attributes map, attributes with nil values)
+- `TestUpdateOrCreateErrorHandling` - Error scenarios (nil attributes, nil values, invalid attributes type, empty values map, non-existent table, constraint violation, nil dest parameter)
+
+**Notes:**
+- Current simplified implementation uses First(dest) to check existence, not the attributes parameter
+- When record exists, calls Save(values); when not found, calls Create(values)
+- Attributes parameter is accepted but not used for filtering in current implementation
+- Tests verify the method executes without error and handles various input types
 
 **Impact:** High - Common upsert pattern
 

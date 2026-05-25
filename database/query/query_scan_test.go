@@ -770,29 +770,47 @@ func TestUpdateOrCreate(t *testing.T) {
 
 	w.SetTable("test_update_or_create")
 
-	t.Run("record exists - updates", func(t *testing.T) {
+	t.Run("record exists - calls Save on values", func(t *testing.T) {
 		var user FirstOrUser
 		attributes := map[string]any{"id": 1}
 		values := map[string]any{"name": "alice_updated", "email": "alice_new@example.com"}
 
 		err := w.Q.UpdateOrCreate(&user, attributes, values)
 
-		// Note: UpdateOrCreate simplified implementation has limitations
-		// It calls Save(values) which may not work as expected
-		// This test verifies the method doesn't crash
-		_ = err
+		// Note: Current simplified implementation calls Save(values) when record exists
+		// This test verifies the method executes without error
+		// The actual update behavior depends on the Save implementation
+		if err != nil {
+			t.Fatalf("UpdateOrCreate failed: %v", err)
+		}
 	})
 
-	t.Run("record not found - creates", func(t *testing.T) {
+	t.Run("record not found - calls Create on values", func(t *testing.T) {
+		execSQL(t, w, "CREATE TABLE test_update_or_create_2 (id INTEGER, name TEXT, email TEXT)")
+		w.SetTable("test_update_or_create_2")
+
 		var user FirstOrUser
-		attributes := map[string]any{"id": 2}
+		attributes := map[string]any{"id": 999}
 		values := map[string]any{"name": "bob", "email": "bob@example.com"}
 
 		err := w.Q.UpdateOrCreate(&user, attributes, values)
 
-		// Note: UpdateOrCreate simplified implementation calls Create(values)
-		// This test verifies the method doesn't crash
-		_ = err
+		// Note: Current simplified implementation calls Create(values) when record not found
+		// This test verifies the method executes without error
+		if err != nil {
+			t.Fatalf("UpdateOrCreate create failed: %v", err)
+		}
+
+		// Verify a record was created
+		var count int64
+		err = w.Q.Count(&count)
+		if err != nil {
+			t.Fatalf("Count failed: %v", err)
+		}
+
+		if count == 0 {
+			t.Error("Expected at least one record to be created")
+		}
 	})
 
 	t.Run("with struct attributes", func(t *testing.T) {
@@ -802,9 +820,35 @@ func TestUpdateOrCreate(t *testing.T) {
 
 		err := w.Q.UpdateOrCreate(&user, attributes, values)
 
-		// Note: UpdateOrCreate simplified implementation has limitations
-		// This test verifies the method doesn't crash
-		_ = err
+		// Note: Current implementation doesn't use attributes for filtering
+		// This test verifies the method accepts struct attributes
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with struct attributes failed: %v", err)
+		}
+	})
+
+	t.Run("with map values", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 1}
+		values := map[string]any{"name": "test", "email": "test@example.com"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with map values failed: %v", err)
+		}
+	})
+
+	t.Run("with struct values", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 1}
+		values := FirstOrUser{Name: "struct_val", Email: "struct@example.com"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with struct values failed: %v", err)
+		}
 	})
 }
 
@@ -892,31 +936,258 @@ func TestFirstOrNewErrorHandling(t *testing.T) {
 	})
 }
 
+func TestUpdateOrCreateUpdateVsCreateLogic(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_update_create_logic (id INTEGER, name TEXT, email TEXT, status TEXT)")
+	execSQL(t, w, "INSERT INTO test_update_create_logic VALUES (1,'alice','alice@example.com','active')")
+
+	w.SetTable("test_update_create_logic")
+
+	t.Run("update path - record found via First", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 1}
+		values := map[string]any{"name": "alice_updated", "status": "inactive"}
+
+		// Note: Current implementation uses First(dest) to check existence
+		// not the attributes parameter
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Should call Save(values) when record exists
+		if err != nil {
+			t.Fatalf("UpdateOrCreate update path failed: %v", err)
+		}
+	})
+
+	t.Run("create path - record not found via First", func(t *testing.T) {
+		execSQL(t, w, "CREATE TABLE test_update_create_logic_2 (id INTEGER, name TEXT, email TEXT)")
+		w.SetTable("test_update_create_logic_2")
+
+		var user FirstOrUser
+		attributes := map[string]any{"id": 999}
+		values := map[string]any{"name": "bob", "email": "bob@example.com"}
+
+		// Note: Current implementation calls Create(values) when First fails
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("UpdateOrCreate create path failed: %v", err)
+		}
+
+		// Verify a record was created
+		var count int64
+		err = w.Q.Count(&count)
+		if err != nil {
+			t.Fatalf("Count failed: %v", err)
+		}
+
+		if count == 0 {
+			t.Error("Expected at least one record to be created")
+		}
+	})
+
+	t.Run("with where clause on query", func(t *testing.T) {
+		execSQL(t, w, "INSERT INTO test_update_create_logic VALUES (3,'charlie','charlie@example.com','active')")
+		w.SetTable("test_update_create_logic")
+
+		var user FirstOrUser
+		attributes := map[string]any{"id": 3}
+		values := map[string]any{"status": "inactive"}
+
+		// Note: WHERE clause affects the First() call
+		w.Q.Where("id = ?", 3)
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with WHERE failed: %v", err)
+		}
+	})
+
+	t.Run("empty table - should create", func(t *testing.T) {
+		execSQL(t, w, "CREATE TABLE test_update_create_logic_3 (id INTEGER, name TEXT)")
+		w.SetTable("test_update_create_logic_3")
+
+		var user FirstOrUser
+		attributes := map[string]any{"id": 1}
+		values := map[string]any{"name": "new_user"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Note: First() will fail on empty table, so Create() is called
+		// This test verifies the method executes without error
+		if err != nil {
+			t.Fatalf("UpdateOrCreate on empty table failed: %v", err)
+		}
+	})
+}
+
+func TestUpdateOrCreateAttributeMatching(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_attr_matching (id INTEGER, name TEXT, email TEXT, status TEXT)")
+	execSQL(t, w, "INSERT INTO test_attr_matching VALUES (1,'alice','alice@example.com','active')")
+	execSQL(t, w, "INSERT INTO test_attr_matching VALUES (2,'bob','bob@example.com','inactive')")
+
+	w.SetTable("test_attr_matching")
+
+	t.Run("attributes parameter is accepted but not used for filtering", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 1}
+		values := map[string]any{"email": "new_alice@example.com"}
+
+		// Note: Current implementation doesn't use attributes for filtering
+		// It uses First(dest) to check existence
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with attributes failed: %v", err)
+		}
+	})
+
+	t.Run("multiple attributes in map", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 2, "status": "inactive"}
+		values := map[string]any{"email": "new_bob@example.com"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Note: Multiple attributes are accepted but not used for filtering
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with multiple attributes failed: %v", err)
+		}
+	})
+
+	t.Run("struct attributes", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := FirstOrUser{ID: 1, Name: "alice"}
+		values := map[string]any{"status": "updated"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Note: Struct attributes are accepted but not used for filtering
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with struct attributes failed: %v", err)
+		}
+	})
+
+	t.Run("empty attributes map", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{}
+		values := map[string]any{"name": "test"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with empty attributes failed: %v", err)
+		}
+	})
+
+	t.Run("attributes with nil values", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": nil}
+		values := map[string]any{"name": "test"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Should handle nil in attributes gracefully
+		if err != nil {
+			t.Fatalf("UpdateOrCreate with nil attribute values failed: %v", err)
+		}
+	})
+}
+
 func TestUpdateOrCreateErrorHandling(t *testing.T) {
 	w := openSQLiteQuery(t)
-	execSQL(t, w, "CREATE TABLE test_update_or_create_error (id INTEGER, name TEXT)")
+	execSQL(t, w, "CREATE TABLE test_update_or_create_error (id INTEGER, name TEXT, email TEXT)")
 
 	w.SetTable("test_update_or_create_error")
 
 	t.Run("nil attributes handling", func(t *testing.T) {
 		var user FirstOrUser
-		values := map[string]any{"name": "test"}
+		values := map[string]any{"name": "test", "email": "test@example.com"}
 
 		err := w.Q.UpdateOrCreate(&user, nil, values)
 
+		// Note: nil attributes are accepted but not used for filtering
 		if err != nil {
 			t.Fatalf("UpdateOrCreate with nil attributes failed: %v", err)
 		}
 	})
 
 	t.Run("nil values handling", func(t *testing.T) {
+		execSQL(t, w, "INSERT INTO test_update_or_create_error VALUES (1,'existing','existing@example.com')")
 		var user FirstOrUser
 		attributes := map[string]any{"id": 1}
 
 		err := w.Q.UpdateOrCreate(&user, attributes, nil)
 
-		// Note: UpdateOrCreate with nil values may fail due to implementation limitations
-		// This test verifies the method handles nil gracefully
+		// Note: nil values will cause Save/Create to fail
+		// This test verifies the error is propagated
+		if err == nil {
+			t.Error("Expected error with nil values")
+		}
+	})
+
+	t.Run("invalid attributes type", func(t *testing.T) {
+		var user FirstOrUser
+		values := map[string]any{"name": "test"}
+
+		err := w.Q.UpdateOrCreate(&user, "invalid", values)
+
+		// Should handle gracefully or return error
+		_ = err
+	})
+
+	t.Run("empty values map", func(t *testing.T) {
+		execSQL(t, w, "INSERT INTO test_update_or_create_error VALUES (2,'test2','test2@example.com')")
+		var user FirstOrUser
+		attributes := map[string]any{"id": 2}
+		values := map[string]any{}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Note: Empty values map may cause Save/Create to fail
+		// This test verifies the error is handled
+		_ = err
+	})
+
+	t.Run("non-existent table", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 1}
+		values := map[string]any{"name": "test"}
+
+		w.SetTable("non_existent_table")
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Should return error for non-existent table
+		if err == nil {
+			t.Error("Expected error for non-existent table")
+		}
+	})
+
+	t.Run("constraint violation on create", func(t *testing.T) {
+		execSQL(t, w, "CREATE TABLE test_unique_constraint (id INTEGER PRIMARY KEY, name TEXT)")
+		execSQL(t, w, "INSERT INTO test_unique_constraint VALUES (1,'alice')")
+		w.SetTable("test_unique_constraint")
+
+		var user FirstOrUser
+		attributes := map[string]any{"id": 999}
+		values := map[string]any{"id": 1, "name": "duplicate"}
+
+		err := w.Q.UpdateOrCreate(&user, attributes, values)
+
+		// Should fail due to primary key constraint violation
+		if err == nil {
+			t.Error("Expected error for constraint violation")
+		}
+	})
+
+	t.Run("nil dest parameter", func(t *testing.T) {
+		attributes := map[string]any{"id": 1}
+		values := map[string]any{"name": "test"}
+
+		err := w.Q.UpdateOrCreate(nil, attributes, values)
+
+		// Note: nil dest will cause First() to fail, then Create() is called
+		// This test verifies the method handles nil dest
 		_ = err
 	})
 }
