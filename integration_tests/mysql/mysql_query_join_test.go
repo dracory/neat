@@ -11,28 +11,27 @@ import (
 )
 
 func seedJoinTestData(t *testing.T, db *database.Database) (uint, uint) {
-	query := db.Query()
 	now := time.Now()
 
 	user1 := models.User{Name: "join_user1", CreatedAt: now, UpdatedAt: now}
 	user2 := models.User{Name: "join_user2", CreatedAt: now, UpdatedAt: now}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
 		t.Fatalf("Failed to create user1: %v", err)
 	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&user2); err != nil {
 		t.Fatalf("Failed to create user2: %v", err)
 	}
 
 	var createdUser1, createdUser2 models.User
-	if err := query.Model(&models.User{}).Where("name = ?", "join_user1").First(&createdUser1); err != nil {
+	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user1").First(&createdUser1); err != nil {
 		t.Fatalf("Failed to get created user1: %v", err)
 	}
-	if err := query.Model(&models.User{}).Where("name = ?", "join_user2").First(&createdUser2); err != nil {
+	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user2").First(&createdUser2); err != nil {
 		t.Fatalf("Failed to get created user2: %v", err)
 	}
 
 	address1 := models.Address{Name: "address1", UserID: createdUser1.ID, CreatedAt: now, UpdatedAt: now}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
+	if err := db.Query().Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
