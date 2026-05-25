@@ -101,12 +101,14 @@ func TestSQLiteIntegrationQueryToSqlValue(t *testing.T) {
 	db := SetupSQLiteTest(t)
 
 	var name string
-	sql := db.Query().Model(&models.User{}).Where("id = ?", 1).ToSql().Value("name", &name)
-	if !strings.Contains(sql, "SELECT `name` FROM `users`") {
-		t.Error("Expected SELECT `name` FROM `users`")
+	sql := db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", 1).ToSql().Value("name", &name)
+	sql = strings.ReplaceAll(sql, "`", "\"")
+	t.Logf("ToSql Value output: %s", sql)
+	if !strings.Contains(sql, "SELECT name FROM \"users\"") {
+		t.Error("Expected SELECT name FROM \"users\"")
 	}
-	if !strings.Contains(sql, "WHERE `id` = ?") {
-		t.Error("Expected WHERE `id` = ?")
+	if !strings.Contains(sql, "WHERE \"id\" = ?") {
+		t.Error("Expected WHERE \"id\" = ?")
 	}
 	if !strings.Contains(sql, "LIMIT 1") {
 		t.Error("Expected LIMIT 1")

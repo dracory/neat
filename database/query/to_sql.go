@@ -9,8 +9,9 @@ import (
 
 // ToSql implements the ToSql interface for generating SQL without execution.
 type ToSql struct {
-	query *Query
-	args  []any
+	query     *Query
+	args      []any
+	useValues bool
 }
 
 // NewToSql creates a new ToSql instance.
@@ -24,6 +25,9 @@ func (t *ToSql) Count() string {
 	t.query.aggregateCol = "*"
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -31,6 +35,9 @@ func (t *ToSql) Count() string {
 func (t *ToSql) Create(value any) string {
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildInsert(value)
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -43,6 +50,9 @@ func (t *ToSql) InsertGetId(values any) string {
 func (t *ToSql) Delete(value ...any) string {
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildDelete()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -54,6 +64,9 @@ func (t *ToSql) Find(dest any, conds ...any) string {
 	}
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -63,6 +76,9 @@ func (t *ToSql) First(dest any) string {
 	t.query.limit = &limit
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -75,6 +91,9 @@ func (t *ToSql) ForceDelete(value ...any) string {
 func (t *ToSql) Get(dest any) string {
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -83,6 +102,9 @@ func (t *ToSql) Pluck(column string, dest any) string {
 	t.query.selects = []selectClause{{expr: column}}
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -93,6 +115,9 @@ func (t *ToSql) Value(column string, dest any) string {
 	t.query.limit = &limit
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -102,6 +127,9 @@ func (t *ToSql) Save(value any) string {
 	// In a full implementation, we'd need to determine if it's an insert or update
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildUpdate(value)
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -111,6 +139,9 @@ func (t *ToSql) Avg(column string, dest any) string {
 	t.query.aggregateCol = column
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -120,6 +151,9 @@ func (t *ToSql) Max(column string, dest any) string {
 	t.query.aggregateCol = column
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -129,6 +163,9 @@ func (t *ToSql) Min(column string, dest any) string {
 	t.query.aggregateCol = column
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -138,6 +175,9 @@ func (t *ToSql) Sum(column string, dest any) string {
 	t.query.aggregateCol = column
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildSelect()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -145,6 +185,9 @@ func (t *ToSql) Sum(column string, dest any) string {
 func (t *ToSql) Update(column any, value ...any) string {
 	builder := NewBuilder(t.query)
 	sql, args := builder.BuildUpdate(column, value...)
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -158,6 +201,9 @@ func (t *ToSql) Increment(column string, amount ...any) string {
 	}
 	updateQuery := fmt.Sprintf("%s = %s + ?", column, column)
 	sql, args := NewBuilder(t.query).BuildUpdate(updateQuery, incAmount)
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
@@ -171,11 +217,20 @@ func (t *ToSql) Decrement(column string, amount ...any) string {
 	}
 	updateQuery := fmt.Sprintf("%s = %s - ?", column, column)
 	sql, args := NewBuilder(t.query).BuildUpdate(updateQuery, decAmount)
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
 	return t.replacePlaceholders(sql, args)
 }
 
 // replacePlaceholders replaces ? placeholders with actual values for display.
 func (t *ToSql) replacePlaceholders(sql string, args []any) string {
+	// For ToSql, keep placeholders as-is
+	return sql
+}
+
+// replacePlaceholdersWithValues replaces ? placeholders with actual values for display.
+func (t *ToSql) replacePlaceholdersWithValues(sql string, args []any) string {
 	// Replace placeholders with actual values
 	for _, arg := range args {
 		var val string
@@ -196,9 +251,9 @@ func (t *ToSql) replacePlaceholders(sql string, args []any) string {
 	return sql
 }
 
-// ToRawSql returns the raw SQL with placeholders.
+// ToRawSql returns the raw SQL with placeholders replaced by values.
 func (q *Query) ToRawSql() contractsorm.ToSql {
-	return NewToSql(q)
+	return &ToSql{query: q, useValues: true}
 }
 
 // ToSql returns a ToSql instance for generating SQL without execution.

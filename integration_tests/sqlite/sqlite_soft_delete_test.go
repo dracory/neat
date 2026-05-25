@@ -123,22 +123,21 @@ func TestSQLiteIntegrationForceDelete(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	// Create a user
 	user := models.User{Name: "force_delete_user", Avatar: "avatar"}
-	if err := query.Model(&models.User{}).Create(&user); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&user); err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
 	// Get the created user to get its ID
 	var createdUser models.User
-	if err := query.Model(&models.User{}).Where("name = ?", "force_delete_user").First(&createdUser); err != nil {
+	if err := db.Query().Model(&models.User{}).Where("name = ?", "force_delete_user").First(&createdUser); err != nil {
 		t.Fatalf("Failed to get created user: %v", err)
 	}
 
 	// Soft delete the user first
-	res, err := query.Model(&models.User{}).Where("name = ?", "force_delete_user").Delete(&models.User{})
+	res, err := db.Query().Model(&models.User{}).Where("name = ?", "force_delete_user").Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to soft delete user: %v", err)
 	}
@@ -149,8 +148,7 @@ func TestSQLiteIntegrationForceDelete(t *testing.T) {
 
 	// Verify user is soft deleted
 	var softDeletedUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&softDeletedUser)
-	if err != nil {
+	if err := db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&softDeletedUser); err != nil {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
@@ -159,7 +157,7 @@ func TestSQLiteIntegrationForceDelete(t *testing.T) {
 	}
 
 	// Force delete the user (permanent deletion)
-	res, err = query.Model(&models.User{}).Where("name = ?", "force_delete_user").ForceDelete(&models.User{})
+	res, err = db.Query().Model(&models.User{}).Where("name = ?", "force_delete_user").ForceDelete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to force delete user: %v", err)
 	}
@@ -170,7 +168,7 @@ func TestSQLiteIntegrationForceDelete(t *testing.T) {
 
 	// Verify user is permanently deleted (not found even with WithTrashed)
 	var permanentlyDeletedUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&permanentlyDeletedUser)
+	err = db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&permanentlyDeletedUser)
 	if err == nil {
 		t.Error("Expected error when finding permanently deleted user")
 	}
@@ -187,7 +185,6 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	// Create users
 	users := []models.User{
@@ -196,12 +193,12 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 		{Name: "restore_user3", Avatar: "avatar3"},
 		{Name: "restore_user4", Avatar: "avatar4"},
 	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&users); err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
 	// Soft delete all users
-	res, err := query.Model(&models.User{}).Where("avatar = ?", "avatar1").OrWhere("avatar = ?", "avatar2").OrWhere("avatar = ?", "avatar3").OrWhere("avatar = ?", "avatar4").Delete(&models.User{})
+	res, err := db.Query().Model(&models.User{}).Where("avatar = ?", "avatar1").OrWhere("avatar = ?", "avatar2").OrWhere("avatar = ?", "avatar3").OrWhere("avatar = ?", "avatar4").Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to delete users: %v", err)
 	}
@@ -211,7 +208,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user1 with WithTrashed
-	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore user: %v", err)
 	}
@@ -221,7 +218,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user2 using Model method
-	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
 	if err != nil {
 		t.Fatalf("Failed to restore user with Model: %v", err)
 	}
@@ -231,7 +228,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user3 using model instance
-	res, err = query.Model(&models.User{}).WithTrashed().Restore(&users[2])
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[2])
 	if err != nil {
 		t.Fatalf("Failed to restore user instance: %v", err)
 	}
@@ -241,7 +238,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user4
-	res, err = query.Model(&models.User{}).WithTrashed().Restore(&users[3])
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[3])
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}
@@ -252,8 +249,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 
 	// Verify all users are restored (can be found without WithTrashed)
 	var count int64
-	err = query.Model(&models.User{}).Where("avatar = ?", "avatar1").OrWhere("avatar = ?", "avatar2").OrWhere("avatar = ?", "avatar3").OrWhere("avatar = ?", "avatar4").Count(&count)
-	if err != nil {
+	if err := db.Query().Model(&models.User{}).Where("avatar = ?", "avatar1").OrWhere("avatar = ?", "avatar2").OrWhere("avatar = ?", "avatar3").OrWhere("avatar = ?", "avatar4").Count(&count); err != nil {
 		t.Fatalf("Failed to count restored users: %v", err)
 	}
 
@@ -269,19 +265,18 @@ func TestSQLiteIntegrationOnlyTrashed(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	// Create users
 	users := []models.User{
 		{Name: "only_trashed_user1", Avatar: "avatar1"},
 		{Name: "only_trashed_user2", Avatar: "avatar2"},
 	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&users); err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
 	// Soft delete one user
-	res, err := query.Model(&models.User{}).Where("name = ?", "only_trashed_user1").Delete(&models.User{})
+	res, err := db.Query().Model(&models.User{}).Where("name = ?", "only_trashed_user1").Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to delete user: %v", err)
 	}
@@ -292,8 +287,7 @@ func TestSQLiteIntegrationOnlyTrashed(t *testing.T) {
 
 	// Test OnlyTrashed - should only find the deleted user
 	var deletedUsers []models.User
-	err = query.Model(&models.User{}).OnlyTrashed().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers)
-	if err != nil {
+	if err := db.Query().Model(&models.User{}).OnlyTrashed().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers); err != nil {
 		t.Fatalf("Failed to find users with OnlyTrashed: %v", err)
 	}
 
@@ -313,19 +307,18 @@ func TestSQLiteIntegrationWithoutTrashed(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	// Create users
 	users := []models.User{
 		{Name: "without_trashed_user1", Avatar: "avatar1"},
 		{Name: "without_trashed_user2", Avatar: "avatar2"},
 	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&users); err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
 	// Soft delete one user
-	res, err := query.Model(&models.User{}).Where("name = ?", "without_trashed_user1").Delete(&models.User{})
+	res, err := db.Query().Model(&models.User{}).Where("name = ?", "without_trashed_user1").Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to delete user: %v", err)
 	}
@@ -336,8 +329,7 @@ func TestSQLiteIntegrationWithoutTrashed(t *testing.T) {
 
 	// Test WithoutTrashed after WithTrashed
 	var activeUsers []models.User
-	err = query.Model(&models.User{}).WithTrashed().WithoutTrashed().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers)
-	if err != nil {
+	if err := db.Query().Model(&models.User{}).WithTrashed().WithoutTrashed().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers); err != nil {
 		t.Fatalf("Failed to find users with WithoutTrashed: %v", err)
 	}
 

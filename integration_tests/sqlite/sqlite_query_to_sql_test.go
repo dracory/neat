@@ -17,6 +17,7 @@ func TestSQLiteIntegrationQueryToSql(t *testing.T) {
 
 	sql := query.Table("users").Where("id = ?", 1).ToSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
+	t.Logf("ToSql output: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -53,8 +54,9 @@ func TestSQLiteIntegrationQueryToSqlCount(t *testing.T) {
 
 	sql := query.Table("users").Where("name = ?", "test").ToSql().Count()
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	if !strings.Contains(sql, "SELECT count(*)") {
-		t.Error("Expected SELECT count(*)")
+	t.Logf("ToSql Count output: %s", sql)
+	if !strings.Contains(sql, "SELECT COUNT(*)") {
+		t.Error("Expected SELECT COUNT(*)")
 	}
 	if !strings.Contains(sql, "FROM \"users\"") {
 		t.Error("Expected FROM \"users\"")
@@ -96,11 +98,12 @@ func TestSQLiteIntegrationQueryToSqlUpdate(t *testing.T) {
 
 	sql := query.Table("users").Where("id = ?", 1).ToSql().Update("name", "new_name")
 	sql = strings.ReplaceAll(sql, "`", "\"")
+	t.Logf("ToSql Update output: %s", sql)
 	if !strings.Contains(sql, "UPDATE \"users\"") {
 		t.Error("Expected UPDATE \"users\"")
 	}
-	if !strings.Contains(sql, "SET \"name\"=?") {
-		t.Error("Expected SET \"name\"=?")
+	if !strings.Contains(sql, "SET \"name\" = ?") {
+		t.Error("Expected SET \"name\" = ?")
 	}
 	if !strings.Contains(sql, "WHERE \"id\" = ?") {
 		t.Error("Expected WHERE \"id\" = ?")

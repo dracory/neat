@@ -1965,7 +1965,29 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	// Build UPDATE query to set deleted_at to NULL
-	builder := NewBuilder(q.WithTrashed().(*Query))
+	// Clone the query to preserve WHERE clauses
+	clone := q.Clone().(*Query)
+	clone.withTrashed = true
+
+	// If a model instance is provided, extract its ID and add WHERE clause
+	if len(model) > 0 && model[0] != nil {
+		v := reflect.ValueOf(model[0])
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() == reflect.Struct {
+			// Try to get ID field
+			idField := v.FieldByName("ID")
+			if idField.IsValid() {
+				idValue := idField.Uint()
+				if idValue > 0 {
+					clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{idValue}})
+				}
+			}
+		}
+	}
+
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildUpdate(map[string]any{"deleted_at": nil})
 	if sql == "" {
 		return nil, fmt.Errorf("failed to build RESTORE query")
@@ -2015,7 +2037,10 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Build DELETE query (permanent delete, not soft delete)
-	builder := NewBuilder(q)
+	// Use WithTrashed to include soft-deleted records
+	clone := q.Clone().(*Query)
+	clone.withTrashed = true
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildDelete()
 	if sql == "" {
 		return nil, fmt.Errorf("failed to build FORCE DELETE query")
