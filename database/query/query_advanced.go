@@ -90,6 +90,11 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 		return nil, fmt.Errorf("failed to execute raw SQL: %w", err)
 	}
 
+	if result == nil {
+		return &contractsorm.Result{
+			RowsAffected: 0,
+		}, nil
+	}
 	rowsAffected, _ := result.RowsAffected()
 	return &contractsorm.Result{
 		RowsAffected: rowsAffected,

@@ -92,6 +92,13 @@ The test suite for the `database/query` package has moderate coverage with good 
 
 **Impact:** High - Raw SQL is commonly used for complex queries
 
+**Status:** ✅ Completed
+- Added `TestRawWithSimpleSQL`, `TestRawWithMultipleParameters`, `TestRawWithoutParameters`
+- Added `TestExecMethod`, `TestExecWithParameterBinding`, `TestExecWithMultipleParameters`
+- Added `TestExecInTransaction`, `TestExecWithUpdate`, `TestExecWithDelete`
+- Fixed nil pointer bug in `Exec()` implementation
+- Note: `Raw()` only accepts string SQL, not callbacks (callbacks are supported by `Select()`)
+
 #### 3. Relation Loading (Eager Loading)
 **File:** `query_relations.go`  
 **Missing Tests:**
