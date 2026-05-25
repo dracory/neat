@@ -1,0 +1,291 @@
+package query
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestToCamelCase(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"snake_case", "SnakeCase"},
+		{"user_name", "UserName"},
+		{"id", "Id"},
+		{"created_at", "CreatedAt"},
+		{"multiple_words_here", "MultipleWordsHere"},
+		{"", ""},
+		{"single", "Single"},
+		{"alreadyCamel", "Alreadycamel"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := toCamelCase(tt.input)
+			if result != tt.expected {
+				t.Errorf("toCamelCase(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCamelToSnake(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"CamelCase", "camel_case"},
+		{"UserName", "user_name"},
+		{"ID", "id"},
+		{"CreatedAt", "created_at"},
+		{"MultipleWordsHere", "multiple_words_here"},
+		{"", ""},
+		{"Single", "single"},
+		{"already_snake", "already_snake"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := camelToSnake(tt.input)
+			if result != tt.expected {
+				t.Errorf("camelToSnake(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetPrimaryKeyValue(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+	type UserWithIntID struct {
+		ID int
+	}
+	type UserWithLowerId struct {
+		Id uint
+	}
+	type UserNoID struct {
+		Name string
+	}
+
+	tests := []struct {
+		name     string
+		value    any
+		expected int64
+	}{
+		{"uint ID", &User{ID: 42}, 42},
+		{"int ID", &UserWithIntID{ID: 42}, 42},
+		{"lowercase Id", &UserWithLowerId{Id: 42}, 42},
+		{"no ID field", &UserNoID{Name: "test"}, 0},
+		{"nil pointer", (*User)(nil), 0},
+		{"non-struct", "string", 0},
+		{"zero ID", &User{ID: 0}, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getPrimaryKeyValue(tt.value)
+			if result != tt.expected {
+				t.Errorf("getPrimaryKeyValue(%v) = %d, want %d", tt.value, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSetModelPrimaryKey(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+	type UserWithIntID struct {
+		ID int
+	}
+	type UserWithLowerId struct {
+		Id uint
+	}
+	type UserNoID struct {
+		Name string
+	}
+
+	tests := []struct {
+		name  string
+		value any
+		id    int64
+	}{
+		{"uint ID", &User{}, 42},
+		{"int ID", &UserWithIntID{}, 42},
+		{"lowercase Id", &UserWithLowerId{}, 42},
+		{"no ID field", &UserNoID{}, 42},
+		{"nil pointer", (*User)(nil), 42},
+		{"non-struct", "string", 42},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setModelPrimaryKey(tt.value, tt.id)
+			// Verify the ID was set if the struct has an ID field
+			if u, ok := tt.value.(*User); ok && u != nil {
+				if u.ID != uint(tt.id) {
+					t.Errorf("Expected ID to be set to %d, got %d", tt.id, u.ID)
+				}
+			}
+			if u, ok := tt.value.(*UserWithIntID); ok && u != nil {
+				if u.ID != int(tt.id) {
+					t.Errorf("Expected ID to be set to %d, got %d", tt.id, u.ID)
+				}
+			}
+			if u, ok := tt.value.(*UserWithLowerId); ok && u != nil {
+				if u.Id != uint(tt.id) {
+					t.Errorf("Expected Id to be set to %d, got %d", tt.id, u.Id)
+				}
+			}
+		})
+	}
+}
+
+func TestStructFieldColumnName(t *testing.T) {
+	type User struct {
+		ID       int    `db:"id"`
+		Name     string `db:"name"`
+		Email    string `neat:"email"`
+		Password string `gorm:"column:password"`
+		NoTag    string
+		Ignore   string `db:"-"`
+	}
+
+	tests := []struct {
+		name     string
+		field    reflect.StructField
+		expected string
+	}{
+		{"db tag", reflect.TypeOf(User{}).Field(0), "id"},
+		{"db tag name", reflect.TypeOf(User{}).Field(1), "name"},
+		{"neat tag", reflect.TypeOf(User{}).Field(2), "email"},
+		{"gorm column tag", reflect.TypeOf(User{}).Field(3), "password"},
+		{"no tag", reflect.TypeOf(User{}).Field(4), "no_tag"},
+		{"ignore tag", reflect.TypeOf(User{}).Field(5), "ignore"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := structFieldColumnName(tt.field)
+			if result != tt.expected {
+				t.Errorf("structFieldColumnName(%v) = %q, want %q", tt.field.Name, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetColumnToIndexPath(t *testing.T) {
+	type User struct {
+		ID   int    `db:"id"`
+		Name string `db:"name"`
+	}
+
+	type Embedded struct {
+		Age int `db:"age"`
+	}
+
+	type UserWithEmbedded struct {
+		User
+		Embedded
+	}
+
+	t.Run("simple struct", func(t *testing.T) {
+		result := getColumnToIndexPath(reflect.TypeOf(User{}))
+		if len(result) != 2 {
+			t.Errorf("Expected 2 columns, got %d", len(result))
+		}
+		if path, ok := result["id"]; !ok || len(path) != 1 || path[0] != 0 {
+			t.Errorf("Expected id path to be [0], got %v", path)
+		}
+		if path, ok := result["name"]; !ok || len(path) != 1 || path[0] != 1 {
+			t.Errorf("Expected name path to be [1], got %v", path)
+		}
+	})
+
+	t.Run("embedded struct", func(t *testing.T) {
+		result := getColumnToIndexPath(reflect.TypeOf(UserWithEmbedded{}))
+		if len(result) != 3 {
+			t.Errorf("Expected 3 columns, got %d", len(result))
+		}
+		// Check that embedded fields are included
+		if _, ok := result["age"]; !ok {
+			t.Error("Expected age field from embedded struct")
+		}
+	})
+}
+
+func TestStructScanDests(t *testing.T) {
+	type User struct {
+		ID   int    `db:"id"`
+		Name string `db:"name"`
+	}
+
+	t.Run("simple struct", func(t *testing.T) {
+		user := User{}
+		columns := []string{"id", "name"}
+		dests := structScanDests(reflect.ValueOf(&user).Elem(), columns)
+
+		if len(dests) != 2 {
+			t.Errorf("Expected 2 destinations, got %d", len(dests))
+		}
+
+		// Verify that destinations are pointers to the struct fields
+		if dests[0] != nil {
+			if ptr, ok := dests[0].(*int); !ok || ptr != &user.ID {
+				t.Error("Expected dests[0] to be pointer to ID field")
+			}
+		}
+		if dests[1] != nil {
+			if ptr, ok := dests[1].(*string); !ok || ptr != &user.Name {
+				t.Error("Expected dests[1] to be pointer to Name field")
+			}
+		}
+	})
+
+	t.Run("unknown column", func(t *testing.T) {
+		user := User{}
+		columns := []string{"id", "unknown_column"}
+		dests := structScanDests(reflect.ValueOf(&user).Elem(), columns)
+
+		if len(dests) != 2 {
+			t.Errorf("Expected 2 destinations, got %d", len(dests))
+		}
+
+		// Unknown column should have a placeholder
+		if dests[1] == nil {
+			t.Error("Expected placeholder for unknown column")
+		}
+	})
+}
+
+func TestCopyScanResults(t *testing.T) {
+	type User struct {
+		ID   int    `db:"id"`
+		Name string `db:"name"`
+	}
+
+	t.Run("copy results", func(t *testing.T) {
+		user := User{}
+		columns := []string{"id", "name"}
+		dests := structScanDests(reflect.ValueOf(&user).Elem(), columns)
+
+		// Simulate scan results
+		if idPtr, ok := dests[0].(*int); ok {
+			*idPtr = 42
+		}
+		if namePtr, ok := dests[1].(*string); ok {
+			*namePtr = "test"
+		}
+
+		copyScanResults(reflect.ValueOf(&user).Elem(), columns, dests)
+
+		if user.ID != 42 {
+			t.Errorf("Expected ID to be 42, got %d", user.ID)
+		}
+		if user.Name != "test" {
+			t.Errorf("Expected Name to be 'test', got %s", user.Name)
+		}
+	})
+}
