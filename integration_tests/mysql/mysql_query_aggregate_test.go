@@ -4,30 +4,21 @@ package mysql
 
 import (
 	"testing"
+	"time"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedAggregateTestData(t *testing.T, db interface{}) []models.User {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
+func seedAggregateTestData(t *testing.T, db *database.Database) []models.User {
+	query := db.Query()
+	now := time.Now()
 
 	users := []models.User{
-		{Name: "aggregate_user_1", Avatar: "group1"},
-		{Name: "aggregate_user_2", Avatar: "group1"},
-		{Name: "aggregate_user_3", Avatar: "group2"},
-		{Name: "aggregate_user_4", Avatar: "group2"},
+		{Name: "aggregate_user_1", Avatar: "group1", CreatedAt: now, UpdatedAt: now},
+		{Name: "aggregate_user_2", Avatar: "group1", CreatedAt: now, UpdatedAt: now},
+		{Name: "aggregate_user_3", Avatar: "group2", CreatedAt: now, UpdatedAt: now},
+		{Name: "aggregate_user_4", Avatar: "group2", CreatedAt: now, UpdatedAt: now},
 	}
 
 	for _, user := range users {

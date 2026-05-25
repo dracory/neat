@@ -64,6 +64,10 @@ func (b *Builder) quoteIdentifier(name string) string {
 
 // BuildSelect builds a SELECT query from the query state.
 func (b *Builder) BuildSelect() (string, []any) {
+	if b.query.rawSQL != "" {
+		return b.query.rawSQL, b.query.rawArgs
+	}
+
 	var parts []string
 	var args []any
 
@@ -604,22 +608,15 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 		}
 
 		// Skip slice/struct fields that are not handled as basic types
-		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Ptr) &&
-			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
-			// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
-			if fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil() {
-				elem := fieldValue.Elem()
-				if elem.Kind() == reflect.Struct {
-					continue
-				}
-			} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
-				continue
-			} else if fieldValue.Kind() == reflect.Ptr {
-				// Skip nil pointers except for deleted_at (soft delete)
-				if columnName != "deleted_at" {
-					continue
-				}
-			}
+		// But allow pointers to basic types or time.Time
+		fieldType := field.Type
+		if fieldType.Kind() == reflect.Ptr {
+			fieldType = fieldType.Elem()
+		}
+
+		if (fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
+			fieldType != reflect.TypeOf(time.Time{}) {
+			continue
 		}
 
 		columns = append(columns, columnName)

@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
@@ -16,11 +17,16 @@ func TestMySQLIntegrationQueryBelongsToWith(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
+	now := time.Now()
 
 	user := &models.User{
 		Name: "belongs_to_name",
+		CreatedAt: now,
+		UpdatedAt: now,
 		Address: &models.Address{
 			Name: "belongs_to_address",
+			CreatedAt: now,
+			UpdatedAt: now,
 		},
 	}
 
@@ -50,11 +56,16 @@ func TestMySQLIntegrationQueryBelongsToWithout(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
+	now := time.Now()
 
 	user := &models.User{
 		Name: "belongs_to_without_user",
+		CreatedAt: now,
+		UpdatedAt: now,
 		Address: &models.Address{
 			Name: "belongs_to_without_address",
+			CreatedAt: now,
+			UpdatedAt: now,
 		},
 	}
 
@@ -79,11 +90,16 @@ func TestMySQLIntegrationQueryBelongsToWithConstraints(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
+	now := time.Now()
 
 	user := &models.User{
 		Name: "constrained_user",
+		CreatedAt: now,
+		UpdatedAt: now,
 		Address: &models.Address{
 			Name: "constrained_address",
+			CreatedAt: now,
+			UpdatedAt: now,
 		},
 	}
 
@@ -125,8 +141,9 @@ func TestMySQLIntegrationQueryMultipleBelongsTo(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
+	now := time.Now()
 
-	user := &models.User{Name: "multi_belongs_user"}
+	user := &models.User{Name: "multi_belongs_user", CreatedAt: now, UpdatedAt: now}
 	if err := query.Model(&models.User{}).Create(user); err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -134,6 +151,8 @@ func TestMySQLIntegrationQueryMultipleBelongsTo(t *testing.T) {
 	book := &models.Book{
 		Name:   "multi_belongs_book",
 		UserID: user.ID,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 	if err := query.Model(&models.Book{}).Create(book); err != nil {
 		t.Fatalf("Failed to create book: %v", err)
@@ -152,7 +171,7 @@ func TestMySQLIntegrationQueryMultipleBelongsTo(t *testing.T) {
 	}
 
 	var foundAddress models.Address
-	address := &models.Address{Name: "multi_belongs_address", UserID: user.ID}
+	address := &models.Address{Name: "multi_belongs_address", UserID: user.ID, CreatedAt: now, UpdatedAt: now}
 	if err := query.Model(&models.Address{}).Create(address); err != nil {
 		t.Fatalf("Failed to create address: %v", err)
 	}

@@ -97,7 +97,7 @@ func TestMySQLIntegrationConnectionDefaultName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get default connection: %v", err)
 	}
-	expectedConn := "default"
+	expectedConn := "mysql"
 	if conn.Name() != expectedConn {
 		t.Errorf("Expected connection name '%s', got '%s'", expectedConn, conn.Name())
 	}

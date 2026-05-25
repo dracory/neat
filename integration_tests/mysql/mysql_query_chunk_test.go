@@ -5,27 +5,18 @@ package mysql
 import (
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedChunkTestData(t *testing.T, db interface{}) {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
+func seedChunkTestData(t *testing.T, db *database.Database) {
+	query := db.Query()
+	now := time.Now()
 
 	for i := 1; i <= 10; i++ {
-		user := models.User{Name: fmt.Sprintf("chunk_user_%d", i)}
+		user := models.User{Name: fmt.Sprintf("chunk_user_%d", i), CreatedAt: now, UpdatedAt: now}
 		if err := query.Model(&models.User{}).Create(&user); err != nil {
 			t.Fatalf("Failed to create user %d: %v", i, err)
 		}
@@ -41,6 +32,7 @@ func TestMySQLIntegrationQueryChunkBasic(t *testing.T) {
 	if db == nil {
 		t.Skip("MySQL not available")
 	}
+	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 
@@ -84,6 +76,7 @@ func TestMySQLIntegrationQueryChunkCustomBatchSize(t *testing.T) {
 	if db == nil {
 		t.Skip("MySQL not available")
 	}
+	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 
