@@ -226,15 +226,13 @@ func TestSQLiteTransactionIsolationLevels(t *testing.T) {
 	}
 
 	for _, level := range levels {
-		err := db.Transaction(func(tx contractsorm.Query) error {
-			innerTx, err := db.Query().Begin(&sql.TxOptions{Isolation: level})
-			if err != nil {
-				return err
-			}
-			return innerTx.Rollback()
-		})
+		innerTx, err := db.Query().Begin(&sql.TxOptions{Isolation: level})
 		if err != nil {
 			t.Errorf("Transaction with isolation level %v failed: %v", level, err)
+			continue
+		}
+		if err := innerTx.Rollback(); err != nil {
+			t.Errorf("Rollback with isolation level %v failed: %v", level, err)
 		}
 	}
 }
