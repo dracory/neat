@@ -61,6 +61,8 @@ func (w *TestQuery) SetWithTrashed(v bool)        { w.Q.withTrashed = v }
 func (w *TestQuery) SetOnlyTrashed(v bool)        { w.Q.onlyTrashed = v }
 func (w *TestQuery) SetDBConfig(cfg *db.DBConfig) { w.Q.dbConfig = cfg }
 
+func (w *TestQuery) GetTable() string { return w.Q.table }
+
 func (w *TestQuery) ReadConn() *sql.DB  { return w.Q.readConn() }
 func (w *TestQuery) WriteConn() *sql.DB { return w.Q.writeConn() }
 

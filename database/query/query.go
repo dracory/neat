@@ -279,9 +279,7 @@ func newDriverForDialect(dialect string) driver.Driver {
 // Model sets the model for the query.
 func (q *Query) Model(value any) contractsorm.Query {
 	q.model = value
-	if q.table == "" {
-		q.table = q.resolveTableName(value)
-	}
+	q.table = q.resolveTableName(value)
 	return q
 }
 
@@ -306,6 +304,71 @@ func (q *Query) initializeRelations(v reflect.Value) {
 			field.Set(reflect.MakeSlice(field.Type(), 0, 0))
 		}
 	}
+}
+
+// loadRelations loads the actual data for relations requested via With.
+func (q *Query) loadRelations(v reflect.Value) error {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil
+	}
+
+	for _, relation := range q.withRelations {
+		field := v.FieldByName(relation)
+		if !field.IsValid() {
+			continue
+		}
+
+		// Get the foreign key field name (e.g., "User" -> "UserID")
+		foreignKey := relation + "ID"
+		foreignKeyField := v.FieldByName(foreignKey)
+		if !foreignKeyField.IsValid() {
+			// Try snake_case version
+			foreignKey = str.Of(relation).Snake().String() + "_id"
+			foreignKeyField = v.FieldByName(foreignKey)
+			if !foreignKeyField.IsValid() {
+				continue
+			}
+		}
+
+		// Get the foreign key value
+		foreignKeyValue := foreignKeyField.Interface()
+		if foreignKeyValue == nil || reflect.ValueOf(foreignKeyValue).IsZero() {
+			continue
+		}
+
+		// Get the relation field type to create the destination
+		relationType := field.Type()
+		if relationType.Kind() == reflect.Ptr {
+			relationType = relationType.Elem()
+		}
+
+		// Create destination
+		dest := reflect.New(relationType)
+
+		// Create a new query to load the related model using Table() to avoid model context
+		relatedQuery := q.newQuery()
+		relatedQuery.table = str.Of(relation).Snake().String() + "s"
+		relatedQuery.model = nil // Clear model to avoid column conflicts
+
+		// Query the related model using Select("*") to avoid column extraction from model
+		err := relatedQuery.Select("*").Where("id = ?", foreignKeyValue).First(dest.Interface())
+		if err != nil {
+			// If not found, leave the field as nil
+			continue
+		}
+
+		// Set the field value
+		if field.Kind() == reflect.Ptr {
+			field.Set(dest)
+		} else {
+			field.Set(dest.Elem())
+		}
+	}
+
+	return nil
 }
 
 // resolveTableName resolves the table name from the model.
@@ -2353,9 +2416,12 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				}
 			}
 
-			// Initialize relations if requested
+			// Initialize and load relations if requested
 			if len(q.withRelations) > 0 {
 				q.initializeRelations(elem)
+				if err := q.loadRelations(elem); err != nil {
+					return err
+				}
 			}
 
 			// Append to slice
@@ -2382,9 +2448,12 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 		}
 		copyScanResults(destValue, columns, values)
 
-		// Initialize relations if requested
+		// Initialize and load relations if requested
 		if len(q.withRelations) > 0 {
 			q.initializeRelations(destValue)
+			if err := q.loadRelations(destValue); err != nil {
+				return err
+			}
 		}
 
 		return rows.Err()

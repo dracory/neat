@@ -29,6 +29,10 @@ type Address struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
+func (Address) TableName() string {
+	return "addresses"
+}
+
 // Book represents a book model
 type Book struct {
 	ID        uint      `db:"id"`
