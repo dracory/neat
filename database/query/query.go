@@ -86,7 +86,8 @@ type Query struct {
 	withoutTrashed bool
 
 	// Eager loading state
-	withRelations []string
+	withRelations       []string
+	relationConstraints map[string]func(contractsorm.Query) contractsorm.Query
 }
 
 type whereClause struct {
@@ -220,6 +221,12 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.sharedLock = q.sharedLock
 	clone.scopes = append([]func(contractsorm.Query) contractsorm.Query{}, q.scopes...)
 	clone.withRelations = append([]string{}, q.withRelations...)
+	if q.relationConstraints != nil {
+		clone.relationConstraints = make(map[string]func(contractsorm.Query) contractsorm.Query)
+		for k, v := range q.relationConstraints {
+			clone.relationConstraints[k] = v
+		}
+	}
 
 	return clone
 }
@@ -315,7 +322,16 @@ func (q *Query) loadRelations(v reflect.Value) error {
 		return nil
 	}
 
-	for _, relation := range q.withRelations {
+	// Save and clear withRelations to prevent recursion during relation loading
+	savedWithRelations := q.withRelations
+	q.withRelations = nil
+
+	// Disable observers during relation loading to prevent recursive events
+	savedWithoutEvents := q.withoutEvents
+	q.withoutEvents = true
+	defer func() { q.withoutEvents = savedWithoutEvents }()
+
+	for _, relation := range savedWithRelations {
 		field := v.FieldByName(relation)
 		if !field.IsValid() {
 			continue
@@ -348,17 +364,59 @@ func (q *Query) loadRelations(v reflect.Value) error {
 		// Create destination
 		dest := reflect.New(relationType)
 
-		// Create a new query to load the related model using Table() to avoid model context
-		relatedQuery := q.newQuery()
+		// Create a query to load the related model
+		relatedQuery := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
 		relatedQuery.table = str.Of(relation).Snake().String() + "s"
-		relatedQuery.model = nil // Clear model to avoid column conflicts
+		relatedQuery.model = nil
+		relatedQuery.withRelations = nil // Prevent recursive relation loading
 
-		// Query the related model using Select("*") to avoid column extraction from model
-		err := relatedQuery.Select("*").Where("id = ?", foreignKeyValue).First(dest.Interface())
+		// Build the base query with the foreign key condition
+		relatedQuery = relatedQuery.Select("*").Where("id = ?", foreignKeyValue).(*Query)
+
+		// Apply constraint callback if provided for this relation
+		if q.relationConstraints != nil {
+			if constraint, ok := q.relationConstraints[relation]; ok {
+				relatedQuery = constraint(relatedQuery).(*Query)
+			}
+		}
+
+		// Build and execute the query
+		builder := NewBuilder(relatedQuery)
+		querySQL, args := builder.BuildSelect()
+
+		// Use a separate connection to avoid SQLite deadlock during relation loading
+		var rows *sql.Rows
+		var err error
+		if q.readDB != nil {
+			rows, err = q.readDB.QueryContext(q.ctx, querySQL, args...)
+		} else {
+			rows, err = q.db.QueryContext(q.ctx, querySQL, args...)
+		}
 		if err != nil {
-			// If not found, leave the field as nil
 			continue
 		}
+		defer rows.Close()
+
+		// Scan directly into dest without using scanRows to avoid relation loading
+		columns, err := rows.Columns()
+		if err != nil {
+			continue
+		}
+
+		if !rows.Next() {
+			// No rows found, set field to nil if it's a pointer
+			if field.Kind() == reflect.Ptr {
+				field.Set(reflect.Zero(field.Type()))
+			}
+			continue
+		}
+
+		destValue := dest.Elem()
+		values := structScanDests(destValue, columns)
+		if err := rows.Scan(values...); err != nil {
+			continue
+		}
+		copyScanResults(destValue, columns, values)
 
 		// Set the field value
 		if field.Kind() == reflect.Ptr {
@@ -367,6 +425,9 @@ func (q *Query) loadRelations(v reflect.Value) error {
 			field.Set(dest.Elem())
 		}
 	}
+
+	// Restore withRelations after all relations are loaded
+	q.withRelations = savedWithRelations
 
 	return nil
 }
@@ -447,6 +508,8 @@ func (q *Query) newQuery() *Query {
 	newQ.readDB = q.readDB
 	newQ.writeDB = q.writeDB
 	newQ.enableLog = q.enableLog
+	newQ.withRelations = nil
+	newQ.relationConstraints = nil
 	return newQ
 }
 
@@ -680,9 +743,26 @@ func (q *Query) First(dest any) error {
 		if err != nil {
 			return fmt.Errorf("failed to execute query: %w", err)
 		}
-		defer rows.Close()
 		q.logQuery(sql, args, start)
-		return q.scanRows(rows, dest)
+		if err := q.scanRows(rows, dest); err != nil {
+			rows.Close()
+			return err
+		}
+		rows.Close()
+
+		// Load relations after rows are closed to avoid SQLite deadlock
+		if len(q.withRelations) > 0 {
+			destValue := reflect.ValueOf(dest)
+			if destValue.Kind() == reflect.Ptr {
+				destValue = destValue.Elem()
+			}
+			q.initializeRelations(destValue)
+			if err := q.loadRelations(destValue); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
 	dbConn, err := q.ReadDB()
@@ -694,9 +774,26 @@ func (q *Query) First(dest any) error {
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
 	q.logQuery(sql, args, start)
-	return q.scanRows(rows, dest)
+	if err := q.scanRows(rows, dest); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	// Load relations after rows are closed to avoid SQLite deadlock
+	if len(q.withRelations) > 0 {
+		destValue := reflect.ValueOf(dest)
+		if destValue.Kind() == reflect.Ptr {
+			destValue = destValue.Elem()
+		}
+		q.initializeRelations(destValue)
+		if err := q.loadRelations(destValue); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // FirstOrFail retrieves the first record or returns an error if not found.
@@ -725,9 +822,26 @@ func (q *Query) Get(dest any) error {
 		if err != nil {
 			return fmt.Errorf("failed to execute query: %w", err)
 		}
-		defer rows.Close()
 		q.logQuery(sql, args, start)
-		return q.scanRows(rows, dest)
+		if err := q.scanRows(rows, dest); err != nil {
+			rows.Close()
+			return err
+		}
+		rows.Close()
+
+		// Load relations after rows are closed to avoid SQLite deadlock
+		if len(q.withRelations) > 0 {
+			destValue := reflect.ValueOf(dest)
+			if destValue.Kind() == reflect.Ptr {
+				destValue = destValue.Elem()
+			}
+			q.initializeRelations(destValue)
+			if err := q.loadRelations(destValue); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
 	dbConn, err := q.ReadDB()
@@ -739,9 +853,26 @@ func (q *Query) Get(dest any) error {
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
 	q.logQuery(sql, args, start)
-	return q.scanRows(rows, dest)
+	if err := q.scanRows(rows, dest); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	// Load relations after rows are closed to avoid SQLite deadlock
+	if len(q.withRelations) > 0 {
+		destValue := reflect.ValueOf(dest)
+		if destValue.Kind() == reflect.Ptr {
+			destValue = destValue.Elem()
+		}
+		q.initializeRelations(destValue)
+		if err := q.loadRelations(destValue); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Create inserts a new record into the database.
@@ -2166,6 +2297,17 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 func (q *Query) With(query string, args ...any) contractsorm.Query {
 	newQuery := *q
 	newQuery.withRelations = append(newQuery.withRelations, query)
+
+	// Check if a constraint callback is provided
+	if len(args) > 0 {
+		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+			if newQuery.relationConstraints == nil {
+				newQuery.relationConstraints = make(map[string]func(contractsorm.Query) contractsorm.Query)
+			}
+			newQuery.relationConstraints[query] = fn
+		}
+	}
+
 	return &newQuery
 }
 
@@ -2180,7 +2322,23 @@ func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
 	// additional work to detect relationships and load them properly
 	return fmt.Errorf("lazy loading not fully implemented yet")
 }
-func (q *Query) Without(relations ...string) contractsorm.Query          { return q }
+func (q *Query) Without(relations ...string) contractsorm.Query {
+	newQuery := *q
+	// Remove specified relations from withRelations
+	for _, relation := range relations {
+		for i, r := range newQuery.withRelations {
+			if r == relation {
+				newQuery.withRelations = append(newQuery.withRelations[:i], newQuery.withRelations[i+1:]...)
+				break
+			}
+		}
+		// Also remove any constraint for this relation
+		if newQuery.relationConstraints != nil {
+			delete(newQuery.relationConstraints, relation)
+		}
+	}
+	return &newQuery
+}
 func (q *Query) WithCount(query string, args ...any) contractsorm.Query  { return q }
 func (q *Query) WithExists(query string, args ...any) contractsorm.Query { return q }
 func (q *Query) Association(assocName string) contractsorm.Association {
@@ -2416,13 +2574,8 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				}
 			}
 
-			// Initialize and load relations if requested
-			if len(q.withRelations) > 0 {
-				q.initializeRelations(elem)
-				if err := q.loadRelations(elem); err != nil {
-					return err
-				}
-			}
+			// Note: Relations are loaded after rows are closed to avoid SQLite deadlock
+			// This is handled by the calling methods (First, Get, etc.)
 
 			// Append to slice
 			destValue.Set(reflect.Append(destValue, elem))
@@ -2448,13 +2601,8 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 		}
 		copyScanResults(destValue, columns, values)
 
-		// Initialize and load relations if requested
-		if len(q.withRelations) > 0 {
-			q.initializeRelations(destValue)
-			if err := q.loadRelations(destValue); err != nil {
-				return err
-			}
-		}
+		// Note: Relations are loaded after rows are closed to avoid SQLite deadlock
+		// This is handled by the calling methods (First, Get, etc.)
 
 		return rows.Err()
 	}
