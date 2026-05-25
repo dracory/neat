@@ -388,31 +388,49 @@ func (q *Query) newQuery() *Query {
 func (q *Query) Select(query any, args ...any) contractsorm.Query {
 	// Process args to handle func(Query)Query callbacks
 	var queryStr string
-	if slice, ok := query.([]string); ok {
-		queryStr = strings.Join(slice, ", ")
-	} else {
-		queryStr = fmt.Sprintf("%v", query)
-	}
+	var processedArgs []any
 
-	processedArgs := make([]any, 0, len(args))
-	for _, arg := range args {
-		// Check if arg is a func(Query)Query callback
-		if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
-			// Invoke the callback with a clone of the current query
-			subQuery := fn(q.newQuery())
-			// Build the subquery SQL
-			builder := NewBuilder(subQuery.(*Query))
-			subSQL, subArgs := builder.BuildSelect()
-			// Replace the first ? in the query string with the subquery SQL
-			if strings.Contains(queryStr, "?") {
-				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
-			} else {
-				processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
-			}
-			// Append subquery args
-			processedArgs = append(processedArgs, subArgs...)
+	// Check if the first parameter is a callback function
+	if fn, ok := query.(func(contractsorm.Query) contractsorm.Query); ok {
+		// Invoke the callback with a clone of the current query
+		subQuery := fn(q.newQuery())
+		// Build the subquery SQL
+		builder := NewBuilder(subQuery.(*Query))
+		subSQL, subArgs := builder.BuildSelect()
+		// Use the first arg as the alias if provided
+		if len(args) > 0 {
+			queryStr = fmt.Sprintf("(%s) as %s", subSQL, args[0])
 		} else {
-			processedArgs = append(processedArgs, arg)
+			queryStr = fmt.Sprintf("(%s)", subSQL)
+		}
+		processedArgs = append(processedArgs, subArgs...)
+	} else {
+		if slice, ok := query.([]string); ok {
+			queryStr = strings.Join(slice, ", ")
+		} else {
+			queryStr = fmt.Sprintf("%v", query)
+		}
+
+		processedArgs = make([]any, 0, len(args))
+		for _, arg := range args {
+			// Check if arg is a func(Query)Query callback
+			if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
+				// Invoke the callback with a clone of the current query
+				subQuery := fn(q.newQuery())
+				// Build the subquery SQL
+				builder := NewBuilder(subQuery.(*Query))
+				subSQL, subArgs := builder.BuildSelect()
+				// Replace the first ? in the query string with the subquery SQL
+				if strings.Contains(queryStr, "?") {
+					queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
+				} else {
+					processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+				}
+				// Append subquery args
+				processedArgs = append(processedArgs, subArgs...)
+			} else {
+				processedArgs = append(processedArgs, arg)
+			}
 		}
 	}
 	q.selects = append(q.selects, selectClause{expr: queryStr, args: processedArgs})
