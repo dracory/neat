@@ -351,24 +351,48 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** High - Soft delete is a core feature
 
 #### 5. JSON WHERE Clauses
-**File:** `query_where_test.go`  
-**Issue:** No dialect-specific SQL verification  
-**Missing:**
-- SQLite json_extract() SQL verification
-- MySQL/Postgres JSON_CONTAINS() SQL verification
-- JSON path handling
-- JSON operator differences
+**File:** `query_where_test.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestWhereJsonContains_SqliteDialect` - Verifies SQLite json_extract() function
+- `TestWhereJsonContains_MySqlDialect` - Verifies MySQL JSON_CONTAINS() function with backtick quoting
+- `TestWhereJsonContains_PostgresDialect` - Verifies PostgreSQL @> operator with double quote quoting
+- `TestWhereJsonContainsKey_SqliteDialect` - Verifies SQLite key existence with json_extract()
+- `TestWhereJsonContainsKey_MySqlDialect` - Verifies MySQL JSON_CONTAINS_PATH() or JSON_EXTRACT()
+- `TestWhereJsonContainsKey_PostgresDialect` - Verifies PostgreSQL ? operator for key existence
+- `TestWhereJsonLength_SqliteDialect` - Verifies SQLite json_array_length()
+- `TestWhereJsonLength_MySqlDialect` - Verifies MySQL JSON_LENGTH()
+- `TestWhereJsonLength_PostgresDialect` - Verifies PostgreSQL jsonb_array_length()
+- `TestJsonPathHandling_NestedPath` - Tests nested JSON path handling across all dialects
+- `TestJsonPathHandling_ArrayIndex` - Tests array index in JSON paths across all dialects
+- `TestJsonOperatorDifferences_Comparison` - Comparison test for JSON containment operators
+- `TestJsonOperatorDifferences_KeyExistence` - Comparison test for key existence operators
+- `TestJsonOperatorDifferences_ArrayLength` - Comparison test for array length functions
 
 **Impact:** Medium - Important for cross-database compatibility
 
 #### 6. Lock Clauses
-**File:** `query_advanced.go`  
-**Issue:** No tests for LockForUpdate/SharedLock SQL generation  
-**Missing:**
-- `LockForUpdate()` SQL generation
-- `SharedLock()` SQL generation
-- Lock clause with WHERE clauses
-- Dialect-specific lock syntax
+**File:** `query_advanced.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestLockForUpdate` - Basic LockForUpdate() method test
+- `TestSharedLock` - Basic SharedLock() method test
+- `TestLockForUpdate_SqlGeneration` - Verifies FOR UPDATE SQL generation
+- `TestSharedLock_SqlGeneration` - Verifies LOCK IN SHARE MODE SQL generation
+- `TestLockForUpdate_WithWhereClause` - Lock clause with WHERE conditions
+- `TestSharedLock_WithWhereClause` - Shared lock with WHERE conditions
+- `TestLockForUpdate_WithLimit` - Lock clause with LIMIT
+- `TestSharedLock_WithOrderBy` - Shared lock with ORDER BY
+- `TestLockForUpdate_Clone` - Verifies clone behavior
+- `TestSharedLock_Clone` - Verifies clone behavior
+- `TestLockForUpdate_PrecedenceOverSharedLock` - LockForUpdate takes precedence
+- `TestLockForUpdate_DialectDifferences` - Tests MySQL and PostgreSQL dialects
+- `TestSharedLock_DialectDifferences` - Tests MySQL and PostgreSQL dialects
+
+**Notes:**
+- SQLite does not support lock clauses (skipped in builder)
+- MySQL and PostgreSQL both use FOR UPDATE and LOCK IN SHARE MODE syntax
+- LockForUpdate takes precedence over SharedLock when both are set
 
 **Impact:** Medium - Important for concurrent access control
 

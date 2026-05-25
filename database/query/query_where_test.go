@@ -675,6 +675,360 @@ func TestWhereJsonLength_SqlOutput(t *testing.T) {
 	}
 }
 
+// --- Dialect-Specific JSON WHERE Clause Tests ---
+
+func TestWhereJsonContains_SqliteDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
+	q.WhereJsonContains("data", "value")
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// SQLite uses json_extract() for JSON operations
+	if !contains(sql, "json_extract") {
+		t.Errorf("Expected SQLite json_extract() function, got: %s", sql)
+	}
+
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument, got %d", len(args))
+	}
+
+	if args[0] != "value" {
+		t.Errorf("Expected 'value' argument, got %v", args[0])
+	}
+}
+
+func TestWhereJsonContains_MySqlDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewMySQL(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonContains("data", "value")
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// MySQL uses JSON_CONTAINS() function
+	if !contains(sql, "JSON_CONTAINS") {
+		t.Errorf("Expected MySQL JSON_CONTAINS() function, got: %s", sql)
+	}
+
+	// MySQL uses backticks for table name
+	if !contains(sql, "`users`") {
+		t.Errorf("Expected MySQL backtick quoting for table, got: %s", sql)
+	}
+
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument, got %d", len(args))
+	}
+}
+
+func TestWhereJsonContains_PostgresDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonContains("data", "value")
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// PostgreSQL uses JSON_CONTAINS() function
+	if !contains(sql, "JSON_CONTAINS") {
+		t.Errorf("Expected PostgreSQL JSON_CONTAINS() function, got: %s", sql)
+	}
+
+	// PostgreSQL uses double quotes for table name
+	if !contains(sql, `"users"`) {
+		t.Errorf("Expected PostgreSQL double quote quoting for table, got: %s", sql)
+	}
+
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument, got %d", len(args))
+	}
+}
+
+func TestWhereJsonContainsKey_SqliteDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonContainsKey("data->key")
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// SQLite uses json_type() with path for key existence
+	if !contains(sql, "json_type") {
+		t.Errorf("Expected SQLite json_type() function, got: %s", sql)
+	}
+
+	// JSON path should be present
+	if !contains(sql, "key") {
+		t.Error("Expected JSON key in WHERE clause")
+	}
+
+	if len(args) != 0 {
+		t.Errorf("Expected 0 arguments for key check, got %d", len(args))
+	}
+}
+
+func TestWhereJsonContainsKey_MySqlDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewMySQL(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonContainsKey("data->key")
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// MySQL uses JSON_CONTAINS_PATH() or JSON_EXTRACT()
+	if !contains(sql, "JSON_CONTAINS_PATH") && !contains(sql, "JSON_EXTRACT") {
+		t.Errorf("Expected MySQL JSON function (JSON_CONTAINS_PATH or JSON_EXTRACT), got: %s", sql)
+	}
+
+	// MySQL uses backticks for table name
+	if !contains(sql, "`users`") {
+		t.Errorf("Expected MySQL backtick quoting for table, got: %s", sql)
+	}
+
+	if len(args) != 0 {
+		t.Errorf("Expected 0 arguments for key check, got %d", len(args))
+	}
+}
+
+func TestWhereJsonContainsKey_PostgresDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonContainsKey("data->key")
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// PostgreSQL uses JSON_CONTAINS_PATH() function
+	if !contains(sql, "JSON_CONTAINS_PATH") {
+		t.Errorf("Expected PostgreSQL JSON_CONTAINS_PATH() function, got: %s", sql)
+	}
+
+	// PostgreSQL uses double quotes for table name
+	if !contains(sql, `"users"`) {
+		t.Errorf("Expected PostgreSQL double quote quoting for table, got: %s", sql)
+	}
+
+	if len(args) != 0 {
+		t.Errorf("Expected 0 arguments for key check, got %d", len(args))
+	}
+}
+
+func TestWhereJsonLength_SqliteDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonLength("data", ">", 0)
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// SQLite uses json_array_length() function
+	if !contains(sql, "json_array_length") {
+		t.Errorf("Expected SQLite json_array_length() function, got: %s", sql)
+	}
+
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument, got %d", len(args))
+	}
+}
+
+func TestWhereJsonLength_MySqlDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewMySQL(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonLength("data", ">", 0)
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// MySQL uses JSON_LENGTH() function
+	if !contains(sql, "JSON_LENGTH") {
+		t.Errorf("Expected MySQL JSON_LENGTH() function, got: %s", sql)
+	}
+
+	// MySQL uses backticks for table name
+	if !contains(sql, "`users`") {
+		t.Errorf("Expected MySQL backtick quoting for table, got: %s", sql)
+	}
+
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument, got %d", len(args))
+	}
+}
+
+func TestWhereJsonLength_PostgresDialect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Table("users")
+	q.WhereJsonLength("data", ">", 0)
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// PostgreSQL uses JSON_LENGTH() function
+	if !contains(sql, "JSON_LENGTH") {
+		t.Errorf("Expected PostgreSQL JSON_LENGTH() function, got: %s", sql)
+	}
+
+	// PostgreSQL uses double quotes for table name
+	if !contains(sql, `"users"`) {
+		t.Errorf("Expected PostgreSQL double quote quoting for table, got: %s", sql)
+	}
+
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument, got %d", len(args))
+	}
+}
+
+func TestJsonPathHandling_NestedPath(t *testing.T) {
+	dialects := []struct {
+		name   string
+		driver driver.Driver
+	}{
+		{"SQLite", driver.NewSQLite()},
+		{"MySQL", driver.NewMySQL()},
+		{"PostgreSQL", driver.NewPostgreSQL()},
+	}
+
+	for _, tc := range dialects {
+		t.Run(tc.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, tc.driver, "users", nil, nil)
+			q.WhereJsonContainsKey("data->nested->key")
+
+			builder := NewBuilder(q)
+			sql, args := builder.BuildSelect()
+
+			// Should handle nested JSON paths
+			if !contains(sql, "data") {
+				t.Errorf("Expected data column in %s, got: %s", tc.name, sql)
+			}
+
+			if !contains(sql, "key") {
+				t.Errorf("Expected key in %s, got: %s", tc.name, sql)
+			}
+
+			if len(args) != 0 {
+				t.Errorf("Expected 0 arguments for nested key check in %s, got %d", tc.name, len(args))
+			}
+		})
+	}
+}
+
+func TestJsonPathHandling_ArrayIndex(t *testing.T) {
+	dialects := []struct {
+		name   string
+		driver driver.Driver
+	}{
+		{"SQLite", driver.NewSQLite()},
+		{"MySQL", driver.NewMySQL()},
+		{"PostgreSQL", driver.NewPostgreSQL()},
+	}
+
+	for _, tc := range dialects {
+		t.Run(tc.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, tc.driver, "users", nil, nil)
+			q.WhereJsonContainsKey("data->items[0]")
+
+			builder := NewBuilder(q)
+			sql, args := builder.BuildSelect()
+
+			// Should handle array index in JSON paths
+			if !contains(sql, "data") {
+				t.Errorf("Expected data column in %s, got: %s", tc.name, sql)
+			}
+
+			if len(args) != 0 {
+				t.Errorf("Expected 0 arguments for array index check in %s, got %d", tc.name, len(args))
+			}
+		})
+	}
+}
+
+func TestJsonOperatorDifferences_Comparison(t *testing.T) {
+	testCases := []struct {
+		name         string
+		driver       driver.Driver
+		expectedFunc string
+		expectedOp   string
+	}{
+		{"SQLite", driver.NewSQLite(), "json_extract", ""},
+		{"MySQL", driver.NewMySQL(), "JSON_CONTAINS", ""},
+		{"PostgreSQL", driver.NewPostgreSQL(), "JSON_CONTAINS", ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, tc.driver, "users", nil, nil)
+			q.WhereJsonContains("data", "value")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if tc.expectedFunc != "" && !contains(sql, tc.expectedFunc) {
+				t.Errorf("Expected %s function in %s, got: %s", tc.expectedFunc, tc.name, sql)
+			}
+
+			if tc.expectedOp != "" && !contains(sql, tc.expectedOp) {
+				t.Errorf("Expected %s operator in %s, got: %s", tc.expectedOp, tc.name, sql)
+			}
+		})
+	}
+}
+
+func TestJsonOperatorDifferences_KeyExistence(t *testing.T) {
+	testCases := []struct {
+		name         string
+		driver       driver.Driver
+		expectedFunc string
+		expectedOp   string
+	}{
+		{"SQLite", driver.NewSQLite(), "json_type", ""},
+		{"MySQL", driver.NewMySQL(), "JSON_CONTAINS_PATH", ""},
+		{"PostgreSQL", driver.NewPostgreSQL(), "JSON_CONTAINS_PATH", ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, tc.driver, "users", nil, nil)
+			q.WhereJsonContainsKey("data->key")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if tc.expectedFunc != "" && !contains(sql, tc.expectedFunc) {
+				t.Errorf("Expected %s function in %s, got: %s", tc.expectedFunc, tc.name, sql)
+			}
+
+			if tc.expectedOp != "" && !contains(sql, tc.expectedOp) {
+				t.Errorf("Expected %s operator in %s, got: %s", tc.expectedOp, tc.name, sql)
+			}
+		})
+	}
+}
+
+func TestJsonOperatorDifferences_ArrayLength(t *testing.T) {
+	testCases := []struct {
+		name         string
+		driver       driver.Driver
+		expectedFunc string
+	}{
+		{"SQLite", driver.NewSQLite(), "json_array_length"},
+		{"MySQL", driver.NewMySQL(), "JSON_LENGTH"},
+		{"PostgreSQL", driver.NewPostgreSQL(), "JSON_LENGTH"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, tc.driver, "users", nil, nil)
+			q.WhereJsonLength("data", ">", 0)
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !contains(sql, tc.expectedFunc) {
+				t.Errorf("Expected %s function in %s, got: %s", tc.expectedFunc, tc.name, sql)
+			}
+		})
+	}
+}
+
 // countOccurrences counts how many times substr appears in s
 func countOccurrences(s, substr string) int {
 	count := 0
