@@ -11,7 +11,6 @@ import (
 	"github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
-	"github.com/dracory/neat/database/cursor"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/observer"
@@ -534,153 +533,6 @@ func (q *Query) validateAggregate(column string, dest any) error {
 	return nil
 }
 
-func (q *Query) Scan(dest any) error {
-	// Build SELECT query
-	builder := NewBuilder(q)
-	sql, args := builder.BuildSelect()
-
-	// Execute query
-	var err error
-	if q.tx != nil {
-		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
-		if err != nil {
-			return fmt.Errorf("failed to execute SCAN query: %w", err)
-		}
-		defer rows.Close()
-
-		return q.scanRows(rows, dest)
-	}
-
-	databaseConn, err := q.ReadDB()
-	if err != nil {
-		return err
-	}
-
-	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
-	if err != nil {
-		return fmt.Errorf("failed to execute SCAN query: %w", err)
-	}
-	defer rows.Close()
-
-	return q.scanRows(rows, dest)
-}
-func (q *Query) Chunk(size int, callback any) error {
-	// Build SELECT query without limit (we chunk in memory)
-	builder := NewBuilder(q)
-	sql, args := builder.BuildSelect()
-
-	// Execute query
-	var err error
-	if q.tx != nil {
-		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
-		if err != nil {
-			return fmt.Errorf("failed to execute CHUNK query: %w", err)
-		}
-		defer rows.Close()
-
-		return q.chunkRows(rows, size, callback)
-	}
-
-	databaseConn, err := q.ReadDB()
-	if err != nil {
-		return err
-	}
-
-	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
-	if err != nil {
-		return fmt.Errorf("failed to execute CHUNK query: %w", err)
-	}
-	defer rows.Close()
-
-	return q.chunkRows(rows, size, callback)
-}
-func (q *Query) Paginate(page, limit int, dest any, total *int64) error {
-	// Calculate offset
-	offset := (page - 1) * limit
-	q.offset = &offset
-	q.limit = &limit
-
-	// Get total count first
-	countQuery := *q
-	countQuery.limit = nil
-	countQuery.offset = nil
-	var count int64
-	if err := countQuery.Count(&count); err != nil {
-		return fmt.Errorf("failed to get total count: %w", err)
-	}
-	if total != nil {
-		*total = count
-	}
-
-	// Build SELECT query for paginated results
-	builder := NewBuilder(q)
-	sql, args := builder.BuildSelect()
-
-	// Execute query
-	var err error
-	if q.tx != nil {
-		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
-		if err != nil {
-			return fmt.Errorf("failed to execute PAGINATE query: %w", err)
-		}
-		defer rows.Close()
-
-		return q.scanRows(rows, dest)
-	}
-
-	databaseConn, err := q.ReadDB()
-	if err != nil {
-		return err
-	}
-
-	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
-	if err != nil {
-		return fmt.Errorf("failed to execute PAGINATE query: %w", err)
-	}
-	defer rows.Close()
-
-	return q.scanRows(rows, dest)
-}
-
-func (q *Query) FirstOr(dest any, callback func() error) error {
-	err := q.First(dest)
-	if err != nil {
-		return callback()
-	}
-	return nil
-}
-func (q *Query) FirstOrCreate(dest any, conds ...any) error {
-	// Try to find the record first
-	err := q.First(dest)
-	if err == nil {
-		return nil // Record exists
-	}
-
-	// Record doesn't exist, create it
-	return q.Create(dest)
-}
-func (q *Query) FirstOrNew(dest any, attributes any, values ...any) error {
-	// Try to find the record first
-	err := q.First(dest)
-	if err == nil {
-		return nil // Record exists
-	}
-
-	// Record doesn't exist, prepare new instance (without saving)
-	// This is a simplified implementation
-	return nil
-}
-func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
-	// Try to find the record first
-	err := q.First(dest)
-	if err == nil {
-		// Record exists, update it
-		return q.Save(values)
-	}
-
-	// Record doesn't exist, create it
-	return q.Create(values)
-}
 func (q *Query) UpdateOrInsert(attributes any, values any) error {
 	// Build WHERE conditions from attributes
 	clone := q.Clone().(*Query)
@@ -749,41 +601,6 @@ func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) con
 	newQ := *q
 	newQ.scopes = append(newQ.scopes, funcs...)
 	return &newQ
-}
-
-func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
-	// Build SELECT query
-	builder := NewBuilder(q)
-	querySQL, args := builder.BuildSelect()
-
-	// Execute query
-	var err error
-	var rows *sql.Rows
-	if q.tx != nil {
-		rows, err = q.tx.QueryContext(q.ctx, querySQL, args...)
-	} else {
-		databaseConn, err := q.ReadDB()
-		if err != nil {
-			return nil, err
-		}
-		rows, err = databaseConn.QueryContext(q.ctx, querySQL, args...)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute CURSOR query: %w", err)
-	}
-
-	// Create channel for cursors
-	cursorChan := make(chan contractsorm.Cursor, 1)
-
-	// Create cursor and send to channel
-	dbCursor := cursor.NewCursor(rows)
-	cursorChan <- dbCursor
-
-	// Close channel after sending
-	close(cursorChan)
-
-	return cursorChan, nil
 }
 
 // scanRows scans database rows into the destination.
