@@ -340,13 +340,13 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** Medium - Important for complex workflows
 
 #### 4. Soft Delete Tests
-**File:** `query_soft_delete_test.go`  
-**Issue:** No end-to-end delete/restore tests  
-**Missing:**
-- Actual DELETE execution with soft delete
-- Restore execution
-- ForceDelete execution
-- Soft delete with relations
+**File:** `query_soft_delete_test.go`
+**Status:** ✅ Completed
+**Added:**
+- TestSoftDeleteExecution - tests actual DELETE execution with soft delete
+- TestRestoreExecution - tests Restore execution
+- TestForceDeleteExecution - tests ForceDelete execution
+- TestSoftDeleteWithRelations - tests soft delete with relations
 
 **Impact:** High - Soft delete is a core feature
 
