@@ -4,22 +4,22 @@ package postgres
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 )
 
 // GetPostgresConfig returns a PostgreSQL connection config from environment variables
 func GetPostgresConfig() neat.DBConfig {
-	host := getEnv("POSTGRES_HOST", "127.0.0.1")
-	port := getEnvInt("POSTGRES_PORT", 55432)
-	database := getEnv("POSTGRES_DATABASE", "test")
-	username := getEnv("POSTGRES_USER", "test")
-	password := getEnv("POSTGRES_PASS", "test")
-	sslmode := getEnv("POSTGRES_SSLMODE", "disable")
+	host := common.GetEnv("POSTGRES_HOST", "127.0.0.1")
+	port := common.GetEnvInt("POSTGRES_PORT", 55432)
+	database := common.GetEnv("POSTGRES_DATABASE", "test")
+	username := common.GetEnv("POSTGRES_USER", "test")
+	password := common.GetEnv("POSTGRES_PASS", "test")
+	sslmode := common.GetEnv("POSTGRES_SSLMODE", "disable")
 
 	return neat.DBConfig{
 		Default: "postgres",
@@ -44,38 +44,18 @@ func GetPostgresConfig() neat.DBConfig {
 	}
 }
 
-// getEnv gets an environment variable or returns a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// getEnvInt gets an environment variable as an integer or returns a default value
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		var parsed int
-		_, err := fmt.Sscanf(value, "%d", &parsed)
-		if err == nil {
-			return parsed
-		}
-	}
-	return defaultValue
-}
-
 // SetupPostgresTest creates a database connection and registers cleanup.
 func SetupPostgresTest(t *testing.T) *database.Database {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	host := getEnv("POSTGRES_HOST", "127.0.0.1")
-	port := getEnvInt("POSTGRES_PORT", 55432)
-	db := getEnv("POSTGRES_DATABASE", "test")
-	username := getEnv("POSTGRES_USER", "test")
-	password := getEnv("POSTGRES_PASS", "test")
-	sslmode := getEnv("POSTGRES_SSLMODE", "disable")
+	host := common.GetEnv("POSTGRES_HOST", "127.0.0.1")
+	port := common.GetEnvInt("POSTGRES_PORT", 55432)
+	db := common.GetEnv("POSTGRES_DATABASE", "test")
+	username := common.GetEnv("POSTGRES_USER", "test")
+	password := common.GetEnv("POSTGRES_PASS", "test")
+	sslmode := common.GetEnv("POSTGRES_SSLMODE", "disable")
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		username, password, host, port, db, sslmode)
 
@@ -97,12 +77,12 @@ func SetupPostgresConnection(t *testing.T) *database.Database {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	host := getEnv("POSTGRES_HOST", "127.0.0.1")
-	port := getEnvInt("POSTGRES_PORT", 55432)
-	database := getEnv("POSTGRES_DATABASE", "test")
-	username := getEnv("POSTGRES_USER", "test")
-	password := getEnv("POSTGRES_PASS", "test")
-	sslmode := getEnv("POSTGRES_SSLMODE", "disable")
+	host := common.GetEnv("POSTGRES_HOST", "127.0.0.1")
+	port := common.GetEnvInt("POSTGRES_PORT", 55432)
+	database := common.GetEnv("POSTGRES_DATABASE", "test")
+	username := common.GetEnv("POSTGRES_USER", "test")
+	password := common.GetEnv("POSTGRES_PASS", "test")
+	sslmode := common.GetEnv("POSTGRES_SSLMODE", "disable")
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		username, password, host, port, database, sslmode)
 

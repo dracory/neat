@@ -4,13 +4,13 @@ package mysql
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 )
 
 // TestModel is a simple model for integration testing
@@ -30,11 +30,11 @@ func (TestModel) TableName() string {
 
 // GetMySQLConfig returns a MySQL connection config from environment variables
 func GetMySQLConfig() neat.DBConfig {
-	host := getEnv("MYSQL_HOST", "127.0.0.1")
-	port := getEnvInt("MYSQL_PORT", 3306)
-	database := getEnv("MYSQL_DATABASE", "test")
-	username := getEnv("MYSQL_USER", "root")
-	password := getEnv("MYSQL_PASS", "root")
+	host := common.GetEnv("MYSQL_HOST", "127.0.0.1")
+	port := common.GetEnvInt("MYSQL_PORT", 3306)
+	database := common.GetEnv("MYSQL_DATABASE", "test")
+	username := common.GetEnv("MYSQL_USER", "root")
+	password := common.GetEnv("MYSQL_PASS", "root")
 
 	return neat.DBConfig{
 		Default: "mysql",
@@ -84,37 +84,17 @@ func TeardownTestDB(db *database.Database) error {
 	return nil
 }
 
-// getEnv gets an environment variable or returns a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// getEnvInt gets an environment variable as an integer or returns a default value
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		var parsed int
-		_, err := fmt.Sscanf(value, "%d", &parsed)
-		if err == nil {
-			return parsed
-		}
-	}
-	return defaultValue
-}
-
 // SetupMySQLTest creates a database connection and sets up test tables for MySQL
 func SetupMySQLTest(t *testing.T) *database.Database {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	host := getEnv("MYSQL_HOST", "127.0.0.1")
-	port := getEnvInt("MYSQL_PORT", 3306)
-	dbName := getEnv("MYSQL_DATABASE", "test")
-	username := getEnv("MYSQL_USER", "root")
-	password := getEnv("MYSQL_PASS", "root")
+	host := common.GetEnv("MYSQL_HOST", "127.0.0.1")
+	port := common.GetEnvInt("MYSQL_PORT", 3306)
+	dbName := common.GetEnv("MYSQL_DATABASE", "test")
+	username := common.GetEnv("MYSQL_USER", "root")
+	password := common.GetEnv("MYSQL_PASS", "root")
 	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local&multiStatements=true",
 		username, password, host, port, dbName)
 
@@ -194,11 +174,11 @@ func SetupMySQLConnection(t *testing.T) *database.Database {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	host := getEnv("MYSQL_HOST", "127.0.0.1")
-	port := getEnvInt("MYSQL_PORT", 3306)
-	database := getEnv("MYSQL_DATABASE", "test")
-	username := getEnv("MYSQL_USER", "root")
-	password := getEnv("MYSQL_PASS", "root")
+	host := common.GetEnv("MYSQL_HOST", "127.0.0.1")
+	port := common.GetEnvInt("MYSQL_PORT", 3306)
+	database := common.GetEnv("MYSQL_DATABASE", "test")
+	username := common.GetEnv("MYSQL_USER", "root")
+	password := common.GetEnv("MYSQL_PASS", "root")
 	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local",
 		username, password, host, port, database)
 
