@@ -121,13 +121,14 @@ The test suite for the `database/query` package has moderate coverage with good 
 - Added `TestLoadRelationsWithMissingForeignKeyField` - Missing foreign key field handling
 
 #### 4. Cursor Streaming
-**File:** `query_scan.go`  
-**Missing Tests:**
-- `Cursor()` method
-- Cursor channel creation and consumption
-- Cursor error handling
-- Cursor with transactions
-- Cursor with WHERE clauses
+**File:** `query_scan.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestCursorBasic` - Basic Cursor() method test
+- `TestCursorChannelCreationAndConsumption` - Cursor channel creation and consumption test
+- `TestCursorErrorHandling` - Cursor error handling test
+- `TestCursorWithTransactions` - Cursor with transactions test
+- `TestCursorWithWhereClauses` - Cursor with WHERE clauses test
 
 **Impact:** Medium - Important for large dataset processing
 
