@@ -19,13 +19,10 @@ func TestMySQLIntegrationQueryAssociationFind(t *testing.T) {
 
 	user := models.User{
 		Name: "association_find_name",
-		Address: &models.Address{
-			Name: "association_find_address",
-		},
 	}
 
 	if err := query.Model(&models.User{}).Create(&user); err != nil {
-		t.Fatalf("Failed to create user with address: %v", err)
+		t.Fatalf("Failed to create user: %v", err)
 	}
 
 	var createdUser models.User
