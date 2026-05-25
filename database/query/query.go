@@ -700,7 +700,26 @@ func (q *Query) Create(value any) error {
 
 	// Populate last insert ID back into the model's primary key field
 	if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
-		setModelPrimaryKey(value, lastID)
+		// Handle bulk insert by setting IDs for each element
+		v := reflect.ValueOf(value)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+			// For bulk inserts, set sequential IDs starting from lastID - len + 1
+			startID := lastID - int64(v.Len()) + 1
+			for i := 0; i < v.Len(); i++ {
+				elem := v.Index(i)
+				if elem.Kind() == reflect.Ptr {
+					elem = elem.Elem()
+				}
+				if elem.CanAddr() {
+					setModelPrimaryKey(elem.Addr().Interface(), startID+int64(i))
+				}
+			}
+		} else {
+			setModelPrimaryKey(value, lastID)
+		}
 	}
 
 	// Fire Created event if not disabled
@@ -820,9 +839,26 @@ func hasSoftDeleteCapability(model any) bool {
 		return false
 	}
 
-	// Check for DeletedAt field
+	// Check for DeletedAt field (including embedded fields)
 	deletedAtField := val.FieldByName("DeletedAt")
-	return deletedAtField.IsValid() && deletedAtField.Type() == reflect.TypeOf(&time.Time{})
+	if deletedAtField.IsValid() && deletedAtField.Type() == reflect.TypeOf(&time.Time{}) {
+		return true
+	}
+
+	// Check embedded structs for DeletedAt
+	t := val.Type()
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			embeddedVal := val.Field(i)
+			embeddedDeletedAt := embeddedVal.FieldByName("DeletedAt")
+			if embeddedDeletedAt.IsValid() && embeddedDeletedAt.Type() == reflect.TypeOf(&time.Time{}) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // Delete deletes records from the database.
@@ -844,12 +880,17 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 
 	if useSoftDelete && !q.withTrashed && !q.onlyTrashed {
 		// Use UPDATE to set deleted_at instead of DELETE
-		builder := NewBuilder(q.WithTrashed().(*Query))
+		// Clone the query to preserve WHERE clauses
+		clone := q.Clone().(*Query)
+		clone.withTrashed = true
+		builder := NewBuilder(clone)
 		now := time.Now()
-		deleteSQL, args = builder.BuildUpdate("deleted_at", now)
+		deleteSQL, args = builder.BuildUpdate(map[string]any{"deleted_at": now})
 		if deleteSQL == "" {
 			return nil, fmt.Errorf("failed to build SOFT DELETE query")
 		}
+		// Log the soft delete SQL for debugging
+		q.logQuery(deleteSQL, args, time.Now())
 	} else {
 		// Build DELETE query
 		builder := NewBuilder(q)

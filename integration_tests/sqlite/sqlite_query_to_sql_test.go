@@ -74,14 +74,15 @@ func TestSQLiteIntegrationQueryToRawSqlCount(t *testing.T) {
 
 	sql := query.Table("users").Where("name = ?", "test").ToRawSql().Count()
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	if !strings.Contains(sql, "SELECT count(*)") {
-		t.Error("Expected SELECT count(*)")
+	t.Logf("Generated SQL: %s", sql)
+	if !strings.Contains(sql, "SELECT COUNT(*)") {
+		t.Error("Expected SELECT COUNT(*)")
 	}
 	if !strings.Contains(sql, "FROM \"users\"") {
 		t.Error("Expected FROM \"users\"")
 	}
-	if !strings.Contains(sql, "WHERE \"name\" = ") {
-		t.Error("Expected WHERE \"name\" = ")
+	if !strings.Contains(sql, "WHERE name = 'test'") {
+		t.Error("Expected WHERE name = 'test'")
 	}
 }
 

@@ -71,19 +71,18 @@ func TestSQLiteIntegrationWithTrashed(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	query := db.Query()
 
 	// Create users
 	users := []models.User{
 		{Name: "with_trashed_user1", Avatar: "avatar1"},
 		{Name: "with_trashed_user2", Avatar: "avatar2"},
 	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
+	if err := db.Query().Model(&models.User{}).Create(&users); err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
 	// Soft delete one user
-	res, err := query.Model(&models.User{}).Where("name = ?", "with_trashed_user1").Delete(&models.User{})
+	res, err := db.Query().Model(&models.User{}).Where("name = ?", "with_trashed_user1").Delete(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to delete user: %v", err)
 	}
@@ -94,8 +93,7 @@ func TestSQLiteIntegrationWithTrashed(t *testing.T) {
 
 	// Without WithTrashed, should only find non-deleted users
 	var activeUsers []models.User
-	err = query.Model(&models.User{}).Where("name LIKE ?", "with_trashed_user%").Find(&activeUsers)
-	if err != nil {
+	if err := db.Query().Model(&models.User{}).Where("name LIKE ?", "with_trashed_user%").Find(&activeUsers); err != nil {
 		t.Fatalf("Failed to find active users: %v", err)
 	}
 
@@ -109,8 +107,7 @@ func TestSQLiteIntegrationWithTrashed(t *testing.T) {
 
 	// With WithTrashed, should find all users including deleted
 	var allUsers []models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers)
-	if err != nil {
+	if err := db.Query().Model(&models.User{}).WithTrashed().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers); err != nil {
 		t.Fatalf("Failed to find all users with WithTrashed: %v", err)
 	}
 

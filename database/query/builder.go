@@ -333,10 +333,27 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	}
 
 	// WHERE clauses (with automatic soft-delete filter)
-	whereParts, whereArgs := b.buildWheresWithSoftDelete()
-	if whereParts != "" {
-		parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-		args = append(args, whereArgs...)
+	// Skip soft-delete filter if we're updating deleted_at column (for soft delete operations)
+	isSoftDeleteOperation := false
+	if m, ok := column.(map[string]any); ok {
+		if _, hasDeletedAt := m["deleted_at"]; hasDeletedAt {
+			isSoftDeleteOperation = true
+		}
+	}
+
+	if !isSoftDeleteOperation {
+		whereParts, whereArgs := b.buildWheresWithSoftDelete()
+		if whereParts != "" {
+			parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+			args = append(args, whereArgs...)
+		}
+	} else {
+		// For soft delete operations, use regular WHERE without soft-delete filter
+		whereParts, whereArgs := b.buildWheres()
+		if whereParts != "" {
+			parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+			args = append(args, whereArgs...)
+		}
 	}
 
 	return strings.Join(parts, " "), args
@@ -373,11 +390,11 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 	if hasSoftDeleteCapability(b.query.model) {
 		switch {
 		case b.query.onlyTrashed:
-			prefix = "deleted_at IS NOT NULL"
+			prefix = fmt.Sprintf("%s IS NOT NULL", b.quoteIdentifier("deleted_at"))
 		case b.query.withTrashed:
 			// include all rows — no filter
 		default:
-			prefix = "deleted_at IS NULL"
+			prefix = fmt.Sprintf("%s IS NULL", b.quoteIdentifier("deleted_at"))
 		}
 	}
 
