@@ -140,6 +140,11 @@ func createMySQLTestTables(t *testing.T, db *database.Database) {
 		t.Fatalf("createMySQLTestTables: DB(): %v", err)
 	}
 	stmts := []string{
+		`DROP TABLE IF EXISTS books`,
+		`DROP TABLE IF EXISTS addresses`,
+		`DROP TABLE IF EXISTS users`,
+		`DROP TABLE IF EXISTS peoples`,
+		`DROP TABLE IF EXISTS json_datas`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			name       VARCHAR(255) NOT NULL DEFAULT '',
