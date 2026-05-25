@@ -442,33 +442,77 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** High - Error handling is critical for production
 
 #### 2. Nil/Zero Values
-**Missing:**
-- Nil model handling
-- Zero value primary keys
-- Nil pointer fields
-- Empty slices in bulk operations
-- Empty WHERE clauses
+**File:** `query_edge_cases_test.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestNilModelHandling` - Nil model in Create
+- `TestNilModelInUpdate` - Nil model in Update
+- `TestNilModelInSave` - Nil model in Save
+- `TestZeroValuePrimaryKey` - Zero ID auto-increment
+- `TestZeroValuePrimaryKeyInUpdate` - Zero ID in Update
+- `TestZeroValuePrimaryKeyInFind` - Finding record with zero ID
+- `TestNilPointerFields` - Nil pointer fields in Create
+- `TestNilPointerFieldsInUpdate` - Nil pointer fields in Update
+- `TestNilPointerFieldsInScan` - Scanning NULL values to nil pointers
+- `TestEmptySliceInCreate` - Empty slice in Create
+- `TestEmptySliceInFind` - Empty slice in Find
+- `TestEmptySliceInUpdate` - Empty slice in Update
+- `TestEmptySliceInDelete` - Empty slice in Delete
+- `TestEmptyWhereClause` - Query with empty WHERE
+- `TestEmptyWhereClauseInUpdate` - Update with empty WHERE
+- `TestEmptyWhereClauseInDelete` - Delete with empty WHERE
+- `TestEmptyWhereString` - Empty WHERE string
+- `TestWhereWithEmptyArgs` - WHERE with placeholder but no args
 
 **Impact:** Medium - Edge cases that cause panics
 
 #### 3. Complex Types
-**Missing:**
-- Nested struct fields
-- Embedded struct fields
-- Pointer to pointer fields
-- Custom types implementing Scanner/Valuer
-- JSON/JSONB fields
-- Array fields
+**File:** `query_edge_cases_test.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestNestedStructFields` - Nested struct field handling
+- `TestEmbeddedStructFields` - Embedded struct field handling
+- `TestPointerToPointerFields` - Double pointer field handling
+- `TestCustomScannerValuer` - Custom types implementing Scanner/Valuer
+- `TestJSONFields` - JSON field storage and retrieval
+- `TestJSONFieldsWithQuery` - JSON field querying with json_extract
+- `TestArrayFields` - Array field storage (comma-separated)
+- `TestArrayFieldsQuery` - Array field querying with LIKE
 
 **Impact:** Medium - Common in real-world models
 
 #### 4. Dialect Differences
-**Missing:**
-- MySQL-specific tests (LIMIT/OFFSET syntax, quoting)
-- PostgreSQL-specific tests (RETURNING, array types)
-- SQL Server-specific tests
-- Turso-specific tests
-- Cross-dialect compatibility tests
+**File:** `query_dialect_test.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestMySQLBacktickQuoting` - MySQL backtick identifier quoting
+- `TestMySQLLimitOffsetSyntax` - MySQL LIMIT/OFFSET syntax
+- `TestMySQLAutoIncrement` - MySQL AUTO_INCREMENT support
+- `TestMySQLNowFunction` - MySQL NOW() function
+- `TestPostgreSQLDoubleQuoteQuoting` - PostgreSQL double-quote identifier quoting
+- `TestPostgreSQLLimitOffsetSyntax` - PostgreSQL LIMIT/OFFSET syntax
+- `TestPostgreSQLReturningClause` - PostgreSQL RETURNING clause support
+- `TestPostgreSQLArrayTypes` - PostgreSQL array type support
+- `TestPostgreSQLNowFunction` - PostgreSQL NOW() function
+- `TestSQLiteNoQuoting` - SQLite identifier handling
+- `TestSQLiteLimitOffsetSyntax` - SQLite LIMIT/OFFSET syntax
+- `TestSQLiteJsonExtract` - SQLite json_extract() function
+- `TestSQLServerBracketQuoting` - SQL Server bracket identifier quoting
+- `TestSQLServerTopSyntax` - SQL Server TOP syntax
+- `TestSQLServerGetDateFunction` - SQL Server GETDATE() function
+- `TestTursoSQLiteCompatibility` - Turso SQLite compatibility
+- `TestTursoLimitOffsetSyntax` - Turso LIMIT/OFFSET syntax
+- `TestCrossDialectWhereClause` - WHERE clause across all dialects
+- `TestCrossDialectOrderBy` - ORDER BY across all dialects
+- `TestCrossDialectJoin` - JOIN across all dialects
+- `TestCrossDialectGroupBy` - GROUP BY across all dialects
+- `TestCrossDialectHaving` - HAVING across all dialects
+- `TestCrossDialectInsert` - INSERT across all dialects
+- `TestCrossDialectUpdate` - UPDATE across all dialects
+- `TestCrossDialectDelete` - DELETE across all dialects
+- `TestDialectSpecificJSONOperators` - JSON operators per dialect
+- `TestDialectLockClauses` - Lock clauses across dialects
+- `TestDialectWithActualConnection` - Dialect with actual SQLite connection
 
 **Impact:** High - Package supports multiple databases
 
