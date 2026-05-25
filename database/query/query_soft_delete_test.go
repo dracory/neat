@@ -45,7 +45,6 @@ func TestBuildSelectWithTrashedSkipsFilter(t *testing.T) {
 	w.SetWithTrashed(true)
 	sqlStr, _ := w.BuildSelectSQL()
 
-	// Check if "deleted_at IS NULL" or "deleted_at IS NOT NULL" exists after "WHERE"
 	if whereIdx := strings.Index(sqlStr, "WHERE"); whereIdx != -1 {
 		whereClause := sqlStr[whereIdx:]
 		if strings.Contains(whereClause, "deleted_at") {

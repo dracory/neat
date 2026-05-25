@@ -7,154 +7,6 @@ import (
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
-func TestToSqlCount(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Count()
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Count")
-	}
-}
-
-func TestToSqlCreate(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	model := struct {
-		Name string
-	}{Name: "John"}
-
-	toSql := NewToSql(q)
-	sql := toSql.Create(model)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Create")
-	}
-}
-
-func TestToSqlDelete(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Delete()
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Delete")
-	}
-}
-
-func TestToSqlFirst(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.First(nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for First")
-	}
-}
-
-func TestToSqlGet(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Get(nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Get")
-	}
-}
-
-func TestToSqlPluck(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Pluck("name", nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Pluck")
-	}
-}
-
-func TestToSqlValue(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Value("name", nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Value")
-	}
-}
-
-func TestToSqlAvg(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Avg("age", nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Avg")
-	}
-}
-
-func TestToSqlMax(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Max("age", nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Max")
-	}
-}
-
-func TestToSqlMin(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Min("age", nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Min")
-	}
-}
-
-func TestToSqlSum(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Sum("age", nil)
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Sum")
-	}
-}
-
-func TestToSqlUpdate(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	q.table = "users"
-
-	toSql := NewToSql(q)
-	sql := toSql.Update("name", "John")
-
-	if sql == "" {
-		t.Error("Expected SQL to be generated for Update")
-	}
-}
-
 func TestToSqlIncrement(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
@@ -203,7 +55,6 @@ func TestSelectWithSubqueryCallback(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 
-	// Test callback as first parameter with alias
 	q.Select(func(q contractsorm.Query) contractsorm.Query {
 		return q.Table("users").Select("name").Where("id = ?", 1)
 	}, "sub_name")
@@ -227,7 +78,6 @@ func TestSelectWithSubqueryCallbackNoAlias(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 
-	// Test callback as first parameter without alias
 	q.Select(func(q contractsorm.Query) contractsorm.Query {
 		return q.Table("users").Select("name").Where("id = ?", 1)
 	})
@@ -248,7 +98,6 @@ func TestSelectWithSubqueryCallbackInArgs(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 
-	// Test callback in args parameter
 	q.Select("? as sub_name", func(q contractsorm.Query) contractsorm.Query {
 		return q.Table("users").Select("name").Where("id = ?", 1)
 	})

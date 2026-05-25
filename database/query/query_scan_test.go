@@ -53,7 +53,7 @@ func TestScanRowsByNeatTag(t *testing.T) {
 // --- snake_case fallback (no tag) ---
 
 type snakeCaseModel struct {
-	UserName string // no tag — should map from column "user_name"
+	UserName string
 }
 
 func TestScanRowsBySnakeCase(t *testing.T) {
