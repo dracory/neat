@@ -401,13 +401,43 @@ The test suite for the `database/query` package has moderate coverage with good 
 ### Missing Edge Cases
 
 #### 1. Error Handling
-**Missing:**
-- Database connection errors
-- Query execution errors
-- Transaction errors
-- Scan errors with mismatched types
-- Timeout errors
-- Constraint violation errors
+**File:** `query_errors_test.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestDatabaseConnectionError` - Invalid connection string error
+- `TestNilDatabaseConnection` - Nil database connection error
+- `TestQueryExecutionErrorInvalidTable` - Query on nonexistent table
+- `TestQueryExecutionErrorInvalidSQL` - Invalid SQL syntax
+- `TestQueryExecutionErrorWithWhere` - Invalid column in WHERE clause
+- `TestTransactionBeginError` - Transaction begin error
+- `TestTransactionCommitError` - Transaction commit error
+- `TestTransactionRollbackError` - Transaction rollback error
+- `TestTransactionOperationNotInTransaction` - Operations outside transaction
+- `TestScanErrorMismatchedTypes` - Type mismatch during scan
+- `TestScanErrorNilDestination` - Nil destination error
+- `TestScanErrorNonPointerDestination` - Non-pointer destination error
+- `TestScanErrorUnmatchedColumns` - Unmatched column handling
+- `TestQueryTimeout` - Context timeout handling
+- `TestQueryCancellation` - Context cancellation handling
+- `TestConstraintViolationPrimaryKey` - Primary key violation
+- `TestConstraintViolationUnique` - Unique constraint violation
+- `TestConstraintViolationNotNull` - NOT NULL constraint violation
+- `TestConstraintViolationForeignKey` - Foreign key constraint violation
+- `TestExecErrorInvalidSQL` - Exec with invalid SQL
+- `TestExecErrorInvalidParameters` - Exec with mismatched parameters
+- `TestRawErrorWithNilQuery` - Raw with nil query
+- `TestCountErrorInvalidTable` - Count on nonexistent table
+- `TestPluckErrorInvalidColumn` - Pluck with invalid column
+- `TestUpdateErrorInvalidTable` - Update on nonexistent table
+- `TestDeleteErrorInvalidTable` - Delete on nonexistent table
+- `TestSavepointErrorNotInTransaction` - Savepoint outside transaction
+- `TestRollbackToErrorNotInTransaction` - RollbackTo outside transaction
+- `TestSavepointErrorInvalidName` - Invalid savepoint name
+- `TestRollbackToErrorNonexistentSavepoint` - Nonexistent savepoint
+- `TestContextErrorPropagationInTransaction` - Context error in transaction
+- `TestDialectErrorHandlingMySQL` - MySQL dialect error handling
+- `TestDialectErrorHandlingPostgreSQL` - PostgreSQL dialect error handling
+- `TestDialectErrorHandlingSQLite` - SQLite dialect error handling
 
 **Impact:** High - Error handling is critical for production
 
