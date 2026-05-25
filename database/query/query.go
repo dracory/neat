@@ -50,8 +50,10 @@ type Query struct {
 	aggregateCol string
 
 	// Transaction state
-	inTransaction bool
-	tx            *sql.Tx
+	inTransaction  bool
+	tx             *sql.Tx
+	savepointLevel int
+	savepointName  string
 
 	// Observer state
 	modelToObserver []contractsorm.ModelToObserver
@@ -1053,19 +1055,19 @@ func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*s
 
 	defer func() {
 		if p := recover(); p != nil {
-			txQ.doRollback()
+			_ = txQ.Rollback()
 			panic(p)
 		}
 	}()
 
 	if err := txFunc(txQuery); err != nil {
-		if rbErr := txQ.doRollback(); rbErr != nil {
+		if rbErr := txQ.Rollback(); rbErr != nil {
 			return fmt.Errorf("transaction error: %v, rollback error: %w", err, rbErr)
 		}
 		return err
 	}
 
-	return txQ.doCommit()
+	return txQ.Commit()
 }
 
 // doCommit runs beforeCommit hooks, commits, then runs afterCommit hooks.
@@ -2133,8 +2135,17 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 	var tx *sql.Tx
 	var err error
 	if q.tx != nil {
-		// Already in a transaction, return current query
-		return q, nil
+		// Already in a transaction, create a savepoint for nested transaction
+		q.savepointLevel++
+		savepointName := fmt.Sprintf("neat_sp_%d", q.savepointLevel)
+		_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("SAVEPOINT %s", savepointName))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create savepoint: %w", err)
+		}
+		// Create a new query instance with the savepoint
+		newQuery := *q
+		newQuery.savepointName = savepointName
+		return &newQuery, nil
 	}
 
 	dbConn, err := q.DB()
@@ -2151,12 +2162,23 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 	newQuery := *q
 	newQuery.tx = tx
 	newQuery.inTransaction = true
+	newQuery.savepointLevel = 0
 	return &newQuery, nil
 }
 func (q *Query) Commit() error {
 	if !q.inTransaction || q.tx == nil {
 		return fmt.Errorf("not in a transaction")
 	}
+
+	// If this is a nested transaction (savepoint), release it
+	if q.savepointName != "" {
+		_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
+		if err != nil {
+			return fmt.Errorf("failed to release savepoint: %w", err)
+		}
+		return nil
+	}
+
 	if err := q.doCommit(); err != nil {
 		return err
 	}
@@ -2168,6 +2190,21 @@ func (q *Query) Rollback() error {
 	if !q.inTransaction || q.tx == nil {
 		return fmt.Errorf("not in a transaction")
 	}
+
+	// If this is a nested transaction (savepoint), rollback to it
+	if q.savepointName != "" {
+		_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", q.savepointName))
+		if err != nil {
+			return fmt.Errorf("failed to rollback to savepoint: %w", err)
+		}
+		// Release the savepoint after rollback
+		_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
+		if err != nil {
+			return fmt.Errorf("failed to release savepoint: %w", err)
+		}
+		return nil
+	}
+
 	err := q.doRollback()
 	q.inTransaction = false
 	q.tx = nil

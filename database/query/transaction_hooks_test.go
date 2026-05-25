@@ -114,3 +114,63 @@ func TestTransactionCommitSucceeds(t *testing.T) {
 		t.Fatalf("clean transaction should not fail: %v", err)
 	}
 }
+
+func TestNestedTransactionCommit(t *testing.T) {
+	w := openSQLiteForTx(t)
+
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		return tx.Transaction(func(innerTx contractsorm.Query) error {
+			return nil
+		})
+	})
+	if err != nil {
+		t.Fatalf("nested transaction commit should not fail: %v", err)
+	}
+}
+
+func TestNestedTransactionRollback(t *testing.T) {
+	w := openSQLiteForTx(t)
+
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+			return errors.New("force inner rollback")
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("nested transaction with inner rollback should not fail: %v", err)
+	}
+}
+
+func TestNestedTransactionWithOperations(t *testing.T) {
+	w := openSQLiteForTx(t)
+
+	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+		_, err := tx.Exec("INSERT INTO tx_hooks (id, val) VALUES (1, 'outer')")
+		if err != nil {
+			return err
+		}
+
+		return tx.Transaction(func(innerTx contractsorm.Query) error {
+			_, err := innerTx.Exec("INSERT INTO tx_hooks (id, val) VALUES (2, 'inner')")
+			return err
+		})
+	})
+	if err != nil {
+		t.Fatalf("nested transaction with operations should not fail: %v", err)
+	}
+
+	// Verify both records were committed
+	var count int
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("failed to get DB: %v", err)
+	}
+	err = db.QueryRow("SELECT COUNT(*) FROM tx_hooks").Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count records: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 records, got %d", count)
+	}
+}
