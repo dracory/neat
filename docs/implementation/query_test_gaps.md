@@ -133,13 +133,18 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** Medium - Important for large dataset processing
 
 #### 5. Chunk Processing
-**File:** `query_scan.go`  
-**Missing Tests:**
-- `Chunk()` method
-- Chunk callback execution
-- Chunk size variations
-- Chunk with typed slices
-- Chunk error handling
+**File:** `query_scan.go`
+**Status:** ✅ Completed (2026-05-25)
+**Tests Added:**
+- `TestChunkBasic` - Basic Chunk() method test
+- `TestChunkCallbackExecution` - Chunk callback execution test
+- `TestChunkSizeVariations` - Chunk size variations (1, 3, 5, 10, 20)
+- `TestChunkWithTypedSlices` - Chunk with typed slices (struct mapping)
+- `TestChunkErrorHandling` - Chunk error handling (invalid callback, callback error, empty result)
+- `TestChunkWithTransactions` - Chunk with transactions test
+- `TestChunkWithWhereClauses` - Chunk with WHERE clauses test
+**Bug Fixed:**
+- Fixed chunkRows to only convert to typed slices when callback accepts struct slices, not map slices
 
 **Impact:** Medium - Important for memory-efficient processing
 

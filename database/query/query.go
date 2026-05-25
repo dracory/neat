@@ -653,8 +653,11 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	var elemType reflect.Type
 
 	if paramType.Kind() == reflect.Slice {
-		isTypedSlice = true
 		elemType = paramType.Elem()
+		// Only convert to typed slice if it's a struct, not a map
+		if elemType.Kind() == reflect.Struct {
+			isTypedSlice = true
+		}
 	}
 
 	// Process rows in chunks
