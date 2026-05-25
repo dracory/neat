@@ -263,6 +263,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	var parts []string
 	var args []any
+	var setArgs []any // Store SET args separately to add them after WHERE args
 
 	// UPDATE clause
 	parts = append(parts, "UPDATE")
@@ -291,7 +292,7 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 				continue
 			}
 			setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(col)))
-			args = append(args, val)
+			setArgs = append(setArgs, val)
 		}
 	} else if len(values) > 0 {
 		// Handle single column with value
@@ -300,10 +301,10 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 			if strings.Contains(colStr, "=") {
 				// Use the expression as-is (for Increment/Decrement)
 				setParts = append(setParts, colStr)
-				args = append(args, values...)
+				setArgs = append(setArgs, values...)
 			} else {
 				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
-				args = append(args, values[0])
+				setArgs = append(setArgs, values[0])
 			}
 		}
 	} else {
@@ -323,7 +324,7 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 					continue
 				}
 				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(col)))
-				args = append(args, vals[i])
+				setArgs = append(setArgs, vals[i])
 			}
 		}
 	}
@@ -341,15 +342,64 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 		}
 	}
 
+	// Add SET args first (they appear first in the SQL: SET ... WHERE ...)
+	args = append(args, setArgs...)
+
+	// Build WHERE clause (will be used for both normal WHERE and LIMIT workaround)
+	var whereParts string
+	var whereArgs []any
 	if !isSoftDeleteOperation {
-		whereParts, whereArgs := b.buildWheresWithSoftDelete()
-		if whereParts != "" {
-			parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-			args = append(args, whereArgs...)
-		}
+		whereParts, whereArgs = b.buildWheresWithSoftDelete()
 	} else {
 		// For soft delete operations, use regular WHERE without soft-delete filter
-		whereParts, whereArgs := b.buildWheres()
+		whereParts, whereArgs = b.buildWheres()
+	}
+
+	// LIMIT clause
+	// MySQL supports LIMIT directly in UPDATE
+	// SQLite requires a subquery workaround: UPDATE ... WHERE rowid IN (SELECT rowid FROM ... ORDER BY ... LIMIT N)
+	// PostgreSQL supports LIMIT directly in UPDATE
+	if b.query.limit != nil {
+		if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+			// Add WHERE clause if it exists
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
+			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+			// SQLite workaround: wrap in subquery with rowid
+			if whereParts == "" {
+				whereParts = "1=1"
+			}
+			// Build ORDER BY clause for deterministic row selection
+			var orderClause string
+			if len(b.query.orders) > 0 {
+				var orderParts []string
+				for _, order := range b.query.orders {
+					orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
+				}
+				orderClause = fmt.Sprintf(" ORDER BY %s", strings.Join(orderParts, ", "))
+			}
+			// Add WHERE clause with rowid subquery including ORDER BY
+			parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
+			args = append(args, whereArgs...)
+		} else if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+			// PostgreSQL supports LIMIT directly in UPDATE
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
+			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		} else {
+			// Other databases: add WHERE clause normally (LIMIT may or may not be supported)
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
+		}
+	} else {
+		// No LIMIT: add WHERE clause normally
 		if whereParts != "" {
 			parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 			args = append(args, whereArgs...)
@@ -373,11 +423,58 @@ func (b *Builder) BuildDelete() (string, []any) {
 		args = append(args, b.query.tableArgs...)
 	}
 
-	// WHERE clauses (with automatic soft-delete filter)
+	// Build WHERE clause (will be used for both normal WHERE and LIMIT workaround)
 	whereParts, whereArgs := b.buildWheresWithSoftDelete()
-	if whereParts != "" {
-		parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-		args = append(args, whereArgs...)
+
+	// LIMIT clause
+	// MySQL supports LIMIT directly in DELETE
+	// SQLite requires a subquery workaround: DELETE FROM ... WHERE rowid IN (SELECT rowid FROM ... ORDER BY ... LIMIT N)
+	// PostgreSQL supports LIMIT directly in DELETE
+	if b.query.limit != nil {
+		if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+			// Add WHERE clause if it exists
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
+			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+			// SQLite workaround: wrap in subquery with rowid
+			if whereParts == "" {
+				whereParts = "1=1"
+			}
+			// Build ORDER BY clause for deterministic row selection
+			var orderClause string
+			if len(b.query.orders) > 0 {
+				var orderParts []string
+				for _, order := range b.query.orders {
+					orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
+				}
+				orderClause = fmt.Sprintf(" ORDER BY %s", strings.Join(orderParts, ", "))
+			}
+			// Add WHERE clause with rowid subquery including ORDER BY
+			parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
+			args = append(args, whereArgs...)
+		} else if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+			// PostgreSQL supports LIMIT directly in DELETE
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
+			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		} else {
+			// Other databases: add WHERE clause normally (LIMIT may or may not be supported)
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
+		}
+	} else {
+		// No LIMIT: add WHERE clause normally
+		if whereParts != "" {
+			parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+			args = append(args, whereArgs...)
+		}
 	}
 
 	return strings.Join(parts, " "), args
