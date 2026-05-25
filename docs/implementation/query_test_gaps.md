@@ -207,23 +207,32 @@ The test suite for the `database/query` package has moderate coverage with good 
 **Impact:** High - Common upsert pattern
 
 #### 9. Pagination
-**File:** `query_scan.go`  
-**Missing Tests:**
-- `Paginate()` method
-- Total count calculation
-- Offset calculation
-- Paginate with WHERE clauses
-- Paginate error handling
+**File:** `query_scan.go`
+**Status:** ✅ Complete
+**Tests Added:**
+- `TestPaginateBasic` - Basic pagination with page 1, limit 2
+- `TestPaginateTotalCount` - Verifies total count calculation
+- `TestPaginateOffsetCalculation` - Tests offset calculation across multiple pages
+- `TestPaginateWithWhereClauses` - Pagination with WHERE filtering
+- `TestPaginateErrorHandling` - Error scenarios (nil total, invalid page, empty results, count failure)
+- `TestPaginateWithTransactions` - Pagination within transactions
+- `TestPaginateTypedStructs` - Pagination with typed structs
+- `TestPaginateLastPage` - Last page with partial results
+- `TestPaginateBeyondLastPage` - Requesting pages beyond available data
 
 **Impact:** High - Essential for web applications
 
 #### 10. Scopes
-**File:** `query.go`  
-**Missing Tests:**
-- `Scopes()` method
-- Scope application order
-- Scope with query chaining
-- Scope error handling
+**File:** `query.go`
+**Status:** ✅ Completed
+**Tests Added:**
+- `TestScopesMethod` - Tests Scopes() method with single/multiple scopes, closure parameters, and empty scopes list
+- `TestScopeApplicationOrder` - Tests scope application order and how order affects results
+- `TestScopeWithQueryChaining` - Tests scopes with query chaining (before/after where, with First)
+- `TestScopeErrorHandling` - Tests error scenarios (nil query, invalid where, panic, invalid table, nil destination)
+- `TestScopeWithTransactions` - Tests scopes within transactions
+- `TestScopeIsolation` - Tests that scopes don't affect original query and multiple scopes on same query
+- `TestScopeWithModel` - Tests scopes with Model set
 
 **Impact:** Medium - Important for query reusability
 
