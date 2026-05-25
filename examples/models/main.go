@@ -11,7 +11,7 @@ import (
 
 // User represents a user model
 type User struct {
-	ID        uint       `gorm:"primaryKey"`
+	ID        uint       `gorm:"column:id;primaryKey"`
 	Name      string     `gorm:"column:name"`
 	Email     string     `gorm:"column:email"`
 	Age       int        `gorm:"column:age"`
@@ -28,7 +28,7 @@ func (User) TableName() string {
 
 // Post represents a post model
 type Post struct {
-	ID        uint      `gorm:"primaryKey"`
+	ID        uint      `gorm:"column:id;primaryKey"`
 	UserID    uint      `gorm:"column:user_id"`
 	Title     string    `gorm:"column:title"`
 	Content   string    `gorm:"column:content"`
