@@ -64,14 +64,21 @@ The test suite for the `database/query` package has moderate coverage with good 
 
 ### Missing Integration Tests
 
-#### 1. Nested Transactions and Savepoints
+#### 1. Nested Transactions and Savepoints ✅
 **File:** `query_transaction.go`  
-**Missing Tests:**
-- `SavePoint()` method
-- `RollbackTo()` method
-- Savepoint creation and rollback scenarios
-- Nested savepoint levels
-- Savepoint error handling
+**Status:** COMPLETED (2026-05-25)
+**Tests Added:**
+- `TestSavePoint` - Basic savepoint creation
+- `TestSavePointNotInTransaction` - Error handling when not in transaction
+- `TestRollbackTo` - Rollback to a specific savepoint
+- `TestRollbackToNotInTransaction` - Error handling when not in transaction
+- `TestSavepointCreationAndRollback` - Full savepoint creation and rollback scenario
+- `TestNestedSavepointLevels` - Nested savepoint levels with rollback
+- `TestSavepointErrorHandling` - Invalid savepoint name error handling
+- `TestRollbackToInvalidSavepoint` - Nonexistent savepoint error handling
+- `TestBeginCreatesSavepointForNestedTransaction` - Nested transaction savepoint creation
+- `TestCommitReleasesSavepoint` - Savepoint release on commit
+- `TestRollbackReleasesSavepoint` - Savepoint release on rollback
 
 **Impact:** Critical for complex transaction workflows
 
