@@ -225,6 +225,23 @@ func (q *Query) Clone() contractsorm.Query {
 		}
 	}
 
+	// Transaction state
+	clone.inTransaction = q.inTransaction
+	clone.tx = q.tx
+	clone.savepointLevel = q.savepointLevel
+	clone.savepointName = q.savepointName
+
+	// Observer state
+	clone.modelToObserver = append([]contractsorm.ModelToObserver{}, q.modelToObserver...)
+	clone.withoutEvents = q.withoutEvents
+	clone.dispatcher = q.dispatcher
+
+	// Transaction lifecycle hooks
+	clone.beforeCommit = append([]func() error{}, q.beforeCommit...)
+	clone.afterCommit = append([]func() error{}, q.afterCommit...)
+	clone.beforeRollback = append([]func() error{}, q.beforeRollback...)
+	clone.afterRollback = append([]func() error{}, q.afterRollback...)
+
 	return clone
 }
 

@@ -12,7 +12,7 @@ import (
 func openSQLiteQuery(t *testing.T) *query.TestQuery {
 	t.Helper()
 	drv := driver.NewSQLite()
-	sqlDB, err := drv.Open(":memory:")
+	sqlDB, err := drv.Open("file::memory:?cache=shared&_pragma=busy_timeout(5000)")
 	if err != nil {
 		t.Fatalf("openSQLiteQuery: %v", err)
 	}
