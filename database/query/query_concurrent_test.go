@@ -16,7 +16,7 @@ var dbCounter int64
 
 // TestConcurrentQueryExecution tests that multiple goroutines can execute queries concurrently
 func TestConcurrentQueryExecution(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -137,7 +137,7 @@ func TestConcurrentQueryMutation(t *testing.T) {
 
 // TestConcurrentTransactionHandling tests concurrent transaction operations
 func TestConcurrentTransactionHandling(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -211,7 +211,7 @@ func TestConcurrentTransactionHandling(t *testing.T) {
 
 // TestConcurrentReadOperations tests concurrent read operations
 func TestConcurrentReadOperations(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -266,7 +266,7 @@ func TestConcurrentReadOperations(t *testing.T) {
 
 // TestConcurrentWriteOperations tests concurrent write operations
 func TestConcurrentWriteOperations(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -329,7 +329,7 @@ func TestConcurrentWriteOperations(t *testing.T) {
 
 // TestConcurrentMixedOperations tests mixed read and write operations
 func TestConcurrentMixedOperations(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -391,7 +391,7 @@ func TestConcurrentMixedOperations(t *testing.T) {
 
 // TestConcurrentQueryWithWhereClause tests concurrent queries with where clauses
 func TestConcurrentQueryWithWhereClause(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -451,7 +451,7 @@ func TestConcurrentQueryWithWhereClause(t *testing.T) {
 
 // TestConcurrentQueryWithJoins tests concurrent queries with joins
 func TestConcurrentQueryWithJoins(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -522,7 +522,7 @@ func TestConcurrentQueryWithJoins(t *testing.T) {
 
 // TestConcurrentQueryWithLimitOffset tests concurrent queries with limit and offset
 func TestConcurrentQueryWithLimitOffset(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -578,7 +578,7 @@ func TestConcurrentQueryWithLimitOffset(t *testing.T) {
 
 // TestConcurrentQueryWithOrderBy tests concurrent queries with order by
 func TestConcurrentQueryWithOrderBy(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -634,7 +634,7 @@ func TestConcurrentQueryWithOrderBy(t *testing.T) {
 
 // TestConcurrentQueryWithDistinct tests concurrent queries with distinct
 func TestConcurrentQueryWithDistinct(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
@@ -696,7 +696,7 @@ func TestConcurrentQueryWithDistinct(t *testing.T) {
 
 // TestConcurrentQueryWithAggregates tests concurrent queries with aggregate functions
 func TestConcurrentQueryWithAggregates(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
