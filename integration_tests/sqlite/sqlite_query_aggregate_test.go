@@ -194,28 +194,55 @@ func TestSQLiteIntegrationQueryAggregateInvalidColumn(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("ORM column-name validation not yet implemented: Sum() does not reject invalid column names")
+
+	db := SetupSQLiteTest(t)
+
+	var sum int64
+	err := db.Query().Table("users").Sum("invalid; column", &sum)
+	if err == nil {
+		t.Error("Expected error for invalid column")
+	}
 }
 
 func TestSQLiteIntegrationQueryAggregateSQLInjectionComment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("ORM column-name validation not yet implemented")
+
+	db := SetupSQLiteTest(t)
+
+	var sum int64
+	err := db.Query().Table("users").Sum("id; --", &sum)
+	if err == nil {
+		t.Error("Expected error for SQL injection attempt")
+	}
 }
 
 func TestSQLiteIntegrationQueryAggregateSQLInjectionUnion(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("ORM column-name validation not yet implemented")
+
+	db := SetupSQLiteTest(t)
+
+	var sum int64
+	err := db.Query().Table("users").Sum("id) UNION SELECT 1--", &sum)
+	if err == nil {
+		t.Error("Expected error for SQL injection attempt")
+	}
 }
 
 func TestSQLiteIntegrationQueryAggregateNilPointer(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("ORM nil-dest validation not yet implemented: Sum() does not reject nil dest")
+
+	db := SetupSQLiteTest(t)
+
+	err := db.Query().Table("users").Sum("id", nil)
+	if err == nil {
+		t.Error("Expected error for nil destination")
+	}
 }
 
 func TestSQLiteIntegrationQueryAggregateEmptyResultSet(t *testing.T) {

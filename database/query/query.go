@@ -664,113 +664,97 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	}
 
 	paramType := callbackType.In(0)
+	if paramType.Kind() != reflect.Slice {
+		return fmt.Errorf("callback parameter must be a slice")
+	}
 
-	// Determine if we need to convert to a specific type
-	var isTypedSlice bool
-	var elemType reflect.Type
+	elemType := paramType.Elem()
+	realElemType := elemType
+	isPtr := elemType.Kind() == reflect.Ptr
+	if isPtr {
+		realElemType = elemType.Elem()
+	}
 
-	if paramType.Kind() == reflect.Slice {
-		elemType = paramType.Elem()
-		// Only convert to typed slice if it's a struct, not a map
-		if elemType.Kind() == reflect.Struct {
-			isTypedSlice = true
-		}
+	columns, err := rows.Columns()
+	if err != nil {
+		return fmt.Errorf("failed to get columns: %w", err)
 	}
 
 	// Process rows in chunks
-	chunk := make([]map[string]any, 0, size)
+	chunk := reflect.MakeSlice(paramType, 0, size)
 
 	for rows.Next() {
-		// Scan into a map
-		columns, err := rows.Columns()
-		if err != nil {
-			return fmt.Errorf("failed to get columns: %w", err)
+		// Create a new element
+		var elem reflect.Value
+		if isPtr {
+			elem = reflect.New(realElemType)
+		} else {
+			elem = reflect.New(elemType).Elem()
 		}
 
-		values := make([]any, len(columns))
-		valuePtrs := make([]any, len(columns))
-		for i := range values {
-			valuePtrs[i] = &values[i]
+		// Scan into element
+		if realElemType.Kind() == reflect.Struct {
+			var scanElem reflect.Value
+			if isPtr {
+				scanElem = elem.Elem()
+			} else {
+				scanElem = elem
+			}
+			values := structScanDests(scanElem, columns)
+			if err := rows.Scan(values...); err != nil {
+				return fmt.Errorf("failed to scan row into struct: %w", err)
+			}
+			copyScanResults(scanElem, columns, values)
+		} else if realElemType.Kind() == reflect.Map {
+			// Scan into a map
+			values := make([]any, len(columns))
+			valuePtrs := make([]any, len(columns))
+			for i := range values {
+				valuePtrs[i] = &values[i]
+			}
+			if err := rows.Scan(valuePtrs...); err != nil {
+				return fmt.Errorf("failed to scan row into map: %w", err)
+			}
+			m := reflect.MakeMap(realElemType)
+			keyType := realElemType.Key()
+			for i, col := range columns {
+				m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+			}
+			if isPtr {
+				elem.Elem().Set(m)
+			} else {
+				elem.Set(m)
+			}
+		} else {
+			// Scalar element
+			var scanDest reflect.Value
+			if isPtr {
+				scanDest = elem
+			} else {
+				scanDest = elem.Addr()
+			}
+			if err := rows.Scan(scanDest.Interface()); err != nil {
+				return fmt.Errorf("failed to scan row into scalar: %w", err)
+			}
 		}
 
-		if err := rows.Scan(valuePtrs...); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		row := make(map[string]any)
-		for i, col := range columns {
-			row[col] = values[i]
-		}
-
-		chunk = append(chunk, row)
+		chunk = reflect.Append(chunk, elem)
 
 		// Call callback when chunk is full
-		if len(chunk) >= size {
-			var chunkValue reflect.Value
-			if isTypedSlice {
-				// Convert maps to typed slice
-				chunkValue = reflect.MakeSlice(paramType, 0, len(chunk))
-				for _, rowMap := range chunk {
-					elem := reflect.New(elemType).Elem()
-					// Map row data to struct fields
-					for key, val := range rowMap {
-						fieldName := toCamelCase(key)
-						field := elem.FieldByName(fieldName)
-						if field.IsValid() && field.CanSet() {
-							if val != nil {
-								// Convert value to field type
-								valReflect := reflect.ValueOf(val)
-								if valReflect.Type().ConvertibleTo(field.Type()) {
-									field.Set(valReflect.Convert(field.Type()))
-								}
-							}
-						}
-					}
-					chunkValue = reflect.Append(chunkValue, elem)
-				}
-			} else {
-				chunkValue = reflect.ValueOf(chunk)
-			}
-
-			results := callbackValue.Call([]reflect.Value{chunkValue})
+		if chunk.Len() >= size {
+			results := callbackValue.Call([]reflect.Value{chunk})
 			if len(results) > 0 {
 				if err, ok := results[0].Interface().(error); ok && err != nil {
 					return err
 				}
 			}
-			chunk = make([]map[string]any, 0, size)
+			chunk = reflect.MakeSlice(paramType, 0, size)
 		}
 	}
 
 	// Process remaining rows in the last chunk
-	if len(chunk) > 0 {
-		var chunkValue reflect.Value
-		if isTypedSlice {
-			// Convert maps to typed slice
-			chunkValue = reflect.MakeSlice(paramType, 0, len(chunk))
-			for _, rowMap := range chunk {
-				elem := reflect.New(elemType).Elem()
-				// Map row data to struct fields
-				for key, val := range rowMap {
-					fieldName := toCamelCase(key)
-					field := elem.FieldByName(fieldName)
-					if field.IsValid() && field.CanSet() {
-						if val != nil {
-							// Convert value to field type
-							valReflect := reflect.ValueOf(val)
-							if valReflect.Type().ConvertibleTo(field.Type()) {
-								field.Set(valReflect.Convert(field.Type()))
-							}
-						}
-					}
-				}
-				chunkValue = reflect.Append(chunkValue, elem)
-			}
-		} else {
-			chunkValue = reflect.ValueOf(chunk)
-		}
-
-		results := callbackValue.Call([]reflect.Value{chunkValue})
+	if chunk.Len() > 0 {
+		results := callbackValue.Call([]reflect.Value{chunk})
 		if len(results) > 0 {
 			if err, ok := results[0].Interface().(error); ok && err != nil {
 				return err

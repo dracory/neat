@@ -69,6 +69,7 @@ func createTestTables(t *testing.T, db *database.Database) {
 			name       TEXT NOT NULL DEFAULT '',
 			avatar     TEXT NOT NULL DEFAULT '',
 			bio        TEXT,
+			votes      INTEGER NOT NULL DEFAULT 0,
 			deleted_at DATETIME,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

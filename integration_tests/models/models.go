@@ -13,6 +13,7 @@ type User struct {
 	Name      string    `db:"name"`
 	Avatar    string    `db:"avatar"`
 	Bio       *string   `db:"bio"`
+	Votes     int       `db:"votes"`
 	Address   *Address  `db:"-"`
 	Books     []*Book   `db:"-"`
 	CreatedAt time.Time `db:"created_at"`
