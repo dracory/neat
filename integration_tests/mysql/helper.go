@@ -130,6 +130,7 @@ func createMySQLTestTables(t *testing.T, db *database.Database) {
 			name       VARCHAR(255) NOT NULL DEFAULT '',
 			avatar     VARCHAR(255) NOT NULL DEFAULT '',
 			bio        TEXT,
+			votes      INT NOT NULL DEFAULT 0,
 			deleted_at DATETIME,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

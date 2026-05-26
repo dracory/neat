@@ -11,6 +11,10 @@ import (
 
 // Increment increments a column's value by a specified amount.
 func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, error) {
+	if err := q.validateAggregate(column, "*"); err != nil {
+		return nil, err
+	}
+
 	incAmount := int64(1)
 	if len(amount) > 0 {
 		if val, ok := amount[0].(int64); ok {
@@ -24,6 +28,10 @@ func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, e
 
 // Decrement decrements a column's value by a specified amount.
 func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, error) {
+	if err := q.validateAggregate(column, "*"); err != nil {
+		return nil, err
+	}
+
 	decAmount := int64(1)
 	if len(amount) > 0 {
 		if val, ok := amount[0].(int64); ok {
