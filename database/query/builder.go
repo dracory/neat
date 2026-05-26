@@ -75,8 +75,19 @@ func (b *Builder) BuildSelect() (string, []any) {
 	if b.query.aggregate != "" {
 		// When aggregate is set, ignore SELECT list and use aggregate function
 		// Handle COUNT with DISTINCT
-		if b.query.aggregate == "COUNT" && b.query.distinct && len(b.query.distinctCols) > 0 {
-			parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(b.query.distinctCols, ", ")))
+		if b.query.aggregate == "COUNT" && b.query.distinct {
+			if len(b.query.distinctCols) > 0 {
+				parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(b.query.distinctCols, ", ")))
+			} else if len(b.query.selects) > 0 {
+				var selectParts []string
+				for _, s := range b.query.selects {
+					selectParts = append(selectParts, s.expr)
+					args = append(args, s.args...)
+				}
+				parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(selectParts, ", ")))
+			} else {
+				parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
+			}
 		} else {
 			parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
 		}
