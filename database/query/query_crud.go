@@ -13,13 +13,16 @@ import (
 // Find retrieves records matching the given conditions.
 func (q *Query) Find(dest any, conds ...any) error {
 	q = q.applyScopes()
+	// Use a clone to avoid mutating the original query state
+	clone := q.Clone().(*Query)
+
 	// Add conditions to where clause
 	for _, cond := range conds {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", cond), args: nil})
+		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", cond), args: nil})
 	}
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	start := time.Now()
@@ -31,7 +34,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 		}
 		defer rows.Close()
 		q.logQuery(sql, args, start)
-		return q.scanRows(rows, dest)
+		return clone.scanRows(rows, dest)
 	}
 
 	dbConn, err := q.ReadDB()
@@ -45,7 +48,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 	}
 	defer rows.Close()
 	q.logQuery(sql, args, start)
-	return q.scanRows(rows, dest)
+	return clone.scanRows(rows, dest)
 }
 
 // FindOrFail retrieves records matching the given conditions or returns an error if not found.
@@ -64,12 +67,15 @@ func (q *Query) FindOrFail(dest any, conds ...any) error {
 // First retrieves the first record matching the query.
 func (q *Query) First(dest any) error {
 	q = q.applyScopes()
+	// Use a clone to avoid mutating the original query state
+	clone := q.Clone().(*Query)
+
 	// Set limit to 1
 	limit := 1
-	q.limit = &limit
+	clone.limit = &limit
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	start := time.Now()
@@ -147,8 +153,11 @@ func (q *Query) FirstOrFail(dest any) error {
 // Get retrieves all records matching the query.
 func (q *Query) Get(dest any) error {
 	q = q.applyScopes()
+	// Use a clone to avoid mutating the original query state
+	clone := q.Clone().(*Query)
+
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	start := time.Now()

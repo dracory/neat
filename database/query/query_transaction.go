@@ -86,9 +86,11 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 			return nil, fmt.Errorf("failed to create savepoint: %w", err)
 		}
 		// Create a new query instance with the savepoint
-		newQuery := *q
+		newQuery := q.Clone().(*Query)
 		newQuery.savepointName = savepointName
-		return &newQuery, nil
+		newQuery.inTransaction = true
+		newQuery.tx = q.tx
+		return newQuery, nil
 	}
 
 	dbConn := q.writeConn()
@@ -99,11 +101,11 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 	}
 
 	// Create a new query instance with the transaction
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 	newQuery.tx = tx
 	newQuery.inTransaction = true
 	newQuery.savepointLevel = 0
-	return &newQuery, nil
+	return newQuery, nil
 }
 
 // Commit commits the current transaction.
@@ -119,16 +121,14 @@ func (q *Query) Commit() error {
 			return fmt.Errorf("failed to release savepoint: %w", err)
 		}
 		q.savepointName = ""
+		q.inTransaction = false // Nested transactions are also "transactions" in our model
 		return nil
 	}
 
-	if err := q.doCommit(); err != nil {
-		return err
-	}
-
+	err := q.doCommit()
 	q.inTransaction = false
 	q.tx = nil
-	return nil
+	return err
 }
 
 // Rollback rolls back the current transaction.
@@ -149,6 +149,7 @@ func (q *Query) Rollback() error {
 			return fmt.Errorf("failed to release savepoint: %w", err)
 		}
 		q.savepointName = ""
+		q.inTransaction = false
 		return nil
 	}
 

@@ -81,9 +81,9 @@ func (q *Query) GetQueryLog() []contractsorm.QueryLog {
 
 // WithContext returns a new Query instance with the specified context.
 func (q *Query) WithContext(ctx context.Context) contractsorm.Query {
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 	newQuery.ctx = ctx
-	return &newQuery
+	return newQuery
 }
 
 // Observe registers an observer for the given model.
@@ -96,7 +96,7 @@ func (q *Query) Observe(model any, observer contractsorm.Observer) {
 
 // WithoutEvents disables event firing for the query.
 func (q *Query) WithoutEvents() contractsorm.Query {
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 	newQuery.withoutEvents = true
-	return &newQuery
+	return newQuery
 }

@@ -53,12 +53,13 @@ func (q *Query) Sum(column string, dest any) error {
 		return err
 	}
 
-	// Set aggregate
-	q.aggregate = "SUM"
-	q.aggregateCol = column
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.aggregate = "SUM"
+	clone.aggregateCol = column
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -90,12 +91,13 @@ func (q *Query) Avg(column string, dest any) error {
 		return err
 	}
 
-	// Set aggregate
-	q.aggregate = "AVG"
-	q.aggregateCol = column
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.aggregate = "AVG"
+	clone.aggregateCol = column
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -127,12 +129,13 @@ func (q *Query) Min(column string, dest any) error {
 		return err
 	}
 
-	// Set aggregate
-	q.aggregate = "MIN"
-	q.aggregateCol = column
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.aggregate = "MIN"
+	clone.aggregateCol = column
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -164,12 +167,13 @@ func (q *Query) Max(column string, dest any) error {
 		return err
 	}
 
-	// Set aggregate
-	q.aggregate = "MAX"
-	q.aggregateCol = column
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.aggregate = "MAX"
+	clone.aggregateCol = column
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -197,14 +201,15 @@ func (q *Query) Max(column string, dest any) error {
 
 // Exists checks if any records match the query.
 func (q *Query) Exists(exists *bool) error {
-	// Set aggregate for EXISTS check
-	q.aggregate = "COUNT"
-	q.aggregateCol = "1"
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.aggregate = "COUNT"
+	clone.aggregateCol = "1"
 	limit := 1
-	q.limit = &limit
+	clone.limit = &limit
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -235,11 +240,12 @@ func (q *Query) Exists(exists *bool) error {
 
 // Pluck retrieves a single column's values from the query results.
 func (q *Query) Pluck(column string, dest any) error {
-	// Set select to only the specified column
-	q.selects = []selectClause{{expr: column}}
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.selects = []selectClause{{expr: column}}
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query
@@ -270,15 +276,16 @@ func (q *Query) Pluck(column string, dest any) error {
 
 // Value retrieves a single column's value from the first result.
 func (q *Query) Value(column string, dest any) error {
-	// Set select to only the specified column
-	q.selects = []selectClause{{expr: column}}
+	// Use a clone to avoid mutating the query state
+	clone := q.Clone().(*Query)
+	clone.selects = []selectClause{{expr: column}}
 
 	// Set limit to 1
 	limit := 1
-	q.limit = &limit
+	clone.limit = &limit
 
 	// Build SELECT query
-	builder := NewBuilder(q)
+	builder := NewBuilder(clone)
 	sql, args := builder.BuildSelect()
 
 	// Execute query

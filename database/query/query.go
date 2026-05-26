@@ -506,9 +506,9 @@ func (q *Query) UpdateOrInsert(attributes any, values any) error {
 	return q.Create(values)
 }
 func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
-	newQ := *q
+	newQ := q.Clone().(*Query)
 	newQ.scopes = append(newQ.scopes, funcs...)
-	return &newQ
+	return newQ
 }
 
 // scanRows scans database rows into the destination.
