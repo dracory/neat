@@ -71,12 +71,17 @@ func (q *Query) DisableQueryLog() {
 
 // FlushQueryLog clears the query log.
 func (q *Query) FlushQueryLog() {
-	q.queryLog = make([]contractsorm.QueryLog, 0)
+	if q.queryLog != nil {
+		*q.queryLog = make([]contractsorm.QueryLog, 0)
+	}
 }
 
 // GetQueryLog returns the query log.
 func (q *Query) GetQueryLog() []contractsorm.QueryLog {
-	return q.queryLog
+	if q.queryLog == nil {
+		return nil
+	}
+	return *q.queryLog
 }
 
 // WithContext returns a new Query instance with the specified context.

@@ -26,7 +26,7 @@ type Query struct {
 	connection string
 	dbConfig   *db.DBConfig
 	log        log.Log
-	queryLog   []contractsorm.QueryLog
+	queryLog   *[]contractsorm.QueryLog
 	enableLog  bool
 
 	// Query state
@@ -132,7 +132,7 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 		dbConfig:        dbConfig,
 		log:             log,
 		enableLog:       false,
-		queryLog:        make([]contractsorm.QueryLog, 0),
+		queryLog:        &[]contractsorm.QueryLog{},
 		modelToObserver: make([]contractsorm.ModelToObserver, 0),
 		withoutEvents:   false,
 		dispatcher:      observer.NewDispatcher(log),
@@ -212,6 +212,7 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.withTrashed = q.withTrashed
 	clone.onlyTrashed = q.onlyTrashed
 	clone.withoutTrashed = q.withoutTrashed
+	clone.queryLog = q.queryLog
 	clone.rawSQL = q.rawSQL
 	clone.rawArgs = append([]any{}, q.rawArgs...)
 	clone.lockForUpdate = q.lockForUpdate
@@ -358,6 +359,7 @@ func (q *Query) newQuery() *Query {
 	newQ.readDB = q.readDB
 	newQ.writeDB = q.writeDB
 	newQ.enableLog = q.enableLog
+	newQ.queryLog = q.queryLog
 	newQ.withRelations = nil
 	newQ.relationConstraints = nil
 	return newQ
@@ -428,8 +430,8 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 // It also emits a warning via the logger when SlowThreshold is configured and exceeded.
 func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 	elapsed := float64(time.Since(start).Milliseconds())
-	if q.enableLog {
-		q.queryLog = append(q.queryLog, contractsorm.QueryLog{
+	if q.enableLog && q.queryLog != nil {
+		*q.queryLog = append(*q.queryLog, contractsorm.QueryLog{
 			Query:    sql,
 			Bindings: bindings,
 			Time:     elapsed,
