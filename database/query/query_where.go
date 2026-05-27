@@ -148,7 +148,11 @@ func (q *Query) splitJsonColumn(column string) (string, string) {
 		return column, ""
 	}
 	parts := strings.SplitN(column, "->", 2)
-	return parts[0], "." + parts[1]
+	path := parts[1]
+	if q.driver != nil && q.driver.Dialect() == "sqlite" {
+		path = strings.ReplaceAll(path, "->", ".")
+	}
+	return parts[0], "." + path
 }
 
 // WhereJsonContains adds a where json contains clause to the query.
