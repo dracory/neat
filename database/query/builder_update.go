@@ -48,6 +48,21 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 				// Use the expression as-is (for Increment/Decrement)
 				setParts = append(setParts, colStr)
 				setArgs = append(setArgs, values...)
+			} else if strings.Contains(colStr, "->") && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+				// Handle JSON path updates for SQLite using json_set()
+				// Convert "data->name" to json_set(data, '$.name', ?)
+				parts := strings.Split(colStr, "->")
+				if len(parts) >= 2 {
+					jsonColumn := b.quoteIdentifier(parts[0])
+					// Build JSON path: $.name for "data->name", $.meta.active for "data->meta->active"
+					jsonPath := "$." + strings.Join(parts[1:], ".")
+					setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', ?)", jsonColumn, jsonColumn, jsonPath))
+					setArgs = append(setArgs, values[0])
+				} else {
+					// Fallback to normal behavior
+					setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
+					setArgs = append(setArgs, values[0])
+				}
 			} else {
 				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
 				setArgs = append(setArgs, values[0])

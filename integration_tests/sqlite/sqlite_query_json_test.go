@@ -1,5 +1,3 @@
-//go:build disabled
-
 package sqlite
 
 import (
@@ -146,5 +144,26 @@ func TestSQLiteIntegrationQueryJsonUpdateWithPath(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("Update with JSON path requires JSON_SET which is more complex - skipping for now")
+
+	db := SetupSQLiteTest(t)
+	data := seedJsonTestData(t, db)
+	query := db.Query()
+
+	// Test Update with JSON path
+	result, err := query.Model(&models.JsonData{}).Where("id = ?", data[0].ID).Update("data->name", "updated_name")
+	if err != nil {
+		t.Errorf("Update with JSON path failed: %v", err)
+	}
+	if result.RowsAffected != 1 {
+		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
+	}
+
+	var updatedData models.JsonData
+	err = query.Model(&models.JsonData{}).Find(&updatedData, data[0].ID)
+	if err != nil {
+		t.Errorf("Failed to find updated data: %v", err)
+	}
+	if len(updatedData.Data) == 0 {
+		t.Error("Expected data to contain 'updated_name'")
+	}
 }

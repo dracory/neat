@@ -463,9 +463,9 @@ These tests validate core functionality without requiring database connections.
    - ~~Reason: `RenameIndex is currently problematic in SQLite with savepoints`~~
    - Action: Fixed by skipping transaction wrapper for RenameIndex operations
 
-2. **sqlite_query_json_test.go:149**
-   - Reason: `Update with JSON path requires JSON_SET which is more complex - skipping for now`
-   - Action: Implement JSON_SET support for SQLite
+2. ~~**sqlite_query_json_test.go:149**~~ ✅ FIXED
+   - ~~Reason: `Update with JSON path requires JSON_SET which is more complex - skipping for now`~~
+   - Action: Implemented JSON_SET support in BuildUpdate for SQLite using json_set() function
 
 3. **sqlite_query_join_test.go:222, 256, 283**
    - Reason: `RIGHT JOIN requires SQLite 3.39.0 or higher`
