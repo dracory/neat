@@ -447,18 +447,36 @@ These tests validate core functionality without requiring database connections.
 
 ### 4.3 Enable SQLite Disabled Tests
 
-**Status**: ⚠️ 4/30+ files disabled
+**Status**: ⚠️ 5 specific test cases disabled (not short mode skips)
 **Priority**: LOW
 **Files**: 
-- `sqlite_query_log_test.go`
-- `sqlite_query_lock_test.go`
-- `sqlite_query_json_test.go`
-- `sqlite_query_update_or_insert_test.go`
+- `sqlite_schema_index_test.go` (1 test)
+- `sqlite_query_paginate_test.go` (2 tests)
+- `sqlite_query_json_test.go` (1 test)
+- `sqlite_query_join_test.go` (3 tests)
+
+**Note**: Most SQLite tests are only skipped in "short mode" (via `testing.Short()`). These are not broken - they just require a database connection. The 5 tests below are disabled with specific reasons indicating actual issues.
+
+**Disabled tests with specific reasons**:
+
+1. **sqlite_schema_index_test.go:236**
+   - Reason: `RenameIndex is currently problematic in SQLite with savepoints`
+   - Action: Fix savepoint handling or implement alternative approach
+
+2. **sqlite_query_json_test.go:149**
+   - Reason: `Update with JSON path requires JSON_SET which is more complex - skipping for now`
+   - Action: Implement JSON_SET support for SQLite
+
+3. **sqlite_query_join_test.go:222, 256, 283**
+   - Reason: `RIGHT JOIN requires SQLite 3.39.0 or higher`
+   - Action: Either require SQLite 3.39.0+ or implement workaround
 
 **Steps**:
-1. Investigate why each test is disabled
-2. Implement missing features or fix bugs
-3. Enable tests
+1. Fix RenameIndex savepoint issue
+2. Implement JSON_SET support for SQLite
+3. Either upgrade SQLite requirement or implement RIGHT JOIN workaround
+4. Enable tests
+5. Verify all pass
 
 **Estimated effort**: 1-2 days
 

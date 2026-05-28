@@ -180,12 +180,43 @@ func TestSQLiteIntegrationPaginateWithSelectAliases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("ORM Paginate() with Select alias produces wrong Count (alias confuses COUNT query) — not yet fixed")
+
+	db := SetupSQLiteTest(t)
+	seedPaginateTestData(t, db)
+
+	var results []struct {
+		UserName string
+	}
+	var total int64
+	err := db.Query().Table("users").Select("name as user_name").OrderBy("name", "asc").Paginate(1, 5, &results, &total)
+	if err != nil {
+		t.Errorf("Paginate with Select aliases failed: %v", err)
+	}
+	if total != 15 {
+		t.Errorf("Expected total 15, got %d", total)
+	}
+	if len(results) != 5 {
+		t.Errorf("Expected 5 results, got %d", len(results))
+	}
+	if len(results) > 0 && results[0].UserName != "paginate_user_A" {
+		t.Errorf("Expected 'paginate_user_A', got '%s'", results[0].UserName)
+	}
 }
 
 func TestSQLiteIntegrationCountWithSelectAlias(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("ORM Count() with Select alias returns 0 — not yet fixed")
+
+	db := SetupSQLiteTest(t)
+	seedPaginateTestData(t, db)
+
+	var count int64
+	err := db.Query().Table("users").Select("name as user_name").Count(&count)
+	if err != nil {
+		t.Errorf("Count with Select alias failed: %v", err)
+	}
+	if count != 15 {
+		t.Errorf("Expected count 15, got %d", count)
+	}
 }
