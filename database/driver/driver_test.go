@@ -189,3 +189,36 @@ func TestMockDriverDefaultBehavior(t *testing.T) {
 		t.Errorf("Expected mock, got %s", dialect)
 	}
 }
+
+func TestTursoDriver(t *testing.T) {
+	// Test that Turso implements the Driver interface
+	var _ Driver = (*Turso)(nil)
+
+	turso := NewTurso()
+
+	// Test Dialect
+	if turso.Dialect() != "turso" {
+		t.Errorf("Expected turso, got %s", turso.Dialect())
+	}
+
+	// Test Placeholder (should use SQLite-style placeholders)
+	// SQLite/Turso uses positional placeholders, all are "?"
+	placeholder := turso.Placeholder(1)
+	if placeholder != "?" {
+		t.Errorf("Expected ?, got %s", placeholder)
+	}
+
+	// Test Placeholder with multiple parameters
+	// SQLite/Turso uses the same placeholder "?" for all positions
+	placeholder = turso.Placeholder(3)
+	if placeholder != "?" {
+		t.Errorf("Expected ?, got %s", placeholder)
+	}
+
+	// Test Open (will fail without actual Turso database, but should not panic)
+	_, err := turso.Open("libsql://test.db")
+	if err != nil {
+		// This is expected to fail without a real database
+		// We're just testing that the method doesn't panic
+	}
+}
