@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/dromara/carbon/v2"
 )
@@ -55,7 +54,9 @@ func TestGetID(t *testing.T) {
 				}
 				user := User{}
 				user.ID = 1
-				assert.Equal(t, uint(1), GetID(&user), description)
+				if got := GetID(&user); got != uint(1) {
+					t.Errorf("%s: expected %v, got %v", description, uint(1), got)
+				}
 			},
 		},
 		{
@@ -68,7 +69,9 @@ func TestGetID(t *testing.T) {
 				}
 				user := User{}
 				user.ID = 1
-				assert.Equal(t, uint(1), GetID(&user), description)
+				if got := GetID(&user); got != uint(1) {
+					t.Errorf("%s: expected %v, got %v", description, uint(1), got)
+				}
 			},
 		},
 		{
@@ -79,7 +82,9 @@ func TestGetID(t *testing.T) {
 					Avatar string
 				}
 				user := User{}
-				assert.Nil(t, GetID(&user), description)
+				if got := GetID(&user); got != nil {
+					t.Errorf("%s: expected nil, got %v", description, got)
+				}
 			},
 		},
 		{
@@ -92,7 +97,9 @@ func TestGetID(t *testing.T) {
 				}
 				user := User{}
 				user.ID = 1
-				assert.Equal(t, uint(1), GetID(user), description)
+				if got := GetID(user); got != uint(1) {
+					t.Errorf("%s: expected %v, got %v", description, uint(1), got)
+				}
 			},
 		},
 		{
@@ -105,7 +112,9 @@ func TestGetID(t *testing.T) {
 				}
 				user := User{}
 				user.ID = 1
-				assert.Equal(t, uint(1), GetID(user), description)
+				if got := GetID(user); got != uint(1) {
+					t.Errorf("%s: expected %v, got %v", description, uint(1), got)
+				}
 			},
 		},
 		{
@@ -116,7 +125,9 @@ func TestGetID(t *testing.T) {
 					Avatar string
 				}
 				user := User{}
-				assert.Nil(t, GetID(user), description)
+				if got := GetID(user); got != nil {
+					t.Errorf("%s: expected nil, got %v", description, got)
+				}
 			},
 		},
 		{
@@ -126,8 +137,12 @@ func TestGetID(t *testing.T) {
 					Name   string
 					Avatar string
 				}
-				assert.Nil(t, GetID(&User{}), description)
-				assert.Nil(t, GetID(nil), description)
+				if got := GetID(&User{}); got != nil {
+					t.Errorf("%s: expected nil, got %v", description, got)
+				}
+				if got := GetID(nil); got != nil {
+					t.Errorf("%s: expected nil, got %v", description, got)
+				}
 			},
 		},
 	}
@@ -150,7 +165,9 @@ func TestGetIDByReflect(t *testing.T) {
 
 				result := GetIDByReflect(tpe, v)
 
-				assert.Equal(t, 1, result)
+				if result != 1 {
+					t.Errorf("%s: expected %v, got %v", description, 1, result)
+				}
 			},
 		},
 		{
@@ -162,7 +179,9 @@ func TestGetIDByReflect(t *testing.T) {
 
 				result := GetIDByReflect(tpe, v)
 
-				assert.Equal(t, "goravel", result)
+				if result != "goravel" {
+					t.Errorf("%s: expected %v, got %v", description, "goravel", result)
+				}
 			},
 		},
 		{
@@ -175,7 +194,9 @@ func TestGetIDByReflect(t *testing.T) {
 
 				result := GetIDByReflect(tpe, v)
 
-				assert.Equal(t, id, result)
+				if result != id {
+					t.Errorf("%s: expected %v, got %v", description, id, result)
+				}
 			},
 		},
 		{
@@ -187,7 +208,9 @@ func TestGetIDByReflect(t *testing.T) {
 
 				result := GetIDByReflect(tpe, v)
 
-				assert.Nil(t, result)
+				if result != nil {
+					t.Errorf("%s: expected nil, got %v", description, result)
+				}
 			},
 		},
 		{
@@ -206,7 +229,9 @@ func TestGetIDByReflect(t *testing.T) {
 
 				result := GetIDByReflect(tpe, v)
 
-				assert.Equal(t, id, result)
+				if result != id {
+					t.Errorf("%s: expected %v, got %v", description, id, result)
+				}
 			},
 		},
 		{
@@ -229,7 +254,9 @@ func TestGetIDByReflect(t *testing.T) {
 
 				result := GetIDByReflect(tpe, v)
 
-				assert.Equal(t, id, result)
+				if result != id {
+					t.Errorf("%s: expected %v, got %v", description, id, result)
+				}
 			},
 		},
 	}

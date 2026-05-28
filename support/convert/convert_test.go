@@ -4,8 +4,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type foo struct {
@@ -17,94 +15,164 @@ func TestTap(t *testing.T) {
 	// pointer
 	f := &foo{Name: "foo"}
 
-	assert.Equal(t, "foo", f.Name)
-	assert.Equal(t, 0, f.Age)
+	if f.Name != "foo" {
+		t.Errorf("expected foo, got %s", f.Name)
+	}
+	if f.Age != 0 {
+		t.Errorf("expected 0, got %d", f.Age)
+	}
 
 	got1 := Tap(f, func(f *foo) {
 		f.Name = "bar" //nolint:goconst
 		f.Age = 18
 	})
-	assert.Equal(t, "bar", got1.Name)
-	assert.Equal(t, 18, got1.Age)
+	if got1.Name != "bar" {
+		t.Errorf("expected bar, got %s", got1.Name)
+	}
+	if got1.Age != 18 {
+		t.Errorf("expected 18, got %d", got1.Age)
+	}
 
 	// int
 	got2 := Tap(10, func(i int) {
-		assert.Equal(t, 10, i)
+		if i != 10 {
+			t.Errorf("expected 10, got %d", i)
+		}
 		i = 20
-		assert.Equal(t, 20, i)
+		if i != 20 {
+			t.Errorf("expected 20, got %d", i)
+		}
 	})
-	assert.Equal(t, 10, got2)
+	if got2 != 10 {
+		t.Errorf("expected 10, got %d", got2)
+	}
 
 	// string
 	got3 := Tap("foo", func(s string) {
-		assert.Equal(t, "foo", s)
+		if s != "foo" {
+			t.Errorf("expected foo, got %s", s)
+		}
 		s = "bar"
-		assert.Equal(t, "bar", s)
+		if s != "bar" {
+			t.Errorf("expected bar, got %s", s)
+		}
 	})
-	assert.Equal(t, "foo", got3)
+	if got3 != "foo" {
+		t.Errorf("expected foo, got %s", got3)
+	}
 }
 
 func TestWith(t *testing.T) {
 	// pointer
 	f := &foo{Name: "foo"}
 
-	assert.Equal(t, "foo", f.Name)
-	assert.Equal(t, 0, f.Age)
+	if f.Name != "foo" {
+		t.Errorf("expected foo, got %s", f.Name)
+	}
+	if f.Age != 0 {
+		t.Errorf("expected 0, got %d", f.Age)
+	}
 
 	got1 := With(f, func(f *foo) *foo {
 		f.Name = "bar" //nolint:goconst
 		f.Age = 18
 		return f
 	})
-	assert.Equal(t, "bar", got1.Name)
-	assert.Equal(t, 18, got1.Age)
+	if got1.Name != "bar" {
+		t.Errorf("expected bar, got %s", got1.Name)
+	}
+	if got1.Age != 18 {
+		t.Errorf("expected 18, got %d", got1.Age)
+	}
 
 	// int
 	got2 := With(10, func(i int) int {
 		return i + 10
 	})
-	assert.Equal(t, 20, got2)
+	if got2 != 20 {
+		t.Errorf("expected 20, got %d", got2)
+	}
 
 	// string
 	got3 := With("foo", func(s string) string {
 		return s + "bar"
 	})
-	assert.Equal(t, "foobar", got3)
+	if got3 != "foobar" {
+		t.Errorf("expected foobar, got %s", got3)
+	}
 }
 
 func TestTransform(t *testing.T) {
-	assert.Equal(t, "1", Transform(1, strconv.Itoa))
-	assert.Equal(t, &foo{Name: "foo"}, Transform("foo", func(s string) *foo {
+	if got := Transform(1, strconv.Itoa); got != "1" {
+		t.Errorf("expected 1, got %s", got)
+	}
+	expected := &foo{Name: "foo"}
+	if got := Transform("foo", func(s string) *foo {
 		return &foo{Name: s}
-	}))
+	}); got.Name != expected.Name {
+		t.Errorf("expected %v, got %v", expected, got)
+	}
 }
 
 func TestDefault(t *testing.T) {
 	// string
-	assert.Equal(t, "foo", Default("", "foo"))
-	assert.Equal(t, "bar", Default("bar", "foo"))
-	assert.Equal(t, "foo", Default("", "", "foo"))
+	if got := Default("", "foo"); got != "foo" {
+		t.Errorf("expected foo, got %s", got)
+	}
+	if got := Default("bar", "foo"); got != "bar" {
+		t.Errorf("expected bar, got %s", got)
+	}
+	if got := Default("", "", "foo"); got != "foo" {
+		t.Errorf("expected foo, got %s", got)
+	}
 
 	// int
-	assert.Equal(t, 1, Default(0, 1))
-	assert.Equal(t, 2, Default(2, 1))
-	assert.Equal(t, 1, Default(0, 0, 1))
+	if got := Default(0, 1); got != 1 {
+		t.Errorf("expected 1, got %d", got)
+	}
+	if got := Default(2, 1); got != 2 {
+		t.Errorf("expected 2, got %d", got)
+	}
+	if got := Default(0, 0, 1); got != 1 {
+		t.Errorf("expected 1, got %d", got)
+	}
 
 	// pointer
-	assert.Equal(t, &foo{Name: "foo"}, Default(nil, &foo{Name: "foo"}))
-	assert.Equal(t, &foo{Name: "bar"}, Default(&foo{Name: "bar"}, &foo{Name: "foo"}))
+	expected1 := &foo{Name: "foo"}
+	if got := Default(nil, &foo{Name: "foo"}); got.Name != expected1.Name {
+		t.Errorf("expected %v, got %v", expected1, got)
+	}
+	expected2 := &foo{Name: "bar"}
+	if got := Default(&foo{Name: "bar"}, &foo{Name: "foo"}); got.Name != expected2.Name {
+		t.Errorf("expected %v, got %v", expected2, got)
+	}
 
 	// struct
-	assert.Equal(t, foo{Name: "foo"}, Default(foo{}, foo{Name: "foo"}))
-	assert.Equal(t, foo{Name: "bar"}, Default(foo{Name: "bar"}, foo{Name: "foo"}))
+	if got := Default(foo{}, foo{Name: "foo"}); got.Name != "foo" {
+		t.Errorf("expected foo, got %s", got.Name)
+	}
+	if got := Default(foo{Name: "bar"}, foo{Name: "foo"}); got.Name != "bar" {
+		t.Errorf("expected bar, got %s", got.Name)
+	}
 
 	// zero
-	assert.Equal(t, 0, Default(0, 0))
+	if got := Default(0, 0); got != 0 {
+		t.Errorf("expected 0, got %d", got)
+	}
 }
 
 func TestPointer(t *testing.T) {
-	assert.Equal(t, "foo", *Pointer("foo"))
-	assert.Equal(t, 1, *Pointer(1))
-	assert.Equal(t, &foo{Name: "foo"}, *Pointer(&foo{Name: "foo"}))
-	assert.Equal(t, time.Time{}, *Pointer(time.Time{}))
+	if got := *Pointer("foo"); got != "foo" {
+		t.Errorf("expected foo, got %s", got)
+	}
+	if got := *Pointer(1); got != 1 {
+		t.Errorf("expected 1, got %d", got)
+	}
+	expected := &foo{Name: "foo"}
+	if got := *Pointer(&foo{Name: "foo"}); got.Name != expected.Name {
+		t.Errorf("expected %v, got %v", expected, got)
+	}
+	if got := *Pointer(time.Time{}); !got.IsZero() {
+		t.Errorf("expected zero time, got %v", got)
+	}
 }
