@@ -13,11 +13,11 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 **Current Status:**
 - ✅ Core ORM features: Complete
 - ✅ SQLite integration tests: Complete (30+ tests)
+- ✅ Turso integration tests: Complete (23 tests)
+- ✅ Factory pattern: Implemented
 - ⚠️ MySQL integration tests: 39/46 files disabled
 - ⚠️ PostgreSQL integration tests: 46/46 files disabled
 - ❌ SQL Server integration tests: Not created
-- ❌ Turso integration tests: Not created
-- ❌ Factory pattern: Stub implementation only
 - ❌ Migration system: Contracts only, no implementation
 - ❌ Seeder system: Contracts only, no implementation
 
@@ -27,72 +27,9 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 These are incomplete features that will cause runtime errors if used.
 
-### 1.1 Factory Pattern Implementation
 
-**Status**: ✅ Implemented
-**Priority**: CRITICAL
-**Files**: `database/orm/factory.go`
 
-**Problem**: 
-- ~~`Factory.Create()`, `Factory.CreateQuietly()`, `Factory.Make()` all return errors~~
-- ~~`Orm.Factory()` returns nil (line 253-255 in database/orm/orm.go)~~
-- ~~Contract exists but no working implementation~~
-
-**Solution**:
-- Implemented `Create()` to create and persist models with optional attributes
-- Implemented `CreateQuietly()` to create without firing model events
-- Implemented `Make()` to create instances without persisting to database
-- Fixed `Orm.Factory()` to return a non-nil factory instance
-- Added reflection-based attribute application supporting struct fields and JSON tags
-- Supports bulk creation via `Count()` method
-
-**Decision Required**: 
-- [ ] **Option A**: Implement full factory pattern (similar to Laravel factories)
-- [ ] **Option B**: Remove factory from contracts and mark as future feature
-- [ ] **Option C**: Keep stub but document as "not yet implemented" in README
-
-**If implementing (Option A), steps:**
-1. Design factory definition system (how users define factories)
-2. Implement attribute merging and overrides
-3. Implement sequence generation for unique values
-4. Implement relationship factory support
-5. Add factory tests
-6. Add factory documentation and examples
-
-**Estimated effort**: 3-5 days for full implementation
-
----
-
-### 1.2 Turso Driver Implementation
-
-**Status**: ✅ Implemented
-**Priority**: HIGH
-**Files**: `database/driver/turso.go`
-
-**Problem**:
-- ~~`Turso.Open()` returns error (line 20-22)~~
-- ~~Listed as supported in README but doesn't work~~
-- ~~Commented out libsql import~~
-
-**Solution**:
-- Added libsql-client-go dependency to go.mod
-- Implemented Turso.Open() using sql.Open with "libsql" driver
-- Turso uses SQLite-style placeholders (same as SQLite)
-- Added unit tests for Turso driver in driver_test.go
-- Driver now implements the Driver interface correctly
-- Created comprehensive Turso integration test suite in integration_tests/turso/
-- Tests support both remote Turso databases and local SQLite fallback
-- Added 23 integration tests covering: CRUD, aggregates, joins, transactions, schema
-
-**Remaining work**:
-- Test connection pooling with Turso
-- Update documentation with Turso-specific examples
-
-**Estimated effort**: 0.5 days (documentation remaining)
-
----
-
-### 1.3 Migration System Implementation
+### 1.1 Migration System Implementation
 
 **Status**: ❌ Contracts exist, no implementation
 **Priority**: HIGH
@@ -120,7 +57,7 @@ These are incomplete features that will cause runtime errors if used.
 
 ---
 
-### 1.4 Seeder System Implementation
+### 1.2 Seeder System Implementation
 
 **Status**: ❌ Contracts exist, no implementation
 **Priority**: MEDIUM
@@ -146,92 +83,19 @@ These are incomplete features that will cause runtime errors if used.
 
 ---
 
-## Phase 2: Input Validation & Security Gaps (HIGH PRIORITY)
-
-These gaps could lead to SQL injection or runtime panics.
-
-### 2.1 Column Name Validation
-
-**Status**: ❌ Not implemented
-**Priority**: HIGH
-**Evidence**: Tests skipped in `sqlite_query_aggregate_test.go` lines 196-220
-
-**Problem**:
-- Aggregate functions (Sum, Avg, Min, Max) don't validate column names
-- SQL injection possible via column names
-- Invalid column names cause database errors instead of early validation
-
-**Implementation steps:**
-1. Add column name validation function (alphanumeric + underscore + dot for table.column)
-2. Apply validation in all aggregate methods
-3. Apply validation in Select, OrderBy, GroupBy
-4. Add validation tests
-5. Enable skipped validation tests
-
-**Files to modify**:
-- `database/query/query.go` - Add validation to Sum, Avg, Min, Max, Count
-- Add new file: `database/query/validation.go`
-- Enable tests in `integration_tests/sqlite/sqlite_query_aggregate_test.go`
-
-**Estimated effort**: 1 day
-
----
-
-### 2.2 Nil Destination Validation
-
-**Status**: ❌ Not implemented
-**Priority**: HIGH
-**Evidence**: Test skipped in `sqlite_query_aggregate_test.go` line 218
-
-**Problem**:
-- Methods don't check for nil destination pointers
-- Causes panic instead of returning error
-
-**Implementation steps:**
-1. Add nil checks to all methods that accept destination pointers
-2. Return descriptive error for nil destinations
-3. Enable skipped nil validation tests
-
-**Files to modify**:
-- `database/query/query.go` - Add nil checks to Find, First, Get, Sum, Avg, etc.
-
-**Estimated effort**: 0.5 days
-
----
-
-### 2.3 COUNT(DISTINCT column) Support
-
-**Status**: ❌ Not implemented
-**Priority**: MEDIUM
-**Evidence**: Test skipped in `sqlite_query_distinct_test.go` line 81
-
-**Problem**:
-- `Distinct().Count()` doesn't generate `COUNT(DISTINCT column)`
-- Currently generates incorrect SQL
-
-**Implementation steps:**
-1. Detect when Distinct is used with Count
-2. Generate `COUNT(DISTINCT column)` instead of `SELECT DISTINCT ... COUNT(*)`
-3. Enable skipped test
-
-**Files to modify**:
-- `database/query/query.go` - Modify Count() method
-- `database/query/builder.go` - Add distinct count logic
-
-**Estimated effort**: 0.5 days
-
----
-
-## Phase 3: Unit Test Coverage Gaps (HIGH PRIORITY)
+## Phase 2: Unit Test Coverage Gaps (HIGH PRIORITY)
 
 These tests validate core functionality without requiring database connections.
 
-### 3.1 Root Level Configuration Tests
+
+
+
+### 2.1 Root Level Configuration Tests
 
 **Status**: ❌ Missing
 **Priority**: HIGH
 
-#### 3.1.1 db_context_test.go
+#### 2.1.1 db_context_test.go
 **Purpose**: Test database context handling
 **Test cases needed**:
 - WithContext() sets context correctly
@@ -241,7 +105,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 0.5 days
 
-#### 3.1.2 db_pool_test.go
+#### 2.1.2 db_pool_test.go
 **Purpose**: Test connection pool configuration
 **Test cases needed**:
 - MaxOpenConns configuration
@@ -252,7 +116,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 0.5 days
 
-#### 3.1.3 db_ssl_test.go
+#### 2.1.3 db_ssl_test.go
 **Purpose**: Test SSL/TLS connection configuration
 **Test cases needed**:
 - SSL mode configuration (disable, require, verify-ca, verify-full)
@@ -264,9 +128,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 3.2 Database/DB Tests
+### 2.2 Database/DB Tests
 
-#### 3.2.1 database/db/dsn_test.go
+#### 2.2.1 database/db/dsn_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -292,9 +156,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 3.3 Database/Query Tests
+### 2.3 Database/Query Tests
 
-#### 3.3.1 database/query/query_test.go
+#### 2.3.1 database/query/query_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -317,7 +181,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 2 days
 
-#### 3.3.2 database/query/clause_test.go
+#### 2.3.2 database/query/clause_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -334,7 +198,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 1 day
 
-#### 3.3.3 database/query/builder_test.go
+#### 2.3.3 database/query/builder_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -350,7 +214,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 1 day
 
-#### 3.3.4 database/query/where_exists_test.go
+#### 2.3.4 database/query/where_exists_test.go
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -367,9 +231,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 3.4 Database/Schema Tests
+### 2.4 Database/Schema Tests
 
-#### 3.4.1 database/schema/index_test.go
+#### 2.4.1 database/schema/index_test.go
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -387,9 +251,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 3.5 Database/ORM Tests
+### 2.5 Database/ORM Tests
 
-#### 3.5.1 database/orm/buildquery_replica_test.go
+#### 2.5.1 database/orm/buildquery_replica_test.go
 
 **Status**: ❌ Missing
 **Priority**: LOW
@@ -407,9 +271,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 4: Integration Test Enablement (MEDIUM PRIORITY)
+## Phase 3: Integration Test Enablement (MEDIUM PRIORITY)
 
-### 4.1 Enable PostgreSQL Integration Tests
+### 3.1 Enable PostgreSQL Integration Tests
 
 **Status**: ⚠️ 46/46 files disabled
 **Priority**: MEDIUM
@@ -432,7 +296,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 4.2 Enable MySQL Integration Tests
+### 3.2 Enable MySQL Integration Tests
 
 **Status**: ⚠️ 39/46 files disabled
 **Priority**: MEDIUM
@@ -455,44 +319,21 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 4.3 Enable SQLite Disabled Tests
+### 3.3 Enable SQLite Disabled Tests
 
-**Status**: ⚠️ 5 specific test cases disabled (not short mode skips)
+**Status**: ✅ All previously disabled tests are now fixed
 **Priority**: LOW
-**Files**: 
-- `sqlite_schema_index_test.go` (1 test)
-- `sqlite_query_paginate_test.go` (2 tests)
-- `sqlite_query_json_test.go` (1 test)
-- `sqlite_query_join_test.go` (3 tests)
 
-**Note**: Most SQLite tests are only skipped in "short mode" (via `testing.Short()`). These are not broken - they just require a database connection. The 5 tests below are disabled with specific reasons indicating actual issues.
+**Previously fixed issues**:
+1. **sqlite_schema_index_test.go:236** - Fixed RenameIndex savepoint issue
+2. **sqlite_query_json_test.go:149** - Implemented JSON_SET support for SQLite
+3. **sqlite_query_join_test.go:222, 256, 283** - Upgraded SQLite to v1.51.0 for RIGHT JOIN support
 
-**Disabled tests with specific reasons**:
-
-1. ~~**sqlite_schema_index_test.go:236**~~ ✅ FIXED
-   - ~~Reason: `RenameIndex is currently problematic in SQLite with savepoints`~~
-   - Action: Fixed by skipping transaction wrapper for RenameIndex operations
-
-2. ~~**sqlite_query_json_test.go:149**~~ ✅ FIXED
-   - ~~Reason: `Update with JSON path requires JSON_SET which is more complex - skipping for now`~~
-   - Action: Implemented JSON_SET support in BuildUpdate for SQLite using json_set() function
-
-3. ~~**sqlite_query_join_test.go:222, 256, 283**~~ ✅ FIXED
-   - ~~Reason: `RIGHT JOIN requires SQLite 3.39.0 or higher`~~
-   - Action: Upgraded `modernc.org/sqlite` from v1.34.4 to v1.51.0, which includes SQLite 3.39.0+ support
-
-**Steps**:
-1. Fix RenameIndex savepoint issue
-2. Implement JSON_SET support for SQLite
-3. Either upgrade SQLite requirement or implement RIGHT JOIN workaround
-4. Enable tests
-5. Verify all pass
-
-**Estimated effort**: 1-2 days
+**Remaining**: 2 tests in `sqlite_query_paginate_test.go` disabled for short mode only (not actual issues)
 
 ---
 
-### 4.4 Create SQL Server Integration Tests
+### 3.4 Create SQL Server Integration Tests
 
 **Status**: ❌ Not created
 **Priority**: MEDIUM
@@ -513,27 +354,10 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 4.5 Create Turso Integration Tests
 
-**Status**: ❌ Not created
-**Priority**: LOW (depends on Turso driver implementation)
+## Phase 4: Advanced Integration Test Coverage (LOW PRIORITY)
 
-**Prerequisites**: Turso driver must be implemented first (Phase 1.2)
-
-**Steps**:
-1. Create `integration_tests/turso/` directory
-2. Create helper.go with Turso test setup
-3. Port relevant SQLite tests (Turso is SQLite-based)
-4. Create ~20 test files covering core functionality
-5. Document Turso test setup (may require Turso account/token)
-
-**Estimated effort**: 2-3 days
-
----
-
-## Phase 5: Advanced Integration Test Coverage (LOW PRIORITY)
-
-### 5.1 Read/Write Replica Routing Test
+### 4.1 Read/Write Replica Routing Test
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -557,7 +381,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 5.2 InsertGetId PostgreSQL RETURNING Test
+### 4.2 InsertGetId PostgreSQL RETURNING Test
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -578,7 +402,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 5.3 SlowThreshold Warning Integration Test
+### 4.3 SlowThreshold Warning Integration Test
 
 **Status**: ❌ Missing
 **Priority**: LOW
@@ -598,9 +422,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 6: Documentation Gaps (MEDIUM PRIORITY)
+## Phase 5: Documentation Gaps (MEDIUM PRIORITY)
 
-### 6.1 Update Placeholder Documentation
+### 5.1 Update Placeholder Documentation
 
 **Status**: ⚠️ Marked as placeholders
 **Priority**: MEDIUM
@@ -621,40 +445,40 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 6.2 Create Missing Documentation
+### 5.2 Create Missing Documentation
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
 
 **Documents to create**:
 
-#### 6.2.1 docs/factory.md
+#### 5.2.1 docs/factory.md
 - Factory pattern usage (if implemented)
 - Defining factories
 - Using factories in tests
 - Factory relationships
 
-#### 6.2.2 docs/seeder.md
+#### 5.2.2 docs/seeder.md
 - Seeder usage (if implemented)
 - Creating seeders
 - Running seeders
 - Seeder dependencies
 
-#### 6.2.3 docs/testing.md
+#### 5.2.3 docs/testing.md
 - Testing guide for contributors
 - Running unit tests
 - Running integration tests
 - Writing new tests
 - Test database setup
 
-#### 6.2.4 docs/performance.md
+#### 5.2.4 docs/performance.md
 - Connection pooling best practices
 - Query optimization tips
 - Eager loading vs lazy loading
 - Batch operations
 - Benchmarking results
 
-#### 6.2.5 docs/api-reference.md
+#### 5.2.5 docs/api-reference.md
 - Complete API reference
 - All methods with signatures
 - Parameter descriptions
@@ -665,16 +489,14 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 6.3 Update README.md
+### 5.3 Update README.md
 
 **Status**: ⚠️ Contains inaccuracies
 **Priority**: HIGH
 
 **Issues to fix**:
-1. Remove Turso from supported databases (or mark as experimental)
-2. Remove Factory from features (or mark as not implemented)
-3. Remove Migration from features (or mark as not implemented)
-4. Remove Seeder from features (or mark as not implemented)
+1. Remove Migration from features (or mark as not implemented)
+2. Remove Seeder from features (or mark as not implemented)
 5. Add "Roadmap" section with planned features
 6. Add "Contributing" guide link
 7. Add badges (build status, coverage, version, license)
@@ -683,9 +505,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 7: Code Quality Improvements (LOW PRIORITY)
+## Phase 6: Code Quality Improvements (LOW PRIORITY)
 
-### 7.1 Resolve TODO Comments
+### 6.1 Resolve TODO Comments
 
 **Status**: ⚠️ 8 TODO comments found
 **Priority**: LOW
@@ -704,19 +526,12 @@ These tests validate core functionality without requiring database connections.
    - `TODO: package doesn't exist in neat`
    - Remove comment or fix reference
 
-4. **database/orm/orm.go:253**
-   - `TODO: Implement factory when needed`
-   - Resolve based on Phase 1.1 decision
-
-5. **database/orm/factory.go:31, 37, 43**
-   - Three TODOs for factory methods
-   - Resolve based on Phase 1.1 decision
 
 **Estimated effort**: 1 day
 
 ---
 
-### 7.2 Remove Unused Dependencies
+### 6.2 Remove Unused Dependencies
 
 **Status**: ⚠️ Unused dependencies in go.mod
 **Priority**: LOW
@@ -734,7 +549,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 7.3 Add Code Coverage Reporting
+### 6.3 Add Code Coverage Reporting
 
 **Status**: ❌ Not configured
 **Priority**: LOW
@@ -750,9 +565,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 8: CI/CD Improvements (LOW PRIORITY)
+## Phase 7: CI/CD Improvements (LOW PRIORITY)
 
-### 8.1 Enhance GitHub Actions Workflows
+### 7.1 Enhance GitHub Actions Workflows
 
 **Status**: ⚠️ Basic workflows exist
 **Priority**: LOW
@@ -781,33 +596,30 @@ These tests validate core functionality without requiring database connections.
 ### Recommended Execution Order
 
 **Week 1-2: Critical Decisions & Fixes**
-1. ✅ Make decisions on Factory, Migration, Seeder (implement or remove)
-2. ✅ Implement input validation (Phase 2.1, 2.2, 2.3)
-3. ✅ Fix Turso driver or remove from supported list
-4. ✅ Update README to reflect actual features
+1. Make decisions on Migration, Seeder (implement or remove)
+2. Update README to reflect actual features
 
 **Week 3-4: Unit Test Coverage**
-5. ✅ Add root level tests (Phase 3.1)
-6. ✅ Add database/db/dsn_test.go (Phase 3.2)
-7. ✅ Add database/query tests (Phase 3.3)
-8. ✅ Add database/schema tests (Phase 3.4)
+3. Add root level tests (Phase 2.1)
+4. Add database/db/dsn_test.go (Phase 2.2)
+5. Add database/query tests (Phase 2.3)
+6. Add database/schema tests (Phase 2.4)
 
 **Week 5-6: Integration Test Enablement**
-9. ✅ Enable PostgreSQL integration tests (Phase 4.1)
-10. ✅ Enable MySQL integration tests (Phase 4.2)
-11. ✅ Enable SQLite disabled tests (Phase 4.3)
-12. ✅ Create SQL Server integration tests (Phase 4.4)
+7. Enable PostgreSQL integration tests (Phase 3.1)
+8. Enable MySQL integration tests (Phase 3.2)
+9. Enable SQLite disabled tests (Phase 3.3)
+10. Create SQL Server integration tests (Phase 3.4)
 
 **Week 7-8: Documentation & Polish**
-13. ✅ Update placeholder documentation (Phase 6.1)
-14. ✅ Create missing documentation (Phase 6.2)
-15. ✅ Resolve TODO comments (Phase 7.1)
-16. ✅ CI/CD improvements (Phase 8.1)
+11. Update placeholder documentation (Phase 5.1)
+12. Create missing documentation (Phase 5.2)
+13. Resolve TODO comments (Phase 6.1)
+14. CI/CD improvements (Phase 7.1)
 
 **Optional (if time permits)**:
-- Advanced integration tests (Phase 5)
-- Code coverage reporting (Phase 7.3)
-- Turso integration tests (Phase 4.5)
+- Advanced integration tests (Phase 4)
+- Code coverage reporting (Phase 6.3)
 
 ---
 
@@ -833,67 +645,58 @@ The project will have **ZERO GAPS** when:
 Use this checklist to track completion:
 
 ### Phase 1: Critical Implementation
-- [ ] 1.1 Factory Pattern (decision + implementation)
-- [ ] 1.2 Turso Driver (decision + implementation)
-- [ ] 1.3 Migration System (decision + implementation)
-- [ ] 1.4 Seeder System (decision + implementation)
+- [ ] 1.1 Migration System (decision + implementation)
+- [ ] 1.2 Seeder System (decision + implementation)
 
-### Phase 2: Validation & Security
-- [ ] 2.1 Column Name Validation
-- [ ] 2.2 Nil Destination Validation
-- [ ] 2.3 COUNT(DISTINCT) Support
+### Phase 2: Unit Tests
+- [ ] 2.1.1 db_context_test.go
+- [ ] 2.1.2 db_pool_test.go
+- [ ] 2.1.3 db_ssl_test.go
+- [ ] 2.2.1 database/db/dsn_test.go
+- [ ] 2.3.1 database/query/query_test.go
+- [ ] 2.3.2 database/query/clause_test.go
+- [ ] 2.3.3 database/query/builder_test.go
+- [ ] 2.3.4 database/query/where_exists_test.go
+- [ ] 2.4.1 database/schema/index_test.go
+- [ ] 2.5.1 database/orm/buildquery_replica_test.go
 
-### Phase 3: Unit Tests
-- [ ] 3.1.1 db_context_test.go
-- [ ] 3.1.2 db_pool_test.go
-- [ ] 3.1.3 db_ssl_test.go
-- [ ] 3.2.1 database/db/dsn_test.go
-- [ ] 3.3.1 database/query/query_test.go
-- [ ] 3.3.2 database/query/clause_test.go
-- [ ] 3.3.3 database/query/builder_test.go
-- [ ] 3.3.4 database/query/where_exists_test.go
-- [ ] 3.4.1 database/schema/index_test.go
-- [ ] 3.5.1 database/orm/buildquery_replica_test.go
+### Phase 3: Integration Tests
+- [ ] 3.1 Enable PostgreSQL tests (46 files)
+- [ ] 3.2 Enable MySQL tests (39 files)
+- [ ] 3.3 Enable SQLite tests (2 files)
+- [ ] 3.4 Create SQL Server tests (~40 files)
 
-### Phase 4: Integration Tests
-- [ ] 4.1 Enable PostgreSQL tests (46 files)
-- [ ] 4.2 Enable MySQL tests (39 files)
-- [ ] 4.3 Enable SQLite tests (4 files)
-- [ ] 4.4 Create SQL Server tests (~40 files)
-- [ ] 4.5 Create Turso tests (~20 files)
+### Phase 4: Advanced Integration
+- [ ] 4.1 Read/Write Replica Routing Test
+- [ ] 4.2 InsertGetId PostgreSQL Test
+- [ ] 4.3 SlowThreshold Warning Test
 
-### Phase 5: Advanced Integration
-- [ ] 5.1 Read/Write Replica Routing Test
-- [ ] 5.2 InsertGetId PostgreSQL Test
-- [ ] 5.3 SlowThreshold Warning Test
+### Phase 5: Documentation
+- [ ] 5.1 Update placeholder docs (3 files)
+- [ ] 5.2 Create missing docs (5 files)
+- [ ] 5.3 Update README.md
 
-### Phase 6: Documentation
-- [ ] 6.1 Update placeholder docs (3 files)
-- [ ] 6.2 Create missing docs (5 files)
-- [ ] 6.3 Update README.md
+### Phase 6: Code Quality
+- [ ] 6.1 Resolve TODO comments (5 items)
+- [ ] 6.2 Remove unused dependencies
+- [ ] 6.3 Add code coverage reporting
 
-### Phase 7: Code Quality
-- [ ] 7.1 Resolve TODO comments (8 items)
-- [ ] 7.2 Remove unused dependencies
-- [ ] 7.3 Add code coverage reporting
-
-### Phase 8: CI/CD
-- [ ] 8.1 Enhance GitHub Actions workflows
+### Phase 7: CI/CD
+- [ ] 7.1 Enhance GitHub Actions workflows
 
 ---
 
 ## Estimated Total Effort
 
-- **Phase 1**: 12-18 days (depends on decisions)
-- **Phase 2**: 2 days
-- **Phase 3**: 7.5 days
-- **Phase 4**: 8-12 days
-- **Phase 5**: 2 days
-- **Phase 6**: 5.5 days
-- **Phase 7**: 2 days
-- **Phase 8**: 1.5 days
+- **Phase 1**: 5-7 days (depends on decisions)
+- **Phase 2**: 7.5 days
+- **Phase 3**: 8-12 days
+- **Phase 4**: 2 days
+- **Phase 5**: 5.5 days
+- **Phase 6**: 2 days
+- **Phase 7**: 1.5 days
 
-**Total**: 40-50 days (8-10 weeks for one developer)
+**Total**: 31-37 days (6-7 weeks for one developer)
 
 With 2-3 developers working in parallel: **4-6 weeks to zero gaps**
 
@@ -901,7 +704,7 @@ With 2-3 developers working in parallel: **4-6 weeks to zero gaps**
 
 ## Notes
 
-- This plan assumes decisions on Factory, Migration, and Seeder are made quickly
+- This plan assumes decisions on Migration and Seeder are made quickly
 - Integration test enablement may reveal additional bugs requiring fixes
 - Documentation effort can be parallelized with implementation work
 - CI/CD improvements can be done incrementally
