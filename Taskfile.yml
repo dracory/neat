@@ -1,0 +1,42 @@
+version: '3'
+
+tasks:
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./... -v
+
+  test-short:
+    desc: Run short tests only
+    cmds:
+      - go test ./... -short -v
+
+  test-cover:
+    desc: Run tests with coverage
+    cmds:
+      - go test ./... -cover -coverprofile=coverage.out -v
+
+  build:
+    desc: Build the project
+    cmds:
+      - go build ./...
+
+  tidy:
+    desc: Tidy go.mod
+    cmds:
+      - go mod tidy
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  nilaway:
+    desc: Run nilaway static analysis
+    cmds:
+      - go nilaway ./...
+
+  errcheck:
+    desc: Run errcheck static analysis
+    cmds:
+      - errcheck ./...

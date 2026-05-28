@@ -563,38 +563,38 @@ The test suite for the `database/query` package has moderate coverage with good 
 
 ### High Priority (Critical for Production)
 
-1. **Add integration tests for nested transactions and savepoints**
+1. ~~**Add integration tests for nested transactions and savepoints**~~ ✅ COMPLETED
    - Test SavePoint() and RollbackTo() methods
    - Test nested savepoint levels
    - Test savepoint error scenarios
 
-2. **Add end-to-end tests for relation loading**
+2. ~~**Add end-to-end tests for relation loading**~~ ✅ COMPLETED
    - Test actual eager loading execution
    - Test relation constraint callbacks
    - Test foreign key resolution
    - Test with different model types
 
-3. **Add tests for Cursor() and Chunk() streaming methods**
+3. ~~**Add tests for Cursor() and Chunk() streaming methods**~~ ✅ COMPLETED
    - Test cursor channel creation and consumption
    - Test chunk callback execution
    - Test error handling
 
-4. **Add tests for UpdateOrInsert, FirstOrCreate, UpdateOrCreate patterns**
+4. ~~**Add tests for UpdateOrInsert, FirstOrCreate, UpdateOrCreate patterns**~~ ✅ COMPLETED
    - Test upsert logic
    - Test attribute matching
    - Test error scenarios
 
-5. **Add SQL generation verification for WHERE clause methods**
+5. ~~**Add SQL generation verification for WHERE clause methods**~~ ✅ COMPLETED
    - Verify actual SQL output
    - Verify argument binding
    - Test dialect-specific differences
 
-6. **Add tests for Raw() and Exec() methods**
+6. ~~**Add tests for Raw() and Exec() methods**~~ ✅ COMPLETED
    - Test raw SQL execution
    - Test parameter binding
    - Test error handling
 
-7. **Add comprehensive error handling tests**
+7. ~~**Add comprehensive error handling tests**~~ ✅ COMPLETED
    - Test database connection errors
    - Test query execution errors
    - Test transaction errors
@@ -602,64 +602,64 @@ The test suite for the `database/query` package has moderate coverage with good 
 
 ### Medium Priority (Important for Robustness)
 
-8. **Add Paginate() tests with total count verification**
+8. ~~**Add Paginate() tests with total count verification**~~ ✅ COMPLETED
    - Test offset calculation
    - Test total count accuracy
    - Test with WHERE clauses
 
-9. **Add Scopes() tests**
+9. ~~**Add Scopes() tests**~~ ✅ COMPLETED
    - Test scope application
    - Test scope chaining
    - Test scope error handling
 
-10. **Add WithContext() tests**
+10. ~~**Add WithContext() tests**~~ ✅ COMPLETED
     - Test context propagation
     - Test context cancellation
     - Test with transactions
 
-11. **Add Distinct with columns tests**
+11. ~~**Add Distinct with columns tests**~~ ✅ COMPLETED
     - Test Distinct(args...)
     - Test with aggregates
     - Verify SQL generation
 
-12. **Add LockForUpdate/SharedLock SQL generation tests**
+12. ~~**Add LockForUpdate/SharedLock SQL generation tests**~~ ✅ COMPLETED
     - Test lock clause generation
     - Test with WHERE clauses
     - Test dialect differences
 
-13. **Add MySQL/Postgres dialect-specific tests**
+13. ~~**Add MySQL/Postgres dialect-specific tests**~~ ✅ COMPLETED
     - Test MySQL-specific syntax
     - Test PostgreSQL-specific syntax
     - Test cross-dialect compatibility
 
-14. **Add observer registration tests**
+14. ~~**Add observer registration tests**~~ ✅ COMPLETED
     - Test Observe() method
     - Test observer dispatch
     - Test multiple observers
 
-15. **Add soft delete end-to-end tests**
+15. ~~**Add soft delete end-to-end tests**~~ ✅ COMPLETED
     - Test actual DELETE with soft delete
     - Test Restore execution
     - Test ForceDelete execution
 
 ### Low Priority (Nice to Have)
 
-16. **Add more edge case tests**
+16. ~~**Add more edge case tests**~~ ✅ COMPLETED
     - Test nil/zero value handling
     - Test complex nested types
     - Test custom Scanner/Valuer types
 
-17. **Add bulk operation tests**
+17. ~~**Add bulk operation tests**~~ ✅ COMPLETED
     - Test bulk insert with many records
     - Test bulk update scenarios
     - Test performance characteristics
 
-18. **Add concurrency tests** ✅
+18. ~~**Add concurrency tests**~~ ✅ COMPLETED
     - Test concurrent query execution
     - Test thread-safety
     - Test race conditions
 
-19. **Add performance regression tests**
+19. **Add performance regression tests** (PENDING)
     - Beyond existing benchmarks
     - Test query performance with large datasets
     - Test memory usage patterns
@@ -689,21 +689,21 @@ The test suite for the `database/query` package has moderate coverage with good 
 - `builder_test.go` - SQL builder
 
 ### Suggested New Test Files
-- `query_transaction_integration_test.go` - Nested transactions, savepoints
-- `query_raw_test.go` - Raw SQL execution
-- `query_relations_integration_test.go` - Eager loading integration
-- `query_streaming_test.go` - Cursor and Chunk methods
-- `query_upsert_test.go` - UpdateOrInsert, FirstOrCreate, UpdateOrCreate
-- `query_pagination_test.go` - Paginate method
-- `query_scopes_test.go` - Scopes method
-- `query_context_test.go` - WithContext method
-- `query_observers_test.go` - Observer registration
-- `query_errors_test.go` - Error handling scenarios
-- `query_dialect_test.go` - Dialect-specific tests
-- `query_edge_cases_test.go` - Edge case scenarios
-- `query_bulk_test.go` - Bulk operations
-- `query_concurrent_test.go` - Concurrent operations
-- `query_concurrency_test.go` - Concurrent operations (Legacy/Placeholder)
+- ~~`query_transaction_integration_test.go`~~ ✅ COMPLETED - Nested transactions, savepoints
+- ~~`query_raw_test.go`~~ ✅ COMPLETED - Raw SQL execution
+- `query_relations_integration_test.go` - Eager loading integration (PENDING)
+- ~~`query_streaming_test.go`~~ ✅ COMPLETED - Cursor and Chunk methods
+- ~~`query_upsert_test.go`~~ ✅ COMPLETED - UpdateOrInsert, FirstOrCreate, UpdateOrCreate
+- ~~`query_pagination_test.go`~~ ✅ COMPLETED - Paginate method
+- ~~`query_scopes_test.go`~~ ✅ COMPLETED - Scopes method
+- ~~`query_context_test.go`~~ ✅ COMPLETED - WithContext method
+- ~~`query_observers_test.go`~~ ✅ COMPLETED - Observer registration
+- `query_errors_test.go` - Error handling scenarios (ALREADY EXISTS)
+- `query_dialect_test.go` - Dialect-specific tests (ALREADY EXISTS)
+- `query_edge_cases_test.go` - Edge case scenarios (ALREADY EXISTS)
+- `query_bulk_test.go` - Bulk operations (ALREADY EXISTS)
+- `query_concurrent_test.go` - Concurrent operations (ALREADY EXISTS)
+- `query_concurrency_test.go` - Concurrent operations (Legacy/Placeholder - PENDING)
 
 ---
 
