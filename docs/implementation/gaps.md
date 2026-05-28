@@ -467,9 +467,9 @@ These tests validate core functionality without requiring database connections.
    - ~~Reason: `Update with JSON path requires JSON_SET which is more complex - skipping for now`~~
    - Action: Implemented JSON_SET support in BuildUpdate for SQLite using json_set() function
 
-3. **sqlite_query_join_test.go:222, 256, 283**
-   - Reason: `RIGHT JOIN requires SQLite 3.39.0 or higher`
-   - Action: Either require SQLite 3.39.0+ or implement workaround
+3. ~~**sqlite_query_join_test.go:222, 256, 283**~~ ✅ FIXED
+   - ~~Reason: `RIGHT JOIN requires SQLite 3.39.0 or higher`~~
+   - Action: Upgraded `modernc.org/sqlite` from v1.34.4 to v1.51.0, which includes SQLite 3.39.0+ support
 
 **Steps**:
 1. Fix RenameIndex savepoint issue
