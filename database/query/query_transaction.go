@@ -122,7 +122,7 @@ func (q *Query) Commit() error {
 		}
 		q.savepointName = ""
 		q.inTransaction = false // Nested transactions are also "transactions" in our model
-		return nil
+		return nil              // Success
 	}
 
 	err := q.doCommit()

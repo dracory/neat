@@ -55,8 +55,9 @@ func getType(grammar schema.Grammar, column schema.ColumnDefinition) string {
 	if methodValue.IsValid() {
 		args := []reflect.Value{reflect.ValueOf(column)}
 		callResult := methodValue.Call(args)
-
-		return callResult[0].String()
+		if len(callResult) > 0 {
+			return callResult[0].String()
+		}
 	}
 
 	return column.GetType()

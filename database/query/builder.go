@@ -321,7 +321,7 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	} else {
 		// Handle struct or pointer-to-struct: extract fields as col=? pairs
 		cols, vals, err := b.extractColumnsAndValues(column)
-		if err == nil {
+		if err == nil && vals != nil {
 			for i, col := range cols {
 				// Skip omitted columns
 				omitted := false
@@ -689,7 +689,7 @@ func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
 	// Handle slice/array for bulk insert
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 		if v.Len() == 0 {
-			return nil, nil, nil
+			return nil, []any{}, nil
 		}
 
 		var allColumns []string
@@ -708,6 +708,9 @@ func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
 			allValues = append(allValues, vals...)
 		}
 
+		if allValues == nil {
+			allValues = []any{}
+		}
 		return allColumns, allValues, nil
 	}
 
@@ -742,16 +745,22 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 			columns = append(columns, key.String())
 			values = append(values, v.MapIndex(key).Interface())
 		}
+		if values == nil {
+			values = []any{}
+		}
 		return columns, values, nil
 	}
 
 	// Handle struct using reflection
 	if v.Kind() == reflect.Struct {
 		cols, vals := b.extractStructColumnsAndValues(v)
+		if vals == nil {
+			vals = []any{}
+		}
 		return cols, vals, nil
 	}
 
-	return nil, nil, fmt.Errorf("unsupported value type for INSERT: %T", value)
+	return nil, []any{}, fmt.Errorf("unsupported value type for INSERT: %T", value)
 }
 
 func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []any) {
@@ -820,6 +829,9 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 
 		columns = append(columns, columnName)
 		values = append(values, fieldValue.Interface())
+	}
+	if values == nil {
+		values = []any{}
 	}
 	return columns, values
 }

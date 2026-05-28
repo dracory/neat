@@ -148,6 +148,9 @@ func (q *Query) splitJsonColumn(column string) (string, string) {
 		return column, ""
 	}
 	parts := strings.SplitN(column, "->", 2)
+	if len(parts) < 2 {
+		return column, ""
+	}
 	return parts[0], "." + parts[1]
 }
 

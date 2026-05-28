@@ -320,7 +320,14 @@ func (r *Orm) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*sql
 	if r.query == nil {
 		return fmt.Errorf("query not initialized")
 	}
-	return r.Query().Transaction(txFunc, opts...)
+	// Use r.query directly to avoid nil return from Query()
+	query := r.query
+	if r.ctx != context.Background() {
+		if queryWithContext, ok := query.(contractsorm.QueryWithContext); ok {
+			query = queryWithContext.WithContext(r.ctx)
+		}
+	}
+	return query.Transaction(txFunc, opts...)
 }
 
 func (r *Orm) WithContext(ctx context.Context) contractsorm.Orm {

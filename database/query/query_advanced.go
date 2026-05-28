@@ -103,7 +103,12 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 			RowsAffected: 0,
 		}, nil
 	}
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return &contractsorm.Result{
+			RowsAffected: 0,
+		}, nil
+	}
 	return &contractsorm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
@@ -183,7 +188,10 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	// Get affected rows
-	rowsAffected, _ := result.RowsAffected()
+	var rowsAffected int64
+	if result != nil {
+		rowsAffected, _ = result.RowsAffected()
+	}
 	return &contractsorm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
@@ -237,7 +245,10 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Get affected rows
-	rowsAffected, _ := result.RowsAffected()
+	var rowsAffected int64
+	if result != nil {
+		rowsAffected, _ = result.RowsAffected()
+	}
 	return &contractsorm.Result{
 		RowsAffected: rowsAffected,
 	}, nil

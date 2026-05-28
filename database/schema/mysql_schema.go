@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+
 	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema/grammars"
@@ -75,7 +77,11 @@ func (r *MysqlSchema) DropAllViews() error {
 		dropViews = append(dropViews, view.Name)
 	}
 
-	_, err = r.orm.Query().Exec(r.grammar.CompileDropAllViews(dropViews))
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	_, err = query.Exec(r.grammar.CompileDropAllViews(dropViews))
 
 	return err
 }
@@ -84,7 +90,11 @@ func (r *MysqlSchema) GetColumns(table string) ([]contractsschema.Column, error)
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	if err := r.orm.Query().Raw(r.grammar.CompileColumns(r.orm.DatabaseName(), table)).Scan(&dbColumns); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileColumns(r.orm.DatabaseName(), table)).Scan(&dbColumns); err != nil {
 		return nil, err
 	}
 

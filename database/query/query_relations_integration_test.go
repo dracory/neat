@@ -52,7 +52,7 @@ func TestEagerLoadingWithSingleRelation(t *testing.T) {
 	q.table = "posts"
 	q.withRelations = []string{"User"}
 
-	var posts []Post
+	posts := []Post{}
 	err = q.Get(&posts)
 	if err != nil {
 		t.Fatalf("Get with eager loading failed: %v", err)
@@ -129,7 +129,7 @@ func TestEagerLoadingWithMultipleRelations(t *testing.T) {
 	q.table = "posts"
 	q.withRelations = []string{"User", "Comments"}
 
-	var posts []Post
+	posts := []Post{}
 	err = q.Get(&posts)
 	if err != nil {
 		t.Fatalf("Get with multiple eager loading failed: %v", err)
@@ -201,7 +201,7 @@ func TestEagerLoadingWithWhereClause(t *testing.T) {
 		},
 	}
 
-	var posts []Post
+	posts := []Post{}
 	err = q.Get(&posts)
 	if err != nil {
 		t.Fatalf("Get with eager loading and constraint failed: %v", err)
@@ -259,7 +259,7 @@ func TestEagerLoadingWithNoMatchingRelation(t *testing.T) {
 	q.table = "posts"
 	q.withRelations = []string{"User"}
 
-	var posts []Post
+	posts := []Post{}
 	err = q.Get(&posts)
 	if err != nil {
 		t.Fatalf("Get with eager loading failed: %v", err)
