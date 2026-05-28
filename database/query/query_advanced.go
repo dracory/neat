@@ -72,6 +72,9 @@ func (q *Query) SharedLock() contractsorm.Query {
 
 // Raw sets a raw SQL query to be executed.
 func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
+	if q == nil {
+		return nil
+	}
 	// Store raw SQL for later use
 	newQ := *q
 	newQ.rawSQL = sql

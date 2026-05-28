@@ -83,6 +83,7 @@ func TestContextCancellationPreventsQuery(t *testing.T) {
 
 	if err == nil {
 		t.Error("expected query to fail with cancelled context")
+		return
 	}
 	if !errors.Is(err, context.Canceled) && !strings.Contains(err.Error(), "context canceled") {
 		t.Errorf("expected context.Canceled error, got: %v", err)

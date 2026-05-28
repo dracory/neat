@@ -69,6 +69,7 @@ func TestOrmConnection(t *testing.T) {
 func TestOrmQuery(t *testing.T) {
 	orm := &Orm{
 		query: nil,
+		log:   log.NewStdLogger(),
 	}
 
 	query := orm.Query()

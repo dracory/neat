@@ -77,6 +77,7 @@ func TestSQLiteTransactionRollback(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("Expected error, got nil")
+		return
 	}
 
 	if err.Error() != "some error" {

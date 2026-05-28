@@ -26,6 +26,10 @@ func TestSQLiteIntegrationQueryDeleteByModel(t *testing.T) {
 	if err != nil {
 		t.Errorf("Delete by model failed: %v", err)
 	}
+	if res == nil {
+		t.Error("Expected result to be returned")
+		return
+	}
 	if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
@@ -45,6 +49,10 @@ func TestSQLiteIntegrationQueryDeleteByTable(t *testing.T) {
 	res, err := db.Query().Table("users").Where("name = ?", "delete_user_table").Delete()
 	if err != nil {
 		t.Errorf("Delete by table failed: %v", err)
+	}
+	if res == nil {
+		t.Error("Expected result to be returned")
+		return
 	}
 	if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
@@ -69,6 +77,10 @@ func TestSQLiteIntegrationQueryDeleteByModelWithWhere(t *testing.T) {
 	res, err := db.Query().Model(&models.User{}).Where("name = ?", "delete_user_where_1").Delete(&models.User{})
 	if err != nil {
 		t.Errorf("Delete by model with where failed: %v", err)
+	}
+	if res == nil {
+		t.Error("Expected result to be returned")
+		return
 	}
 	if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)

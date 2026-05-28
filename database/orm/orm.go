@@ -289,6 +289,7 @@ func (r *Orm) Observe(model any, observer contractsorm.Observer) {
 
 func (r *Orm) Query() contractsorm.Query {
 	if r.query == nil {
+		r.log.Errorf("[Orm] Query called but query not initialized for connection: %s", r.connection)
 		return nil
 	}
 	if r.ctx != context.Background() {

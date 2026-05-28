@@ -33,6 +33,7 @@ func TestSavePointNotInTransaction(t *testing.T) {
 	err := q.SavePoint("test_savepoint")
 	if err == nil {
 		t.Error("Expected error when not in transaction")
+		return
 	}
 
 	if err.Error() != "not in a transaction" {
@@ -95,6 +96,7 @@ func TestRollbackToNotInTransaction(t *testing.T) {
 	err := q.RollbackTo("test_savepoint")
 	if err == nil {
 		t.Error("Expected error when not in transaction")
+		return
 	}
 
 	if err.Error() != "not in a transaction" {

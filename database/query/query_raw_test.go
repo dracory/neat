@@ -78,6 +78,7 @@ func TestExecMethod(t *testing.T) {
 	}
 	if result == nil {
 		t.Error("Expected result to be returned")
+		return
 	}
 	if result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
@@ -100,6 +101,10 @@ func TestExecWithParameterBinding(t *testing.T) {
 	result, err := q.Exec("INSERT INTO test (name, age) VALUES (?, ?)", "john", 30)
 	if err != nil {
 		t.Errorf("Exec with parameter binding failed: %v", err)
+	}
+	if result == nil {
+		t.Error("Expected result to be returned")
+		return
 	}
 	if result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
@@ -137,6 +142,10 @@ func TestExecWithMultipleParameters(t *testing.T) {
 	if err != nil {
 		t.Errorf("Exec with multiple parameters failed: %v", err)
 	}
+	if result == nil {
+		t.Error("Expected result to be returned")
+		return
+	}
 	if result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
 	}
@@ -167,6 +176,10 @@ func TestExecInTransaction(t *testing.T) {
 	result, err := q.Exec("INSERT INTO test (name) VALUES (?)", "transaction_test")
 	if err != nil {
 		t.Errorf("Exec in transaction failed: %v", err)
+	}
+	if result == nil {
+		t.Error("Expected result to be returned")
+		return
 	}
 	if result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
@@ -205,6 +218,10 @@ func TestExecWithUpdate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Exec with UPDATE failed: %v", err)
 	}
+	if result == nil {
+		t.Error("Expected result to be returned")
+		return
+	}
 	if result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
 	}
@@ -241,6 +258,10 @@ func TestExecWithDelete(t *testing.T) {
 	result, err := q.Exec("DELETE FROM test WHERE id = ?", 1)
 	if err != nil {
 		t.Errorf("Exec with DELETE failed: %v", err)
+	}
+	if result == nil {
+		t.Error("Expected result to be returned")
+		return
 	}
 	if result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)

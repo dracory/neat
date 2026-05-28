@@ -69,7 +69,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 	}
 
 	var parts []string
-	var args []any
+	args := make([]any, 0)
 
 	// SELECT clause
 	if b.query.aggregate != "" {

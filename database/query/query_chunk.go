@@ -4,9 +4,9 @@ import (
 	"fmt"
 )
 
-// Scan executes the query and scans the results into the destination.
-func (q *Query) Scan(dest any) error {
-	// Build SELECT query
+// Chunk processes the query results in chunks and calls the callback for each chunk.
+func (q *Query) Chunk(size int, callback any) error {
+	// Build SELECT query without limit (we chunk in memory)
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
@@ -15,11 +15,11 @@ func (q *Query) Scan(dest any) error {
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
 		if err != nil {
-			return fmt.Errorf("failed to execute SCAN query: %w", err)
+			return fmt.Errorf("failed to execute CHUNK query: %w", err)
 		}
 		defer rows.Close()
 
-		return q.scanRows(rows, dest)
+		return q.chunkRows(rows, size, callback)
 	}
 
 	databaseConn, err := q.ReadDB()
@@ -29,9 +29,9 @@ func (q *Query) Scan(dest any) error {
 
 	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("failed to execute SCAN query: %w", err)
+		return fmt.Errorf("failed to execute CHUNK query: %w", err)
 	}
 	defer rows.Close()
 
-	return q.scanRows(rows, dest)
+	return q.chunkRows(rows, size, callback)
 }

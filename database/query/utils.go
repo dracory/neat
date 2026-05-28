@@ -49,7 +49,11 @@ func structFieldColumnName(f reflect.StructField) string {
 	for _, tag := range []string{"db", "neat", "gorm"} {
 		if v := f.Tag.Get(tag); v != "" && v != "-" {
 			// take the first semicolon-delimited part; for gorm it may be "column:name"
-			part := strings.SplitN(v, ";", 2)[0]
+			parts := strings.SplitN(v, ";", 2)
+			if len(parts) == 0 {
+				continue
+			}
+			part := parts[0]
 			if strings.HasPrefix(part, "column:") {
 				return strings.TrimPrefix(part, "column:")
 			}
