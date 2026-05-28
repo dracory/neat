@@ -72,7 +72,7 @@ func TestEagerLoadingWithSingleRelation(t *testing.T) {
 }
 
 func TestEagerLoadingWithMultipleRelations(t *testing.T) {
-	db, err := sql.Open("sqlite", ":memory:")
+	db, err := sql.Open("sqlite", "file::memory:?cache=shared")
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
@@ -128,13 +128,6 @@ func TestEagerLoadingWithMultipleRelations(t *testing.T) {
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.table = "posts"
 	q.withRelations = []string{"User", "Comments"}
-
-	// Verify tables exist
-	var tableName string
-	err = db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='comments'").Scan(&tableName)
-	if err != nil {
-		t.Fatalf("comments table not found: %v", err)
-	}
 
 	var posts []Post
 	err = q.Get(&posts)

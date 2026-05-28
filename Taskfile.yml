@@ -34,7 +34,7 @@ tasks:
   nilaway:
     desc: Run nilaway static analysis
     cmds:
-      - go nilaway ./...
+      - nilaway ./...
 
   errcheck:
     desc: Run errcheck static analysis

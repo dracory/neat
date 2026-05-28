@@ -48,6 +48,11 @@ func (q *Query) initializeRelations(v reflect.Value) {
 
 // loadRelations loads the actual data for relations requested via With.
 func (q *Query) loadRelations(v reflect.Value) error {
+	return q.loadRelationsWithConn(v, q.readConn())
+}
+
+// loadRelationsWithConn loads relations using a specific connection.
+func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -60,7 +65,7 @@ func (q *Query) loadRelations(v reflect.Value) error {
 					elem = elem.Elem()
 				}
 				if elem.Kind() == reflect.Struct {
-					if err := q.loadRelations(elem); err != nil {
+					if err := q.loadRelationsWithConn(elem, conn); err != nil {
 						return err
 					}
 				}
@@ -98,25 +103,17 @@ func (q *Query) loadRelations(v reflect.Value) error {
 				// Try lowercase id
 				idField = v.FieldByName("Id")
 				if !idField.IsValid() {
-					fmt.Printf("DEBUG: No ID field found for relation %s, v.Type()=%v\n", relation, v.Type())
 					continue
 				}
 			}
 			parentID := idField.Interface()
-			fmt.Printf("DEBUG: Loading has-many relation %s, parentID=%v, tableName will be based on %s\n", relation, parentID, relationType.Name())
 
-			// Create a query to load the related models
-			relatedQuery := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
 			// Use the relation type name to determine table name (singular form)
 			tableName := str.Of(relationType.Name()).Snake().String()
 			// Simple pluralization: add 's' if not already ending with 's'
 			if !strings.HasSuffix(tableName, "s") {
 				tableName = tableName + "s"
 			}
-			relatedQuery.table = tableName
-			relatedQuery.model = nil
-			relatedQuery.withRelations = nil
-			fmt.Printf("DEBUG: relatedQuery.db is nil: %v\n", relatedQuery.db == nil)
 
 			// Build the base query with the foreign key condition on the related table
 			// e.g., for Post.Comments, query comments where post_id = ?
@@ -141,6 +138,12 @@ func (q *Query) loadRelations(v reflect.Value) error {
 				}
 			}
 			foreignKeyColumn := str.Of(parentTypeName).Snake().String() + "_id"
+
+			// Create a query to load the related models
+			relatedQuery := NewQuery(q.ctx, conn, q.driver, q.connection, q.dbConfig, q.log)
+			relatedQuery.table = tableName
+			relatedQuery.model = nil
+			relatedQuery.withRelations = nil
 			relatedQuery = relatedQuery.Select("*").Where(foreignKeyColumn+" = ?", parentID).(*Query)
 
 			// Apply constraint callback if provided for this relation
@@ -153,37 +156,14 @@ func (q *Query) loadRelations(v reflect.Value) error {
 			// Build and execute the query
 			builder := NewBuilder(relatedQuery)
 			querySQL, args := builder.BuildSelect()
-			fmt.Printf("DEBUG: Executing query: %s with args: %v\n", querySQL, args)
-			fmt.Printf("DEBUG: q.db == relatedQuery.db: %v\n", q.db == relatedQuery.db)
-
-			// Verify table exists
-			checkRows, checkErr := q.db.QueryContext(q.ctx, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", tableName)
-			if checkErr != nil {
-				fmt.Printf("DEBUG: Error checking table: %v\n", checkErr)
-			} else {
-				defer checkRows.Close()
-				if checkRows.Next() {
-					var tableName string
-					checkRows.Scan(&tableName)
-					fmt.Printf("DEBUG: Table exists: %s\n", tableName)
-				} else {
-					fmt.Printf("DEBUG: Table does NOT exist: %s\n", tableName)
-				}
-			}
 
 			var rows *sql.Rows
 			var err error
-			// Use the same connection as the parent query
-			if q.readDB != nil {
-				rows, err = q.readDB.QueryContext(q.ctx, querySQL, args...)
-			} else if q.db != nil {
-				rows, err = q.db.QueryContext(q.ctx, querySQL, args...)
-			} else {
-				fmt.Printf("DEBUG: No database connection available\n")
+			if conn == nil {
 				continue
 			}
+			rows, err = conn.QueryContext(q.ctx, querySQL, args...)
 			if err != nil {
-				fmt.Printf("DEBUG: Query error: %v\n", err)
 				continue
 			}
 			defer rows.Close()
@@ -242,12 +222,10 @@ func (q *Query) loadRelations(v reflect.Value) error {
 			dest := reflect.New(relationType)
 
 			// Create a query to load the related model
-			relatedQuery := NewQuery(q.ctx, q.db, q.driver, q.connection, q.dbConfig, q.log)
+			relatedQuery := NewQuery(q.ctx, conn, q.driver, q.connection, q.dbConfig, q.log)
 			relatedQuery.table = str.Of(relation).Snake().String() + "s"
 			relatedQuery.model = nil
-			relatedQuery.withRelations = nil // Prevent recursive relation loading
-
-			// Build the base query with the foreign key condition
+			relatedQuery.withRelations = nil
 			relatedQuery = relatedQuery.Select("*").Where("id = ?", foreignKeyValue).(*Query)
 
 			// Apply constraint callback if provided for this relation
@@ -261,14 +239,13 @@ func (q *Query) loadRelations(v reflect.Value) error {
 			builder := NewBuilder(relatedQuery)
 			querySQL, args := builder.BuildSelect()
 
-			// Use a separate connection to avoid SQLite deadlock during relation loading
+			// Execute the query
 			var rows *sql.Rows
 			var err error
-			if q.readDB != nil {
-				rows, err = q.readDB.QueryContext(q.ctx, querySQL, args...)
-			} else {
-				rows, err = q.db.QueryContext(q.ctx, querySQL, args...)
+			if conn == nil {
+				continue
 			}
+			rows, err = conn.QueryContext(q.ctx, querySQL, args...)
 			if err != nil {
 				continue
 			}
