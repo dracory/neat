@@ -12,6 +12,39 @@ The test suite for the `database/query` package has comprehensive coverage acros
 
 ## Remaining Gaps
 
+### Implementation Limitations
+
+**Priority:** Medium (Known Limitations)
+
+**Description:**
+
+#### 1. Lazy Loading (`query_relations.go`) - COMPLETED
+- `Load()` - Implemented to load relations on-demand
+- `LoadMissing()` - Implemented to load relations only if not already loaded
+- Both methods support constraint callbacks for filtering loaded relations
+
+**Impact:** Medium - Lazy loading is now fully implemented alongside eager loading
+
+#### 2. FirstOrNew (`query_first_or.go`)
+- Simplified implementation doesn't modify model when record not found
+- Only returns nil without preparing a new instance with values
+
+**Impact:** Low - FirstOrCreate is fully implemented, FirstOrNew has limited use case
+
+#### 3. ToSql.Save (`to_sql.go`)
+- Simplified implementation doesn't determine if it's an insert or update
+- Always generates UPDATE query
+
+**Impact:** Low - ToSql is primarily for debugging, actual Save() method works correctly
+
+#### 4. CursorWrapper.Scan (`query_cursor.go`)
+- Simplified implementation returns nil without proper data mapping
+- Cursor channel streaming works correctly, but direct Scan() on cursor is limited
+
+**Impact:** Low - Cursor channel consumption is the primary use case and works correctly
+
+---
+
 ### Performance Regression Tests
 
 **Priority:** Low (Nice to Have)
@@ -28,9 +61,31 @@ The test suite for the `database/query` package has comprehensive coverage acros
 
 ## Recommendations
 
+### Medium Priority (Known Limitations)
+
+1. **Implement lazy loading** (COMPLETED)
+   - Implemented `Load()` method in `query_relations.go`
+   - Implemented `LoadMissing()` method in `query_relations.go`
+   - Both methods support constraint callbacks for filtering
+   - Note: Eager loading is fully implemented and tested
+
 ### Low Priority (Nice to Have)
 
-1. **Add performance regression tests** (PENDING)
+2. **Implement FirstOrNew properly** (PENDING)
+   - Modify model when record not found
+   - Prepare new instance with values parameter
+   - Note: FirstOrCreate is fully implemented
+
+3. **Implement ToSql.Save properly** (PENDING)
+   - Determine if it's an insert or update based on primary key
+   - Generate appropriate SQL
+   - Note: Actual Save() method works correctly, this is for debugging only
+
+4. **Implement CursorWrapper.Scan** (PENDING)
+   - Properly map data to destination
+   - Note: Cursor channel consumption works correctly
+
+5. **Add performance regression tests** (PENDING)
    - Beyond existing benchmarks
    - Test query performance with large datasets
    - Test memory usage patterns
