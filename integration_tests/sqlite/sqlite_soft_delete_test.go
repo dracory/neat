@@ -92,7 +92,7 @@ func TestSQLiteIntegrationWithTrashed(t *testing.T) {
 	}
 
 	// Without WithTrashed, should only find non-deleted users
-	var activeUsers []models.User
+	activeUsers := make([]models.User, 0)
 	if err := db.Query().Model(&models.User{}).Where("name LIKE ?", "with_trashed_user%").Find(&activeUsers); err != nil {
 		t.Fatalf("Failed to find active users: %v", err)
 	}
@@ -286,7 +286,7 @@ func TestSQLiteIntegrationOnlyTrashed(t *testing.T) {
 	}
 
 	// Test OnlyTrashed - should only find the deleted user
-	var deletedUsers []models.User
+	deletedUsers := make([]models.User, 0)
 	if err := db.Query().Model(&models.User{}).OnlyTrashed().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers); err != nil {
 		t.Fatalf("Failed to find users with OnlyTrashed: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestSQLiteIntegrationWithoutTrashed(t *testing.T) {
 	}
 
 	// Test WithoutTrashed after WithTrashed
-	var activeUsers []models.User
+	activeUsers := make([]models.User, 0)
 	if err := db.Query().Model(&models.User{}).WithTrashed().WithoutTrashed().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers); err != nil {
 		t.Fatalf("Failed to find users with WithoutTrashed: %v", err)
 	}

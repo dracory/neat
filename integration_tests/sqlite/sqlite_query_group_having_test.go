@@ -37,7 +37,7 @@ func TestSQLiteIntegrationGroupBySingleColumn(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").OrderBy("avatar", "asc").Scan(&results)
 	if err != nil {
@@ -73,7 +73,7 @@ func TestSQLiteIntegrationGroupByMultipleColumns(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("name, avatar, COUNT(*) as count").Group("name").Group("avatar").OrderBy("name", "asc").Scan(&results)
 	if err != nil {
@@ -96,7 +96,7 @@ func TestSQLiteIntegrationHavingClause(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").Having("COUNT(*) > ?", 2).Scan(&results)
 	if err != nil {
@@ -125,7 +125,7 @@ func TestSQLiteIntegrationHavingWithAggregateFunctions(t *testing.T) {
 		Avatar string
 		MaxID  uint
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, MAX(id) as max_id").Group("avatar").Having("MAX(id) > 0").OrderBy("avatar", "asc").Scan(&results)
 	if err != nil {
@@ -148,7 +148,7 @@ func TestSQLiteIntegrationGroupByWithHavingAndWhere(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).
 		Where("name LIKE ?", "group_user_%").
 		Where("avatar = ?", "avatar2").
@@ -182,7 +182,7 @@ func TestSQLiteIntegrationMultipleHavingClauses(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").
 		Having("COUNT(*) > ?", 1).Having("COUNT(*) < ?", 5).Scan(&results)
@@ -206,7 +206,7 @@ func TestSQLiteIntegrationHavingWithSubqueryCallback(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := db.Query().Model(&models.User{}).
 		Where("name LIKE ?", "group_user_%").
 		Group("avatar").
@@ -242,7 +242,7 @@ func TestSQLiteIntegrationHavingWithSubqueryInArgs(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	results := make([]Result, 0)
 	err := query.Model(&models.User{}).
 		Where("name LIKE ?", "group_user_%").
 		Group("avatar").

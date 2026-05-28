@@ -31,7 +31,7 @@ func TestSQLiteIntegrationPluckSingleColumn(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPluckTestData(t, db)
 
-	var names []string
+	names := make([]string, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").OrderBy("name", "asc").Pluck("name", &names)
 	if err != nil {
 		t.Errorf("Pluck single column failed: %v", err)
@@ -58,7 +58,7 @@ func TestSQLiteIntegrationPluckWithWhere(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPluckTestData(t, db)
 
-	var names []string
+	names := make([]string, 0)
 	err := db.Query().Model(&models.User{}).Where("avatar = ?", "avatar1").OrderBy("name", "asc").Pluck("name", &names)
 	if err != nil {
 		t.Errorf("Pluck with Where conditions failed: %v", err)
@@ -103,7 +103,7 @@ func TestSQLiteIntegrationPluckDuplicates(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPluckTestData(t, db)
 
-	var avatars []string
+	avatars := make([]string, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").OrderBy("avatar", "asc").Pluck("avatar", &avatars)
 	if err != nil {
 		t.Errorf("Pluck with duplicates failed: %v", err)

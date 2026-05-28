@@ -520,7 +520,7 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 // buildWheres builds the WHERE clause from where clauses.
 func (b *Builder) buildWheres() (string, []any) {
 	var parts []string
-	var args []any
+	args := make([]any, 0)
 
 	for i, where := range b.query.wheres {
 		if i > 0 {

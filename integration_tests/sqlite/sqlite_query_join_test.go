@@ -46,10 +46,10 @@ func TestSQLiteIntegrationJoinInner(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	data := seedJoinTestData(t, db)
 
-	var results []struct {
+	results := make([]struct {
 		UserName    string `gorm:"column:name"`
 		AddressName string `gorm:"column:address_name"`
-	}
+	}, 0)
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id").
 		Select("users.name, addresses.name as address_name").
@@ -78,9 +78,9 @@ func TestSQLiteIntegrationJoinInnerWithConditions(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedJoinTestData(t, db)
 
-	var results []struct {
+	results := make([]struct {
 		UserName string `gorm:"column:name"`
-	}
+	}, 0)
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id AND addresses.name = ?", "address1").
 		Select("users.name").
@@ -102,9 +102,9 @@ func TestSQLiteIntegrationJoinInnerWithAliases(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedJoinTestData(t, db)
 
-	var results []struct {
+	results := make([]struct {
 		UserName string `gorm:"column:name"`
-	}
+	}, 0)
 	err := db.Query().Table("users as u").
 		Join("addresses as a ON a.user_id = u.id").
 		Select("u.name").
@@ -126,10 +126,10 @@ func TestSQLiteIntegrationJoinLeft(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedJoinTestData(t, db)
 
-	var results []struct {
+	results := make([]struct {
 		UserName    string  `gorm:"column:name"`
 		AddressName *string `gorm:"column:address_name"`
-	}
+	}, 0)
 	err := db.Query().Table("users").
 		LeftJoin("addresses ON addresses.user_id = users.id").
 		Select("users.name, addresses.name as address_name").
@@ -164,10 +164,10 @@ func TestSQLiteIntegrationJoinLeftWithConditions(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedJoinTestData(t, db)
 
-	var results []struct {
+	results := make([]struct {
 		UserName    string  `gorm:"column:name"`
 		AddressName *string `gorm:"column:address_name"`
-	}
+	}, 0)
 	err := db.Query().Table("users").
 		LeftJoin("addresses ON addresses.user_id = users.id AND addresses.name = ?", "non-existent").
 		Select("users.name, addresses.name as address_name").
@@ -223,10 +223,10 @@ func TestSQLiteIntegrationJoinRight(t *testing.T) {
 	}
 	seedJoinTestData(t, db)
 
-	var results []struct {
+	results := make([]struct {
 		UserName    *string `gorm:"column:name"`
 		AddressName string  `gorm:"column:address_name"`
-	}
+	}, 0)
 	err := db.Query().Table("users").
 		RightJoin("addresses ON addresses.user_id = users.id").
 		Select("users.name, addresses.name as address_name").
@@ -387,11 +387,11 @@ func TestSQLiteIntegrationJoinMultiple(t *testing.T) {
 		t.Fatalf("Failed to create book1: %v", err)
 	}
 
-	var results []struct {
+	results := make([]struct {
 		UserName    string `gorm:"column:user_name"`
 		AddressName string `gorm:"column:address_name"`
 		BookName    string `gorm:"column:book_name"`
-	}
+	}, 0)
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id").
 		Join("books ON books.user_id = users.id").

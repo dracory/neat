@@ -28,7 +28,7 @@ func TestSQLiteIntegrationPaginateFirstPage(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPaginateTestData(t, db)
 
-	var users []models.User
+	users := make([]models.User, 0)
 	var total int64
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Paginate(1, 5, &users, &total)
 	if err != nil {
@@ -56,7 +56,7 @@ func TestSQLiteIntegrationPaginateSecondPage(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPaginateTestData(t, db)
 
-	var users []models.User
+	users := make([]models.User, 0)
 	var total int64
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Paginate(2, 5, &users, &total)
 	if err != nil {
@@ -84,7 +84,7 @@ func TestSQLiteIntegrationPaginateLastPage(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPaginateTestData(t, db)
 
-	var users []models.User
+	users := make([]models.User, 0)
 	var total int64
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Paginate(3, 5, &users, &total)
 	if err != nil {
@@ -112,7 +112,7 @@ func TestSQLiteIntegrationPaginateWithConditions(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedPaginateTestData(t, db)
 
-	var users []models.User
+	users := make([]models.User, 0)
 	var total int64
 	err := db.Query().Model(&models.User{}).Where("name <= ?", "paginate_user_E").OrderBy("name", "asc").Paginate(1, 3, &users, &total)
 	if err != nil {

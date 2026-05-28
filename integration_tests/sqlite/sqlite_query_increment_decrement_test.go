@@ -23,7 +23,9 @@ func TestSQLiteIntegrationQueryIncrement(t *testing.T) {
 	if err != nil {
 		t.Errorf("Increment failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res == nil {
+		t.Errorf("Increment returned nil result")
+	} else if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
@@ -54,7 +56,9 @@ func TestSQLiteIntegrationQueryIncrementByAmount(t *testing.T) {
 	if err != nil {
 		t.Errorf("Increment by amount failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res == nil {
+		t.Errorf("Increment returned nil result")
+	} else if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
@@ -85,7 +89,9 @@ func TestSQLiteIntegrationQueryDecrement(t *testing.T) {
 	if err != nil {
 		t.Errorf("Decrement failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res == nil {
+		t.Errorf("Decrement returned nil result")
+	} else if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
@@ -116,7 +122,9 @@ func TestSQLiteIntegrationQueryDecrementByAmount(t *testing.T) {
 	if err != nil {
 		t.Errorf("Decrement by amount failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res == nil {
+		t.Errorf("Decrement returned nil result")
+	} else if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 

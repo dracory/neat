@@ -29,7 +29,7 @@ func TestSQLiteIntegrationOrderByAscending(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedOrderLimitOffsetTestData(t, db)
 
-	var results []models.User
+	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Get(&results)
 	if err != nil {
 		t.Errorf("OrderBy ascending failed: %v", err)
@@ -56,7 +56,7 @@ func TestSQLiteIntegrationOrderByDescending(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedOrderLimitOffsetTestData(t, db)
 
-	var results []models.User
+	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "desc").Get(&results)
 	if err != nil {
 		t.Errorf("OrderBy descending failed: %v", err)
@@ -83,7 +83,7 @@ func TestSQLiteIntegrationOrderByDescMethod(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	seedOrderLimitOffsetTestData(t, db)
 
-	var results []models.User
+	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderByDesc("name").Get(&results)
 	if err != nil {
 		t.Errorf("OrderByDesc method failed: %v", err)
@@ -109,13 +109,13 @@ func TestSQLiteIntegrationMultipleOrderByClauses(t *testing.T) {
 		t.Fatalf("Failed to create additional user: %v", err)
 	}
 
-	var results []models.User
+	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").OrderBy("avatar", "asc").Get(&results)
 	if err != nil {
 		t.Errorf("Multiple OrderBy clauses failed: %v", err)
 	}
 
-	var userAEntries []models.User
+	userAEntries := make([]models.User, 0)
 	for _, u := range results {
 		if u.Name == "user_a" {
 			userAEntries = append(userAEntries, u)
@@ -181,7 +181,7 @@ func TestSQLiteIntegrationLimitWithOrderBy(t *testing.T) {
 		t.Fatalf("Failed to create additional user: %v", err)
 	}
 
-	var results []models.User
+	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Limit(2).Get(&results)
 	if err != nil {
 		t.Errorf("Limit with OrderBy failed: %v", err)
@@ -269,7 +269,7 @@ func TestSQLiteIntegrationOffsetWithLimit(t *testing.T) {
 		t.Fatalf("Failed to create additional user: %v", err)
 	}
 
-	var results []models.User
+	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Offset(2).Limit(2).Get(&results)
 	if err != nil {
 		t.Errorf("Offset with Limit failed: %v", err)

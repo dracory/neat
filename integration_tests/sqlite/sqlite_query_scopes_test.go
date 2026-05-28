@@ -66,7 +66,7 @@ func TestSQLiteIntegrationQueryScopesLocalWithParameters(t *testing.T) {
 		}
 	}
 
-	var foundUsers []models.User
+	foundUsers := make([]models.User, 0)
 	err := query.Model(&models.User{}).Scopes(nameScope("scope_user_1")).Find(&foundUsers)
 	if err != nil {
 		t.Errorf("Local scope with parameters failed: %v", err)
@@ -98,7 +98,7 @@ func TestSQLiteIntegrationQueryScopesMultipleChaining(t *testing.T) {
 		}
 	}
 
-	var foundUsers []models.User
+	foundUsers := make([]models.User, 0)
 	err := query.Model(&models.User{}).Scopes(activeScope, nameScope("scope_user_1")).Find(&foundUsers)
 	if err != nil {
 		t.Errorf("Multiple scopes chaining failed: %v", err)
