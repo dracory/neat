@@ -289,3 +289,145 @@ func TestCopyScanResults(t *testing.T) {
 		}
 	})
 }
+
+func TestApplyWhereConditions(t *testing.T) {
+	t.Run("map attributes", func(t *testing.T) {
+		q := NewQuery(nil, nil, nil, "", nil, nil)
+		attrs := map[string]any{"name": "Alice", "age": 30}
+
+		err := applyWhereConditions(q, attrs)
+		if err != nil {
+			t.Fatalf("applyWhereConditions failed: %v", err)
+		}
+
+		// Verify conditions were added
+		if len(q.wheres) != 2 {
+			t.Errorf("expected 2 where conditions, got %d", len(q.wheres))
+		}
+	})
+
+	t.Run("struct attributes", func(t *testing.T) {
+		q := NewQuery(nil, nil, nil, "", nil, nil)
+
+		type User struct {
+			Name string
+			Age  int
+			Zero int
+		}
+
+		user := User{Name: "Bob", Age: 25, Zero: 0}
+		err := applyWhereConditions(q, user)
+		if err != nil {
+			t.Fatalf("applyWhereConditions failed: %v", err)
+		}
+
+		// Verify conditions were added (zero values should be skipped)
+		if len(q.wheres) != 2 {
+			t.Errorf("expected 2 where conditions (zero values skipped), got %d", len(q.wheres))
+		}
+	})
+
+	t.Run("struct pointer", func(t *testing.T) {
+		q := NewQuery(nil, nil, nil, "", nil, nil)
+
+		type User struct {
+			Name string
+		}
+
+		user := &User{Name: "Charlie"}
+		err := applyWhereConditions(q, user)
+		if err != nil {
+			t.Fatalf("applyWhereConditions failed: %v", err)
+		}
+
+		if len(q.wheres) != 1 {
+			t.Errorf("expected 1 where condition, got %d", len(q.wheres))
+		}
+	})
+}
+
+func TestApplyAttributes(t *testing.T) {
+	t.Run("map to struct with db tag", func(t *testing.T) {
+		type User struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}
+
+		user := User{}
+		attrs := map[string]any{"name": "Alice", "age": 30}
+
+		err := applyAttributes(&user, attrs)
+		if err != nil {
+			t.Fatalf("applyAttributes failed: %v", err)
+		}
+
+		if user.Name != "Alice" {
+			t.Errorf("expected Name 'Alice', got %s", user.Name)
+		}
+		if user.Age != 30 {
+			t.Errorf("expected Age 30, got %d", user.Age)
+		}
+	})
+
+	t.Run("map to struct with case-insensitive matching", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+
+		user := User{}
+		attrs := map[string]any{"NAME": "Bob", "AGE": 25}
+
+		err := applyAttributes(&user, attrs)
+		if err != nil {
+			t.Fatalf("applyAttributes failed: %v", err)
+		}
+
+		if user.Name != "Bob" {
+			t.Errorf("expected Name 'Bob', got %s", user.Name)
+		}
+		if user.Age != 25 {
+			t.Errorf("expected Age 25, got %d", user.Age)
+		}
+	})
+
+	t.Run("struct to struct", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+
+		dest := User{}
+		src := User{Name: "Charlie", Age: 35}
+
+		err := applyAttributes(&dest, src)
+		if err != nil {
+			t.Fatalf("applyAttributes failed: %v", err)
+		}
+
+		if dest.Name != "Charlie" {
+			t.Errorf("expected Name 'Charlie', got %s", dest.Name)
+		}
+		if dest.Age != 35 {
+			t.Errorf("expected Age 35, got %d", dest.Age)
+		}
+	})
+
+	t.Run("struct pointer to struct", func(t *testing.T) {
+		type User struct {
+			Name string
+		}
+
+		dest := User{}
+		src := &User{Name: "David"}
+
+		err := applyAttributes(&dest, src)
+		if err != nil {
+			t.Fatalf("applyAttributes failed: %v", err)
+		}
+
+		if dest.Name != "David" {
+			t.Errorf("expected Name 'David', got %s", dest.Name)
+		}
+	})
+}

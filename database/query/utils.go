@@ -182,3 +182,115 @@ func setModelPrimaryKey(value any, id int64) {
 		}
 	}
 }
+
+// applyWhereConditions applies attributes as WHERE conditions to a query.
+func applyWhereConditions(q *Query, attributes any) error {
+	// Handle map[string]any attributes
+	if attrMap, ok := attributes.(map[string]any); ok {
+		for key, value := range attrMap {
+			q.Where(key+" = ?", value)
+		}
+		return nil
+	}
+
+	// Handle struct attributes
+	attrValue := reflect.ValueOf(attributes)
+	if attrValue.Kind() == reflect.Ptr {
+		attrValue = attrValue.Elem()
+	}
+
+	if attrValue.Kind() == reflect.Struct {
+		attrType := attrValue.Type()
+		for i := 0; i < attrValue.NumField(); i++ {
+			field := attrValue.Field(i)
+			fieldType := attrType.Field(i)
+
+			// Skip unexported fields and zero values
+			if !field.CanInterface() || field.IsZero() {
+				continue
+			}
+
+			// Use field name as column name
+			columnName := fieldType.Name
+			q.Where(columnName+" = ?", field.Interface())
+		}
+	}
+
+	return nil
+}
+
+// applyAttributes applies attributes from a map or struct to a destination struct.
+func applyAttributes(dest any, attributes any) error {
+	destValue := reflect.ValueOf(dest)
+	if destValue.Kind() == reflect.Ptr {
+		destValue = destValue.Elem()
+	}
+
+	// Handle map[string]any attributes
+	if attrMap, ok := attributes.(map[string]any); ok {
+		if destValue.Kind() == reflect.Struct {
+			destType := destValue.Type()
+			for key, value := range attrMap {
+				// Try to find field by name (case-insensitive)
+				var field reflect.Value
+				for i := 0; i < destValue.NumField(); i++ {
+					fieldType := destType.Field(i)
+					// Check db tag first, then field name
+					dbTag := fieldType.Tag.Get("db")
+					if dbTag == key {
+						field = destValue.Field(i)
+						break
+					}
+					// Case-insensitive field name matching
+					if strings.EqualFold(fieldType.Name, key) {
+						field = destValue.Field(i)
+						break
+					}
+				}
+
+				if field.IsValid() && field.CanSet() {
+					// Handle type conversion
+					val := reflect.ValueOf(value)
+					if val.Type().ConvertibleTo(field.Type()) {
+						field.Set(val.Convert(field.Type()))
+					} else if val.Type() == field.Type() {
+						field.Set(val)
+					}
+				}
+			}
+		}
+		return nil
+	}
+
+	// Handle struct attributes
+	attrValue := reflect.ValueOf(attributes)
+	if attrValue.Kind() == reflect.Ptr {
+		attrValue = attrValue.Elem()
+	}
+
+	if attrValue.Kind() == reflect.Struct && destValue.Kind() == reflect.Struct {
+		attrType := attrValue.Type()
+		for i := 0; i < attrValue.NumField(); i++ {
+			field := attrValue.Field(i)
+			fieldType := attrType.Field(i)
+
+			// Skip unexported fields
+			if !field.CanInterface() {
+				continue
+			}
+
+			// Try to find matching field in destination by name
+			destField := destValue.FieldByName(fieldType.Name)
+			if destField.IsValid() && destField.CanSet() {
+				// Handle type conversion
+				if field.Type().ConvertibleTo(destField.Type()) {
+					destField.Set(field.Convert(destField.Type()))
+				} else if field.Type() == destField.Type() {
+					destField.Set(field)
+				}
+			}
+		}
+	}
+
+	return nil
+}

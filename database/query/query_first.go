@@ -91,3 +91,60 @@ func (q *Query) FirstOrFail(dest any) error {
 	}
 	return nil
 }
+
+// FirstOr retrieves the first record or executes a callback if not found.
+func (q *Query) FirstOr(dest any, callback func() error) error {
+	err := q.First(dest)
+	if err != nil {
+		return callback()
+	}
+	return nil
+}
+
+// FirstOrCreate retrieves the first record or creates it if not found.
+func (q *Query) FirstOrCreate(dest any, conds ...any) error {
+	// Try to find the record first
+	err := q.First(dest)
+	if err == nil {
+		return nil // Record exists
+	}
+
+	// Record doesn't exist, create it
+	return q.Create(dest)
+}
+
+// FirstOrNew retrieves the first record or prepares a new instance if not found.
+func (q *Query) FirstOrNew(dest any, attributes any, values ...any) error {
+	// Clone the query to avoid modifying the original
+	query := q.Clone().(*Query)
+
+	// Apply attributes as WHERE conditions
+	if attributes != nil {
+		if err := applyWhereConditions(query, attributes); err != nil {
+			return err
+		}
+	}
+
+	// Try to find the record first
+	err := query.First(dest)
+	if err == nil {
+		return nil // Record exists
+	}
+
+	// Record doesn't exist, prepare new instance (without saving)
+	// Apply attributes to the destination
+	if attributes != nil {
+		if err := applyAttributes(dest, attributes); err != nil {
+			return err
+		}
+	}
+
+	// Apply values if provided
+	if len(values) > 0 && values[0] != nil {
+		if err := applyAttributes(dest, values[0]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

@@ -60,3 +60,16 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 		RowsAffected: rowsAffected,
 	}, nil
 }
+
+// UpdateOrCreate updates a record if it exists, or creates it if it doesn't.
+func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
+	// Try to find the record first
+	err := q.First(dest)
+	if err == nil {
+		// Record exists, update it
+		return q.Save(values)
+	}
+
+	// Record doesn't exist, create it
+	return q.Create(values)
+}

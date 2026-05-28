@@ -246,21 +246,6 @@ func (q *Query) Clone() contractsorm.Query {
 	return clone
 }
 
-// applyScopes applies registered scope functions and returns the modified query.
-func (q *Query) applyScopes() *Query {
-	if len(q.scopes) == 0 {
-		return q
-	}
-	var result contractsorm.Query = q
-	for _, fn := range q.scopes {
-		result = fn(result)
-	}
-	if r, ok := result.(*Query); ok {
-		return r
-	}
-	return q
-}
-
 // Connection returns a new Query instance scoped to the named connection.
 func (q *Query) Connection(name string) contractsorm.Query {
 	if name == "" || q.dbConfig == nil {
@@ -523,11 +508,6 @@ func (q *Query) UpdateOrInsert(attributes any, values any) error {
 
 	// For struct values or mixed types, just create with values
 	return q.Create(values)
-}
-func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
-	newQ := q.Clone().(*Query)
-	newQ.scopes = append(newQ.scopes, funcs...)
-	return newQ
 }
 
 // scanRows scans database rows into the destination.
