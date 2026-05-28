@@ -645,40 +645,6 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 	return result
 }
 
-// isSimpleIdentifier checks if a string is a simple column identifier
-// that can be safely quoted. Returns false for:
-// - Identifiers with dots (table.column)
-// - Identifiers with parentheses (function calls)
-// - Identifiers starting with numbers
-// - Empty strings
-func isSimpleIdentifier(s string) bool {
-	if s == "" {
-		return false
-	}
-
-	// Check for dots (table.column) or parentheses (function calls)
-	if strings.Contains(s, ".") || strings.Contains(s, "(") || strings.Contains(s, ")") {
-		return false
-	}
-
-	// Check if starts with a number
-	if s[0] >= '0' && s[0] <= '9' {
-		return false
-	}
-
-	// Check if contains only valid identifier characters
-	for _, r := range s {
-		isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
-		isDigit := r >= '0' && r <= '9'
-		isUnderscore := r == '_'
-		if !isLetter && !isDigit && !isUnderscore {
-			return false
-		}
-	}
-
-	return true
-}
-
 // extractColumnsAndValues extracts column names and values from a struct, map, or slice.
 func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
 	v := reflect.ValueOf(value)

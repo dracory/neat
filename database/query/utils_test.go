@@ -431,3 +431,47 @@ func TestApplyAttributes(t *testing.T) {
 		}
 	})
 }
+
+func TestIsSimpleIdentifier(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		// Valid simple identifiers
+		{"simple lowercase", "name", true},
+		{"simple uppercase", "NAME", true},
+		{"mixed case", "UserName", true},
+		{"with underscore", "user_name", true},
+		{"single letter", "a", true},
+		{"single underscore", "_", true},
+		{"multiple underscores", "user__name", true},
+		{"with numbers", "user123", true},
+		{"numbers after letters", "user123name", true},
+
+		// Invalid identifiers
+		{"empty string", "", false},
+		{"starts with number", "123name", false},
+		{"contains dot", "table.column", false},
+		{"contains parentheses", "function()", false},
+		{"contains opening paren", "func(", false},
+		{"contains closing paren", "func)", false},
+		{"contains space", "user name", false},
+		{"contains hyphen", "user-name", false},
+		{"contains special char", "user@name", false},
+		{"starts with digit", "1name", false},
+		{"only digits", "123", false},
+		{"contains multiple dots", "table.schema.column", false},
+		{"complex expression", "COUNT(*)", false},
+		{"with comma", "user,name", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isSimpleIdentifier(tt.input)
+			if result != tt.expected {
+				t.Errorf("isSimpleIdentifier(%q) = %v, expected %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
