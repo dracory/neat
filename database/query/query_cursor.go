@@ -3,6 +3,8 @@ package query
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
+	"strings"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
@@ -74,7 +76,43 @@ type cursorWrapper struct {
 
 // Scan implements the orm.Cursor interface
 func (c *cursorWrapper) Scan(dest any) error {
-	// This is a simplified implementation
-	// In a full implementation, this would properly map the data to the destination
-	return nil
+	destValue := reflect.ValueOf(dest)
+	if destValue.Kind() != reflect.Ptr {
+		return fmt.Errorf("dest must be a pointer")
+	}
+	destValue = destValue.Elem()
+
+	// Handle struct destination
+	if destValue.Kind() == reflect.Struct {
+		colToPath := getColumnToIndexPath(destValue.Type())
+		for col, val := range c.data {
+			key := strings.ToLower(col)
+			if path, ok := colToPath[key]; ok {
+				field := destValue.FieldByIndex(path)
+				if field.CanSet() {
+					valValue := reflect.ValueOf(val)
+					if valValue.Type().AssignableTo(field.Type()) {
+						field.Set(valValue)
+					} else if valValue.Type().ConvertibleTo(field.Type()) {
+						field.Set(valValue.Convert(field.Type()))
+					}
+				}
+			}
+		}
+		return nil
+	}
+
+	// Handle map destination
+	if destValue.Kind() == reflect.Map {
+		if destValue.IsNil() {
+			destValue.Set(reflect.MakeMap(destValue.Type()))
+		}
+		keyType := destValue.Type().Key()
+		for col, val := range c.data {
+			destValue.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(val))
+		}
+		return nil
+	}
+
+	return fmt.Errorf("unsupported destination type: %T", dest)
 }

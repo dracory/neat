@@ -121,12 +121,25 @@ func (t *ToSql) Value(column string, dest any) string {
 	return t.replacePlaceholders(sql, args)
 }
 
-// Save generates the SQL for an UPDATE query (simplified).
+// Save generates the SQL for an INSERT or UPDATE query based on primary key.
 func (t *ToSql) Save(value any) string {
-	// This is a simplified implementation
-	// In a full implementation, we'd need to determine if it's an insert or update
-	builder := NewBuilder(t.query)
-	sql, args := builder.BuildUpdate(value)
+	// Determine if it's an insert or update based on primary key
+	id := getPrimaryKeyValue(value)
+	var sql string
+	var args []any
+
+	if id != 0 {
+		// UPDATE: set WHERE id = <id> on a clone, then generate UPDATE query
+		clone := *t.query
+		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{id}})
+		builder := NewBuilder(&clone)
+		sql, args = builder.BuildUpdate(value)
+	} else {
+		// INSERT: generate INSERT query
+		builder := NewBuilder(t.query)
+		sql, args = builder.BuildInsert(value)
+	}
+
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
 	}

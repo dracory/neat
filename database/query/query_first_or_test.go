@@ -155,7 +155,7 @@ func TestFirstOrNew(t *testing.T) {
 		var user FirstOrUser
 		user.Name = "bob"
 		user.Email = "bob@example.com"
-		attributes := map[string]any{"id": 999}
+		attributes := map[string]any{"id": 999, "name": "charlie", "email": "charlie@example.com"}
 
 		err := w.Q.FirstOrNew(&user, attributes)
 
@@ -163,12 +163,19 @@ func TestFirstOrNew(t *testing.T) {
 			t.Fatalf("FirstOrNew prepare failed: %v", err)
 		}
 
-		// Note: FirstOrNew simplified implementation doesn't modify the model
-		// when record is not found - it just returns nil
-		// The model remains unchanged from the database result (which is empty)
+		// Verify that attributes were applied to the model
+		if user.ID != 999 {
+			t.Errorf("Expected user.ID=999 from attributes, got %d", user.ID)
+		}
+		if user.Name != "charlie" {
+			t.Errorf("Expected user.Name='charlie' from attributes, got %q", user.Name)
+		}
+		if user.Email != "charlie@example.com" {
+			t.Errorf("Expected user.Email='charlie@example.com' from attributes, got %q", user.Email)
+		}
 	})
 
-	t.Run("with values parameter", func(t *testing.T) {
+	t.Run("with values parameter - record exists", func(t *testing.T) {
 		var user FirstOrUser
 		attributes := map[string]any{"id": 1}
 		values := map[string]any{"name": "updated"}
@@ -182,6 +189,29 @@ func TestFirstOrNew(t *testing.T) {
 		// Since record exists, values should not be applied
 		if user.Name != "alice" {
 			t.Errorf("Expected existing user.Name='alice', got %q", user.Name)
+		}
+	})
+
+	t.Run("with values parameter - record not found", func(t *testing.T) {
+		var user FirstOrUser
+		attributes := map[string]any{"id": 999}
+		values := map[string]any{"name": "new_user", "email": "new@example.com"}
+
+		err := w.Q.FirstOrNew(&user, attributes, values)
+
+		if err != nil {
+			t.Fatalf("FirstOrNew with values failed: %v", err)
+		}
+
+		// Both attributes and values should be applied
+		if user.ID != 999 {
+			t.Errorf("Expected user.ID=999 from attributes, got %d", user.ID)
+		}
+		if user.Name != "new_user" {
+			t.Errorf("Expected user.Name='new_user' from values, got %q", user.Name)
+		}
+		if user.Email != "new@example.com" {
+			t.Errorf("Expected user.Email='new@example.com' from values, got %q", user.Email)
 		}
 	})
 }

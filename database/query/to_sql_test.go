@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -68,5 +69,113 @@ func TestReplacePlaceholdersWithValuesNil(t *testing.T) {
 	sql := toSql.replacePlaceholdersWithValues("SELECT * FROM users WHERE name = ?", []any{nil})
 	if sql != "SELECT * FROM users WHERE name = NULL" {
 		t.Errorf("Expected 'SELECT * FROM users WHERE name = NULL', got %q", sql)
+	}
+}
+
+func TestToSqlSaveInsert(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	user := &User{Name: "John Doe"}
+	toSql := q.ToSql()
+	sql := toSql.Save(user)
+
+	// Should generate INSERT since ID is 0
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+	// Check that it contains INSERT
+	if !strings.Contains(sql, "INSERT") {
+		t.Errorf("Expected INSERT in SQL, got %q", sql)
+	}
+	// Check that it contains the table name
+	if !strings.Contains(sql, "users") {
+		t.Errorf("Expected 'users' in SQL, got %q", sql)
+	}
+}
+
+func TestToSqlSaveUpdate(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	user := &User{ID: 1, Name: "John Doe"}
+	toSql := q.ToSql()
+	sql := toSql.Save(user)
+
+	// Should generate UPDATE since ID is non-zero
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+	// Check that it contains UPDATE
+	if !strings.Contains(sql, "UPDATE") {
+		t.Errorf("Expected UPDATE in SQL, got %q", sql)
+	}
+	// Check that it contains WHERE id = ?
+	if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, "id = ?") {
+		t.Errorf("Expected WHERE id = ? in SQL, got %q", sql)
+	}
+}
+
+func TestToSqlSaveUpdateWithValues(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	user := &User{ID: 1, Name: "John Doe"}
+	toSql := q.ToRawSql()
+	sql := toSql.Save(user)
+
+	// Should generate UPDATE with actual values
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+	// Check that it contains UPDATE
+	if !strings.Contains(sql, "UPDATE") {
+		t.Errorf("Expected UPDATE in SQL, got %q", sql)
+	}
+	// Check that it contains WHERE id = 1 (actual value, not placeholder)
+	if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, "id = 1") {
+		t.Errorf("Expected WHERE id = 1 in SQL, got %q", sql)
+	}
+}
+
+func TestToSqlSaveInsertWithValues(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	user := &User{Name: "John Doe"}
+	toSql := q.ToRawSql()
+	sql := toSql.Save(user)
+
+	// Should generate INSERT with actual values
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+	// Check that it contains INSERT
+	if !strings.Contains(sql, "INSERT") {
+		t.Errorf("Expected INSERT in SQL, got %q", sql)
+	}
+	// Check that it contains the actual name value
+	if !strings.Contains(sql, "'John Doe'") {
+		t.Errorf("Expected 'John Doe' in SQL, got %q", sql)
 	}
 }

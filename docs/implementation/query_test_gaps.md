@@ -25,9 +25,11 @@ The test suite for the `database/query` package has comprehensive coverage acros
 
 **Impact:** Medium - Lazy loading is now fully implemented alongside eager loading
 
-#### 2. FirstOrNew (`query_first_or.go`)
-- Simplified implementation doesn't modify model when record not found
-- Only returns nil without preparing a new instance with values
+#### 2. FirstOrNew (`query_first_or.go`) - COMPLETED
+- Implemented to modify model when record not found
+- Prepares new instance with attributes and values parameters
+- Uses attributes as WHERE conditions to search for existing record
+- Applies attributes and values to destination when record not found (without saving)
 
 **Impact:** Low - FirstOrCreate is fully implemented, FirstOrNew has limited use case
 
@@ -45,7 +47,7 @@ The test suite for the `database/query` package has comprehensive coverage acros
 
 ---
 
-### Performance Regression Tests
+### Performance Regression Tests - COMPLETED
 
 **Priority:** Low (Nice to Have)
 
@@ -54,6 +56,12 @@ The test suite for the `database/query` package has comprehensive coverage acros
 - Test query performance with large datasets (10k+ records)
 - Test memory usage patterns for streaming operations
 - Establish performance baselines for critical paths
+
+**Implementation:** Created `query_performance_test.go` with:
+- Large dataset benchmarks (10K and 100K records) for Select, Where, Cursor, Chunk, Pagination, Update, Delete
+- Memory allocation measurements using `b.AllocsPerRun` for Cursor, Chunk, and Get operations
+- Baseline test (`TestPerformanceBaseline`) that records initial performance metrics
+- Integration test build tag to ensure it only runs with database connection
 
 **Impact:** Low - Important for long-term maintainability but not critical for initial release
 
@@ -71,24 +79,25 @@ The test suite for the `database/query` package has comprehensive coverage acros
 
 ### Low Priority (Nice to Have)
 
-2. **Implement FirstOrNew properly** (PENDING)
+2. **Implement FirstOrNew properly** (COMPLETED)
    - Modify model when record not found
    - Prepare new instance with values parameter
    - Note: FirstOrCreate is fully implemented
 
-3. **Implement ToSql.Save properly** (PENDING)
+3. **Implement ToSql.Save properly** (COMPLETED)
    - Determine if it's an insert or update based on primary key
    - Generate appropriate SQL
    - Note: Actual Save() method works correctly, this is for debugging only
 
-4. **Implement CursorWrapper.Scan** (PENDING)
+4. **Implement CursorWrapper.Scan** (COMPLETED)
    - Properly map data to destination
    - Note: Cursor channel consumption works correctly
 
-5. **Add performance regression tests** (PENDING)
-   - Beyond existing benchmarks
-   - Test query performance with large datasets
-   - Test memory usage patterns
+5. **Add performance regression tests** (COMPLETED)
+   - Created `query_performance_test.go` with comprehensive benchmarks
+   - Tests large datasets (10K and 100K records)
+   - Measures memory allocation patterns for streaming operations
+   - Establishes performance baselines for critical paths
 
 ---
 
