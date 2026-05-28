@@ -80,15 +80,15 @@ These are incomplete features that will cause runtime errors if used.
 - Turso uses SQLite-style placeholders (same as SQLite)
 - Added unit tests for Turso driver in driver_test.go
 - Driver now implements the Driver interface correctly
-- Created Turso integration test suite in integration_tests/turso/
+- Created comprehensive Turso integration test suite in integration_tests/turso/
 - Tests support both remote Turso databases and local SQLite fallback
+- Added 23 integration tests covering: CRUD, aggregates, joins, transactions, schema
 
 **Remaining work**:
 - Test connection pooling with Turso
 - Update documentation with Turso-specific examples
-- Add more comprehensive integration tests (joins, aggregates, etc.)
 
-**Estimated effort**: 1-2 days (additional test coverage remaining)
+**Estimated effort**: 0.5 days (documentation remaining)
 
 ---
 
