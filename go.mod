@@ -9,7 +9,6 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/microsoft/go-mssqldb v1.10.0
 	github.com/samber/lo v1.53.0
-	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cast v1.10.0
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
 	golang.org/x/text v0.37.0

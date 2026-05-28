@@ -398,3 +398,8 @@ func (d *Database) FlushQueryLog() {
 func (d *Database) GetQueryLog() []orm.QueryLog {
 	return d.ormInstance.GetQueryLog()
 }
+
+// Factory returns the ORM factory for creating test data.
+func (d *Database) Factory() orm.Factory {
+	return d.ormInstance.Factory()
+}

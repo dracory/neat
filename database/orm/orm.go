@@ -250,8 +250,7 @@ func (r *Orm) GetQueryLog() []contractsorm.QueryLog {
 }
 
 func (r *Orm) Factory() contractsorm.Factory {
-	// TODO: Implement factory when needed
-	return nil
+	return NewFactory(r)
 }
 
 func (r *Orm) DatabaseName() string {
