@@ -11,11 +11,12 @@ import (
 )
 
 type Blueprint struct {
-	columns  []*ColumnDefinition
-	commands []*schema.Command
-	prefix   string
-	schema   schema.Schema
-	table    string
+	columns         []*ColumnDefinition
+	commands        []*schema.Command
+	prefix          string
+	schema          schema.Schema
+	skipTransaction bool
+	table           string
 }
 
 func NewBlueprint(schema schema.Schema, prefix, table string) *Blueprint {
@@ -342,10 +343,23 @@ func (r *Blueprint) RenameIndex(from, to string) {
 	}
 
 	r.addCommand(command)
+	r.SkipTransaction()
 }
 
 func (r *Blueprint) SetTable(name string) {
 	r.table = name
+}
+
+// ShouldSkipTransaction returns true if the blueprint should skip the transaction wrapper.
+// This is used for SQLite-specific operations like RenameIndex that have issues with DDL in transactions.
+func (r *Blueprint) ShouldSkipTransaction() bool {
+	return r.skipTransaction
+}
+
+// SkipTransaction marks the blueprint to skip the transaction wrapper during build.
+// This is primarily used for SQLite RenameIndex operations to avoid savepoint timeout issues.
+func (r *Blueprint) SkipTransaction() {
+	r.skipTransaction = true
 }
 
 func (r *Blueprint) SmallIncrements(column string) schema.ColumnDefinition {

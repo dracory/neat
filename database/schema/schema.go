@@ -365,6 +365,14 @@ func (r *Schema) build(blueprint contractsschema.Blueprint) error {
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
+
+	// Skip transaction wrapper for RenameIndex on SQLite/Turso to avoid savepoint timeout
+	if bp, ok := blueprint.(*Blueprint); ok && bp.ShouldSkipTransaction() {
+		if _, isSqlite := r.grammar.(*grammars.Sqlite); isSqlite {
+			return blueprint.Build(query, r.grammar)
+		}
+	}
+
 	if query.InTransaction() {
 		return blueprint.Build(query, r.grammar)
 	}

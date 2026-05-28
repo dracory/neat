@@ -459,9 +459,9 @@ These tests validate core functionality without requiring database connections.
 
 **Disabled tests with specific reasons**:
 
-1. **sqlite_schema_index_test.go:236**
-   - Reason: `RenameIndex is currently problematic in SQLite with savepoints`
-   - Action: Fix savepoint handling or implement alternative approach
+1. ~~**sqlite_schema_index_test.go:236**~~ ✅ FIXED
+   - ~~Reason: `RenameIndex is currently problematic in SQLite with savepoints`~~
+   - Action: Fixed by skipping transaction wrapper for RenameIndex operations
 
 2. **sqlite_query_json_test.go:149**
    - Reason: `Update with JSON path requires JSON_SET which is more complex - skipping for now`
