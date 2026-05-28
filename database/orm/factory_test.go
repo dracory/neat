@@ -32,7 +32,7 @@ func TestFactoryMake(t *testing.T) {
 	factory := NewFactory(orm)
 
 	model := &TestModel{Name: "Bob", Age: 40}
-	err := factory.Make(model)
+	_, err := factory.Make(model)
 	if err != nil {
 		t.Errorf("Make() error = %v", err)
 	}
@@ -50,6 +50,18 @@ func TestFactoryCount(t *testing.T) {
 	}
 }
 
+func TestFactoryTable(t *testing.T) {
+	logger := &mockLogger{}
+	orm := NewOrm(context.Background(), nil, "", nil, nil, logger, nil, nil, nil, nil)
+	factory := NewFactory(orm)
+
+	factory.Table("users")
+
+	if factory.table != "users" {
+		t.Errorf("Table() expected 'users', got '%s'", factory.table)
+	}
+}
+
 func TestFactoryWithAttributes(t *testing.T) {
 	logger := &mockLogger{}
 	orm := NewOrm(context.Background(), nil, "", nil, nil, logger, nil, nil, nil, nil)
@@ -59,7 +71,7 @@ func TestFactoryWithAttributes(t *testing.T) {
 	attrs := map[string]any{"Name": "David", "Age": 28}
 
 	// Test Make with attributes - doesn't require DB
-	err := factory.Make(model, attrs)
+	_, err := factory.Make(model, attrs)
 	if err != nil {
 		t.Errorf("Make() with attributes error = %v", err)
 	}
@@ -81,7 +93,7 @@ func TestFactoryBulkCreation(t *testing.T) {
 	model := &TestModel{Name: "Test", Age: 25}
 
 	// Test Make with count - doesn't require DB
-	err := factory.Make(model)
+	_, err := factory.Make(model)
 	if err != nil {
 		t.Errorf("Make() with count error = %v", err)
 	}
@@ -116,7 +128,7 @@ func TestFactoryMakeWithJSONTags(t *testing.T) {
 
 	// Test with JSON tag name
 	attrs := map[string]any{"name": "Jane Doe", "age": 35}
-	err := factory.Make(model, attrs)
+	_, err := factory.Make(model, attrs)
 	if err != nil {
 		t.Errorf("Make() with JSON tags error = %v", err)
 	}
@@ -145,7 +157,7 @@ func TestFactoryMakeReturnType(t *testing.T) {
 	// Test single instance with attributes
 	model := &TestModel{Name: "Original", Age: 20}
 	attrs := map[string]any{"Name": "Modified", "Age": 35}
-	err := factory.Make(model, attrs)
+	_, err := factory.Make(model, attrs)
 	if err != nil {
 		t.Errorf("Make() error = %v", err)
 	}
@@ -159,7 +171,7 @@ func TestFactoryMakeReturnType(t *testing.T) {
 
 	// Test without attributes - should preserve original values
 	model2 := &TestModel{Name: "Preserved", Age: 40}
-	err = factory.Make(model2)
+	_, err = factory.Make(model2)
 	if err != nil {
 		t.Errorf("Make() error = %v", err)
 	}

@@ -55,7 +55,7 @@ func RunExample(dsn string) error {
 		Status:   "active",
 		IsActive: true,
 	}
-	err = db.Query().Table("users").Create(user)
+	_, err = db.Factory().Table("users").Create(user)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -70,7 +70,7 @@ func RunExample(dsn string) error {
 		Status:   "pending",
 		IsActive: false,
 	}
-	err = db.Query().Table("users").Create(templateUser)
+	_, err = db.Factory().Table("users").Count(3).Create(templateUser)
 	if err != nil {
 		return fmt.Errorf("failed to create bulk users: %w", err)
 	}
@@ -85,7 +85,7 @@ func RunExample(dsn string) error {
 		Status:   "active",
 		IsActive: true,
 	}
-	err = db.Query().Table("users").Create(anotherUser)
+	_, err = db.Factory().Table("users").Create(anotherUser)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -100,7 +100,7 @@ func RunExample(dsn string) error {
 		Status:   "active",
 		IsActive: true,
 	}
-	err = db.Query().Table("users").WithoutEvents().Create(quietUser)
+	_, err = db.Factory().Table("users").CreateQuietly(quietUser)
 	if err != nil {
 		return fmt.Errorf("failed to create user quietly: %w", err)
 	}
@@ -113,7 +113,7 @@ func RunExample(dsn string) error {
 		Email: "make@example.com",
 		Age:   22,
 	}
-	err = db.Factory().Make(makeUser)
+	_, err = db.Factory().Make(makeUser)
 	if err != nil {
 		return fmt.Errorf("failed to make user: %w", err)
 	}
@@ -127,11 +127,11 @@ func RunExample(dsn string) error {
 		Email: "bulk@example.com",
 		Age:   30,
 	}
-	err = db.Factory().Count(2).Make(bulkTemplate)
+	bulkUsers, err := db.Factory().Count(2).Make(bulkTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to bulk make users: %w", err)
 	}
-	fmt.Println("2 users created in memory (not persisted)")
+	fmt.Printf("%d users created in memory (not persisted)\n", len(bulkUsers.([]*User)))
 
 	// Example 7: Create another user
 	fmt.Println("\n=== Example 7: Create Final User ===")
@@ -142,7 +142,7 @@ func RunExample(dsn string) error {
 		Status:   "active",
 		IsActive: true,
 	}
-	err = db.Query().Table("users").Create(finalUser)
+	_, err = db.Factory().Table("users").Create(finalUser)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}

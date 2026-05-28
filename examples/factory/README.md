@@ -4,8 +4,9 @@ This example demonstrates the Factory pattern for creating test data in your dat
 
 ## Features Demonstrated
 
-- Creating single model instances with `Query().Table().Create()`
-- Creating models without firing events with `Query().Table().WithoutEvents().Create()`
+- Creating single model instances with `Factory.Table().Create()`
+- Bulk creation with `Factory.Table().Count().Create()`
+- Creating models without firing events with `Factory.Table().CreateQuietly()`
 - Creating in-memory instances without persistence with `Factory.Make()`
 - Bulk make operations with `Factory.Count().Make()`
 
@@ -30,27 +31,41 @@ go test
 
 ## Factory Methods
 
-### Make(value any, attributes ...map[string]any) error
-Creates a model instance in memory but does not persist it to the database. Useful for testing without side effects.
+### Table(table string) Factory
+Sets the table name for database operations. Required for Create() and CreateQuietly().
 
 ### Count(count int) Factory
-Sets the number of models that should be generated. Can be chained with Make for bulk operations.
+Sets the number of models that should be generated. Can be chained with Create, CreateQuietly, or Make for bulk operations.
 
-## Query Methods for Database Operations
+### Create(value any, attributes ...map[string]any) (any, error)
+Creates a model and persists it to the database, returning the created instance(s). Requires Table() to be called first.
 
-### Query().Table(name).Create(value) error
-Creates a model and persists it to the database. You must specify the table name before calling Create.
+### CreateQuietly(value any, attributes ...map[string]any) (any, error)
+Creates a model and persists it to the database without firing any model events, returning the created instance(s). Requires Table() to be called first.
 
-### Query().Table(name).WithoutEvents().Create(value) error
-Creates a model and persists it to the database without firing any model events. Useful for seeding data without triggering observers.
+### Make(value any, attributes ...map[string]any) (any, error)
+Creates a model instance in memory but does not persist it to the database. Useful for testing without side effects. Returns the created instance(s).
 
 ## Use Cases
 
 - **In-memory testing**: Use Factory.Make() to create instances without database persistence
 - **Bulk in-memory operations**: Use Factory.Count().Make() to create multiple instances in memory
-- **Database seeding**: Use Query().Table().Create() to persist models to the database
-- **Event-free creation**: Use Query().Table().WithoutEvents().Create() when you don't want to trigger model observers
+- **Database seeding**: Use Factory.Table().Create() to persist models to the database
+- **Event-free creation**: Use Factory.Table().CreateQuietly() when you don't want to trigger model observers
+- **Bulk database operations**: Use Factory.Table().Count().Create() to create multiple records efficiently
 
-## Note
+## Example Usage
 
-The Factory pattern in this codebase is primarily used for creating in-memory instances for testing. For database operations, use the Query builder with Table() to specify the target table.
+```go
+// Single database creation
+user, err := db.Factory().Table("users").Create(&User{Name: "John"})
+
+// Bulk database creation
+users, err := db.Factory().Table("users").Count(3).Create(&User{Name: "Template"})
+
+// In-memory creation
+user, err := db.Factory().Make(&User{Name: "Test"})
+
+// Bulk in-memory creation
+users, err := db.Factory().Count(3).Make(&User{Name: "Template"})
+```

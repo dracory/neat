@@ -12,6 +12,7 @@ import (
 type Factory struct {
 	orm   *Orm
 	count int
+	table string
 }
 
 // NewFactory creates a new Factory instance.
@@ -31,42 +32,60 @@ func (f *Factory) Count(count int) contractsorm.Factory {
 	return f
 }
 
-// Create creates a model and persists it to the database.
-func (f *Factory) Create(value any, attributes ...map[string]any) error {
-	instances, err := f.buildInstances(value, attributes...)
-	if err != nil {
-		return err
-	}
-
-	query := f.orm.Query()
-	if query == nil {
-		return fmt.Errorf("query not initialized")
-	}
-	return query.Create(instances)
+// Table sets the table name for database operations.
+func (f *Factory) Table(table string) contractsorm.Factory {
+	f.table = table
+	return f
 }
 
-// CreateQuietly creates a model and persists it to the database without firing any model events.
-func (f *Factory) CreateQuietly(value any, attributes ...map[string]any) error {
+// Create creates a model and persists it to the database, returning the created instance(s).
+func (f *Factory) Create(value any, attributes ...map[string]any) (any, error) {
 	instances, err := f.buildInstances(value, attributes...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	query := f.orm.Query()
 	if query == nil {
-		return fmt.Errorf("query not initialized")
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if f.table != "" {
+		query = query.Table(f.table)
+	}
+	err = query.Create(instances)
+	if err != nil {
+		return nil, err
+	}
+	return instances, nil
+}
+
+// CreateQuietly creates a model and persists it to the database without firing any model events, returning the created instance(s).
+func (f *Factory) CreateQuietly(value any, attributes ...map[string]any) (any, error) {
+	instances, err := f.buildInstances(value, attributes...)
+	if err != nil {
+		return nil, err
+	}
+
+	query := f.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if f.table != "" {
+		query = query.Table(f.table)
 	}
 	query = query.WithoutEvents()
-	return query.Create(instances)
+	err = query.Create(instances)
+	if err != nil {
+		return nil, err
+	}
+	return instances, nil
 }
 
 // Make creates a model and returns it, but does not persist it to the database.
-// Note: When using Count() > 1, the created instances are not returned due to API limitations.
-// The input model is modified in place for single instances (count == 1).
-func (f *Factory) Make(value any, attributes ...map[string]any) error {
+func (f *Factory) Make(value any, attributes ...map[string]any) (any, error) {
 	instances, err := f.buildInstances(value, attributes...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the input is a single model (not a slice), update it in place
@@ -90,7 +109,7 @@ func (f *Factory) Make(value any, attributes ...map[string]any) error {
 		}
 	}
 
-	return nil
+	return instances, nil
 }
 
 // buildInstances creates the specified number of model instances with optional attributes.
