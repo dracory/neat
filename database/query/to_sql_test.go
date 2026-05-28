@@ -179,3 +179,72 @@ func TestToSqlSaveInsertWithValues(t *testing.T) {
 		t.Errorf("Expected 'John Doe' in SQL, got %q", sql)
 	}
 }
+
+// TestToSqlCreate tests SQL generation for Create.
+func TestToSqlCreate(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	model := struct {
+		Name string
+	}{Name: "John"}
+
+	toSql := q.ToSql()
+	sql := toSql.Create(model)
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for Create")
+	}
+}
+
+// TestToSqlDelete tests SQL generation for Delete.
+func TestToSqlDelete(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	toSql := q.ToSql()
+	sql := toSql.Delete()
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for Delete")
+	}
+}
+
+// TestToSqlFirst tests SQL generation for First.
+func TestToSqlFirst(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	toSql := q.ToSql()
+	sql := toSql.First(nil)
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for First")
+	}
+}
+
+// TestToSqlGet tests SQL generation for Get.
+func TestToSqlGet(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	toSql := q.ToSql()
+	sql := toSql.Get(nil)
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for Get")
+	}
+}
+
+// TestToSqlUpdate tests SQL generation for Update.
+func TestToSqlUpdate(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	toSql := q.ToSql()
+	sql := toSql.Update("name", "John")
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for Update")
+	}
+}
