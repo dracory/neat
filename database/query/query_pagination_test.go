@@ -258,7 +258,7 @@ func TestPaginateTypedStructs(t *testing.T) {
 
 	w.SetTable("test_paginate_typed")
 
-	var users []PaginateUser
+	users := make([]PaginateUser, 0)
 	var total int64
 
 	err := w.Q.Paginate(1, 2, &users, &total)
@@ -287,7 +287,7 @@ func TestPaginateLastPage(t *testing.T) {
 
 	w.SetTable("test_paginate_last")
 
-	var results []map[string]any
+	results := make([]map[string]any, 0)
 	var total int64
 
 	err := w.Q.Paginate(3, 2, &results, &total)

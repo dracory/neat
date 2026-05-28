@@ -17,7 +17,7 @@ func TestGet(t *testing.T) {
 		Name string
 	}
 
-	var results []User
+	results := make([]User, 0)
 	if err := w.Q.Get(&results); err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestGetWithWhere(t *testing.T) {
 		Name string
 	}
 
-	var results []User
+	results := make([]User, 0)
 	if err := w.Q.Get(&results); err != nil {
 		t.Fatalf("Get with Where failed: %v", err)
 	}

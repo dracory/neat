@@ -691,8 +691,7 @@ func TestLoadHasManyRelationWithNilConnection(t *testing.T) {
 	err := q.loadHasManyRelation(v, postsField, "Posts", nil)
 	if err == nil {
 		t.Error("Expected error when connection is nil")
-	}
-	if err.Error() != "database connection is nil" {
+	} else if err.Error() != "database connection is nil" {
 		t.Errorf("Expected 'database connection is nil' error, got: %v", err)
 	}
 }
@@ -805,8 +804,7 @@ func TestLoadHasOneRelationWithNilConnection(t *testing.T) {
 	err := q.loadHasOneRelation(v, userField, "User", nil)
 	if err == nil {
 		t.Error("Expected error when connection is nil")
-	}
-	if err.Error() != "database connection is nil" {
+	} else if err.Error() != "database connection is nil" {
 		t.Errorf("Expected 'database connection is nil' error, got: %v", err)
 	}
 }

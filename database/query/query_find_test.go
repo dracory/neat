@@ -17,7 +17,7 @@ func TestFind(t *testing.T) {
 		Name string
 	}
 
-	var results []User
+	results := make([]User, 0)
 	if err := w.Q.Find(&results); err != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestFindWithConditions(t *testing.T) {
 		Name string
 	}
 
-	var results []User
+	results := make([]User, 0)
 	if err := w.Q.Find(&results); err != nil {
 		t.Fatalf("Find with conditions failed: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestFindOrFail(t *testing.T) {
 		Name string
 	}
 
-	var results []User
+	results := make([]User, 0)
 	if err := w.Q.FindOrFail(&results); err != nil {
 		t.Fatalf("FindOrFail failed: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestFindOrFailEmpty(t *testing.T) {
 		Name string
 	}
 
-	var results []User
+	results := make([]User, 0)
 	err := w.Q.FindOrFail(&results)
 	if err == nil {
 		t.Error("expected error for empty results")

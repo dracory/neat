@@ -41,7 +41,7 @@ func TestChunkCallbackExecution(t *testing.T) {
 
 	w.SetTable("test_chunk_callback")
 
-	var capturedChunks [][]map[string]any
+	capturedChunks := make([][]map[string]any, 0)
 
 	err := w.Q.Chunk(2, func(chunk []map[string]any) error {
 		capturedChunks = append(capturedChunks, chunk)

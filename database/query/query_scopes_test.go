@@ -353,7 +353,7 @@ func TestScopeWithTransactions(t *testing.T) {
 		return q.Where("status = ?", "active")
 	}
 
-	var users []ScopeUser
+	users := make([]ScopeUser, 0)
 	err = tx.Scopes(activeScope).Find(&users)
 	if err != nil {
 		t.Fatalf("Scope in transaction failed: %v", err)

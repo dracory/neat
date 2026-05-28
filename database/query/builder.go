@@ -507,7 +507,7 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, nil
+		return prefix, []any{}
 	}
 
 	base, args := b.buildWheres()
