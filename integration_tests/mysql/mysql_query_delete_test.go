@@ -1,4 +1,4 @@
-//go:build disabled
+//go:build integration
 
 package mysql
 
