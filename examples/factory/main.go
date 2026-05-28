@@ -131,7 +131,11 @@ func RunExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("failed to bulk make users: %w", err)
 	}
-	fmt.Printf("%d users created in memory (not persisted)\n", len(bulkUsers.([]*User)))
+	users, ok := bulkUsers.([]*User)
+	if !ok {
+		return fmt.Errorf("unexpected type returned from Make: %T", bulkUsers)
+	}
+	fmt.Printf("%d users created in memory (not persisted)\n", len(users))
 
 	// Example 7: Create another user
 	fmt.Println("\n=== Example 7: Create Final User ===")
