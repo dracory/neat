@@ -877,6 +877,54 @@ func TestWhereJsonLength_PostgresDialect(t *testing.T) {
 	}
 }
 
+func TestSplitJsonColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+
+	tests := []struct {
+		name           string
+		input          string
+		expectedColumn string
+		expectedPath   string
+	}{
+		{
+			name:           "no path",
+			input:          "data",
+			expectedColumn: "data",
+			expectedPath:   "",
+		},
+		{
+			name:           "single level path",
+			input:          "data->key",
+			expectedColumn: "data",
+			expectedPath:   ".key",
+		},
+		{
+			name:           "nested path",
+			input:          "data->meta->active",
+			expectedColumn: "data",
+			expectedPath:   ".meta.active",
+		},
+		{
+			name:           "deeply nested path",
+			input:          "data->level1->level2->level3",
+			expectedColumn: "data",
+			expectedPath:   ".level1.level2.level3",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			col, path := q.splitJsonColumn(tc.input)
+			if col != tc.expectedColumn {
+				t.Errorf("Expected column %q, got %q", tc.expectedColumn, col)
+			}
+			if path != tc.expectedPath {
+				t.Errorf("Expected path %q, got %q", tc.expectedPath, path)
+			}
+		})
+	}
+}
+
 func TestJsonPathHandling_NestedPath(t *testing.T) {
 	dialects := []struct {
 		name   string
@@ -902,6 +950,17 @@ func TestJsonPathHandling_NestedPath(t *testing.T) {
 
 			if !contains(sql, "key") {
 				t.Errorf("Expected key in %s, got: %s", tc.name, sql)
+			}
+
+			// For SQLite, verify that -> is replaced with . in the JSON path
+			if tc.name == "SQLite" {
+				if contains(sql, "->") {
+					t.Errorf("SQLite should not contain -> in JSON path, got: %s", sql)
+				}
+				// Should contain dot notation for nested paths
+				if !contains(sql, ".nested.") {
+					t.Errorf("SQLite should use dot notation for nested paths, got: %s", sql)
+				}
 			}
 
 			if len(args) != 0 {

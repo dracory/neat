@@ -151,7 +151,9 @@ func (q *Query) splitJsonColumn(column string) (string, string) {
 	if len(parts) < 2 {
 		return column, ""
 	}
-	return parts[0], "." + parts[1]
+	// Replace all -> with . for SQLite JSON path syntax
+	path := "." + strings.ReplaceAll(parts[1], "->", ".")
+	return parts[0], path
 }
 
 // WhereJsonContains adds a where json contains clause to the query.
