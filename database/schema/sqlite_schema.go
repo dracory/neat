@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema/grammars"
@@ -27,16 +29,20 @@ func NewSqliteSchema(grammar *grammars.Sqlite, orm orm.Orm, prefix string) *Sqli
 }
 
 func (r *SqliteSchema) DropAllTables() error {
-	if _, err := r.orm.Query().Exec(r.grammar.CompileEnableWriteableSchema()); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if _, err := query.Exec(r.grammar.CompileEnableWriteableSchema()); err != nil {
 		return err
 	}
-	if _, err := r.orm.Query().Exec(r.grammar.CompileDropAllTables(nil)); err != nil {
+	if _, err := query.Exec(r.grammar.CompileDropAllTables(nil)); err != nil {
 		return err
 	}
-	if _, err := r.orm.Query().Exec(r.grammar.CompileDisableWriteableSchema()); err != nil {
+	if _, err := query.Exec(r.grammar.CompileDisableWriteableSchema()); err != nil {
 		return err
 	}
-	if _, err := r.orm.Query().Exec(r.grammar.CompileRebuild()); err != nil {
+	if _, err := query.Exec(r.grammar.CompileRebuild()); err != nil {
 		return err
 	}
 
@@ -65,7 +71,11 @@ func (r *SqliteSchema) DropAllViews() error {
 	}
 
 	// cannot VACUUM from within a transaction
-	if _, err := r.orm.Query().Exec(r.grammar.CompileRebuild()); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if _, err := query.Exec(r.grammar.CompileRebuild()); err != nil {
 		return err
 	}
 
@@ -76,7 +86,11 @@ func (r *SqliteSchema) GetColumns(table string) ([]schema.Column, error) {
 	table = r.prefix + table
 
 	var dbColumns []schema.DBColumn
-	if err := r.orm.Query().Raw(r.grammar.CompileColumns("", table)).Scan(&dbColumns); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileColumns("", table)).Scan(&dbColumns); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +101,11 @@ func (r *SqliteSchema) GetIndexes(table string) ([]schema.Index, error) {
 	table = r.prefix + table
 
 	var dbIndexes []schema.DBIndex
-	if err := r.orm.Query().Raw(r.grammar.CompileIndexes("", table)).Scan(&dbIndexes); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileIndexes("", table)).Scan(&dbIndexes); err != nil {
 		return nil, err
 	}
 

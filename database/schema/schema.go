@@ -180,7 +180,11 @@ func (r *Schema) GetForeignKeys(table string) ([]contractsschema.ForeignKey, err
 	table = r.prefix + table
 
 	var dbForeignKeys []contractsschema.DBForeignKey
-	if err := r.orm.Query().Raw(r.grammar.CompileForeignKeys(r.schema, table)).Scan(&dbForeignKeys); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileForeignKeys(r.schema, table)).Scan(&dbForeignKeys); err != nil {
 		return nil, err
 	}
 
@@ -336,7 +340,11 @@ func (r *Schema) SetConnection(name string) {
 }
 
 func (r *Schema) Sql(sql string) error {
-	_, err := r.orm.Query().Exec(sql)
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	_, err := query.Exec(sql)
 
 	return err
 }
@@ -353,8 +361,12 @@ func (r *Schema) Table(table string, callback func(table contractsschema.Bluepri
 }
 
 func (r *Schema) build(blueprint contractsschema.Blueprint) error {
-	if r.orm.Query().InTransaction() {
-		return blueprint.Build(r.orm.Query(), r.grammar)
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if query.InTransaction() {
+		return blueprint.Build(query, r.grammar)
 	}
 
 	return r.orm.Transaction(func(tx contractsorm.Query) error {

@@ -67,7 +67,11 @@ func (r *PostgresSchema) DropAllTables() error {
 		return nil
 	}
 
-	_, err = r.orm.Query().Exec(r.grammar.CompileDropAllTables(dropTables))
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	_, err = query.Exec(r.grammar.CompileDropAllTables(dropTables))
 
 	return err
 }
@@ -123,7 +127,11 @@ func (r *PostgresSchema) DropAllViews() error {
 		return nil
 	}
 
-	_, err = r.orm.Query().Exec(r.grammar.CompileDropAllViews(dropViews))
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	_, err = query.Exec(r.grammar.CompileDropAllViews(dropViews))
 
 	return err
 }
@@ -137,7 +145,11 @@ func (r *PostgresSchema) GetColumns(table string) ([]contractsschema.Column, err
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	if err := r.orm.Query().Raw(r.grammar.CompileColumns(schema, table)).Scan(&dbColumns); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileColumns(schema, table)).Scan(&dbColumns); err != nil {
 		return nil, err
 	}
 
@@ -153,7 +165,11 @@ func (r *PostgresSchema) GetIndexes(table string) ([]contractsschema.Index, erro
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	if err := r.orm.Query().Raw(r.grammar.CompileIndexes(schema, table)).Scan(&dbIndexes); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileIndexes(schema, table)).Scan(&dbIndexes); err != nil {
 		return nil, err
 	}
 
@@ -162,7 +178,11 @@ func (r *PostgresSchema) GetIndexes(table string) ([]contractsschema.Index, erro
 
 func (r *PostgresSchema) GetTypes() ([]contractsschema.Type, error) {
 	var types []contractsschema.Type
-	if err := r.orm.Query().Raw(r.grammar.CompileTypes()).Scan(&types); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileTypes()).Scan(&types); err != nil {
 		return nil, err
 	}
 

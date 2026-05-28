@@ -105,7 +105,11 @@ func (r *MysqlSchema) GetIndexes(table string) ([]contractsschema.Index, error) 
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	if err := r.orm.Query().Raw(r.grammar.CompileIndexes(r.orm.DatabaseName(), table)).Scan(&dbIndexes); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileIndexes(r.orm.DatabaseName(), table)).Scan(&dbIndexes); err != nil {
 		return nil, err
 	}
 

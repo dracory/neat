@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+
 	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema/grammars"
@@ -27,11 +29,15 @@ func NewSqlserverSchema(grammar *grammars.Sqlserver, orm orm.Orm, prefix string)
 }
 
 func (r *SqlserverSchema) DropAllTables() error {
-	if _, err := r.orm.Query().Exec(r.grammar.CompileDropAllForeignKeys()); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if _, err := query.Exec(r.grammar.CompileDropAllForeignKeys()); err != nil {
 		return err
 	}
 
-	if _, err := r.orm.Query().Exec(r.grammar.CompileDropAllTables(nil)); err != nil {
+	if _, err := query.Exec(r.grammar.CompileDropAllTables(nil)); err != nil {
 		return err
 	}
 
@@ -43,7 +49,11 @@ func (r *SqlserverSchema) DropAllTypes() error {
 }
 
 func (r *SqlserverSchema) DropAllViews() error {
-	_, err := r.orm.Query().Exec(r.grammar.CompileDropAllViews(nil))
+	query := r.orm.Query()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	_, err := query.Exec(r.grammar.CompileDropAllViews(nil))
 
 	return err
 }
@@ -57,7 +67,11 @@ func (r *SqlserverSchema) GetColumns(table string) ([]contractsschema.Column, er
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	if err := r.orm.Query().Raw(r.grammar.CompileColumns(schema, table)).Scan(&dbColumns); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileColumns(schema, table)).Scan(&dbColumns); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +87,11 @@ func (r *SqlserverSchema) GetIndexes(table string) ([]contractsschema.Index, err
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	if err := r.orm.Query().Raw(r.grammar.CompileIndexes(schema, table)).Scan(&dbIndexes); err != nil {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileIndexes(schema, table)).Scan(&dbIndexes); err != nil {
 		return nil, err
 	}
 
