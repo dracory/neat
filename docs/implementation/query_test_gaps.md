@@ -691,7 +691,7 @@ The test suite for the `database/query` package has moderate coverage with good 
 ### Suggested New Test Files
 - ~~`query_transaction_integration_test.go`~~ ✅ COMPLETED - Nested transactions, savepoints
 - ~~`query_raw_test.go`~~ ✅ COMPLETED - Raw SQL execution
-- `query_relations_integration_test.go` - Eager loading integration (PENDING)
+- `query_relations_integration_test.go` - Eager loading integration (PENDING - requires implementation)
 - ~~`query_streaming_test.go`~~ ✅ COMPLETED - Cursor and Chunk methods
 - ~~`query_upsert_test.go`~~ ✅ COMPLETED - UpdateOrInsert, FirstOrCreate, UpdateOrCreate
 - ~~`query_pagination_test.go`~~ ✅ COMPLETED - Paginate method
