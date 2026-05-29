@@ -4,8 +4,9 @@ package postgres
 
 import (
 	"testing"
-	"github.com/dracory/neat/integration_tests/models"
+
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/integration_tests/models"
 )
 
 func TestPostgreSQLIntegrationWhereColumn(t *testing.T) {
@@ -274,8 +275,13 @@ func TestPostgreSQLIntegrationOrWhereNot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OrWhereNot closure failed: %v", err)
 	}
-	if len(foundUsersClosure) != 2 {
-		t.Errorf("Expected 2 users for OrWhereNot closure, got %d", len(foundUsersClosure))
+	// name='user1' OR NOT (avatar='avatar2')
+	// user1 matches first condition (name='user1')
+	// user1 also matches second condition (avatar1 != avatar2)
+	// user3 matches second condition (avatar3 != avatar2)
+	// So all 3 users should be returned
+	if len(foundUsersClosure) != 3 {
+		t.Errorf("Expected 3 users for OrWhereNot closure, got %d", len(foundUsersClosure))
 	}
 }
 

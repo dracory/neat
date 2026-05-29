@@ -179,6 +179,8 @@ func TestOrWhereNotWithClosure(t *testing.T) {
 	if qResult.wheres[0]._type != "or" {
 		t.Errorf("Expected where clause type to be 'or', got '%s'", qResult.wheres[0]._type)
 	}
+	// Check the actual query string
+	t.Logf("OrWhereNot closure query: %s", qResult.wheres[0].query)
 }
 
 func TestWhereNotNull(t *testing.T) {

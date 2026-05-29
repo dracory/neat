@@ -6,8 +6,9 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"github.com/dracory/neat/integration_tests/models"
+
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/integration_tests/models"
 )
 
 func TestMySQLLockForUpdate(t *testing.T) {
@@ -24,7 +25,7 @@ func TestMySQLLockForUpdate(t *testing.T) {
 
 	err := db.Transaction(func(tx contractsorm.Query) error {
 		var result models.User
-		err := tx.LockForUpdate().Where("name = ?", "lock_user").First(&result)
+		err := tx.Model(&models.User{}).LockForUpdate().Where("name = ?", "lock_user").First(&result)
 		if err != nil {
 			return err
 		}
@@ -52,7 +53,7 @@ func TestMySQLSharedLock(t *testing.T) {
 
 	err := db.Transaction(func(tx contractsorm.Query) error {
 		var result models.User
-		err := tx.SharedLock().Where("name = ?", "shared_lock_user").First(&result)
+		err := tx.Model(&models.User{}).SharedLock().Where("name = ?", "shared_lock_user").First(&result)
 		if err != nil {
 			return err
 		}
@@ -78,6 +79,8 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
+	userID := user.ID // Store the ID for use in WHERE clauses
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -90,7 +93,7 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 
 		err := db.Transaction(func(tx contractsorm.Query) error {
 			var result models.User
-			err := tx.LockForUpdate().Where("name = ?", "concurrent_user").First(&result)
+			err := tx.Model(&models.User{}).LockForUpdate().Where("id = ?", userID).First(&result)
 			if err != nil {
 				return err
 			}
@@ -99,7 +102,7 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			result.Name = "updated_by_tx1"
-			_, err = tx.Model(&models.User{}).Update("name", "updated_by_tx1")
+			_, err = tx.Model(&models.User{}).Where("id = ?", userID).Update("name", "updated_by_tx1")
 			return err
 		})
 		if err != nil {
@@ -118,7 +121,7 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 		err := db.Transaction(func(tx contractsorm.Query) error {
 			var result models.User
 			// This should block until Goroutine 1 commits
-			err := tx.LockForUpdate().Where("name = ?", "concurrent_user").First(&result)
+			err := tx.Model(&models.User{}).LockForUpdate().Where("id = ?", userID).First(&result)
 			if err != nil {
 				return err
 			}
@@ -126,7 +129,7 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 			if result.Name != "updated_by_tx1" {
 				t.Errorf("Expected 'updated_by_tx1', got '%s'", result.Name)
 			}
-			_, err = tx.Model(&models.User{}).Update("name", "updated_by_tx2")
+			_, err = tx.Model(&models.User{}).Where("id = ?", userID).Update("name", "updated_by_tx2")
 			return err
 		})
 		if err != nil {
@@ -138,7 +141,7 @@ func TestMySQLConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	var finalResult models.User
-	err := db.Query().Model(&models.User{}).Where("name = ?", "concurrent_user").First(&finalResult)
+	err := db.Query().Model(&models.User{}).Where("id = ?", userID).First(&finalResult)
 	if err != nil {
 		t.Errorf("Failed to find final result: %v", err)
 	}
