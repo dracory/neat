@@ -64,6 +64,9 @@ func SetupPostgresTest(t *testing.T) *database.Database {
 		t.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 
+	createPostgresTestTables(t, conn)
+	cleanupPostgresTestData(t, conn)
+
 	t.Cleanup(func() {
 		conn.Close()
 	})
@@ -96,4 +99,82 @@ func SetupPostgresConnection(t *testing.T) *database.Database {
 	})
 
 	return db
+}
+
+// cleanupPostgresTestData removes all data from test tables
+func cleanupPostgresTestData(t *testing.T, db *database.Database) {
+	t.Helper()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("cleanupPostgresTestData: DB(): %v", err)
+	}
+	stmts := []string{
+		`DELETE FROM users`,
+		`DELETE FROM addresses`,
+		`DELETE FROM books`,
+		`DELETE FROM peoples`,
+		`DELETE FROM json_datas`,
+	}
+	for _, stmt := range stmts {
+		if _, err := sqlDB.Exec(stmt); err != nil {
+			t.Fatalf("cleanupPostgresTestData: %v", err)
+		}
+	}
+}
+
+// createPostgresTestTables creates all tables required by the integration test models.
+func createPostgresTestTables(t *testing.T, db *database.Database) {
+	t.Helper()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("createPostgresTestTables: DB(): %v", err)
+	}
+	stmts := []string{
+		`DROP TABLE IF EXISTS books CASCADE`,
+		`DROP TABLE IF EXISTS addresses CASCADE`,
+		`DROP TABLE IF EXISTS users CASCADE`,
+		`DROP TABLE IF EXISTS peoples CASCADE`,
+		`DROP TABLE IF EXISTS json_datas CASCADE`,
+		`CREATE TABLE IF NOT EXISTS users (
+			id         BIGSERIAL PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
+			avatar     VARCHAR(255) NOT NULL DEFAULT '',
+			bio        TEXT,
+			votes      INTEGER NOT NULL DEFAULT 0,
+			deleted_at TIMESTAMP,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS addresses (
+			id         BIGSERIAL PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
+			user_id    BIGINT NOT NULL DEFAULT 0,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS books (
+			id         BIGSERIAL PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
+			user_id    BIGINT NOT NULL DEFAULT 0,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS peoples (
+			id         BIGSERIAL PRIMARY KEY,
+			body       TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS json_datas (
+			id         BIGSERIAL PRIMARY KEY,
+			data       JSONB NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+	for _, stmt := range stmts {
+		if _, err := sqlDB.Exec(stmt); err != nil {
+			t.Fatalf("createPostgresTestTables: %v", err)
+		}
+	}
 }

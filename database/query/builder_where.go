@@ -36,6 +36,13 @@ func (b *Builder) buildWheres() (string, []any) {
 	var parts []string
 	args := make([]any, 0)
 
+	// Get placeholder function for the dialect
+	placeholderFunc := func(n int) string { return "?" }
+	if b.query.driver != nil {
+		placeholderFunc = b.query.driver.Placeholder
+	}
+	placeholderIndex := 1
+
 	for i, where := range b.query.wheres {
 		if i > 0 {
 			parts = append(parts, strings.ToUpper(where._type))
@@ -48,11 +55,18 @@ func (b *Builder) buildWheres() (string, []any) {
 			if slice, ok := clauseArgs[0].([]any); ok {
 				placeholders := make([]string, len(slice))
 				for j := range slice {
-					placeholders[j] = "?"
+					placeholders[j] = placeholderFunc(placeholderIndex)
+					placeholderIndex++
 				}
 				clauseQuery = strings.Replace(clauseQuery, "(?)", "("+strings.Join(placeholders, ", ")+")", 1)
 				clauseArgs = slice
 			}
+		}
+
+		// Replace remaining placeholders with dialect-specific ones
+		if strings.Contains(clauseQuery, "?") {
+			clauseQuery = strings.Replace(clauseQuery, "?", placeholderFunc(placeholderIndex), 1)
+			placeholderIndex++
 		}
 
 		// Quote identifiers in the WHERE clause

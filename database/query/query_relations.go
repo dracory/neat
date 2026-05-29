@@ -304,9 +304,7 @@ func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
 		// Handle has-one relationships (pointer fields)
 		if field.Kind() == reflect.Ptr {
 			if err := q.loadHasOneRelation(v, field, relation, conn); err != nil {
-				// Log error but continue with other relations
-				// This maintains backward compatibility while surfacing errors
-				continue
+				return fmt.Errorf("failed to load has-one relation %s: %w", relation, err)
 			}
 		}
 	}

@@ -35,6 +35,12 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(quotedColumns, ", ")))
 		parts = append(parts, "VALUES")
 
+		// Get placeholder function for the dialect
+		placeholderFunc := func(n int) string { return "?" }
+		if b.query.driver != nil {
+			placeholderFunc = b.query.driver.Placeholder
+		}
+
 		// Handle bulk insert
 		v := reflect.ValueOf(value)
 		if v.Kind() == reflect.Ptr {
@@ -46,7 +52,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 			for i := 0; i < v.Len(); i++ {
 				placeholders := make([]string, len(columns))
 				for j := range placeholders {
-					placeholders[j] = "?"
+					placeholders[j] = placeholderFunc(j + 1)
 				}
 				rowPlaceholders[i] = fmt.Sprintf("(%s)", strings.Join(placeholders, ", "))
 			}
@@ -56,7 +62,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 			// Single insert
 			placeholders := make([]string, len(columns))
 			for i := range placeholders {
-				placeholders[i] = "?"
+				placeholders[i] = placeholderFunc(i + 1)
 			}
 			parts = append(parts, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
 			args = append(args, values...)
