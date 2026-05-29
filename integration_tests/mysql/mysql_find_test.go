@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
@@ -14,7 +15,7 @@ type queryable interface {
 
 // setupFindTest creates a database connection and sets up test tables
 func setupFindTest(t *testing.T) queryable {
-	return SetupMySQLConnection(t)
+	return SetupMySQLTest(t)
 }
 
 // TestMySQLIntegrationFirst tests First operation

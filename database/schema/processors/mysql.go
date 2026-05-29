@@ -27,16 +27,33 @@ func (r Mysql) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			autoIncrement = true
 		}
 
-		columns = append(columns, schema.Column{
-			Autoincrement: autoIncrement,
-			Collation:     dbColumn.Collation,
-			Comment:       dbColumn.Comment,
-			Default:       cast.ToString(dbColumn.Default),
-			Name:          dbColumn.Name,
-			Nullable:      nullable,
-			Type:          dbColumn.Type,
-			TypeName:      dbColumn.TypeName,
-		})
+		// Handle NULL collation - MySQL returns NULL for non-text columns
+		collation := dbColumn.Collation
+		if dbColumn.Default != nil {
+			// If Default is a pointer, dereference it safely
+			defaultStr := cast.ToString(dbColumn.Default)
+			columns = append(columns, schema.Column{
+				Autoincrement: autoIncrement,
+				Collation:     collation,
+				Comment:       dbColumn.Comment,
+				Default:       defaultStr,
+				Name:          dbColumn.Name,
+				Nullable:      nullable,
+				Type:          dbColumn.Type,
+				TypeName:      dbColumn.TypeName,
+			})
+		} else {
+			columns = append(columns, schema.Column{
+				Autoincrement: autoIncrement,
+				Collation:     collation,
+				Comment:       dbColumn.Comment,
+				Default:       "",
+				Name:          dbColumn.Name,
+				Nullable:      nullable,
+				Type:          dbColumn.Type,
+				TypeName:      dbColumn.TypeName,
+			})
+		}
 	}
 
 	return columns
