@@ -312,6 +312,7 @@ func TestMySQLIntegrationSoftDeleteWithConditions(t *testing.T) {
 
 	if len(remainingUsers) != 1 {
 		t.Errorf("Expected 1 remaining user, got %d", len(remainingUsers))
+		return
 	}
 
 	if remainingUsers[0].Name != "soft_delete_cond_user3" {
@@ -407,6 +408,7 @@ func TestMySQLIntegrationOnlyTrashed(t *testing.T) {
 
 	if len(deletedUsers) != 1 {
 		t.Errorf("Expected 1 deleted user, got %d", len(deletedUsers))
+		return
 	}
 
 	if deletedUsers[0].Name != "only_trashed_user1" {
@@ -451,6 +453,7 @@ func TestMySQLIntegrationWithoutTrashed(t *testing.T) {
 
 	if len(activeUsers) != 1 {
 		t.Errorf("Expected 1 active user, got %d", len(activeUsers))
+		return
 	}
 
 	if activeUsers[0].Name != "without_trashed_user2" {
