@@ -128,18 +128,24 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Ptr) &&
 			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
 			// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
-			if fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil() {
-				elem := fieldValue.Elem()
-				if elem.Kind() == reflect.Struct {
-					continue
+			if fieldValue.Kind() == reflect.Ptr {
+				if fieldValue.IsNil() {
+					// For nil pointers, check if it's a pointer to a struct (association) or basic type
+					// Skip nil struct pointers (associations), include nil basic type pointers as NULL
+					elemType := fieldValue.Type().Elem()
+					if elemType.Kind() == reflect.Struct {
+						continue // Skip nil struct pointers (associations)
+					}
+					// Include nil basic type pointers as NULL
+				} else {
+					elem := fieldValue.Elem()
+					if elem.Kind() == reflect.Struct {
+						continue // Skip non-nil struct pointers (associations)
+					}
+					// Include non-nil basic type pointers
 				}
 			} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
 				continue
-			} else if fieldValue.Kind() == reflect.Ptr {
-				// Skip nil pointers except for deleted_at (soft delete)
-				if columnName != "deleted_at" {
-					continue
-				}
 			}
 		}
 
@@ -155,9 +161,10 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
-		// Skip zero values except for boolean and deleted_at (soft delete)
+		// Skip zero values except for boolean and pointers (which should be NULL)
 		// For deleted_at (nil pointer), we want to include it as NULL in INSERT
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && !(columnName == "deleted_at" && fieldValue.Kind() == reflect.Ptr) {
+		// For other nil pointers (like Bio), also include as NULL
+		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Ptr {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For other dialects, include zero time.Time values
 			if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {

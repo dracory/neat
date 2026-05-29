@@ -2,6 +2,7 @@ package query
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/dracory/neat/contracts/database/orm"
@@ -156,21 +157,48 @@ func (q *Query) splitJsonColumn(column string) (string, string) {
 	return parts[0], path
 }
 
+// splitJsonColumnForMySQL splits a JSON column name into column and path for MySQL.
+// MySQL uses $.path for object paths and $[index] for array indexing.
+func (q *Query) splitJsonColumnForMySQL(column string) (string, string) {
+	if !strings.Contains(column, "->") {
+		return column, ""
+	}
+	parts := strings.SplitN(column, "->", 2)
+	if len(parts) < 2 {
+		return column, ""
+	}
+	// Convert -> to MySQL JSON path syntax
+	// For array indices like tags->0, convert to $.tags[0]
+	// For object paths like meta->id, convert to $.meta.id
+	path := strings.ReplaceAll(parts[1], "->", ".")
+	// Handle array indexing: replace .0. with [0]., .1. with [1]., etc.
+	re := regexp.MustCompile(`\.(\d+)\.`)
+	path = re.ReplaceAllString(path, "[$1].")
+	// Handle trailing array index: replace .0 with [0]
+	re = regexp.MustCompile(`\.(\d+)$`)
+	path = re.ReplaceAllString(path, "[$1]")
+	return parts[0], "$." + path
+}
+
 // WhereJsonContains adds a where json contains clause to the query.
 func (q *Query) WhereJsonContains(column string, value any) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", col, path), args: []any{value}})
 	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		// MySQL's JSON_CONTAINS requires the value to be valid JSON
+		// If it's a string, wrap it in quotes to make it a JSON string
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
 		if path != "" {
 			// MySQL: JSON_CONTAINS(column, value, path)
-			// Convert path from ".name" to "$.name" and quote it
-			jsonPath := "$" + path
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
@@ -184,14 +212,18 @@ func (q *Query) OrWhereJsonContains(column string, value any) orm.Query {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", col, path), args: []any{value}})
 	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		// MySQL's JSON_CONTAINS requires the value to be valid JSON
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
 		if path != "" {
 			// MySQL: JSON_CONTAINS(column, value, path)
-			jsonPath := "$" + path
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
@@ -205,14 +237,18 @@ func (q *Query) WhereJsonDoesntContain(column string, value any) orm.Query {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", col, path), args: []any{value}})
 	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		// MySQL's JSON_CONTAINS requires the value to be valid JSON
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
 		if path != "" {
 			// MySQL: NOT JSON_CONTAINS(column, value, path)
-			jsonPath := "$" + path
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
@@ -226,14 +262,18 @@ func (q *Query) OrWhereJsonDoesntContain(column string, value any) orm.Query {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", col, path), args: []any{value}})
 	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		// MySQL's JSON_CONTAINS requires the value to be valid JSON
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
 		if path != "" {
 			// MySQL: NOT JSON_CONTAINS(column, value, path)
-			jsonPath := "$" + path
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})

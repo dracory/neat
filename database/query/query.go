@@ -287,6 +287,30 @@ func newDriverForDialect(dialect string) driver.Driver {
 func (q *Query) Model(value any) contractsorm.Query {
 	q.model = value
 	q.table = q.resolveTableName(value)
+	// Reset query state to avoid pollution from previous queries
+	q.selects = nil
+	q.wheres = nil
+	q.joins = nil
+	q.groups = nil
+	q.havings = nil
+	q.orders = nil
+	q.limit = nil
+	q.offset = nil
+	q.distinct = false
+	q.distinctCols = nil
+	q.aggregate = ""
+	q.aggregateCol = ""
+	q.rawSQL = ""
+	q.rawArgs = nil
+	q.lockForUpdate = false
+	q.sharedLock = false
+	q.omitColumns = nil
+	// Don't reset soft delete state as it may be intentionally set
+	// q.withTrashed = false
+	// q.onlyTrashed = false
+	// q.withoutTrashed = false
+	q.withRelations = nil
+	q.relationConstraints = nil
 	return q
 }
 

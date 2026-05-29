@@ -183,6 +183,30 @@ func setModelPrimaryKey(value any, id int64) {
 	}
 }
 
+// getModelPrimaryKey gets the primary key field (ID or Id) from a struct model.
+func getModelPrimaryKey(value any) int64 {
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return 0
+	}
+	for _, name := range []string{"ID", "Id"} {
+		field := v.FieldByName(name)
+		if !field.IsValid() {
+			continue
+		}
+		switch field.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return int64(field.Uint())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return field.Int()
+		}
+	}
+	return 0
+}
+
 // applyWhereConditions applies attributes as WHERE conditions to a query.
 func applyWhereConditions(q *Query, attributes any) error {
 	// Handle map[string]any attributes

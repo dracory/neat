@@ -104,12 +104,35 @@ func SetupMySQLTest(t *testing.T) *database.Database {
 	}
 
 	createMySQLTestTables(t, db)
+	// Clean up any existing data before each test
+	cleanupMySQLTestData(t, db)
 
 	t.Cleanup(func() {
 		db.Close()
 	})
 
 	return db
+}
+
+// cleanupMySQLTestData removes all data from test tables
+func cleanupMySQLTestData(t *testing.T, db *database.Database) {
+	t.Helper()
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("cleanupMySQLTestData: DB(): %v", err)
+	}
+	stmts := []string{
+		`DELETE FROM users`,
+		`DELETE FROM addresses`,
+		`DELETE FROM books`,
+		`DELETE FROM peoples`,
+		`DELETE FROM json_datas`,
+	}
+	for _, stmt := range stmts {
+		if _, err := sqlDB.Exec(stmt); err != nil {
+			t.Fatalf("cleanupMySQLTestData: %v", err)
+		}
+	}
 }
 
 // createMySQLTestTables creates all tables required by the integration test models.
