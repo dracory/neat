@@ -63,3 +63,67 @@ func TestBuildWheresEmpty(t *testing.T) {
 		t.Error("Expected empty args")
 	}
 }
+
+func TestLaravelStyleWhere(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("name", "Alice")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 || args[0] != "Alice" {
+		t.Errorf("Expected args [Alice], got %v", args)
+	}
+}
+
+func TestLaravelStyleOrWhere(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.OrWhere("name", "Bob")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 || args[0] != "Bob" {
+		t.Errorf("Expected args [Bob], got %v", args)
+	}
+}
+
+func TestExplicitOperatorWhere(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("age > ?", 18)
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	if !strings.Contains(where, "age > ?") {
+		t.Errorf("Expected 'age > ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 || args[0] != 18 {
+		t.Errorf("Expected args [18], got %v", args)
+	}
+}
+
+func TestMixedWhereStyles(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("name", "Alice")
+	q.Where("age > ?", 18)
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if !strings.Contains(where, "age > ?") {
+		t.Errorf("Expected 'age > ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d", len(args))
+	}
+}

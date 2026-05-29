@@ -51,14 +51,37 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 }
 
 // Where adds a where clause to the query.
+// Supports Laravel-style syntax: Where("column", "value") automatically uses = operator.
 func (q *Query) Where(query any, args ...any) orm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", query), args: args})
+	queryStr := fmt.Sprintf("%v", query)
+	// Laravel-style: Where("column", "value") -> Where("column = ?", "value")
+	if len(args) == 1 && !containsOperator(queryStr) {
+		queryStr = fmt.Sprintf("%s = ?", queryStr)
+	}
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: queryStr, args: args})
 	return q
 }
 
+// containsOperator checks if a string contains SQL comparison operators
+func containsOperator(s string) bool {
+	operators := []string{"=", "!=", "<>", ">", "<", ">=", "<=", " LIKE ", " NOT LIKE ", " IN ", " NOT IN ", " BETWEEN ", " NOT BETWEEN "}
+	for _, op := range operators {
+		if strings.Contains(strings.ToUpper(s), op) {
+			return true
+		}
+	}
+	return false
+}
+
 // OrWhere adds an or where clause to the query.
+// Supports Laravel-style syntax: OrWhere("column", "value") automatically uses = operator.
 func (q *Query) OrWhere(query any, args ...any) orm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%v", query), args: args})
+	queryStr := fmt.Sprintf("%v", query)
+	// Laravel-style: OrWhere("column", "value") -> OrWhere("column = ?", "value")
+	if len(args) == 1 && !containsOperator(queryStr) {
+		queryStr = fmt.Sprintf("%s = ?", queryStr)
+	}
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: queryStr, args: args})
 	return q
 }
 
