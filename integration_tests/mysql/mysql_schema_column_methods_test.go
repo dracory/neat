@@ -6,14 +6,11 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database"
 )
 
-func setupColumnMethodsTable(t *testing.T, db interface{}, tableName string) {
-	err := db.(interface {
-		Schema() interface {
-			Create(string, func(schema.Blueprint)) error
-		}
-	}).Schema().Create(tableName, func(table schema.Blueprint) {
+func setupColumnMethodsTable(t *testing.T, db *database.Database, tableName string) {
+	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
 		table.String("name")
 		table.String("age")
@@ -24,9 +21,7 @@ func setupColumnMethodsTable(t *testing.T, db interface{}, tableName string) {
 		t.Fatalf("Failed to create table: %v", err)
 	}
 
-	if !db.(interface {
-		Schema() interface{ HasTable(string) bool }
-	}).Schema().HasTable(tableName) {
+	if !db.Schema().HasTable(tableName) {
 		t.Error("Table should exist")
 	}
 }

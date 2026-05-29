@@ -6,24 +6,12 @@ import (
 	"testing"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedGroupHavingTestData(t *testing.T, db interface{}) {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
-
+func seedGroupHavingTestData(t *testing.T, db *database.Database) {
+	query := db.Query()
 	users := []models.User{
 		{Name: "group_user_1", Avatar: "avatar1"},
 		{Name: "group_user_2", Avatar: "avatar1"},

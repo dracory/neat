@@ -5,24 +5,12 @@ package mysql
 import (
 	"testing"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedJsonTestData(t *testing.T, db interface{}) []models.JsonData {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
-
+func seedJsonTestData(t *testing.T, db *database.Database) []models.JsonData {
+	query := db.Query()
 	data := []models.JsonData{
 		{Data: `{"name":"json1", "tags":["tag1", "tag2"], "meta":{"id":1, "active":true}}`},
 		{Data: `{"name":"json2", "tags":["tag2", "tag3"], "meta":{"id":2, "active":false}}`},

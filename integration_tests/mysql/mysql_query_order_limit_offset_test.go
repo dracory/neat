@@ -5,24 +5,12 @@ package mysql
 import (
 	"testing"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedOrderLimitOffsetTestData(t *testing.T, db interface{}) {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
-
+func seedOrderLimitOffsetTestData(t *testing.T, db *database.Database) {
+	query := db.Query()
 	users := []models.User{
 		{Name: "user_b", Avatar: "avatar2"},
 		{Name: "user_a", Avatar: "avatar1"},

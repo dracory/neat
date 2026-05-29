@@ -5,24 +5,12 @@ package mysql
 import (
 	"testing"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func seedLoadTestData(t *testing.T, db interface{}) int64 {
-	var query interface {
-		Model(interface{}) interface{ Create(interface{}) error }
-	}
-	switch v := db.(type) {
-	case interface {
-		Query() interface {
-			Model(interface{}) interface{ Create(interface{}) error }
-		}
-	}:
-		query = v.Query()
-	default:
-		query = db
-	}
-
+func seedLoadTestData(t *testing.T, db *database.Database) int64 {
+	query := db.Query()
 	user := models.User{Name: "load_user"}
 	if err := query.Model(&models.User{}).Create(&user); err != nil {
 		t.Fatalf("Failed to create user: %v", err)
@@ -42,7 +30,7 @@ func seedLoadTestData(t *testing.T, db interface{}) int64 {
 		t.Fatalf("Failed to create book 2: %v", err)
 	}
 
-	return createdUser.ID
+	return int64(createdUser.ID)
 }
 
 func TestMySQLIntegrationQueryLoadSingleRelationship(t *testing.T) {

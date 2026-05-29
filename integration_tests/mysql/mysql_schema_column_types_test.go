@@ -7,30 +7,21 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database"
 )
 
-func testColumnType(t *testing.T, db interface{}, name string, setup func(schema.Blueprint), expectedType string, nullable, autoincrement bool, defaultValue string) {
+func testColumnType(t *testing.T, db *database.Database, name string, setup func(schema.Blueprint), expectedType string, nullable, autoincrement bool, defaultValue string) {
 	tableName := fmt.Sprintf("test_types_my_%s", name)
-	db.(interface {
-		Schema() interface{ DropIfExists(string) }
-	}).Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
-	err := db.(interface {
-		Schema() interface {
-			Create(string, func(schema.Blueprint)) error
-		}
-	}).Schema().Create(tableName, func(table schema.Blueprint) {
+	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		setup(table)
 	})
 	if err != nil {
 		t.Fatalf("Failed to create table for %s: %v", name, err)
 	}
 
-	columns, err := db.(interface {
-		Schema() interface {
-			GetColumns(string) ([]schema.Column, error)
-		}
-	}).Schema().GetColumns(tableName)
+	columns, err := db.Schema().GetColumns(tableName)
 	if err != nil {
 		t.Fatalf("Failed to get columns for %s: %v", name, err)
 	}
@@ -54,9 +45,7 @@ func testColumnType(t *testing.T, db interface{}, name string, setup func(schema
 		t.Errorf("Wrong default for %s: expected %s, got %s", name, defaultValue, columns[0].Default)
 	}
 
-	err = db.(interface {
-		Schema() interface{ Drop(string) error }
-	}).Schema().Drop(tableName)
+	err = db.Schema().Drop(tableName)
 	if err != nil {
 		t.Fatalf("Failed to drop table for %s: %v", name, err)
 	}
