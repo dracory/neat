@@ -69,8 +69,13 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 			}
 		}
 		for _, key := range sortedKeys {
+			value := v.MapIndex(key).Interface()
+			// Skip zero time.Time values to allow database DEFAULT values
+			if t, ok := value.(time.Time); ok && t.IsZero() {
+				continue
+			}
 			columns = append(columns, key.String())
-			values = append(values, v.MapIndex(key).Interface())
+			values = append(values, value)
 		}
 		if values == nil {
 			values = []any{}
@@ -148,9 +153,10 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
-		// Skip zero values except for boolean, time.Time, and deleted_at (soft delete)
+		// Skip zero values except for boolean and deleted_at (soft delete)
 		// For deleted_at (nil pointer), we want to include it as NULL in INSERT
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Type() != reflect.TypeOf(time.Time{}) && !(columnName == "deleted_at" && fieldValue.Kind() == reflect.Ptr) {
+		// Skip zero time.Time values to allow database DEFAULT values
+		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && !(columnName == "deleted_at" && fieldValue.Kind() == reflect.Ptr) {
 			continue
 		}
 
