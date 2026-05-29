@@ -534,3 +534,63 @@ func TestBulkInsertWithReplicas(t *testing.T) {
 		t.Errorf("Expected 2 records, got %d", count)
 	}
 }
+
+// TestBulkInsertSetsIDs verifies that bulk insert correctly sets the ID fields
+// on the inserted models. This test would have caught the MySQL LastInsertId bug
+// where IDs were incorrectly calculated as lastID - len + 1 instead of lastID + i.
+func TestBulkInsertSetsIDs(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE bulk_id_test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
+	w.SetTable("bulk_id_test")
+
+	users := []BulkUser{
+		{Name: "Alice"},
+		{Name: "Bob"},
+		{Name: "Charlie"},
+	}
+
+	err := w.Q.Create(&users)
+	if err != nil {
+		t.Fatalf("Bulk insert failed: %v", err)
+	}
+
+	// Verify IDs are set correctly and are sequential
+	if users[0].ID == 0 {
+		t.Errorf("Expected first user ID to be set, got 0")
+	}
+	if users[1].ID == 0 {
+		t.Errorf("Expected second user ID to be set, got 0")
+	}
+	if users[2].ID == 0 {
+		t.Errorf("Expected third user ID to be set, got 0")
+	}
+
+	// Verify IDs are sequential
+	if users[1].ID != users[0].ID+1 {
+		t.Errorf("Expected sequential IDs: user[1].ID (%d) should be user[0].ID+1 (%d)", users[1].ID, users[0].ID+1)
+	}
+	if users[2].ID != users[1].ID+1 {
+		t.Errorf("Expected sequential IDs: user[2].ID (%d) should be user[1].ID+1 (%d)", users[2].ID, users[1].ID+1)
+	}
+
+	// Verify by querying the database
+	var fetchedUsers []BulkUser
+	err = w.Q.Find(&fetchedUsers)
+	if err != nil {
+		t.Fatalf("Find failed: %v", err)
+	}
+	if len(fetchedUsers) != 3 {
+		t.Errorf("Expected 3 records, got %d", len(fetchedUsers))
+	}
+
+	// Verify the IDs in the structs match the database
+	if users[0].ID != fetchedUsers[0].ID {
+		t.Errorf("Struct ID %d doesn't match database ID %d", users[0].ID, fetchedUsers[0].ID)
+	}
+	if users[1].ID != fetchedUsers[1].ID {
+		t.Errorf("Struct ID %d doesn't match database ID %d", users[1].ID, fetchedUsers[1].ID)
+	}
+	if users[2].ID != fetchedUsers[2].ID {
+		t.Errorf("Struct ID %d doesn't match database ID %d", users[2].ID, fetchedUsers[2].ID)
+	}
+}

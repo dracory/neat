@@ -97,15 +97,25 @@ func (q *Query) Create(value any) error {
 				v = v.Elem()
 			}
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
-				// For bulk inserts, set sequential IDs starting from lastID - len + 1
-				startID := lastID - int64(v.Len()) + 1
+				// Different databases return different values from LastInsertId() for bulk inserts:
+				// - SQLite: returns the LAST auto-increment value
+				// - MySQL: returns the FIRST auto-increment value
+				isMySQL := q.driver != nil && q.driver.Dialect() == "mysql"
 				for i := 0; i < v.Len(); i++ {
 					elem := v.Index(i)
 					if elem.Kind() == reflect.Ptr {
 						elem = elem.Elem()
 					}
 					if elem.CanAddr() {
-						setModelPrimaryKey(elem.Addr().Interface(), startID+int64(i))
+						var id int64
+						if isMySQL {
+							// MySQL returns first ID, so add offset
+							id = lastID + int64(i)
+						} else {
+							// SQLite returns last ID, so subtract to get first then add offset
+							id = lastID - int64(v.Len()) + 1 + int64(i)
+						}
+						setModelPrimaryKey(elem.Addr().Interface(), id)
 					}
 				}
 			} else {
