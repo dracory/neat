@@ -1098,3 +1098,168 @@ func countOccurrences(s, substr string) int {
 	}
 	return count
 }
+
+func TestJsonPathSyntax_MySQL(t *testing.T) {
+	mysqlDriver := driver.NewMySQL()
+
+	t.Run("WhereJsonContains with path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, mysqlDriver, "json_data", nil, nil)
+		q.WhereJsonContains("data->name", "json1")
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: JSON_CONTAINS(data, ?, '$.name')
+		if !contains(sql, "JSON_CONTAINS(data, ?, '$.name')") {
+			t.Errorf("Expected JSON_CONTAINS with quoted path, got: %s", sql)
+		}
+
+		if len(args) != 1 || args[0] != "json1" {
+			t.Errorf("Expected args [json1], got: %v", args)
+		}
+	})
+
+	t.Run("WhereJsonContainsKey with nested path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, mysqlDriver, "json_data", nil, nil)
+		q.WhereJsonContainsKey("data->meta->active")
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: JSON_CONTAINS_PATH(data, 'one', '$.meta.active')
+		if !contains(sql, "JSON_CONTAINS_PATH(data, 'one', '$.meta.active')") {
+			t.Errorf("Expected JSON_CONTAINS_PATH with quoted nested path, got: %s", sql)
+		}
+
+		if len(args) != 0 {
+			t.Errorf("Expected no args, got: %v", args)
+		}
+	})
+
+	t.Run("WhereJsonLength with path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, mysqlDriver, "json_data", nil, nil)
+		q.WhereJsonLength("data->tags", "=", 2)
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: JSON_LENGTH(data, '$.tags') = ?
+		if !contains(sql, "JSON_LENGTH(data, '$.tags') = ?") {
+			t.Errorf("Expected JSON_LENGTH with quoted path, got: %s", sql)
+		}
+
+		if len(args) != 1 || args[0] != 2 {
+			t.Errorf("Expected args [2], got: %v", args)
+		}
+	})
+
+	t.Run("WhereJsonContains without path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, mysqlDriver, "json_data", nil, nil)
+		q.WhereJsonContains("data", "value")
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: JSON_CONTAINS(data, ?) - no path parameter
+		if !contains(sql, "JSON_CONTAINS(data, ?)") {
+			t.Errorf("Expected JSON_CONTAINS without path, got: %s", sql)
+		}
+
+		if len(args) != 1 || args[0] != "value" {
+			t.Errorf("Expected args [value], got: %v", args)
+		}
+	})
+}
+
+func TestJsonPathSyntax_SQLite(t *testing.T) {
+	sqliteDriver := driver.NewSQLite()
+
+	t.Run("WhereJsonContains with path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, sqliteDriver, "json_data", nil, nil)
+		q.WhereJsonContains("data->name", "json1")
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: json_extract(data, '$.name') = ?
+		if !contains(sql, "json_extract(data, '$.name') = ?") {
+			t.Errorf("Expected json_extract with path, got: %s", sql)
+		}
+
+		if len(args) != 1 || args[0] != "json1" {
+			t.Errorf("Expected args [json1], got: %v", args)
+		}
+	})
+
+	t.Run("WhereJsonContainsKey with nested path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, sqliteDriver, "json_data", nil, nil)
+		q.WhereJsonContainsKey("data->meta->active")
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: json_type(data, '$.meta.active') IS NOT NULL
+		if !contains(sql, "json_type(data, '$.meta.active') IS NOT NULL") {
+			t.Errorf("Expected json_type with nested path, got: %s", sql)
+		}
+
+		if len(args) != 0 {
+			t.Errorf("Expected no args, got: %v", args)
+		}
+	})
+
+	t.Run("WhereJsonLength with path", func(t *testing.T) {
+		q := NewQuery(context.TODO(), nil, sqliteDriver, "json_data", nil, nil)
+		q.WhereJsonLength("data->tags", "=", 2)
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildSelect()
+
+		// Should generate: json_array_length(data, '$.tags') = ?
+		if !contains(sql, "json_array_length(data, '$.tags') = ?") {
+			t.Errorf("Expected json_array_length with path, got: %s", sql)
+		}
+
+		if len(args) != 1 || args[0] != 2 {
+			t.Errorf("Expected args [2], got: %v", args)
+		}
+	})
+}
+
+func TestJsonUpdatePathSyntax(t *testing.T) {
+	t.Run("MySQL JSON_SET with path", func(t *testing.T) {
+		mysqlDriver := driver.NewMySQL()
+		q := NewQuery(context.TODO(), nil, mysqlDriver, "json_data", nil, nil)
+		q.Where("id = ?", 1)
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildUpdate("data->name", "updated_name")
+
+		// Should generate: SET `data` = JSON_SET(`data`, '$.name', ?)
+		if !contains(sql, "JSON_SET(`data`, '$.name', ?)") {
+			t.Errorf("Expected JSON_SET with quoted path, got: %s", sql)
+		}
+
+		if len(args) != 2 {
+			t.Errorf("Expected 2 args, got: %v", args)
+		}
+	})
+
+	t.Run("SQLite json_set with path", func(t *testing.T) {
+		sqliteDriver := driver.NewSQLite()
+		q := NewQuery(context.TODO(), nil, sqliteDriver, "json_data", nil, nil)
+		q.Where("id = ?", 1)
+
+		builder := NewBuilder(q)
+		sql, args := builder.BuildUpdate("data->name", "updated_name")
+
+		// Should generate: SET "data" = json_set("data", '$.name', ?)
+		if !contains(sql, "json_set") && !contains(sql, "'$.name'") {
+			t.Errorf("Expected json_set with quoted path, got: %s", sql)
+		}
+
+		if len(args) != 2 {
+			t.Errorf("Expected 2 args, got: %v", args)
+		}
+	})
+}

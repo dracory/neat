@@ -4,7 +4,7 @@ tasks:
   test:
     desc: Run all tests
     cmds:
-      - go test ./... -v
+      - go test ./... -v -short
 
   test-short:
     desc: Run short tests only

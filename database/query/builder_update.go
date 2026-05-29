@@ -48,16 +48,27 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 				// Use the expression as-is (for Increment/Decrement)
 				setParts = append(setParts, colStr)
 				setArgs = append(setArgs, values...)
-			} else if strings.Contains(colStr, "->") && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
-				// Handle JSON path updates for SQLite using json_set()
-				// Convert "data->name" to json_set(data, '$.name', ?)
+			} else if strings.Contains(colStr, "->") {
+				// Handle JSON path updates for MySQL and SQLite
 				parts := strings.Split(colStr, "->")
 				if len(parts) >= 2 {
 					jsonColumn := b.quoteIdentifier(parts[0])
 					// Build JSON path: $.name for "data->name", $.meta.active for "data->meta->active"
 					jsonPath := "$." + strings.Join(parts[1:], ".")
-					setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', ?)", jsonColumn, jsonColumn, jsonPath))
-					setArgs = append(setArgs, values[0])
+
+					if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+						// MySQL: JSON_SET(column, '$.path', value)
+						setParts = append(setParts, fmt.Sprintf("%s = JSON_SET(%s, '%s', ?)", jsonColumn, jsonColumn, jsonPath))
+						setArgs = append(setArgs, values[0])
+					} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+						// SQLite: json_set(column, '$.path', value)
+						setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', ?)", jsonColumn, jsonColumn, jsonPath))
+						setArgs = append(setArgs, values[0])
+					} else {
+						// Fallback to normal behavior for other databases
+						setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
+						setArgs = append(setArgs, values[0])
+					}
 				} else {
 					// Fallback to normal behavior
 					setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))

@@ -161,6 +161,17 @@ func (q *Query) WhereJsonContains(column string, value any) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", col, path), args: []any{value}})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: JSON_CONTAINS(column, value, path)
+			// Convert path from ".name" to "$.name" and quote it
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -172,6 +183,16 @@ func (q *Query) OrWhereJsonContains(column string, value any) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') = ?", col, path), args: []any{value}})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: JSON_CONTAINS(column, value, path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -183,6 +204,16 @@ func (q *Query) WhereJsonDoesntContain(column string, value any) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", col, path), args: []any{value}})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: NOT JSON_CONTAINS(column, value, path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -194,6 +225,16 @@ func (q *Query) OrWhereJsonDoesntContain(column string, value any) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '$%s') != ?", col, path), args: []any{value}})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: NOT JSON_CONTAINS(column, value, path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, jsonPath), args: []any{value}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{value}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -205,6 +246,16 @@ func (q *Query) WhereJsonContainsKey(column string) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", col, path), args: nil})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: JSON_CONTAINS_PATH(column, 'one', path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", col, jsonPath), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -216,6 +267,16 @@ func (q *Query) OrWhereJsonContainsKey(column string) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NOT NULL", col, path), args: nil})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: JSON_CONTAINS_PATH(column, 'one', path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", col, jsonPath), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -227,6 +288,16 @@ func (q *Query) WhereJsonDoesntContainKey(column string) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", col, path), args: nil})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: NOT JSON_CONTAINS_PATH(column, 'one', path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", col, jsonPath), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -238,6 +309,16 @@ func (q *Query) OrWhereJsonDoesntContainKey(column string) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '$%s') IS NULL", col, path), args: nil})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: NOT JSON_CONTAINS_PATH(column, 'one', path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", col, jsonPath), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -249,6 +330,16 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) orm.Q
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '$%s') %s ?", col, path, operator), args: []any{value}})
+	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
+		col, path := q.splitJsonColumn(column)
+		if path != "" {
+			// MySQL: JSON_LENGTH(column, path)
+			jsonPath := "$" + path
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s, '%s') %s ?", col, jsonPath, operator), args: []any{value}})
+		} else {
+			// No path specified, get length of entire document
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", col, operator), args: []any{value}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, operator), args: []any{value}})
 	}
