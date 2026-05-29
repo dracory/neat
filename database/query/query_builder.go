@@ -96,7 +96,46 @@ func containsOperator(s string) bool {
 		return true
 	}
 
+	// Check for operators without spaces (e.g., "name=?", "age>5")
+	// Must be preceded/followed by non-operator character or ? to avoid false positives
+	// Pattern: operator must be between word boundaries or next to ?
+	noSpaceOps := []string{"=", "!=", "<>", ">", "<", ">=", "<="}
+	for _, op := range noSpaceOps {
+		// Check if operator exists in string
+		idx := strings.Index(upper, op)
+		if idx == -1 {
+			continue
+		}
+
+		// Check character before operator (if any)
+		before := ""
+		if idx > 0 {
+			before = string(upper[idx-1])
+		}
+
+		// Check character after operator (if any)
+		after := ""
+		if idx+len(op) < len(upper) {
+			after = string(upper[idx+len(op)])
+		}
+
+		// Valid if:
+		// - Before is empty or alphanumeric/underscore (column name)
+		// - After is empty or ? or space or alphanumeric/underscore
+		beforeValid := before == "" || isWordChar(before)
+		afterValid := after == "" || after == "?" || after == " " || isWordChar(after)
+
+		if beforeValid && afterValid {
+			return true
+		}
+	}
+
 	return false
+}
+
+// isWordChar checks if a character is alphanumeric or underscore
+func isWordChar(c string) bool {
+	return (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
 }
 
 // OrWhere adds an or where clause to the query.

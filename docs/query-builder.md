@@ -23,15 +23,49 @@ err := db.Query().Find(&user, 1)
 ### Where Clauses
 
 ```go
-// Simple where
+// Laravel-style where (implicit = operator)
 db.Query().Where("name", "John")
 
 // Multiple conditions
 db.Query().Where("name", "John").Where("age", 30)
 
-// Where with operator
-db.Query().Where("age", ">", 18)
+// Explicit operator with spaces
+db.Query().Where("age > ?", 18)
+
+// Explicit operator without spaces
+db.Query().Where("age>?", 18)
+
+// OrWhere (also supports Laravel-style)
+db.Query().Where("name", "John").OrWhere("name", "Jane")
+
+// Complex conditions
+db.Query().Where("name LIKE ?", "John%")
+db.Query().Where("age BETWEEN ? AND ?", 18, 65)
+db.Query().Where("id IN (?)", []any{1, 2, 3})
 ```
+
+**Where Syntax Options:**
+
+The query builder supports multiple Where syntax styles:
+
+1. **Laravel-style** (implicit `=` operator):
+   - `Where("column", "value")` → `column = ?`
+   - `OrWhere("column", "value")` → `column = ?`
+
+2. **Explicit operator with spaces**:
+   - `Where("column = ?", "value")`
+   - `Where("age > ?", 18)`
+   - `Where("name LIKE ?", "pattern")`
+
+3. **Explicit operator without spaces**:
+   - `Where("column=?", "value")`
+   - `Where("age>?", 18)`
+   - `Where("name LIKE ?", "pattern")`
+
+The Laravel-style syntax is automatically applied when:
+- Exactly one argument is provided
+- The query string does not contain an SQL operator
+- The query string does not contain operator-like keywords (LIKE, IN, BETWEEN, etc.)
 
 ### Ordering
 
