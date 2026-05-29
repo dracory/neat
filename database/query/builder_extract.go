@@ -70,9 +70,11 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 		}
 		for _, key := range sortedKeys {
 			value := v.MapIndex(key).Interface()
-			// Skip zero time.Time values to allow database DEFAULT values
-			if t, ok := value.(time.Time); ok && t.IsZero() {
-				continue
+			// Skip zero time.Time values for MySQL to allow database DEFAULT CURRENT_TIMESTAMP
+			if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+				if t, ok := value.(time.Time); ok && t.IsZero() {
+					continue
+				}
 			}
 			columns = append(columns, key.String())
 			values = append(values, value)
@@ -155,9 +157,18 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 
 		// Skip zero values except for boolean and deleted_at (soft delete)
 		// For deleted_at (nil pointer), we want to include it as NULL in INSERT
-		// Skip zero time.Time values to allow database DEFAULT values
 		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && !(columnName == "deleted_at" && fieldValue.Kind() == reflect.Ptr) {
-			continue
+			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
+			// For other dialects, include zero time.Time values
+			if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+				if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+					continue
+				}
+			}
+			// Skip other zero values (int, string, etc.)
+			if fieldValue.Type() != reflect.TypeOf(time.Time{}) {
+				continue
+			}
 		}
 
 		columns = append(columns, columnName)
