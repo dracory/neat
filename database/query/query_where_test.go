@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/orm"
@@ -95,6 +96,88 @@ func TestOrWhereNull(t *testing.T) {
 
 	if result == nil {
 		t.Error("Expected non-nil Query from OrWhereNull")
+	}
+}
+
+func TestWhereAnyWithEmptyColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.WhereAny([]string{}, "=", "test")
+
+	// Should return the same query without adding a where clause
+	if result == nil {
+		t.Error("Expected non-nil Query from WhereAny with empty columns")
+	}
+	if len(result.(*Query).wheres) != 0 {
+		t.Error("Expected no where clauses to be added for empty columns")
+	}
+}
+
+func TestWhereAllWithEmptyColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.WhereAll([]string{}, "=", "test")
+
+	// Should return the same query without adding a where clause
+	if result == nil {
+		t.Error("Expected non-nil Query from WhereAll with empty columns")
+	}
+	if len(result.(*Query).wheres) != 0 {
+		t.Error("Expected no where clauses to be added for empty columns")
+	}
+}
+
+func TestWhereNoneWithEmptyColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.WhereNone([]string{}, "=", "test")
+
+	// Should return the same query without adding a where clause
+	if result == nil {
+		t.Error("Expected non-nil Query from WhereNone with empty columns")
+	}
+	if len(result.(*Query).wheres) != 0 {
+		t.Error("Expected no where clauses to be added for empty columns")
+	}
+}
+
+func TestWhereNotWithClosure(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	result := q.WhereNot(func(q orm.Query) orm.Query {
+		return q.Where("name = ?", "test")
+	})
+
+	if result == nil {
+		t.Error("Expected non-nil Query from WhereNot with closure")
+	}
+
+	// Verify the where clause was wrapped in NOT
+	qResult := result.(*Query)
+	if len(qResult.wheres) != 1 {
+		t.Errorf("Expected 1 where clause, got %d", len(qResult.wheres))
+	}
+	if !strings.Contains(qResult.wheres[0].query, "NOT") {
+		t.Error("Expected where clause to contain NOT")
+	}
+}
+
+func TestOrWhereNotWithClosure(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	result := q.OrWhereNot(func(q orm.Query) orm.Query {
+		return q.Where("name = ?", "test")
+	})
+
+	if result == nil {
+		t.Error("Expected non-nil Query from OrWhereNot with closure")
+	}
+
+	// Verify the where clause was wrapped in NOT and set to OR
+	qResult := result.(*Query)
+	if len(qResult.wheres) != 1 {
+		t.Errorf("Expected 1 where clause, got %d", len(qResult.wheres))
+	}
+	if !strings.Contains(qResult.wheres[0].query, "NOT") {
+		t.Error("Expected where clause to contain NOT")
+	}
+	if qResult.wheres[0]._type != "or" {
+		t.Errorf("Expected where clause type to be 'or', got '%s'", qResult.wheres[0]._type)
 	}
 }
 
