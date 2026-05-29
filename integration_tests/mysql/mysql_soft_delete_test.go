@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -108,6 +109,7 @@ func TestMySQLIntegrationWithTrashed(t *testing.T) {
 
 	if len(activeUsers) != 1 {
 		t.Errorf("Expected 1 active user, got %d", len(activeUsers))
+		return
 	}
 
 	if activeUsers[0].Name != "with_trashed_user2" {
