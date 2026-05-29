@@ -97,18 +97,47 @@ func (q *Query) WhereExists(callback func(orm.Query) orm.Query) orm.Query {
 
 // WhereNot adds a where not clause to the query.
 func (q *Query) WhereNot(query any, args ...any) orm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%v)", query), args: args})
+	// Handle closure callback - wrap conditions in NOT
+	if fn, ok := query.(func(orm.Query) orm.Query); ok {
+		subQ := q.Clone().(*Query)
+		subQ = fn(subQ).(*Query)
+		// Wrap each where clause in NOT and add to main query
+		for i := range subQ.wheres {
+			wc := &subQ.wheres[i]
+			wc.query = fmt.Sprintf("NOT (%s)", wc.query)
+		}
+		q.wheres = append(q.wheres, subQ.wheres...)
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%v)", query), args: args})
+	}
 	return q
 }
 
 // OrWhereNot adds an or where not clause to the query.
 func (q *Query) OrWhereNot(query any, args ...any) orm.Query {
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%v)", query), args: args})
+	// Handle closure callback - wrap conditions in NOT
+	if fn, ok := query.(func(orm.Query) orm.Query); ok {
+		subQ := q.Clone().(*Query)
+		subQ = fn(subQ).(*Query)
+		// Wrap each where clause in NOT and add to main query as OR
+		for i := range subQ.wheres {
+			wc := &subQ.wheres[i]
+			wc.query = fmt.Sprintf("NOT (%s)", wc.query)
+			wc._type = "or"
+		}
+		q.wheres = append(q.wheres, subQ.wheres...)
+	} else {
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%v)", query), args: args})
+	}
 	return q
 }
 
 // WhereAny adds a where any clause to the query.
 func (q *Query) WhereAny(columns []string, operator string, value any) orm.Query {
+	if len(columns) == 0 {
+		// Return without adding a clause for empty columns
+		return q
+	}
 	var parts []string
 	var args []any
 	for _, col := range columns {
@@ -121,6 +150,10 @@ func (q *Query) WhereAny(columns []string, operator string, value any) orm.Query
 
 // WhereAll adds a where all clause to the query.
 func (q *Query) WhereAll(columns []string, operator string, value any) orm.Query {
+	if len(columns) == 0 {
+		// Return without adding a clause for empty columns
+		return q
+	}
 	var parts []string
 	var args []any
 	for _, col := range columns {
@@ -133,6 +166,10 @@ func (q *Query) WhereAll(columns []string, operator string, value any) orm.Query
 
 // WhereNone adds a where none clause to the query.
 func (q *Query) WhereNone(columns []string, operator string, value any) orm.Query {
+	if len(columns) == 0 {
+		// Return without adding a clause for empty columns
+		return q
+	}
 	var parts []string
 	var args []any
 	for _, col := range columns {
