@@ -1114,8 +1114,9 @@ func TestJsonPathSyntax_MySQL(t *testing.T) {
 			t.Errorf("Expected JSON_CONTAINS with quoted path, got: %s", sql)
 		}
 
-		if len(args) != 1 || args[0] != "json1" {
-			t.Errorf("Expected args [json1], got: %v", args)
+		// MySQL JSON_CONTAINS requires valid JSON, so strings are wrapped in quotes
+		if len(args) != 1 || args[0] != "\"json1\"" {
+			t.Errorf("Expected args [\"json1\"], got: %v", args)
 		}
 	})
 
@@ -1165,8 +1166,9 @@ func TestJsonPathSyntax_MySQL(t *testing.T) {
 			t.Errorf("Expected JSON_CONTAINS without path, got: %s", sql)
 		}
 
-		if len(args) != 1 || args[0] != "value" {
-			t.Errorf("Expected args [value], got: %v", args)
+		// MySQL JSON_CONTAINS requires valid JSON, so strings are wrapped in quotes
+		if len(args) != 1 || args[0] != "\"value\"" {
+			t.Errorf("Expected args [\"value\"], got: %v", args)
 		}
 	})
 }

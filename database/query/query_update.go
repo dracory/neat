@@ -161,6 +161,20 @@ func mergeAttributes(values any, attributes any) any {
 		vAttr = vAttr.Elem()
 	}
 
+	// If both are maps, merge them with values taking precedence
+	if vVal.Kind() == reflect.Map && vAttr.Kind() == reflect.Map {
+		merged := make(map[string]any)
+		// Copy all attributes first
+		for _, key := range vAttr.MapKeys() {
+			merged[key.String()] = vAttr.MapIndex(key).Interface()
+		}
+		// Then overwrite with values
+		for _, key := range vVal.MapKeys() {
+			merged[key.String()] = vVal.MapIndex(key).Interface()
+		}
+		return merged
+	}
+
 	// If values is a struct and attributes is a struct, create a new struct with merged fields
 	if vVal.Kind() == reflect.Struct && vAttr.Kind() == reflect.Struct {
 		// Create a new instance of the values type
