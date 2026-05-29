@@ -55,7 +55,8 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 func (q *Query) Where(query any, args ...any) orm.Query {
 	queryStr := fmt.Sprintf("%v", query)
 	// Laravel-style: Where("column", "value") -> Where("column = ?", "value")
-	if len(args) == 1 && !containsOperator(queryStr) {
+	// Only transform if exactly 1 arg and no operator is present
+	if args != nil && len(args) == 1 && !containsOperator(queryStr) {
 		queryStr = fmt.Sprintf("%s = ?", queryStr)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: queryStr, args: args})
@@ -63,13 +64,38 @@ func (q *Query) Where(query any, args ...any) orm.Query {
 }
 
 // containsOperator checks if a string contains SQL comparison operators
+// Uses string matching to avoid false positives from column names containing operator-like strings
 func containsOperator(s string) bool {
-	operators := []string{"=", "!=", "<>", ">", "<", ">=", "<=", " LIKE ", " NOT LIKE ", " IN ", " NOT IN ", " BETWEEN ", " NOT BETWEEN "}
+	upper := strings.ToUpper(s)
+
+	// Check for comparison operators with optional whitespace
+	// These patterns ensure operators are properly spaced to avoid matching column names
+	operators := []string{
+		" = ", " != ", " <> ", " > ", " < ", " >= ", " <= ",
+		" LIKE ", " NOT LIKE ", " IN ", " NOT IN ", " BETWEEN ", " NOT BETWEEN ",
+	}
+
 	for _, op := range operators {
-		if strings.Contains(strings.ToUpper(s), op) {
+		if strings.Contains(upper, op) {
 			return true
 		}
 	}
+
+	// Also check for operators at start or end (e.g., "= value" or "value =")
+	if strings.HasPrefix(upper, "= ") || strings.HasPrefix(upper, "!= ") ||
+		strings.HasPrefix(upper, "<> ") || strings.HasPrefix(upper, "> ") ||
+		strings.HasPrefix(upper, "< ") || strings.HasPrefix(upper, ">= ") ||
+		strings.HasPrefix(upper, "<= ") {
+		return true
+	}
+
+	if strings.HasSuffix(upper, " =") || strings.HasSuffix(upper, " !=") ||
+		strings.HasSuffix(upper, " <>") || strings.HasSuffix(upper, " >") ||
+		strings.HasSuffix(upper, " <") || strings.HasSuffix(upper, " >=") ||
+		strings.HasSuffix(upper, " <=") {
+		return true
+	}
+
 	return false
 }
 
@@ -78,7 +104,8 @@ func containsOperator(s string) bool {
 func (q *Query) OrWhere(query any, args ...any) orm.Query {
 	queryStr := fmt.Sprintf("%v", query)
 	// Laravel-style: OrWhere("column", "value") -> OrWhere("column = ?", "value")
-	if len(args) == 1 && !containsOperator(queryStr) {
+	// Only transform if exactly 1 arg and no operator is present
+	if args != nil && len(args) == 1 && !containsOperator(queryStr) {
 		queryStr = fmt.Sprintf("%s = ?", queryStr)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "or", query: queryStr, args: args})

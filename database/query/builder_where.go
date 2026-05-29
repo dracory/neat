@@ -64,7 +64,9 @@ func (b *Builder) buildWheres() (string, []any) {
 		}
 
 		// Replace remaining placeholders with dialect-specific ones
-		if strings.Contains(clauseQuery, "?") {
+		// Count placeholders first to avoid infinite loop if placeholderFunc returns "?"
+		placeholderCount := strings.Count(clauseQuery, "?")
+		for i := 0; i < placeholderCount; i++ {
 			clauseQuery = strings.Replace(clauseQuery, "?", placeholderFunc(placeholderIndex), 1)
 			placeholderIndex++
 		}

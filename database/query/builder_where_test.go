@@ -127,3 +127,121 @@ func TestMixedWhereStyles(t *testing.T) {
 		t.Errorf("Expected 2 args, got %d", len(args))
 	}
 }
+
+func TestContainsOperator(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"name = ?", true},
+		{"age > ?", true},
+		{"age < ?", true},
+		{"age >= ?", true},
+		{"age <= ?", true},
+		{"age != ?", true},
+		{"age <> ?", true},
+		{"name LIKE ?", true},
+		{"name NOT LIKE ?", true},
+		{"id IN (?)", true},
+		{"id NOT IN (?)", true},
+		{"age BETWEEN ? AND ?", true},
+		{"age NOT BETWEEN ? AND ?", true},
+		{"name", false},
+		{"internal", false},
+		{"between", false},
+		{"like", false},
+		{"column_name", false},
+		{"= value", true},
+		{"value =", true},
+		{"> value", true},
+		{"value >", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := containsOperator(tt.input)
+			if result != tt.expected {
+				t.Errorf("containsOperator(%q) = %v, expected %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestWhereWithNoArgs(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("name IS NULL")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	if !strings.Contains(where, "name IS NULL") {
+		t.Errorf("Expected 'name IS NULL' in WHERE clause, got %s", where)
+	}
+	if len(args) != 0 {
+		t.Errorf("Expected 0 args, got %d", len(args))
+	}
+}
+
+func TestWhereWithMultipleArgs(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("BETWEEN", 1, 10)
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	// Should not transform since it has 2 args
+	if !strings.Contains(where, "BETWEEN") {
+		t.Errorf("Expected 'BETWEEN' in WHERE clause, got %s", where)
+	}
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d", len(args))
+	}
+}
+
+func TestWhereWithColumnContainingOperatorLikeString(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("internal", "value")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	// Should transform to "internal = ?" since "internal" doesn't contain operator
+	if !strings.Contains(where, "internal = ?") {
+		t.Errorf("Expected 'internal = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 || args[0] != "value" {
+		t.Errorf("Expected args [value], got %v", args)
+	}
+}
+
+func TestWhereWithMixedCaseOperator(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("name like ?", "test")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	// Should not transform since it contains operator
+	if !strings.Contains(where, "like ?") {
+		t.Errorf("Expected 'like ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 || args[0] != "test" {
+		t.Errorf("Expected args [test], got %v", args)
+	}
+}
+
+func TestWhereWithNilArgs(t *testing.T) {
+	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q.Where("name")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	// Should not transform since args is nil/empty
+	if !strings.Contains(where, "name") {
+		t.Errorf("Expected 'name' in WHERE clause, got %s", where)
+	}
+	if len(args) != 0 {
+		t.Errorf("Expected 0 args, got %d", len(args))
+	}
+}
