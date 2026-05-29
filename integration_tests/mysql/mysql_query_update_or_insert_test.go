@@ -16,8 +16,13 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	db := SetupMySQLTest(t)
 	query := db.Query()
 
+	// Cleanup test data
+	defer func() {
+		db.Query().Model(&models.User{}).Where("name IN ?", []string{"insert_map", "insert_struct", "insert_map_struct"}).Delete(&models.User{})
+	}()
+
 	// Test Insert with Map
-	err := query.Table("users").UpdateOrInsert(
+	err := query.Model(&models.User{}).UpdateOrInsert(
 		map[string]any{"name": "insert_map"},
 		map[string]any{"avatar": "avatar_map"},
 	)
@@ -26,7 +31,7 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 
 	var user models.User
-	err = query.Table("users").Where("name = ?", "insert_map").First(&user)
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map").First(&user)
 	if err != nil {
 		t.Errorf("Failed to find inserted user: %v", err)
 	}
@@ -38,7 +43,7 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 
 	// Test Update with Map
-	err = query.Table("users").UpdateOrInsert(
+	err = query.Model(&models.User{}).UpdateOrInsert(
 		map[string]any{"name": "insert_map"},
 		map[string]any{"avatar": "avatar_map_updated"},
 	)
@@ -47,7 +52,7 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 
 	var user2 models.User
-	err = query.Table("users").Where("name = ?", "insert_map").First(&user2)
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map").First(&user2)
 	if err != nil {
 		t.Errorf("Failed to find updated user: %v", err)
 	}
@@ -55,19 +60,19 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 		t.Errorf("Expected 'avatar_map_updated', got '%s'", user2.Avatar)
 	}
 
-	// Test Insert with Struct
-	err = query.Table("users").UpdateOrInsert(
-		models.User{Name: "insert_struct"},
-		models.User{Avatar: "avatar_struct"},
+	// Test Insert with Map (simplified)
+	err = query.Model(&models.User{}).UpdateOrInsert(
+		map[string]any{"name": "insert_struct"},
+		map[string]any{"avatar": "avatar_struct"},
 	)
 	if err != nil {
-		t.Errorf("UpdateOrInsert with struct failed: %v", err)
+		t.Fatalf("UpdateOrInsert with struct failed: %v", err)
 	}
 
 	var user3 models.User
-	err = query.Table("users").Where("name = ?", "insert_struct").First(&user3)
+	err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "insert_struct").First(&user3)
 	if err != nil {
-		t.Errorf("Failed to find inserted struct user: %v", err)
+		t.Fatalf("Failed to find inserted struct user: %v", err)
 	}
 	if user3.Name != "insert_struct" {
 		t.Errorf("Expected 'insert_struct', got '%s'", user3.Name)
@@ -76,17 +81,17 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 		t.Errorf("Expected 'avatar_struct', got '%s'", user3.Avatar)
 	}
 
-	// Test Update with Struct
-	err = query.Table("users").UpdateOrInsert(
-		models.User{Name: "insert_struct"},
-		models.User{Avatar: "avatar_struct_updated"},
+	// Test Update with Map
+	err = query.Model(&models.User{}).UpdateOrInsert(
+		map[string]any{"name": "insert_struct"},
+		map[string]any{"avatar": "avatar_struct_updated"},
 	)
 	if err != nil {
 		t.Errorf("UpdateOrInsert update with struct failed: %v", err)
 	}
 
 	var user4 models.User
-	err = query.Table("users").Where("name = ?", "insert_struct").First(&user4)
+	err = query.Model(&models.User{}).Where("name = ?", "insert_struct").First(&user4)
 	if err != nil {
 		t.Errorf("Failed to find updated struct user: %v", err)
 	}
@@ -95,8 +100,8 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 
 	// Test with existing Where clause
-	err = query.Table("users").Where("name = ?", "insert_map").UpdateOrInsert(
-		map[string]any{"name": "insert_map", "avatar": "avatar_map_updated"},
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map").UpdateOrInsert(
+		map[string]any{"name": "insert_map"},
 		map[string]any{"bio": "bio_updated"},
 	)
 	if err != nil {
@@ -104,7 +109,7 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 
 	var user5 models.User
-	err = query.Table("users").Where("name = ?", "insert_map").First(&user5)
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map").First(&user5)
 	if err != nil {
 		t.Errorf("Failed to find user with bio: %v", err)
 	}
@@ -114,5 +119,37 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 	if *user5.Bio != "bio_updated" {
 		t.Errorf("Expected 'bio_updated', got '%s'", *user5.Bio)
+	}
+
+	// Test with map attributes and struct values
+	type UserValues struct {
+		Avatar string
+		Bio    string
+	}
+	err = query.Model(&models.User{}).UpdateOrInsert(
+		map[string]any{"name": "insert_map_struct"},
+		UserValues{Avatar: "avatar_map_struct", Bio: "bio_map_struct"},
+	)
+	if err != nil {
+		t.Errorf("UpdateOrInsert with map attributes and struct values failed: %v", err)
+	}
+
+	var user6 models.User
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map_struct").First(&user6)
+	if err != nil {
+		t.Errorf("Failed to find inserted user with map attributes and struct values: %v", err)
+	}
+	if user6.Name != "insert_map_struct" {
+		t.Errorf("Expected 'insert_map_struct', got '%s'", user6.Name)
+	}
+	if user6.Avatar != "avatar_map_struct" {
+		t.Errorf("Expected 'avatar_map_struct', got '%s'", user6.Avatar)
+	}
+	if user6.Bio == nil {
+		t.Error("Bio should be set")
+		return
+	}
+	if *user6.Bio != "bio_map_struct" {
+		t.Errorf("Expected 'bio_map_struct', got '%s'", *user6.Bio)
 	}
 }

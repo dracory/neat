@@ -527,6 +527,20 @@ func (q *Query) UpdateOrInsert(attributes any, values any) error {
 				merged[k] = v
 			}
 			return q.Create(merged)
+		} else {
+			// Attributes is map, values is struct - merge them
+			merged := make(map[string]any)
+			for k, v := range attrsMap {
+				merged[k] = v
+			}
+			// Extract struct fields and add to merged map
+			cols, vals, err := NewBuilder(q).extractSingleColumnsAndValues(values)
+			if err == nil {
+				for i, col := range cols {
+					merged[col] = vals[i]
+				}
+			}
+			return q.Create(merged)
 		}
 	}
 

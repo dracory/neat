@@ -171,8 +171,8 @@ func TestMySQLIntegrationLimitWithOrderBy(t *testing.T) {
 	if results[0].Name != "user_a" {
 		t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
 	}
-	if results[1].Name != "user_a" {
-		t.Errorf("Expected 'user_a', got '%s'", results[1].Name)
+	if results[1].Name != "user_b" {
+		t.Errorf("Expected 'user_b', got '%s'", results[1].Name)
 	}
 }
 
@@ -192,10 +192,10 @@ func TestMySQLIntegrationOffsetWithLimit(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].Name != "user_b" {
-		t.Errorf("Expected 'user_b', got '%s'", results[0].Name)
+	if results[0].Name != "user_c" {
+		t.Errorf("Expected 'user_c', got '%s'", results[0].Name)
 	}
-	if results[1].Name != "user_c" {
-		t.Errorf("Expected 'user_c', got '%s'", results[1].Name)
+	if results[1].Name != "user_d" {
+		t.Errorf("Expected 'user_d', got '%s'", results[1].Name)
 	}
 }

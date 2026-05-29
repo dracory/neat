@@ -251,3 +251,38 @@ func TestUpdateOrInsertNilAttributes(t *testing.T) {
 		t.Fatalf("Failed to find record: %v", err)
 	}
 }
+
+// TestUpdateOrInsertMapAttributesStructValues tests UpdateOrInsert with map attributes and struct values (insert scenario).
+func TestUpdateOrInsertMapAttributesStructValues(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE uoi_users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, avatar TEXT, bio TEXT)")
+	w.SetTable("uoi_users")
+
+	type UserValues struct {
+		Avatar string
+		Bio    string
+	}
+
+	err := w.Q.UpdateOrInsert(
+		map[string]any{"name": "ivan"},
+		UserValues{Avatar: "avatar1", Bio: "bio1"},
+	)
+	if err != nil {
+		t.Fatalf("UpdateOrInsert with map attributes and struct values failed: %v", err)
+	}
+
+	var result map[string]any
+	err = w.Q.Where("name = ?", "ivan").First(&result)
+	if err != nil {
+		t.Fatalf("Failed to find inserted record: %v", err)
+	}
+	if result["name"] != "ivan" {
+		t.Errorf("Expected name 'ivan', got '%v'", result["name"])
+	}
+	if result["avatar"] != "avatar1" {
+		t.Errorf("Expected avatar 'avatar1', got '%v'", result["avatar"])
+	}
+	if result["bio"] != "bio1" {
+		t.Errorf("Expected bio 'bio1', got '%v'", result["bio"])
+	}
+}

@@ -407,7 +407,7 @@ func (r *Mysql) GetAttributeCommands() []string {
 
 func (r *Mysql) ModifyAfter(_ schema.Blueprint, column schema.ColumnDefinition) string {
 	if after := column.GetAfter(); after != "" {
-		return " after " + r.wrap.Quote(after)
+		return " after " + after
 	}
 
 	return ""

@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -16,6 +17,11 @@ func TestMySQLSchemaColumnChange(t *testing.T) {
 	db := SetupMySQLTest(t)
 
 	tableName := "test_column_change"
+
+	// Clean up table if it exists from previous test run
+	if db.Schema().HasTable(tableName) {
+		db.Schema().Drop(tableName)
+	}
 
 	// Create a table with initial columns
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
@@ -91,6 +97,11 @@ func TestMySQLSchemaColumnChangeType(t *testing.T) {
 
 	tableName := "test_change_type"
 
+	// Clean up table if it exists from previous test run
+	if db.Schema().HasTable(tableName) {
+		db.Schema().Drop(tableName)
+	}
+
 	// Create table
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -126,6 +137,11 @@ func TestMySQLSchemaColumnChangeNullable(t *testing.T) {
 	db := SetupMySQLTest(t)
 
 	tableName := "test_change_nullable"
+
+	// Clean up table if it exists from previous test run
+	if db.Schema().HasTable(tableName) {
+		db.Schema().Drop(tableName)
+	}
 
 	// Create table
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
