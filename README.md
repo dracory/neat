@@ -247,6 +247,42 @@ For more examples, see the [examples](./examples) directory.
 
 This project is licensed under the GNU Affero General Public License v3.0 - see the LICENSE file for details.
 
+## Testing
+
+### Running Integration Tests with Docker Compose
+
+The project includes a Docker Compose configuration for running integration tests locally with MySQL and PostgreSQL:
+
+```bash
+# Start the database containers
+docker-compose up -d
+
+# Run MySQL integration tests
+go test -v -tags=integration ./integration_tests/mysql/...
+
+# Run PostgreSQL integration tests
+go test -v -tags=integration ./integration_tests/postgres/...
+
+# Stop the containers when done
+docker-compose down
+```
+
+The Docker Compose setup includes:
+- **MySQL 8.0** on port `3306` (user: `root`, password: `root`, database: `test`)
+- **PostgreSQL 15** on port `55432` (user: `test`, password: `test`, database: `test`)
+
+### Running Unit Tests
+
+```bash
+go test ./...
+```
+
+### Running All Tests
+
+```bash
+go test -v ./...
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
