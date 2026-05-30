@@ -12,12 +12,25 @@
 This document provides a complete, step-by-step plan to bring the neat ORM to production-ready status with zero gaps. All items are prioritized and organized for sequential execution.
 
 **Current Status:**
-- ⚠️ PostgreSQL integration tests: 35 files enabled, 11 files skipped due to unimplemented features
+- ⚠️ PostgreSQL integration tests: 46 files total, many skipped due to unimplemented features
+- ⚠️ MySQL integration tests: Several files skipped (Association, Spatial, etc.)
 - ❌ SQL Server integration tests: Not created
 
 ---
 
-## Phase 1: Integration Test Enablement (MEDIUM PRIORITY)
+## Phase 1: Integration Test Enablement (HIGH PRIORITY)
+
+### 1.1 Enable PostgreSQL Integration Tests
+
+**Status**: ⚠️ 46 files exist, many tests skipped
+**Priority**: HIGH
+
+**Gaps to address**:
+1. **Subquery Parameter Numbering**: PostgreSQL requires numbered parameters ($1, $2, etc.). Currently, subqueries in `Having` and `Select` clauses don't correctly handle parameter numbering when combined with the main query.
+2. **Schema Change Syntax**: PostgreSQL's `ALTER COLUMN` syntax is not fully implemented in the schema builder's `Change()` method.
+3. **Association Tests**: Enable all tests in `postgres_query_association_test.go` once Phase 2.1 is complete.
+
+**Estimated effort**: 3-4 days
 
 ### 1.2 Create SQL Server Integration Tests
 
@@ -40,17 +53,76 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ---
 
+## Phase 2: ORM Feature Completion (HIGH PRIORITY)
 
-## Phase 3: CI/CD Improvements (LOW PRIORITY)
+### 2.1 Complete Association API
 
-### 3.1 Enhance GitHub Actions Workflows
+**Status**: ⚠️ Stubs exist
+**Priority**: HIGH
+
+**Purpose**: Implement full support for managing relationships via the `Association` method.
+
+**Current state**:
+- `Association` method exists but returns errors for `Append`, `Replace`, `Delete`, and `Clear` in most relationship types.
+- Integration tests are skipped across all drivers.
+
+**Steps**:
+1. Implement `Append`, `Replace`, `Delete`, and `Clear` for `HasOne` relationships.
+2. Implement `Append`, `Replace`, `Delete`, and `Clear` for `HasMany` relationships.
+3. Implement `Append`, `Replace`, `Delete`, and `Clear` for `BelongsTo` relationships.
+4. Implement polymorphic association support.
+5. Enable and verify integration tests in `mysql`, `postgres`, and `sqlite`.
+
+**Estimated effort**: 3-4 days
+
+### 2.2 Implement WithCount and WithExists
+
+**Status**: ❌ Stubs only
+**Priority**: MEDIUM
+
+**Purpose**: Allow eager loading of relationship counts and existence.
+
+**Current state**:
+- `WithCount` and `WithExists` methods are stubs in `database/query/query_relations.go`.
+
+**Steps**:
+1. Implement `WithCount` to add subqueries for relationship counts.
+2. Implement `WithExists` to add subqueries for relationship existence.
+3. Add support for constraints in `WithCount` and `WithExists`.
+4. Add unit and integration tests.
+
+**Estimated effort**: 2 days
+
+---
+
+## Phase 3: Advanced Query Support (MEDIUM PRIORITY)
+
+### 3.1 Raw Expressions in Create and Update
+
+**Status**: ❌ Not supported
+**Priority**: MEDIUM
+
+**Purpose**: Support using `Raw()` expressions as values in `Create()` and `Update()` calls.
+
+**Current state**:
+- `Raw()` returns a `*Query` or similar structure that is not correctly handled when passed as a value in maps for `Create` or `Update`.
+- This blocks features like spatial data inserts (e.g., `ST_GeomFromText`).
+
+**Steps**:
+1. Modify `Create` and `Update` logic to detect raw expressions in values.
+2. Ensure raw expressions are not parameterized but injected directly into the SQL.
+3. Update `structScanDests` and related logic to handle these cases.
+
+**Estimated effort**: 2 days
+
+---
+
+## Phase 4: CI/CD & Quality Improvements (LOW PRIORITY)
+
+### 4.1 Enhance GitHub Actions Workflows
 
 **Status**: ⚠️ Basic workflows exist
 **Priority**: LOW
-
-**Current workflows**:
-- `.github/workflows/tests.yml` - Unit tests
-- `.github/workflows/integration-tests.yml` - Integration tests
 
 **Improvements needed**:
 1. Add PostgreSQL service to integration tests
@@ -59,9 +131,6 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 4. Add code coverage reporting
 5. Add linting (golangci-lint)
 6. Add security scanning (gosec)
-7. Add dependency vulnerability scanning
-8. Add build matrix (multiple Go versions)
-9. Add caching for faster builds
 
 **Estimated effort**: 1-2 days
 
@@ -74,46 +143,13 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 **Status**: ❌ Not implemented
 **Priority**: LOW
 
-**Purpose**: Add support for MySQL/PostgreSQL spatial data types (GEOMETRY, POINT, LINESTRING, POLYGON, etc.) to match Laravel's spatial capabilities.
+**Purpose**: Add support for MySQL/PostgreSQL spatial data types.
 
 **Current state**:
 - Test exists: `integration_tests/mysql/mysql_query_spatial_test.go` (skipped)
-- No spatial type definitions in ORM
-- No WKT/WKB format support
-- No spatial function support
-
-**Steps**:
-1. Add spatial type definitions in models (Geometry, Point, LineString, Polygon, etc.)
-2. Implement WKT (Well-Known Text) parsing and serialization
-3. Implement WKB (Well-Known Binary) parsing and serialization
-4. Add spatial column types to schema builder
-5. Add spatial query functions (ST_GeomFromText, ST_AsText, ST_Distance, etc.)
-6. Update Create() method to handle spatial data types
-7. Add spatial query scopes (WhereDistance, etc.)
-8. Write integration tests for spatial operations
+- Dependent on Phase 3.1.
 
 **Estimated effort**: 3-4 days
-
----
-
-## Execution Plan Summary
-
-### Recommended Execution Order
-
-**Week 1: Integration Test Enablement**
-1. Enable PostgreSQL integration tests (Phase 1.1)
-2. Create SQL Server integration tests (Phase 1.2)
-
-**Week 2: Advanced Integration & Code Quality**
-3. InsertGetId PostgreSQL Test (Phase 2.1)
-4. Resolve TODO comments (Phase 3.1)
-
-**Week 3: CI/CD & Polish**
-5. Add code coverage reporting (Phase 3.2)
-6. Enhance GitHub Actions workflows (Phase 4.1)
-
-**Optional (if time permits)**:
-- Additional CI/CD improvements
 
 ---
 
@@ -123,27 +159,28 @@ The project will have **ZERO GAPS** when:
 
 - [ ] All stub implementations are either completed or removed
 - [ ] All disabled integration tests are enabled and passing
-- [ ] All missing unit tests are created and passing
-- [ ] All input validation is implemented
-- [ ] All documentation is accurate and complete
-- [ ] All TODO comments are resolved
-- [ ] README accurately reflects implemented features
-- [ ] CI/CD runs all tests successfully
+- [ ] PostgreSQL subquery parameter numbering is fixed
+- [ ] Schema `Change()` works across all supported databases
+- [ ] `Association` API is fully functional
+- [ ] `WithCount` and `WithExists` are implemented
+- [ ] Raw expressions can be used in `Create`/`Update`
+- [ ] CI/CD runs all tests (MySQL, Postgres, SQLite, SQL Server) successfully
 - [ ] Code coverage is measured and reported
-- [ ] No "not implemented" errors exist in codebase
 
 ---
 
 ## Tracking Progress
 
-Use this checklist to track completion:
-
 ### Phase 1: Integration Tests
-- [ ] 1.1 Enable PostgreSQL tests (35/46 files passing, 11 skipped due to gaps)
-- [ ] 1.2 Create SQL Server tests (~40 files)
+- [ ] 1.1 Enable PostgreSQL tests
+- [ ] 1.2 Create SQL Server tests
 
-### Phase 3: CI/CD
-- [ ] 3.1 Enhance GitHub Actions workflows
+### Phase 2: ORM Features
+- [ ] 2.1 Complete Association API
+- [ ] 2.2 Implement WithCount and WithExists
+
+### Phase 3: Advanced Query Support
+- [ ] 3.1 Raw Expressions in Create/Update
 
 ### Phase 5: Advanced Features
 - [ ] 5.1 Spatial Data Type Support
@@ -152,22 +189,12 @@ Use this checklist to track completion:
 
 ## Estimated Total Effort
 
-- **Phase 1**: 5-7 days
-- **Phase 2**: 0.5 days
-- **Phase 3**: 1.5 days
-- **Phase 4**: 3-4 days
+- **Phase 1**: 6-8 days
+- **Phase 2**: 5-6 days
+- **Phase 3**: 2 days
+- **Phase 4**: 1-2 days
+- **Phase 5**: 3-4 days
 
-**Total**: 10-12.5 days (2-2.5 weeks for one developer)
-
-With 2-3 developers working in parallel: **1-1.5 weeks to zero gaps**
-
----
-
-## Notes
-
-- Integration test enablement may reveal additional bugs requiring fixes
-- Documentation effort can be parallelized with implementation work
-- CI/CD improvements can be done incrementally
-- Code coverage and quality improvements are ongoing
+**Total**: 17-22 days (~4 weeks for one developer)
 
 **Last Updated**: May 30, 2026
