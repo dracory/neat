@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/dracory/neat/contracts/database/orm"
@@ -217,6 +218,37 @@ func (q *Query) splitJsonColumnForMySQL(column string) (string, string) {
 	return parts[0], "$." + path
 }
 
+// splitJsonColumnForPostgreSQL splits a JSON column name into column and path for PostgreSQL.
+// PostgreSQL uses -> for JSON object access and ->> for text extraction.
+func (q *Query) splitJsonColumnForPostgreSQL(column string) (string, string) {
+	if !strings.Contains(column, "->") {
+		return column, ""
+	}
+	parts := strings.SplitN(column, "->", 2)
+	if len(parts) < 2 {
+		return column, ""
+	}
+	// Convert -> to PostgreSQL JSON path syntax
+	// For array indices like tags->0, convert to ->0
+	// For object paths like meta->id, convert to ->'meta'->'id'
+	pathParts := strings.Split(parts[1], "->")
+	var pathBuilder strings.Builder
+	for _, part := range pathParts {
+		// Check if it's a numeric index (array)
+		if _, err := strconv.Atoi(part); err == nil {
+			// It's a number, don't quote it
+			pathBuilder.WriteString("->")
+			pathBuilder.WriteString(part)
+		} else {
+			// It's a string key, quote it
+			pathBuilder.WriteString("->'")
+			pathBuilder.WriteString(part)
+			pathBuilder.WriteString("'")
+		}
+	}
+	return parts[0], pathBuilder.String()
+}
+
 // WhereJsonContains adds a where json contains clause to the query.
 func (q *Query) WhereJsonContains(column string, value any) orm.Query {
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
@@ -236,6 +268,23 @@ func (q *Query) WhereJsonContains(column string, value any) orm.Query {
 		} else {
 			// No path specified, search entire document
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
+		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		// PostgreSQL uses @> operator for JSONB containment
+		// Convert value to JSON format
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
+		if path != "" {
+			// PostgreSQL: column->path @> value (use ->> for text extraction if needed)
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s%s @> ?::jsonb", quotedCol, path), args: []any{jsonValue}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s @> ?::jsonb", quotedCol), args: []any{jsonValue}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
@@ -262,6 +311,23 @@ func (q *Query) OrWhereJsonContains(column string, value any) orm.Query {
 			// No path specified, search entire document
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
 		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		// PostgreSQL uses @> operator for JSONB containment
+		// Convert value to JSON format
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
+		if path != "" {
+			// PostgreSQL: column->path @> value (use ->> for text extraction if needed)
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s%s @> ?::jsonb", quotedCol, path), args: []any{jsonValue}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s @> ?::jsonb", quotedCol), args: []any{jsonValue}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -286,6 +352,23 @@ func (q *Query) WhereJsonDoesntContain(column string, value any) orm.Query {
 		} else {
 			// No path specified, search entire document
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
+		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		// PostgreSQL uses @> operator for JSONB containment
+		// Convert value to JSON format
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
+		if path != "" {
+			// PostgreSQL: NOT (column->path @> value)
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%s%s @> ?::jsonb)", quotedCol, path), args: []any{jsonValue}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%s @> ?::jsonb)", quotedCol), args: []any{jsonValue}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
@@ -312,6 +395,23 @@ func (q *Query) OrWhereJsonDoesntContain(column string, value any) orm.Query {
 			// No path specified, search entire document
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
 		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		// PostgreSQL uses @> operator for JSONB containment
+		// Convert value to JSON format
+		jsonValue := value
+		if strVal, ok := value.(string); ok {
+			jsonValue = fmt.Sprintf(`"%s"`, strVal)
+		}
+		if path != "" {
+			// PostgreSQL: NOT (column->path @> value)
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%s%s @> ?::jsonb)", quotedCol, path), args: []any{jsonValue}})
+		} else {
+			// No path specified, search entire document
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%s @> ?::jsonb)", quotedCol), args: []any{jsonValue}})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
 	}
@@ -332,6 +432,17 @@ func (q *Query) WhereJsonContainsKey(column string) orm.Query {
 		} else {
 			// No path specified, check if column has any JSON data
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			// PostgreSQL: check if path exists using -> operator with IS NOT NULL
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s%s IS NOT NULL", quotedCol, path), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NOT NULL AND %s::text != ''", quotedCol, quotedCol), args: nil})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
@@ -354,6 +465,17 @@ func (q *Query) OrWhereJsonContainsKey(column string) orm.Query {
 			// No path specified, check if column has any JSON data
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
 		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			// PostgreSQL: check if path exists using -> operator with IS NOT NULL
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s%s IS NOT NULL", quotedCol, path), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IS NOT NULL AND %s::text != ''", quotedCol, quotedCol), args: nil})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -374,6 +496,17 @@ func (q *Query) WhereJsonDoesntContainKey(column string) orm.Query {
 		} else {
 			// No path specified, check if column has any JSON data
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			// PostgreSQL: check if path doesn't exist using -> operator with IS NULL
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s%s IS NULL", quotedCol, path), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NULL OR %s::text = ''", quotedCol, quotedCol), args: nil})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
@@ -396,6 +529,17 @@ func (q *Query) OrWhereJsonDoesntContainKey(column string) orm.Query {
 			// No path specified, check if column has any JSON data
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
 		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			// PostgreSQL: check if path doesn't exist using -> operator with IS NULL
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s%s IS NULL", quotedCol, path), args: nil})
+		} else {
+			// No path specified, check if column has any JSON data
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IS NULL OR %s::text = ''", quotedCol, quotedCol), args: nil})
+		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
 	}
@@ -416,6 +560,17 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) orm.Q
 		} else {
 			// No path specified, get length of entire document
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", col, operator), args: []any{value}})
+		}
+	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
+		col, path := q.splitJsonColumnForPostgreSQL(column)
+		builder := NewBuilder(q)
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			// PostgreSQL: jsonb_array_length(column->path)
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s%s) %s ?", quotedCol, path, operator), args: []any{value}})
+		} else {
+			// No path specified, get length of entire document
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s) %s ?", quotedCol, operator), args: []any{value}})
 		}
 	} else {
 		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, operator), args: []any{value}})

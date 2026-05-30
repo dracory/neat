@@ -891,9 +891,9 @@ func TestWhereJsonContains_PostgresDialect(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	// PostgreSQL uses JSON_CONTAINS() function
-	if !contains(sql, "JSON_CONTAINS") {
-		t.Errorf("Expected PostgreSQL JSON_CONTAINS() function, got: %s", sql)
+	// PostgreSQL uses @> operator for JSONB containment
+	if !contains(sql, "@>") {
+		t.Errorf("Expected PostgreSQL @> operator for JSONB containment, got: %s", sql)
 	}
 
 	// PostgreSQL uses double quotes for table name
@@ -960,9 +960,12 @@ func TestWhereJsonContainsKey_PostgresDialect(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	// PostgreSQL uses JSON_CONTAINS_PATH() function
-	if !contains(sql, "JSON_CONTAINS_PATH") {
-		t.Errorf("Expected PostgreSQL JSON_CONTAINS_PATH() function, got: %s", sql)
+	// PostgreSQL uses -> operator with IS NOT NULL for key existence
+	if !contains(sql, "->") {
+		t.Errorf("Expected PostgreSQL -> operator for JSONB key existence, got: %s", sql)
+	}
+	if !contains(sql, "IS NOT NULL") {
+		t.Errorf("Expected IS NOT NULL for key existence check, got: %s", sql)
 	}
 
 	// PostgreSQL uses double quotes for table name
@@ -970,8 +973,9 @@ func TestWhereJsonContainsKey_PostgresDialect(t *testing.T) {
 		t.Errorf("Expected PostgreSQL double quote quoting for table, got: %s", sql)
 	}
 
+	// PostgreSQL key existence with path should have 0 arguments (path is embedded in SQL)
 	if len(args) != 0 {
-		t.Errorf("Expected 0 arguments for key check, got %d", len(args))
+		t.Errorf("Expected 0 arguments for key path, got %d", len(args))
 	}
 }
 
@@ -1024,9 +1028,9 @@ func TestWhereJsonLength_PostgresDialect(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
 
-	// PostgreSQL uses JSON_LENGTH() function
-	if !contains(sql, "JSON_LENGTH") {
-		t.Errorf("Expected PostgreSQL JSON_LENGTH() function, got: %s", sql)
+	// PostgreSQL uses jsonb_array_length() function
+	if !contains(sql, "jsonb_array_length") {
+		t.Errorf("Expected PostgreSQL jsonb_array_length() function, got: %s", sql)
 	}
 
 	// PostgreSQL uses double quotes for table name

@@ -27,14 +27,14 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 **Skipped tests (gaps to address)**:
 - ~~postgres_query_join_test.go - PostgreSQL custom type conflicts~~ (FIXED)
-- postgres_query_json_test.go - MySQL/SQLite JSON syntax incompatibility
-- postgres_query_omit_test.go - Soft-delete filter incompatibility
-- postgres_query_paginate_test.go - Soft-delete filter incompatibility
-- postgres_query_select_test.go (specific columns, subqueries) - Soft-delete filter and subquery parameter numbering
-- postgres_query_to_sql_test.go (Count, Update, RawSql, Value) - SQL format variations
-- postgres_query_update_or_insert_test.go (struct tests) - Soft-delete filter
-- postgres_query_value_test.go (ToSql) - SQL format variations
-- postgres_query_lock_test.go (SharedLock, ConcurrentAccess) - PostgreSQL FOR SHARE syntax
+- ~~postgres_query_json_test.go - MySQL/SQLite JSON syntax incompatibility~~ (FIXED - implemented PostgreSQL JSONB operators)
+- ~~postgres_query_omit_test.go - Soft-delete filter incompatibility~~ (FIXED)
+- postgres_query_paginate_test.go - Soft-delete filter incompatibility with count query (SKIPPED)
+- ~~postgres_query_select_test.go (specific columns, subqueries) - Soft-delete filter and subquery parameter numbering~~ (FIXED - subquery test skipped due to parameterized subqueries not supported)
+- ~~postgres_query_to_sql_test.go (Count, Update, RawSql, Value) - SQL format variations~~ (FIXED)
+- ~~postgres_query_update_or_insert_test.go (struct tests) - Soft-delete filter~~ (FIXED)
+- ~~postgres_query_value_test.go (ToSql) - SQL format variations~~ (FIXED)
+- ~~postgres_query_lock_test.go (SharedLock, ConcurrentAccess) - PostgreSQL FOR SHARE syntax~~ (FIXED)
 - postgres_query_order_limit_offset_test.go (negative limit) - PostgreSQL doesn't allow negative LIMIT
 - postgres_query_group_having_test.go (subquery tests) - Subquery parameter numbering not implemented
 - postgres_query_increment_decrement_test.go (decrement ID) - Invalid operation on auto-increment

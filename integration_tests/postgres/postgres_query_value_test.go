@@ -69,5 +69,22 @@ func TestPostgresIntegrationQueryToSqlValue(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("Skipping ToSql Value test - SQL format may vary by implementation")
+	db := SetupPostgresTest(t)
+	query := db.Query()
+
+	users := []models.User{
+		{Name: "value_user_1", Avatar: "avatar_1"},
+		{Name: "value_user_2", Avatar: "avatar_2"},
+	}
+	for _, user := range users {
+		if err := query.Model(&models.User{}).Create(&user); err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
+	}
+
+	var name string
+	sql := db.Query().Model(&models.User{}).Where("id = ?", 1).ToSql().Value("name", &name)
+	if sql == "" {
+		t.Error("SQL should not be empty")
+	}
 }

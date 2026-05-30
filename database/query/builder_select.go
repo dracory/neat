@@ -174,7 +174,11 @@ func (b *Builder) BuildSelect() (string, []any) {
 		if b.query.lockForUpdate {
 			parts = append(parts, "FOR UPDATE")
 		} else if b.query.sharedLock {
-			parts = append(parts, "LOCK IN SHARE MODE")
+			if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+				parts = append(parts, "FOR SHARE")
+			} else {
+				parts = append(parts, "LOCK IN SHARE MODE")
+			}
 		}
 	}
 
