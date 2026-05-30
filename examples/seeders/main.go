@@ -93,6 +93,54 @@ func RunExample(dsn string) error {
 	return nil
 }
 
+// RunExampleForTest runs the example and returns the database for assertions
+func RunExampleForTest(dsn string) (*neat.Database, error) {
+	db, err := neat.NewFromDSN(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Create tables for the example
+	err = createTables(db)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to create tables: %w", err)
+	}
+
+	// Example 1: Run seeders using SeedOnce (only runs once)
+	userSeeder1 := &UserSeeder{db: db}
+	roleSeeder1 := &RoleSeeder{db: db}
+	seeders1 := []contractsseeder.Seeder{roleSeeder1, userSeeder1}
+	err = db.SeedOnce(seeders1)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to run seeders once: %w", err)
+	}
+
+	// Call SeedOnce again to demonstrate it skips
+	err = db.SeedOnce(seeders1)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to run seeders once (second call): %w", err)
+	}
+
+	// Example 2: Run seeders using Seed method (runs every time)
+	userSeeder2 := &UserSeeder{db: db}
+	roleSeeder2 := &RoleSeeder{db: db}
+	seeders2 := []contractsseeder.Seeder{roleSeeder2, userSeeder2}
+	err = db.Seed(seeders2)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to run seeders: %w", err)
+	}
+
+	// Example 3: Using the Seeder facade for advanced operations
+	facade := db.Seeder()
+	facade.Register(seeders1)
+
+	return db, nil
+}
+
 // createTables creates the necessary tables for the example
 func createTables(db *neat.Database) error {
 	// Create roles table
