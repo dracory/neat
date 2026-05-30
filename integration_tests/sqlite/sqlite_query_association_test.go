@@ -1,4 +1,4 @@
-package postgres
+package sqlite
 
 import (
 	"testing"
@@ -6,12 +6,12 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
-func TestPostgreSQLIntegrationQueryAssociationFind(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationFind(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -35,12 +35,12 @@ func TestPostgreSQLIntegrationQueryAssociationFind(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationAppendHasOne(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationAppendHasOne(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -77,12 +77,12 @@ func TestPostgreSQLIntegrationQueryAssociationAppendHasOne(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationAppendHasMany(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationAppendHasMany(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -118,12 +118,12 @@ func TestPostgreSQLIntegrationQueryAssociationAppendHasMany(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationReplaceHasOne(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationReplaceHasOne(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -163,12 +163,12 @@ func TestPostgreSQLIntegrationQueryAssociationReplaceHasOne(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationCount(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationCount(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -199,12 +199,12 @@ func TestPostgreSQLIntegrationQueryAssociationCount(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationReplaceHasMany(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationReplaceHasMany(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -256,12 +256,12 @@ func TestPostgreSQLIntegrationQueryAssociationReplaceHasMany(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationDelete(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -301,12 +301,12 @@ func TestPostgreSQLIntegrationQueryAssociationDelete(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationClear(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationClear(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -346,12 +346,12 @@ func TestPostgreSQLIntegrationQueryAssociationClear(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryAssociationWithConditions(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationWithConditions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{
@@ -390,19 +390,19 @@ func TestPostgreSQLIntegrationQueryAssociationWithConditions(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLIntegrationQueryPolymorphicAssociation(t *testing.T) {
+func TestSQLiteIntegrationQueryPolymorphicAssociation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 	t.Skip("Polymorphic associations not yet implemented")
 }
 
-func TestPostgreSQLIntegrationQueryAssociationBelongsTo(t *testing.T) {
+func TestSQLiteIntegrationQueryAssociationBelongsTo(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupPostgresTest(t)
+	db := SetupSQLiteTest(t)
 	query := db.Query()
 
 	user := models.User{

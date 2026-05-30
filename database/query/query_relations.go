@@ -426,7 +426,82 @@ func (q *Query) WithExists(query string, args ...any) contractsorm.Query {
 
 // Association returns an association for the given relationship name.
 func (q *Query) Association(assocName string) contractsorm.Association {
-	// Return a base association - specific relationship types should be created
-	// based on the relationship metadata from the model
+	if q.model == nil {
+		return association.NewAssociation(q, q.model, assocName)
+	}
+
+	// Get the reflect value of the model
+	v := reflect.ValueOf(q.model)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return association.NewAssociation(q, q.model, assocName)
+	}
+
+	// Get the field for the association
+	field := v.FieldByName(assocName)
+	if !field.IsValid() {
+		return association.NewAssociation(q, q.model, assocName)
+	}
+
+	// Determine relationship type based on field type
+	if field.Kind() == reflect.Slice {
+		// HasMany relationship
+		// foreignKey: parent_type_id (e.g., user_id)
+		// localKey: id
+		parentTypeName := q.getParentTypeName(v)
+		if parentTypeName == "" {
+			return association.NewAssociation(q, q.model, assocName)
+		}
+		foreignKey := buildForeignKeyColumn(parentTypeName)
+		localKey := "id"
+		return association.NewHasMany(q, q.model, assocName, foreignKey, localKey)
+	}
+
+	if field.Kind() == reflect.Ptr {
+		// Check if this is BelongsTo or HasOne
+		// BelongsTo: the model has a foreign key field (e.g., UserID)
+		// HasOne: the related model has a foreign key field
+
+		// Try to find a foreign key field in the model
+		foreignKeyName := assocName + "ID"
+		foreignKeyField := v.FieldByName(foreignKeyName)
+		if !foreignKeyField.IsValid() {
+			// Try snake_case version
+			foreignKeyName = str.Of(assocName).Snake().String() + "_id"
+			foreignKeyField = v.FieldByName(foreignKeyName)
+		}
+
+		if foreignKeyField.IsValid() {
+			// BelongsTo relationship
+			// foreignKey: user_id (on the model)
+			// otherKey: id (on the related model)
+			otherKey := "id"
+			return association.NewBelongsTo(q, q.model, assocName, foreignKeyName, otherKey)
+		}
+
+		// Also try lowercase ID version (e.g., userid instead of user_id)
+		foreignKeyName = str.Of(assocName).Snake().String() + "id"
+		foreignKeyField = v.FieldByName(foreignKeyName)
+		if foreignKeyField.IsValid() {
+			// BelongsTo relationship
+			otherKey := "id"
+			return association.NewBelongsTo(q, q.model, assocName, foreignKeyName, otherKey)
+		}
+
+		// HasOne relationship
+		// foreignKey: parent_type_id (on the related model, e.g., user_id)
+		// localKey: id (on the model)
+		parentTypeName := q.getParentTypeName(v)
+		if parentTypeName == "" {
+			return association.NewAssociation(q, q.model, assocName)
+		}
+		foreignKey := buildForeignKeyColumn(parentTypeName)
+		localKey := "id"
+		return association.NewHasOne(q, q.model, assocName, foreignKey, localKey)
+	}
+
+	// Default to base association
 	return association.NewAssociation(q, q.model, assocName)
 }

@@ -91,3 +91,253 @@ func TestAssociationBaseMethods(t *testing.T) {
 		t.Error("Expected count to be 0 for base implementation")
 	}
 }
+
+func TestBelongsToGetForeignKeyValue(t *testing.T) {
+	type User struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &User{ID: 1, UserID: 5}
+	belongsTo := &BelongsTo{
+		Association: NewAssociation(nil, model, "User"),
+		foreignKey:  "UserID",
+		otherKey:    "ID",
+	}
+
+	value, err := belongsTo.getForeignKeyValue()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if value != uint(5) {
+		t.Errorf("Expected foreign key value 5, got %v", value)
+	}
+}
+
+func TestBelongsToGetForeignKeyValueSnakeCase(t *testing.T) {
+	type User struct {
+		ID     uint
+		UserId uint
+	}
+
+	model := &User{ID: 1, UserId: 5}
+	belongsTo := &BelongsTo{
+		Association: NewAssociation(nil, model, "User"),
+		foreignKey:  "user_id",
+		otherKey:    "id",
+	}
+
+	value, err := belongsTo.getForeignKeyValue()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if value != uint(5) {
+		t.Errorf("Expected foreign key value 5, got %v", value)
+	}
+}
+
+func TestBelongsToSetForeignKeyValue(t *testing.T) {
+	type User struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &User{ID: 1}
+	belongsTo := &BelongsTo{
+		Association: NewAssociation(nil, model, "User"),
+		foreignKey:  "UserID",
+		otherKey:    "ID",
+	}
+
+	err := belongsTo.setForeignKeyValue(uint(10))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if model.UserID != uint(10) {
+		t.Errorf("Expected UserID to be 10, got %d", model.UserID)
+	}
+}
+
+func TestBelongsToSetForeignKeyValueNil(t *testing.T) {
+	type User struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &User{ID: 1, UserID: 5}
+	belongsTo := &BelongsTo{
+		Association: NewAssociation(nil, model, "User"),
+		foreignKey:  "UserID",
+		otherKey:    "ID",
+	}
+
+	err := belongsTo.setForeignKeyValue(nil)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if model.UserID != uint(0) {
+		t.Errorf("Expected UserID to be 0, got %d", model.UserID)
+	}
+}
+
+func TestHasOneGetLocalKeyValue(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+
+	model := &User{ID: 42}
+	hasOne := &HasOne{
+		Association: NewAssociation(nil, model, "Address"),
+		foreignKey:  "user_id",
+		localKey:    "id",
+	}
+
+	value, err := hasOne.getLocalKeyValue()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if value != uint(42) {
+		t.Errorf("Expected local key value 42, got %v", value)
+	}
+}
+
+func TestHasOneGetLocalKeyValuePascalCase(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+
+	model := &User{ID: 42}
+	hasOne := &HasOne{
+		Association: NewAssociation(nil, model, "Address"),
+		foreignKey:  "user_id",
+		localKey:    "id",
+	}
+
+	value, err := hasOne.getLocalKeyValue()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if value != uint(42) {
+		t.Errorf("Expected local key value 42, got %v", value)
+	}
+}
+
+func TestHasOneSetForeignKeyValue(t *testing.T) {
+	type Address struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &Address{ID: 1}
+	hasOne := &HasOne{
+		Association: NewAssociation(nil, nil, "Address"),
+		foreignKey:  "UserID",
+		localKey:    "ID",
+	}
+
+	err := hasOne.setForeignKeyValue(model, uint(99))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if model.UserID != uint(99) {
+		t.Errorf("Expected UserID to be 99, got %d", model.UserID)
+	}
+}
+
+func TestHasOneSetForeignKeyValueSnakeCase(t *testing.T) {
+	type Address struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &Address{ID: 1}
+	hasOne := &HasOne{
+		Association: NewAssociation(nil, nil, "Address"),
+		foreignKey:  "user_id",
+		localKey:    "id",
+	}
+
+	err := hasOne.setForeignKeyValue(model, uint(99))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if model.UserID != uint(99) {
+		t.Errorf("Expected UserID to be 99, got %d", model.UserID)
+	}
+}
+
+func TestHasManyGetLocalKeyValue(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+
+	model := &User{ID: 42}
+	hasMany := &HasMany{
+		Association: NewAssociation(nil, model, "Books"),
+		foreignKey:  "user_id",
+		localKey:    "id",
+	}
+
+	value, err := hasMany.getLocalKeyValue()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if value != uint(42) {
+		t.Errorf("Expected local key value 42, got %v", value)
+	}
+}
+
+func TestHasManySetForeignKeyValue(t *testing.T) {
+	type Book struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &Book{ID: 1}
+	hasMany := &HasMany{
+		Association: NewAssociation(nil, nil, "Books"),
+		foreignKey:  "UserID",
+		localKey:    "ID",
+	}
+
+	err := hasMany.setForeignKeyValue(model, uint(99))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if model.UserID != uint(99) {
+		t.Errorf("Expected UserID to be 99, got %d", model.UserID)
+	}
+}
+
+func TestHasManySetForeignKeyValueSnakeCase(t *testing.T) {
+	type Book struct {
+		ID     uint
+		UserID uint
+	}
+
+	model := &Book{ID: 1}
+	hasMany := &HasMany{
+		Association: NewAssociation(nil, nil, "Books"),
+		foreignKey:  "user_id",
+		localKey:    "id",
+	}
+
+	err := hasMany.setForeignKeyValue(model, uint(99))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if model.UserID != uint(99) {
+		t.Errorf("Expected UserID to be 99, got %d", model.UserID)
+	}
+}

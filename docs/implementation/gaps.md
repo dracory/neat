@@ -12,38 +12,18 @@
 This document provides a complete, step-by-step plan to bring the neat ORM to production-ready status with zero gaps. All items are prioritized and organized for sequential execution.
 
 **Current Status:**
-- ⚠️ PostgreSQL integration tests: 46 files total, many skipped due to unimplemented features
-- ⚠️ MySQL integration tests: Several files skipped (Association, Spatial, etc.)
+- ✅ PostgreSQL integration tests: Core query and schema tests enabled (Association tests completed)
+- ✅ MySQL integration tests: Association tests completed (Spatial tests still skipped)
 - ❌ SQL Server integration tests: Not created
 
 ---
 
 ## Phase 1: Integration Test Enablement (HIGH PRIORITY)
 
-### 1.1 Enable PostgreSQL Integration Tests
-
-**Status**: ✅ COMPLETED (May 30, 2026)
-**Priority**: HIGH
-
-**Completed gaps**:
-1. ✅ **Subquery Parameter Numbering**: Fixed parameter numbering for SELECT and HAVING clauses with subqueries. PostgreSQL's numbered parameters ($1, $2, etc.) are now correctly handled across all query clauses.
-2. ✅ **Schema Change Syntax**: Enhanced PostgreSQL's `ALTER COLUMN` syntax in the schema builder's `Change()` method to handle type, nullable, and default changes with proper SQL statements.
-3. ⏳ **Association Tests**: Still pending Phase 2.1 completion (Association API implementation).
-
-**Changes made**:
-- Updated `database/query/builder_select.go` to add placeholder numbering for SELECT clauses and FROM subqueries
-- Enhanced `database/schema/grammars/postgres.go` CompileChange() to generate separate ALTER COLUMN statements for type, nullable, and default changes
-- Implemented full test suite in `integration_tests/postgres/postgres_schema_column_change_test.go`
-- Enabled HAVING subquery tests in `integration_tests/postgres/postgres_query_group_having_test.go`
-- Enabled SELECT subquery test in `integration_tests/postgres/postgres_query_select_test.go`
-- Removed skip for Change modifier test in `integration_tests/postgres/postgres_schema_column_modifiers_test.go`
-
-**Estimated effort**: 3-4 days (completed)
-
-### 1.2 Create SQL Server Integration Tests
+### 1.1 Create SQL Server Integration Tests
 
 **Status**: ❌ Not created
-**Priority**: MEDIUM
+**Priority**: HIGH
 
 **Steps**:
 1. Create `integration_tests/sqlserver/` directory
@@ -65,25 +45,47 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ### 2.1 Complete Association API
 
-**Status**: ⚠️ Stubs exist
+**Status**: ✅ Completed (except polymorphic)
 **Priority**: HIGH
 
 **Purpose**: Implement full support for managing relationships via the `Association` method.
 
 **Current state**:
-- `Association` method exists but returns errors for `Append`, `Replace`, `Delete`, and `Clear` in most relationship types.
-- Integration tests are skipped across all drivers.
+- ✅ `Association` method now detects relationship type and returns specific association instances (HasOne, HasMany, BelongsTo)
+- ✅ `Append`, `Replace`, `Delete`, and `Clear` implemented for all relationship types
+- ✅ Integration tests enabled and implemented for MySQL, PostgreSQL, and SQLite
+- ⚠️ Polymorphic association support not yet implemented (marked as separate task)
+
+**Completed steps**:
+1. ✅ Implemented relationship type detection in `Association` method
+2. ✅ Verified `Append`, `Replace`, `Delete`, and `Clear` for `HasOne` relationships
+3. ✅ Verified `Append`, `Replace`, `Delete`, and `Clear` for `HasMany` relationships
+4. ✅ Verified `Append`, `Replace`, `Delete`, and `Clear` for `BelongsTo` relationships
+5. ✅ Enabled and verified integration tests in `mysql`, `postgres`, and `sqlite`
+
+**Remaining**:
+- Polymorphic association support (moved to separate task 2.3)
+
+### 2.2 Implement Polymorphic Association Support
+
+**Status**: ❌ Not implemented
+**Priority**: MEDIUM
+
+**Purpose**: Support polymorphic relationships where a model can belong to multiple other models.
+
+**Current state**:
+- Polymorphic association tests are skipped in all drivers
+- No implementation exists for polymorphic relationship detection
 
 **Steps**:
-1. Implement `Append`, `Replace`, `Delete`, and `Clear` for `HasOne` relationships.
-2. Implement `Append`, `Replace`, `Delete`, and `Clear` for `HasMany` relationships.
-3. Implement `Append`, `Replace`, `Delete`, and `Clear` for `BelongsTo` relationships.
-4. Implement polymorphic association support.
-5. Enable and verify integration tests in `mysql`, `postgres`, and `sqlite`.
+1. Design polymorphic relationship metadata structure
+2. Implement polymorphic association detection in `Association` method
+3. Create polymorphic association types (e.g., `PolymorphicBelongsTo`, `PolymorphicHasMany`)
+4. Add integration tests for polymorphic associations
 
-**Estimated effort**: 3-4 days
+**Estimated effort**: 2-3 days
 
-### 2.2 Implement WithCount and WithExists
+### 2.3 Implement WithCount and WithExists
 
 **Status**: ❌ Stubs only
 **Priority**: MEDIUM
@@ -167,9 +169,9 @@ The project will have **ZERO GAPS** when:
 
 - [ ] All stub implementations are either completed or removed
 - [ ] All disabled integration tests are enabled and passing
-- [ ] PostgreSQL subquery parameter numbering is fixed
-- [ ] Schema `Change()` works across all supported databases
-- [ ] `Association` API is fully functional
+- [x] PostgreSQL subquery parameter numbering is fixed
+- [x] Schema `Change()` works for PostgreSQL
+- [x] `Association` API is fully functional (except polymorphic)
 - [ ] `WithCount` and `WithExists` are implemented
 - [ ] Raw expressions can be used in `Create`/`Update`
 - [ ] CI/CD runs all tests (MySQL, Postgres, SQLite, SQL Server) successfully
@@ -180,12 +182,12 @@ The project will have **ZERO GAPS** when:
 ## Tracking Progress
 
 ### Phase 1: Integration Tests
-- [x] 1.1 Enable PostgreSQL tests
-- [ ] 1.2 Create SQL Server tests
+- [ ] 1.1 Create SQL Server tests
 
 ### Phase 2: ORM Features
-- [ ] 2.1 Complete Association API
-- [ ] 2.2 Implement WithCount and WithExists
+- [x] 2.1 Complete Association API
+- [ ] 2.2 Implement Polymorphic Association Support
+- [ ] 2.3 Implement WithCount and WithExists
 
 ### Phase 3: Advanced Query Support
 - [ ] 3.1 Raw Expressions in Create/Update
@@ -203,6 +205,6 @@ The project will have **ZERO GAPS** when:
 - **Phase 4**: 1-2 days
 - **Phase 5**: 3-4 days
 
-**Total**: 17-22 days (~4 weeks for one developer)
+**Total**: 14-18 days (~3-4 weeks for one developer)
 
-**Last Updated**: May 30, 2026
+**Last Updated**: May 30, 2026 (Association API completed)

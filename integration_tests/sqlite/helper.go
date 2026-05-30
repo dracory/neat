@@ -77,14 +77,14 @@ func createTestTables(t *testing.T, db *database.Database) {
 		`CREATE TABLE IF NOT EXISTS addresses (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
 			name       TEXT NOT NULL DEFAULT '',
-			user_id    INTEGER NOT NULL DEFAULT 0,
+			user_id    INTEGER,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS books (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
 			name       TEXT NOT NULL DEFAULT '',
-			user_id    INTEGER NOT NULL DEFAULT 0,
+			user_id    INTEGER,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,

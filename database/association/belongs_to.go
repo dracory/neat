@@ -3,8 +3,10 @@ package association
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/support/str"
 )
 
 // BelongsTo represents a belongs-to relationship.
@@ -32,11 +34,22 @@ func (b *BelongsTo) Find(out any, conds ...any) error {
 	}
 
 	// Query the related model using the other key
-	query := b.Query().Table(b.associationName()).Where(b.otherKey+" = ?", foreignKeyValue)
+	// For BelongsTo: foreignKey is on the model (e.g., user_id in addresses table)
+	// otherKey is on the related model (e.g., id in users table)
+	// We need to query the related table where its primary key equals the foreign key value
+	query := b.Query().Model(out).Where("id = ?", foreignKeyValue)
 
 	// Apply additional conditions if provided
-	for _, cond := range conds {
-		query = query.Where(cond)
+	if len(conds) > 0 {
+		// Handle conditions as (string, ...any) format
+		if str, ok := conds[0].(string); ok && len(conds) > 1 {
+			query = query.Where(str, conds[1:]...)
+		} else {
+			// Handle as individual conditions
+			for _, cond := range conds {
+				query = query.Where(cond)
+			}
+		}
 	}
 
 	// Execute the query
@@ -56,7 +69,17 @@ func (b *BelongsTo) Append(values ...any) error {
 	}
 
 	// Set the foreign key on the model
-	return b.setForeignKeyValue(otherKeyValue)
+	if err := b.setForeignKeyValue(otherKeyValue); err != nil {
+		return fmt.Errorf("failed to set foreign key value: %w", err)
+	}
+
+	// Save the model to persist the foreign key change
+	query := b.Query().Model(b.model)
+	if err := query.Save(b.model); err != nil {
+		return fmt.Errorf("failed to save model: %w", err)
+	}
+
+	return nil
 }
 
 // Replace replaces the current association with the given value.
@@ -66,12 +89,32 @@ func (b *BelongsTo) Replace(values ...any) error {
 
 // Delete clears the association by setting the foreign key to nil.
 func (b *BelongsTo) Delete(values ...any) error {
-	return b.setForeignKeyValue(nil)
+	if err := b.setForeignKeyValue(nil); err != nil {
+		return fmt.Errorf("failed to set foreign key value: %w", err)
+	}
+
+	// Save the model to persist the foreign key change
+	query := b.Query().Model(b.model)
+	if err := query.Save(b.model); err != nil {
+		return fmt.Errorf("failed to save model: %w", err)
+	}
+
+	return nil
 }
 
 // Clear clears the association by setting the foreign key to nil.
 func (b *BelongsTo) Clear() error {
-	return b.setForeignKeyValue(nil)
+	if err := b.setForeignKeyValue(nil); err != nil {
+		return fmt.Errorf("failed to set foreign key value: %w", err)
+	}
+
+	// Save the model to persist the foreign key change
+	query := b.Query().Model(b.model)
+	if err := query.Save(b.model); err != nil {
+		return fmt.Errorf("failed to save model: %w", err)
+	}
+
+	return nil
 }
 
 // Count returns 1 if the association exists, 0 otherwise.
@@ -86,7 +129,7 @@ func (b *BelongsTo) Count() int64 {
 	}
 
 	var count int64
-	query := b.Query().Table(b.associationName()).Where(b.otherKey+" = ?", foreignKeyValue)
+	query := b.Query().Table(b.associationName()).Where("id = ?", foreignKeyValue)
 	if err := query.Count(&count); err != nil {
 		return 0
 	}
@@ -107,7 +150,13 @@ func (b *BelongsTo) getForeignKeyValue() (any, error) {
 		return nil, fmt.Errorf("model is not a struct")
 	}
 
+	// Try to find the field - try PascalCase first, then snake_case
 	field := val.FieldByName(b.foreignKey)
+	if !field.IsValid() {
+		// Convert snake_case to PascalCase (e.g., user_id -> UserID)
+		pascalCase := str.Of(b.foreignKey).Studly().String()
+		field = val.FieldByName(pascalCase)
+	}
 	if !field.IsValid() {
 		return nil, fmt.Errorf("foreign key field %s not found", b.foreignKey)
 	}
@@ -129,7 +178,14 @@ func (b *BelongsTo) getOtherKeyValue(model any) (any, error) {
 		return nil, fmt.Errorf("model is not a struct")
 	}
 
+	// Try to find the field - try PascalCase first (ID), then snake_case (id)
 	field := val.FieldByName(b.otherKey)
+	if !field.IsValid() {
+		// Try PascalCase version
+		if b.otherKey == "id" {
+			field = val.FieldByName("ID")
+		}
+	}
 	if !field.IsValid() {
 		return nil, fmt.Errorf("other key field %s not found", b.otherKey)
 	}
@@ -161,6 +217,12 @@ func (b *BelongsTo) setForeignKeyValue(value any) error {
 	}
 
 	valueVal := reflect.ValueOf(value)
+	if !valueVal.IsValid() {
+		// Setting to nil - set zero value for the field type
+		field.Set(reflect.Zero(field.Type()))
+		return nil
+	}
+
 	if valueVal.Type() != field.Type() {
 		// Try to convert the value
 		if valueVal.Type().ConvertibleTo(field.Type()) {
@@ -176,5 +238,38 @@ func (b *BelongsTo) setForeignKeyValue(value any) error {
 
 // associationName returns the association name (table name).
 func (b *BelongsTo) associationName() string {
-	return b.association
+	// Get the field type to infer table name
+	val := reflect.ValueOf(b.model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return b.association
+	}
+
+	field := val.FieldByName(b.association)
+	if !field.IsValid() {
+		return b.association
+	}
+
+	relationType := field.Type()
+	if relationType.Kind() == reflect.Ptr {
+		relationType = relationType.Elem()
+	}
+
+	// Check if the model has a TableName() method by creating a zero value
+	if relationType.Kind() == reflect.Struct {
+		zeroValue := reflect.New(relationType).Interface()
+		if tabler, ok := zeroValue.(interface{ TableName() string }); ok {
+			return tabler.TableName()
+		}
+	}
+
+	// Infer table name from relation type
+	tableName := str.Of(relationType.Name()).Snake().String()
+	// Simple pluralization: add 's' if not already ending with 's'
+	if !strings.HasSuffix(tableName, "s") {
+		tableName = tableName + "s"
+	}
+	return tableName
 }

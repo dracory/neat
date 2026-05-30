@@ -3,8 +3,10 @@ package association
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/support/str"
 )
 
 // HasMany represents a has-many relationship.
@@ -32,11 +34,20 @@ func (h *HasMany) Find(out any, conds ...any) error {
 	}
 
 	// Query the related models using the foreign key
-	query := h.Query().Table(h.associationName()).Where(h.foreignKey+" = ?", localKeyValue)
+	// Only include records where the foreign key is not null
+	query := h.Query().Model(out).Where(h.foreignKey+" = ?", localKeyValue).WhereNotNull(h.foreignKey)
 
 	// Apply additional conditions if provided
-	for _, cond := range conds {
-		query = query.Where(cond)
+	if len(conds) > 0 {
+		// Handle conditions as (string, ...any) format
+		if str, ok := conds[0].(string); ok && len(conds) > 1 {
+			query = query.Where(str, conds[1:]...)
+		} else {
+			// Handle as individual conditions
+			for _, cond := range conds {
+				query = query.Where(cond)
+			}
+		}
 	}
 
 	// Execute the query
@@ -88,16 +99,24 @@ func (h *HasMany) Delete(values ...any) error {
 		return fmt.Errorf("no values provided to delete")
 	}
 
-	// Set the foreign key to null for each related model
+	// Set the foreign key to null for each related model using direct SQL update
 	for _, value := range values {
-		if err := h.setForeignKeyValue(value, nil); err != nil {
-			return fmt.Errorf("failed to clear foreign key on model: %w", err)
+		// Get the ID of the model to update
+		val := reflect.ValueOf(value)
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
 		}
+		idField := val.FieldByName("ID")
+		if !idField.IsValid() {
+			return fmt.Errorf("could not find ID field on model")
+		}
+		modelID := idField.Interface()
 
-		// Save the related model
-		query := h.Query().Model(value)
-		if err := query.Save(value); err != nil {
-			return fmt.Errorf("failed to save related model: %w", err)
+		// Directly update the foreign key to NULL in the database
+		query := h.Query().Table(h.associationName()).Where("id = ?", modelID)
+		_, err := query.Update(h.foreignKey, nil)
+		if err != nil {
+			return fmt.Errorf("failed to clear foreign key on model: %w", err)
 		}
 	}
 
@@ -148,7 +167,14 @@ func (h *HasMany) getLocalKeyValue() (any, error) {
 		return nil, fmt.Errorf("model is not a struct")
 	}
 
+	// Try to find the field - try PascalCase first (ID), then snake_case (id)
 	field := val.FieldByName(h.localKey)
+	if !field.IsValid() {
+		// Try PascalCase version
+		if h.localKey == "id" {
+			field = val.FieldByName("ID")
+		}
+	}
 	if !field.IsValid() {
 		return nil, fmt.Errorf("local key field %s not found", h.localKey)
 	}
@@ -170,7 +196,32 @@ func (h *HasMany) setForeignKeyValue(model any, value any) error {
 		return fmt.Errorf("model is not a struct")
 	}
 
+	// Try to find the field - try PascalCase first, then snake_case
 	field := val.FieldByName(h.foreignKey)
+	if !field.IsValid() {
+		// Convert snake_case to PascalCase (e.g., user_id -> UserID)
+		// First try Studly which gives UserId, then try with uppercase ID
+		pascalCase := str.Of(h.foreignKey).Studly().String()
+		field = val.FieldByName(pascalCase)
+		// Also try with uppercase ID (e.g., UserID instead of UserId)
+		if !field.IsValid() && strings.HasSuffix(pascalCase, "Id") {
+			pascalCase = strings.TrimSuffix(pascalCase, "Id") + "ID"
+			field = val.FieldByName(pascalCase)
+		}
+		// Also try direct conversion: split by underscore, capitalize each part
+		if !field.IsValid() && strings.Contains(h.foreignKey, "_") {
+			parts := strings.Split(h.foreignKey, "_")
+			for i, part := range parts {
+				if i == len(parts)-1 && part == "id" {
+					parts[i] = "ID"
+				} else {
+					parts[i] = strings.Title(part)
+				}
+			}
+			pascalCase = strings.Join(parts, "")
+			field = val.FieldByName(pascalCase)
+		}
+	}
 	if !field.IsValid() {
 		return fmt.Errorf("foreign key field %s not found", h.foreignKey)
 	}
@@ -180,7 +231,13 @@ func (h *HasMany) setForeignKeyValue(model any, value any) error {
 	}
 
 	valueVal := reflect.ValueOf(value)
-	if valueVal.IsValid() && valueVal.Type() != field.Type() {
+	if !valueVal.IsValid() {
+		// Setting to nil - set zero value for the field type
+		field.Set(reflect.Zero(field.Type()))
+		return nil
+	}
+
+	if valueVal.Type() != field.Type() {
 		// Try to convert the value
 		if valueVal.Type().ConvertibleTo(field.Type()) {
 			valueVal = valueVal.Convert(field.Type())
@@ -195,5 +252,41 @@ func (h *HasMany) setForeignKeyValue(model any, value any) error {
 
 // associationName returns the association name (table name).
 func (h *HasMany) associationName() string {
-	return h.association
+	// Get the field type to infer table name
+	val := reflect.ValueOf(h.model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return h.association
+	}
+
+	field := val.FieldByName(h.association)
+	if !field.IsValid() {
+		return h.association
+	}
+
+	relationType := field.Type()
+	if relationType.Kind() == reflect.Slice {
+		relationType = relationType.Elem()
+	}
+	if relationType.Kind() == reflect.Ptr {
+		relationType = relationType.Elem()
+	}
+
+	// Check if the model has a TableName() method by creating a zero value
+	if relationType.Kind() == reflect.Struct {
+		zeroValue := reflect.New(relationType).Interface()
+		if tabler, ok := zeroValue.(interface{ TableName() string }); ok {
+			return tabler.TableName()
+		}
+	}
+
+	// Infer table name from relation type
+	tableName := str.Of(relationType.Name()).Snake().String()
+	// Simple pluralization: add 's' if not already ending with 's'
+	if !strings.HasSuffix(tableName, "s") {
+		tableName = tableName + "s"
+	}
+	return tableName
 }

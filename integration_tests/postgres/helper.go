@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -156,14 +155,14 @@ func createPostgresTestTables(t *testing.T, db *database.Database) {
 		`CREATE TABLE IF NOT EXISTS addresses (
 			id         BIGSERIAL PRIMARY KEY,
 			name       VARCHAR(255) NOT NULL DEFAULT '',
-			user_id    BIGINT NOT NULL DEFAULT 0,
+			user_id    BIGINT,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS books (
 			id         BIGSERIAL PRIMARY KEY,
 			name       VARCHAR(255) NOT NULL DEFAULT '',
-			user_id    BIGINT NOT NULL DEFAULT 0,
+			user_id    BIGINT,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
