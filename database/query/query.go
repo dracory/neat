@@ -85,6 +85,21 @@ type Query struct {
 	// Eager loading state
 	withRelations       []string
 	relationConstraints map[string]func(contractsorm.Query) contractsorm.Query
+
+	// Count and Exists subqueries
+	withCountQueries  []countQuery
+	withExistsQueries []existsQuery
+}
+
+type countQuery struct {
+	relation   string
+	column     string
+	constraint func(contractsorm.Query) contractsorm.Query
+}
+
+type existsQuery struct {
+	relation   string
+	constraint func(contractsorm.Query) contractsorm.Query
 }
 
 type whereClause struct {
@@ -225,6 +240,8 @@ func (q *Query) Clone() contractsorm.Query {
 			clone.relationConstraints[k] = v
 		}
 	}
+	clone.withCountQueries = append([]countQuery{}, q.withCountQueries...)
+	clone.withExistsQueries = append([]existsQuery{}, q.withExistsQueries...)
 
 	// Transaction state
 	clone.inTransaction = q.inTransaction
@@ -311,6 +328,8 @@ func (q *Query) Model(value any) contractsorm.Query {
 	// q.withoutTrashed = false
 	q.withRelations = nil
 	q.relationConstraints = nil
+	q.withCountQueries = nil
+	q.withExistsQueries = nil
 	return q
 }
 

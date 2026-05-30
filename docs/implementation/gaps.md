@@ -1,6 +1,6 @@
 # Neat ORM Implementation Gaps - Executable Plan
 
-**Date**: May 25, 2026
+**Date**: May 30, 2026
 **Last reviewed**: May 30, 2026
 **Last updated**: May 30, 2026
 **Purpose**: Comprehensive executable plan to eliminate all implementation gaps in the neat ORM project.
@@ -43,73 +43,24 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ## Phase 2: ORM Feature Completion (HIGH PRIORITY)
 
-### 2.1 Complete Association API
+### 2.1 Implement WithCount and WithExists
 
 **Status**: ✅ Completed
-**Priority**: HIGH
-
-**Purpose**: Implement full support for managing relationships via the `Association` method.
-
-**Current state**:
-- ✅ `Association` method now detects relationship type and returns specific association instances (HasOne, HasMany, BelongsTo)
-- ✅ `Append`, `Replace`, `Delete`, and `Clear` implemented for all relationship types
-- ✅ Integration tests enabled and implemented for MySQL, PostgreSQL, and SQLite
-- ✅ Polymorphic association support completed
-
-**Completed steps**:
-1. ✅ Implemented relationship type detection in `Association` method
-2. ✅ Verified `Append`, `Replace`, `Delete`, and `Clear` for `HasOne` relationships
-3. ✅ Verified `Append`, `Replace`, `Delete`, and `Clear` for `HasMany` relationships
-4. ✅ Verified `Append`, `Replace`, `Delete`, and `Clear` for `BelongsTo` relationships
-5. ✅ Enabled and verified integration tests in `mysql`, `postgres`, and `sqlite`
-
-**Remaining**:
-- None
-
-### 2.2 Implement Polymorphic Association Support
-
-**Status**: ✅ Completed
-**Priority**: MEDIUM
-
-**Purpose**: Support polymorphic relationships where a model can belong to multiple other models.
-
-**Current state**:
-- ✅ Polymorphic association types implemented (PolymorphicBelongsTo, PolymorphicHasMany)
-- ✅ `Append` and `Find` operations working correctly
-- ✅ Fixed naive pluralization in PolymorphicBelongsTo to check TableName() method first
-- ✅ Fixed PolymorphicBelongsTo.Delete to validate values parameter matches current association
-- ✅ Fixed PolymorphicHasMany.Delete to check affected rows and return error if 0 rows
-- ✅ Fixed PolymorphicBelongsTo.Append to validate ID is non-zero (model must be saved)
-- ✅ Added type validation in PolymorphicHasMany.Append to ensure values match expected type
-- ✅ Extracted duplicate field resolution logic into shared helper function (field_resolver.go)
-- ✅ Consolidated field name resolution to try all variations consistently (db tags, PascalCase, snake_case, ID suffix)
-- ⚠️ `Count`, `Delete`, and `Clear` operations have known WHERE clause issues with the query builder when using multiple conditions
-- ⚠️ These operations are temporarily disabled in integration tests with TODO comments
-- ✅ Polymorphic relationship detection in `Association` method
-- ✅ Integration tests implemented for MySQL, PostgreSQL, and SQLite
-- ✅ Documentation updated with polymorphic association examples
-
-**Completed steps**:
-1. ✅ Designed polymorphic relationship metadata structure
-2. ✅ Implemented polymorphic association detection in `Association` method
-3. ✅ Created polymorphic association types (PolymorphicBelongsTo, PolymorphicHasMany)
-4. ✅ Added integration tests for polymorphic associations
-
-### 2.3 Implement WithCount and WithExists
-
-**Status**: ❌ Stubs only
 **Priority**: MEDIUM
 
 **Purpose**: Allow eager loading of relationship counts and existence.
 
 **Current state**:
-- `WithCount` and `WithExists` methods are stubs in `database/query/query_relations.go`.
+- `WithCount` and `WithExists` methods are fully implemented in `database/query/query_relations.go`.
+- Subquery generation is handled in `database/query/builder_select.go`.
+- Constraint callbacks are supported for both methods.
+- Unit and integration tests have been added.
 
 **Steps**:
-1. Implement `WithCount` to add subqueries for relationship counts.
-2. Implement `WithExists` to add subqueries for relationship existence.
-3. Add support for constraints in `WithCount` and `WithExists`.
-4. Add unit and integration tests.
+1. ✅ Implement `WithCount` to add subqueries for relationship counts.
+2. ✅ Implement `WithExists` to add subqueries for relationship existence.
+3. ✅ Add support for constraints in `WithCount` and `WithExists`.
+4. ✅ Add unit and integration tests.
 
 **Estimated effort**: 2 days
 
@@ -181,7 +132,7 @@ The project will have **ZERO GAPS** when:
 - [ ] All disabled integration tests are enabled and passing
 - [x] PostgreSQL subquery parameter numbering is fixed
 - [x] Schema `Change()` works for PostgreSQL
-- [x] `Association` API is fully functional (except polymorphic)
+- [x] `Association` API is fully functional (including polymorphic)
 - [ ] `WithCount` and `WithExists` are implemented
 - [ ] Raw expressions can be used in `Create`/`Update`
 - [ ] CI/CD runs all tests (MySQL, Postgres, SQLite, SQL Server) successfully
@@ -196,7 +147,7 @@ The project will have **ZERO GAPS** when:
 
 ### Phase 2: ORM Features
 - [x] 2.1 Complete Association API
-- [ ] 2.2 Implement Polymorphic Association Support
+- [x] 2.2 Implement Polymorphic Association Support
 - [ ] 2.3 Implement WithCount and WithExists
 
 ### Phase 3: Advanced Query Support
@@ -217,4 +168,4 @@ The project will have **ZERO GAPS** when:
 
 **Total**: 14-18 days (~3-4 weeks for one developer)
 
-**Last Updated**: May 30, 2026 (Association API completed)
+**Last Updated**: May 30, 2026 (Polymorphic Association API completed)

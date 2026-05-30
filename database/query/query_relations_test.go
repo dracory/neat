@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"reflect"
+	"strings"
 	"testing"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
@@ -1187,5 +1188,224 @@ func TestLoadMissingHasMany(t *testing.T) {
 	// Posts should still be the same
 	if len(user.Posts) != 2 {
 		t.Errorf("Expected 2 posts after second LoadMissing, got %d", len(user.Posts))
+	}
+}
+
+func TestWithCount(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &struct{ ID int }{}
+
+	result := q.WithCount("Posts")
+	if result == nil {
+		t.Error("WithCount should return a query")
+	}
+
+	resultQuery := result.(*Query)
+	if len(resultQuery.withCountQueries) != 1 {
+		t.Errorf("Expected 1 count query, got %d", len(resultQuery.withCountQueries))
+	}
+	if resultQuery.withCountQueries[0].relation != "Posts" {
+		t.Errorf("Expected relation 'Posts', got '%s'", resultQuery.withCountQueries[0].relation)
+	}
+	if resultQuery.withCountQueries[0].column != "Posts_count" {
+		t.Errorf("Expected column 'Posts_count', got '%s'", resultQuery.withCountQueries[0].column)
+	}
+}
+
+func TestWithCountWithConstraint(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &struct{ ID int }{}
+
+	result := q.WithCount("Posts", func(q contractsorm.Query) contractsorm.Query {
+		return q.Where("published = ?", true)
+	})
+	if result == nil {
+		t.Error("WithCount with constraint should return a query")
+	}
+
+	resultQuery := result.(*Query)
+	if len(resultQuery.withCountQueries) != 1 {
+		t.Errorf("Expected 1 count query, got %d", len(resultQuery.withCountQueries))
+	}
+	if resultQuery.withCountQueries[0].constraint == nil {
+		t.Error("Expected constraint to be set")
+	}
+}
+
+func TestWithExists(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &struct{ ID int }{}
+
+	result := q.WithExists("Posts")
+	if result == nil {
+		t.Error("WithExists should return a query")
+	}
+
+	resultQuery := result.(*Query)
+	if len(resultQuery.withExistsQueries) != 1 {
+		t.Errorf("Expected 1 exists query, got %d", len(resultQuery.withExistsQueries))
+	}
+	if resultQuery.withExistsQueries[0].relation != "Posts" {
+		t.Errorf("Expected relation 'Posts', got '%s'", resultQuery.withExistsQueries[0].relation)
+	}
+}
+
+func TestWithExistsWithConstraint(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &struct{ ID int }{}
+
+	result := q.WithExists("Posts", func(q contractsorm.Query) contractsorm.Query {
+		return q.Where("published = ?", true)
+	})
+	if result == nil {
+		t.Error("WithExists with constraint should return a query")
+	}
+
+	resultQuery := result.(*Query)
+	if len(resultQuery.withExistsQueries) != 1 {
+		t.Errorf("Expected 1 exists query, got %d", len(resultQuery.withExistsQueries))
+	}
+	if resultQuery.withExistsQueries[0].constraint == nil {
+		t.Error("Expected constraint to be set")
+	}
+}
+
+func TestWithCountSQLGeneration(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Create tables
+	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Fatalf("Failed to create users table: %v", err)
+	}
+	_, err = db.Exec("CREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT, user_id INTEGER)")
+	if err != nil {
+		t.Fatalf("Failed to create posts table: %v", err)
+	}
+
+	type User struct {
+		ID int
+	}
+
+	q := NewQuery(context.Background(), db, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &User{}
+	q = q.WithCount("Posts").(*Query)
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Check that SQL contains count subquery
+	if !strings.Contains(sql, "COUNT(*)") {
+		t.Errorf("Expected SQL to contain COUNT(*), got: %s", sql)
+	}
+	if !strings.Contains(sql, "posts") {
+		t.Errorf("Expected SQL to contain posts table, got: %s", sql)
+	}
+	if !strings.Contains(sql, "Posts_count") {
+		t.Errorf("Expected SQL to contain Posts_count alias, got: %s", sql)
+	}
+	if len(args) != 0 {
+		t.Errorf("Expected no args, got %d", len(args))
+	}
+}
+
+func TestWithExistsSQLGeneration(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Create tables
+	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Fatalf("Failed to create users table: %v", err)
+	}
+	_, err = db.Exec("CREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT, user_id INTEGER)")
+	if err != nil {
+		t.Fatalf("Failed to create posts table: %v", err)
+	}
+
+	type User struct {
+		ID int
+	}
+
+	q := NewQuery(context.Background(), db, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &User{}
+	q = q.WithExists("Posts").(*Query)
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Check that SQL contains exists subquery
+	if !strings.Contains(sql, "EXISTS") {
+		t.Errorf("Expected SQL to contain EXISTS, got: %s", sql)
+	}
+	if !strings.Contains(sql, "posts") {
+		t.Errorf("Expected SQL to contain posts table, got: %s", sql)
+	}
+	if !strings.Contains(sql, "Posts_exists") {
+		t.Errorf("Expected SQL to contain Posts_exists alias, got: %s", sql)
+	}
+	if len(args) != 0 {
+		t.Errorf("Expected no args, got %d", len(args))
+	}
+}
+
+func TestWithCountAndExistsTogether(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Create tables
+	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Fatalf("Failed to create users table: %v", err)
+	}
+	_, err = db.Exec("CREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT, user_id INTEGER)")
+	if err != nil {
+		t.Fatalf("Failed to create posts table: %v", err)
+	}
+
+	type User struct {
+		ID int
+	}
+
+	q := NewQuery(context.Background(), db, nil, "", nil, nil)
+	q.table = "users"
+	q.model = &User{}
+	q = q.WithCount("Posts").(*Query)
+	q = q.WithExists("Comments").(*Query)
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	// Check that SQL contains both subqueries
+	if !strings.Contains(sql, "COUNT(*)") {
+		t.Errorf("Expected SQL to contain COUNT(*), got: %s", sql)
+	}
+	if !strings.Contains(sql, "EXISTS") {
+		t.Errorf("Expected SQL to contain EXISTS, got: %s", sql)
+	}
+	if !strings.Contains(sql, "Posts_count") {
+		t.Errorf("Expected SQL to contain Posts_count alias, got: %s", sql)
+	}
+	if !strings.Contains(sql, "Comments_exists") {
+		t.Errorf("Expected SQL to contain Comments_exists alias, got: %s", sql)
+	}
+	if len(args) != 0 {
+		t.Errorf("Expected no args, got %d", len(args))
 	}
 }

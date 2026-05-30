@@ -2,7 +2,10 @@ package query
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
+
+	"github.com/dracory/neat/support/str"
 )
 
 // BuildSelect builds a SELECT query from the query state.
@@ -56,6 +59,23 @@ func (b *Builder) BuildSelect() (string, []any) {
 			selectParts = append(selectParts, replacedQuery)
 			args = append(args, s.args...)
 		}
+
+		// Add count subqueries
+		for _, cq := range b.query.withCountQueries {
+			countSubquery := b.buildCountSubquery(cq, placeholderFunc, placeholderIndex)
+			selectParts = append(selectParts, fmt.Sprintf("(%s) AS %s", countSubquery.sql, b.quoteIdentifier(cq.column)))
+			args = append(args, countSubquery.args...)
+			placeholderIndex += len(countSubquery.args)
+		}
+
+		// Add exists subqueries
+		for _, eq := range b.query.withExistsQueries {
+			existsSubquery := b.buildExistsSubquery(eq, placeholderFunc, placeholderIndex)
+			selectParts = append(selectParts, fmt.Sprintf("(%s) AS %s", existsSubquery.sql, b.quoteIdentifier(eq.relation+"_exists")))
+			args = append(args, existsSubquery.args...)
+			placeholderIndex += len(existsSubquery.args)
+		}
+
 		// Prepend DISTINCT if set
 		if b.query.distinct {
 			parts = append(parts, fmt.Sprintf("SELECT DISTINCT %s", strings.Join(selectParts, ", ")))
@@ -91,6 +111,38 @@ func (b *Builder) BuildSelect() (string, []any) {
 			}
 		} else {
 			parts = append(parts, "SELECT *")
+		}
+
+		// Add count subqueries to default SELECT
+		if len(b.query.withCountQueries) > 0 {
+			placeholderFunc := func(n int) string { return "?" }
+			if b.query.driver != nil {
+				placeholderFunc = b.query.driver.Placeholder
+			}
+			placeholderIndex := 1
+
+			for _, cq := range b.query.withCountQueries {
+				countSubquery := b.buildCountSubquery(cq, placeholderFunc, placeholderIndex)
+				parts[0] = parts[0] + fmt.Sprintf(", (%s) AS %s", countSubquery.sql, b.quoteIdentifier(cq.column))
+				args = append(args, countSubquery.args...)
+				placeholderIndex += len(countSubquery.args)
+			}
+		}
+
+		// Add exists subqueries to default SELECT
+		if len(b.query.withExistsQueries) > 0 {
+			placeholderFunc := func(n int) string { return "?" }
+			if b.query.driver != nil {
+				placeholderFunc = b.query.driver.Placeholder
+			}
+			placeholderIndex := 1
+
+			for _, eq := range b.query.withExistsQueries {
+				existsSubquery := b.buildExistsSubquery(eq, placeholderFunc, placeholderIndex)
+				parts[0] = parts[0] + fmt.Sprintf(", (%s) AS %s", existsSubquery.sql, b.quoteIdentifier(eq.relation+"_exists"))
+				args = append(args, existsSubquery.args...)
+				placeholderIndex += len(existsSubquery.args)
+			}
 		}
 	}
 
@@ -217,6 +269,161 @@ func (b *Builder) BuildSelect() (string, []any) {
 				parts = append(parts, "LOCK IN SHARE MODE")
 			}
 		}
+	}
+
+	return strings.Join(parts, " "), args
+}
+
+type subqueryResult struct {
+	sql  string
+	args []any
+}
+
+// buildCountSubquery builds a COUNT subquery for a relationship.
+func (b *Builder) buildCountSubquery(cq countQuery, placeholderFunc func(int) string, startIndex int) subqueryResult {
+	// Infer the related table name from the relation name
+	relationName := str.Of(cq.relation).Snake().String()
+	relationTable := relationName
+	// Simple pluralization: add 's' if not already ending with 's'
+	if !strings.HasSuffix(relationName, "s") {
+		relationTable = relationName + "s"
+	}
+
+	// Get the parent type name to build the foreign key
+	parentTypeName := ""
+	if b.query.model != nil {
+		v := reflect.ValueOf(b.query.model)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() == reflect.Struct {
+			parentTypeName = v.Type().Name()
+		}
+	}
+
+	// Build foreign key column name
+	// If model is not available, use the table name (singularized)
+	foreignKeyColumn := ""
+	if parentTypeName != "" {
+		foreignKeyColumn = str.Of(parentTypeName).Snake().String() + "_id"
+	} else if b.query.table != "" {
+		// Use table name and remove trailing 's' if present
+		tableName := strings.TrimSuffix(b.query.table, "s")
+		foreignKeyColumn = tableName + "_id"
+	}
+
+	// Build the count subquery
+	// SELECT COUNT(*) FROM related_table WHERE foreign_key = main_table.id
+	subquerySQL := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = %s.id",
+		b.quoteIdentifier(relationTable),
+		b.quoteIdentifier(foreignKeyColumn),
+		b.quoteIdentifier(b.query.table))
+
+	// If a constraint is provided, apply it to the subquery
+	if cq.constraint != nil {
+		// Create a temporary query to build the constraint
+		tempQuery := b.query.newQuery()
+		tempQuery.table = relationTable
+		tempQuery = cq.constraint(tempQuery).(*Query)
+
+		// Build the WHERE clause from the constraint
+		if len(tempQuery.wheres) > 0 {
+			whereParts, whereArgs := b.buildWheresFromSlice(tempQuery.wheres, placeholderFunc, startIndex)
+			if whereParts != "" {
+				subquerySQL += " AND " + whereParts
+				return subqueryResult{sql: subquerySQL, args: whereArgs}
+			}
+		}
+	}
+
+	return subqueryResult{sql: subquerySQL, args: []any{}}
+}
+
+// buildExistsSubquery builds an EXISTS subquery for a relationship.
+func (b *Builder) buildExistsSubquery(eq existsQuery, placeholderFunc func(int) string, startIndex int) subqueryResult {
+	// Infer the related table name from the relation name
+	relationName := str.Of(eq.relation).Snake().String()
+	relationTable := relationName
+	// Simple pluralization: add 's' if not already ending with 's'
+	if !strings.HasSuffix(relationName, "s") {
+		relationTable = relationName + "s"
+	}
+
+	// Get the parent type name to build the foreign key
+	parentTypeName := ""
+	if b.query.model != nil {
+		v := reflect.ValueOf(b.query.model)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() == reflect.Struct {
+			parentTypeName = v.Type().Name()
+		}
+	}
+
+	// Build foreign key column name
+	// If model is not available, use the table name (singularized)
+	foreignKeyColumn := ""
+	if parentTypeName != "" {
+		foreignKeyColumn = str.Of(parentTypeName).Snake().String() + "_id"
+	} else if b.query.table != "" {
+		// Use table name and remove trailing 's' if present
+		tableName := strings.TrimSuffix(b.query.table, "s")
+		foreignKeyColumn = tableName + "_id"
+	}
+
+	// Build the exists subquery
+	// SELECT EXISTS(SELECT 1 FROM related_table WHERE foreign_key = main_table.id)
+	subquerySQL := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s WHERE %s = %s.id",
+		b.quoteIdentifier(relationTable),
+		b.quoteIdentifier(foreignKeyColumn),
+		b.quoteIdentifier(b.query.table))
+
+	// If a constraint is provided, apply it to the subquery
+	if eq.constraint != nil {
+		// Create a temporary query to build the constraint
+		tempQuery := b.query.newQuery()
+		tempQuery.table = relationTable
+		tempQuery = eq.constraint(tempQuery).(*Query)
+
+		// Build the WHERE clause from the constraint
+		if len(tempQuery.wheres) > 0 {
+			whereParts, whereArgs := b.buildWheresFromSlice(tempQuery.wheres, placeholderFunc, startIndex)
+			if whereParts != "" {
+				subquerySQL += " AND " + whereParts
+				return subqueryResult{sql: subquerySQL + ")", args: whereArgs}
+			}
+		}
+	}
+
+	return subqueryResult{sql: subquerySQL + ")", args: []any{}}
+}
+
+// buildWheresFromSlice builds WHERE clauses from a whereClause slice with custom placeholder index.
+func (b *Builder) buildWheresFromSlice(wheres []whereClause, placeholderFunc func(int) string, startIndex int) (string, []any) {
+	if len(wheres) == 0 {
+		return "", nil
+	}
+
+	var parts []string
+	args := []any{}
+	placeholderIndex := startIndex
+
+	for i, w := range wheres {
+		// Replace ? with dialect-specific placeholder
+		placeholderCount := strings.Count(w.query, "?")
+		replacedQuery := w.query
+		for j := 0; j < placeholderCount; j++ {
+			replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
+			placeholderIndex++
+		}
+
+		if i == 0 {
+			parts = append(parts, replacedQuery)
+		} else {
+			parts = append(parts, fmt.Sprintf("%s %s", w._type, replacedQuery))
+		}
+		args = append(args, w.args...)
 	}
 
 	return strings.Join(parts, " "), args

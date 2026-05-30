@@ -414,14 +414,47 @@ func (q *Query) Without(relations ...string) contractsorm.Query {
 	return &newQuery
 }
 
-// WithCount adds a count query to the relations (not yet implemented).
-func (q *Query) WithCount(query string, args ...any) contractsorm.Query {
-	return q
+// WithCount adds a count subquery to the SELECT clause for the given relationship.
+// The count is added as a column named "{relation}_count".
+// A constraint callback can be provided to filter the count query.
+func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
+	newQuery := *q
+
+	cq := countQuery{
+		relation: relation,
+		column:   relation + "_count",
+	}
+
+	// Check if a constraint callback is provided
+	if len(args) > 0 {
+		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+			cq.constraint = fn
+		}
+	}
+
+	newQuery.withCountQueries = append(newQuery.withCountQueries, cq)
+	return &newQuery
 }
 
-// WithExists adds an exists query to the relations (not yet implemented).
-func (q *Query) WithExists(query string, args ...any) contractsorm.Query {
-	return q
+// WithExists adds an exists subquery to the SELECT clause for the given relationship.
+// The exists result is added as a boolean column named "{relation}_exists".
+// A constraint callback can be provided to filter the exists query.
+func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
+	newQuery := *q
+
+	eq := existsQuery{
+		relation: relation,
+	}
+
+	// Check if a constraint callback is provided
+	if len(args) > 0 {
+		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+			eq.constraint = fn
+		}
+	}
+
+	newQuery.withExistsQueries = append(newQuery.withExistsQueries, eq)
+	return &newQuery
 }
 
 // Association returns an association for the given relationship name.
