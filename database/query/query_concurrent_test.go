@@ -12,8 +12,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var dbCounter int64
-
 // TestConcurrentQueryExecution tests that multiple goroutines can execute queries concurrently
 func TestConcurrentQueryExecution(t *testing.T) {
 	dbPath := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=busy_timeout(5000)"
@@ -649,9 +647,10 @@ func TestConcurrentQueryWithDistinct(t *testing.T) {
 	// Insert test data with duplicate statuses
 	for i := 0; i < 50; i++ {
 		status := "active"
-		if i%3 == 0 {
+		switch i % 3 {
+		case 0:
 			status = "pending"
-		} else if i%3 == 1 {
+		case 1:
 			status = "inactive"
 		}
 		_, err = db.Exec("INSERT INTO users (name, status) VALUES (?, ?)", fmt.Sprintf("user%d", i), status)

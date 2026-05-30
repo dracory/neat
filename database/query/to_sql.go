@@ -237,7 +237,7 @@ func (t *ToSql) Decrement(column string, amount ...any) string {
 }
 
 // replacePlaceholders replaces ? placeholders with actual values for display.
-func (t *ToSql) replacePlaceholders(sql string, args []any) string {
+func (t *ToSql) replacePlaceholders(sql string, _ []any) string {
 	// For ToSql, keep placeholders as-is
 	return sql
 }

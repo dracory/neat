@@ -1,12 +1,13 @@
 package query
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
 
 func TestBuildInsert(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -24,7 +25,7 @@ func TestBuildInsert(t *testing.T) {
 }
 
 func TestBuildInsertWithMap(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	data := map[string]any{"name": "Bob", "age": 30}
@@ -39,7 +40,7 @@ func TestBuildInsertWithMap(t *testing.T) {
 }
 
 func TestBuildInsertBulk(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -67,7 +68,7 @@ func TestBuildInsertBulk(t *testing.T) {
 }
 
 func TestBuildInsertEmptySlice(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	var users []struct {

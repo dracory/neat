@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewBuilder(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 	if b == nil {
 		t.Error("Expected non-nil Builder")

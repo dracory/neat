@@ -1,12 +1,13 @@
 package query
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
 
 func TestBuildUpdate(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -32,7 +33,7 @@ func TestBuildUpdate(t *testing.T) {
 }
 
 func TestBuildUpdateWithMap(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	data := map[string]any{"name": "Bob", "age": 30}
@@ -53,7 +54,7 @@ func TestBuildUpdateWithMap(t *testing.T) {
 }
 
 func TestBuildUpdateWithColumnAndValue(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	sql, args := b.BuildUpdate("name", "Charlie")
@@ -73,7 +74,7 @@ func TestBuildUpdateWithColumnAndValue(t *testing.T) {
 }
 
 func TestBuildUpdateWithExpression(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	// Test with expression (for Increment/Decrement)
@@ -91,7 +92,7 @@ func TestBuildUpdateWithExpression(t *testing.T) {
 }
 
 func TestBuildUpdateWithSoftDelete(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	// Test soft delete operation (updating deleted_at column)
@@ -108,7 +109,7 @@ func TestBuildUpdateWithSoftDelete(t *testing.T) {
 }
 
 func TestBuildUpdateWithOmittedColumns(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.omitColumns = []string{"password"}
 	b := NewBuilder(q)
 

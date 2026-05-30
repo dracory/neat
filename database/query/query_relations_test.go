@@ -11,7 +11,7 @@ import (
 )
 
 func TestInitializeRelations(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.withRelations = []string{"User", "Posts"}
 
 	type TestModel struct {
@@ -49,7 +49,7 @@ func TestInitializeRelations(t *testing.T) {
 }
 
 func TestInitializeRelationsWithNilValue(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.withRelations = []string{"User"}
 
 	var model *struct{}
@@ -60,7 +60,7 @@ func TestInitializeRelationsWithNilValue(t *testing.T) {
 }
 
 func TestInitializeRelationsWithNonStruct(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.withRelations = []string{"User"}
 
 	model := "not a struct"
@@ -560,7 +560,7 @@ func TestGetParentTypeName(t *testing.T) {
 	}
 
 	t.Run("from value type name", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 		post := &Post{ID: 1}
 		v := reflect.ValueOf(post).Elem()
 		result := q.getParentTypeName(v)
@@ -570,7 +570,7 @@ func TestGetParentTypeName(t *testing.T) {
 	})
 
 	t.Run("from model when value has no name", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 		q.model = &Post{ID: 1}
 		// Create an anonymous struct
 		anon := struct{ ID int }{ID: 1}
@@ -582,7 +582,7 @@ func TestGetParentTypeName(t *testing.T) {
 	})
 
 	t.Run("from model slice", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 		posts := []Post{{ID: 1}}
 		q.model = posts
 		anon := struct{ ID int }{ID: 1}
@@ -594,7 +594,7 @@ func TestGetParentTypeName(t *testing.T) {
 	})
 
 	t.Run("empty when no model", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 		anon := struct{ ID int }{ID: 1}
 		v := reflect.ValueOf(anon)
 		result := q.getParentTypeName(v)

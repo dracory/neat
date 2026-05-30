@@ -1,12 +1,13 @@
 package query
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
 
 func TestBuildSelect(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	sql, args := b.BuildSelect()
@@ -19,7 +20,7 @@ func TestBuildSelect(t *testing.T) {
 }
 
 func TestBuildSelectWithRawSQL(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.rawSQL = "SELECT * FROM users WHERE id = ?"
 	q.rawArgs = []any{1}
 	b := NewBuilder(q)
@@ -34,7 +35,7 @@ func TestBuildSelectWithRawSQL(t *testing.T) {
 }
 
 func TestBuildSelectWithDistinct(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.distinct = true
 	b := NewBuilder(q)
 
@@ -46,7 +47,7 @@ func TestBuildSelectWithDistinct(t *testing.T) {
 
 func TestBuildSelectWithLimit(t *testing.T) {
 	limit := 10
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.limit = &limit
 	b := NewBuilder(q)
 
@@ -58,7 +59,7 @@ func TestBuildSelectWithLimit(t *testing.T) {
 
 func TestBuildSelectWithOffset(t *testing.T) {
 	offset := 5
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.offset = &offset
 	b := NewBuilder(q)
 
@@ -69,7 +70,7 @@ func TestBuildSelectWithOffset(t *testing.T) {
 }
 
 func TestBuildSelectWithOrderBy(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.orders = []orderClause{{column: "name", direction: "ASC"}}
 	b := NewBuilder(q)
 
@@ -80,7 +81,7 @@ func TestBuildSelectWithOrderBy(t *testing.T) {
 }
 
 func TestBuildSelectWithGroupBy(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.groups = []string{"department"}
 	b := NewBuilder(q)
 
@@ -91,7 +92,7 @@ func TestBuildSelectWithGroupBy(t *testing.T) {
 }
 
 func TestBuildSelectWithHaving(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.havings = []havingClause{{query: "COUNT(*) > ?", args: []any{5}}}
 	b := NewBuilder(q)
 
@@ -102,7 +103,7 @@ func TestBuildSelectWithHaving(t *testing.T) {
 }
 
 func TestBuildSelectWithAggregate(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.aggregate = "COUNT"
 	q.aggregateCol = "*"
 	b := NewBuilder(q)
@@ -114,7 +115,7 @@ func TestBuildSelectWithAggregate(t *testing.T) {
 }
 
 func TestBuildSelectWithJoin(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.joins = []joinClause{{_type: "LEFT JOIN", query: "profiles ON users.id = profiles.user_id"}}
 	b := NewBuilder(q)
 

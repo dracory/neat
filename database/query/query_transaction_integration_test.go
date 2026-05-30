@@ -28,7 +28,7 @@ func TestSavePoint(t *testing.T) {
 }
 
 func TestSavePointNotInTransaction(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 	err := q.SavePoint("test_savepoint")
 	if err == nil {
@@ -91,7 +91,7 @@ func TestRollbackTo(t *testing.T) {
 }
 
 func TestRollbackToNotInTransaction(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 	err := q.RollbackTo("test_savepoint")
 	if err == nil {

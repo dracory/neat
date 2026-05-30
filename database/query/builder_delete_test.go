@@ -1,11 +1,12 @@
 package query
 
 import (
+	"context"
 	"testing"
 )
 
 func TestBuildDelete(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "users", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
 
 	sql, args := b.BuildDelete()

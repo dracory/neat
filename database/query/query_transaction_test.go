@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func TestBeforeCommitHooks(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 	called := false
 	q.beforeCommit = []func() error{
@@ -32,7 +33,7 @@ func TestBeforeCommitHooks(t *testing.T) {
 }
 
 func TestAfterCommitHooks(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 	called := false
 	q.afterCommit = []func() error{
@@ -56,7 +57,7 @@ func TestAfterCommitHooks(t *testing.T) {
 }
 
 func TestBeforeCommitHookError(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 	testErr := errors.New("hook error")
 	q.beforeCommit = []func() error{
@@ -72,7 +73,7 @@ func TestBeforeCommitHookError(t *testing.T) {
 }
 
 func TestAfterCommitHookError(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 	testErr := errors.New("hook error")
 	q.afterCommit = []func() error{

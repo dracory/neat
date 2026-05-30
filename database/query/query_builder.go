@@ -56,7 +56,7 @@ func (q *Query) Where(query any, args ...any) orm.Query {
 	queryStr := fmt.Sprintf("%v", query)
 	// Laravel-style: Where("column", "value") -> Where("column = ?", "value")
 	// Only transform if exactly 1 arg and no operator is present
-	if args != nil && len(args) == 1 && !containsOperator(queryStr) {
+	if len(args) == 1 && !containsOperator(queryStr) {
 		queryStr = fmt.Sprintf("%s = ?", queryStr)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: queryStr, args: args})
@@ -144,7 +144,7 @@ func (q *Query) OrWhere(query any, args ...any) orm.Query {
 	queryStr := fmt.Sprintf("%v", query)
 	// Laravel-style: OrWhere("column", "value") -> OrWhere("column = ?", "value")
 	// Only transform if exactly 1 arg and no operator is present
-	if args != nil && len(args) == 1 && !containsOperator(queryStr) {
+	if len(args) == 1 && !containsOperator(queryStr) {
 		queryStr = fmt.Sprintf("%s = ?", queryStr)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "or", query: queryStr, args: args})

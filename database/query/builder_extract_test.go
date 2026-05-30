@@ -1,13 +1,14 @@
 package query
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
 )
 
 func TestExtractColumnsAndValuesStruct(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -31,7 +32,7 @@ func TestExtractColumnsAndValuesStruct(t *testing.T) {
 }
 
 func TestExtractColumnsAndValuesMap(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	data := map[string]any{"name": "Bob", "age": 25}
@@ -49,7 +50,7 @@ func TestExtractColumnsAndValuesMap(t *testing.T) {
 }
 
 func TestExtractColumnsAndValuesSlice(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -76,7 +77,7 @@ func TestExtractColumnsAndValuesSlice(t *testing.T) {
 }
 
 func TestExtractColumnsAndValuesEmptySlice(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	var users []struct {
@@ -97,7 +98,7 @@ func TestExtractColumnsAndValuesEmptySlice(t *testing.T) {
 }
 
 func TestExtractSingleColumnsAndValuesStruct(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -120,7 +121,7 @@ func TestExtractSingleColumnsAndValuesStruct(t *testing.T) {
 }
 
 func TestExtractSingleColumnsAndValuesMap(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	data := map[string]any{"name": "Bob", "age": 25}
@@ -138,7 +139,7 @@ func TestExtractSingleColumnsAndValuesMap(t *testing.T) {
 }
 
 func TestExtractStructColumnsAndValues(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -159,7 +160,7 @@ func TestExtractStructColumnsAndValues(t *testing.T) {
 }
 
 func TestExtractStructColumnsAndValuesWithOmitted(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.omitColumns = []string{"password"}
 	b := NewBuilder(q)
 
@@ -181,7 +182,7 @@ func TestExtractStructColumnsAndValuesWithOmitted(t *testing.T) {
 }
 
 func TestExtractStructColumnsAndValuesWithZeroValues(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -203,7 +204,7 @@ func TestExtractStructColumnsAndValuesWithZeroValues(t *testing.T) {
 }
 
 func TestExtractStructColumnsAndValuesWithTime(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -224,7 +225,7 @@ func TestExtractStructColumnsAndValuesWithTime(t *testing.T) {
 }
 
 func TestExtractColumnNames(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -242,7 +243,7 @@ func TestExtractColumnNames(t *testing.T) {
 }
 
 func TestExtractStructColumnNames(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -260,7 +261,7 @@ func TestExtractStructColumnNames(t *testing.T) {
 }
 
 func TestExtractColumnsAndValuesUnsupportedType(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	_, _, err := b.extractSingleColumnsAndValues("invalid")

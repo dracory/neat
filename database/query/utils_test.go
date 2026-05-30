@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"reflect"
 	"testing"
 )
@@ -292,7 +293,7 @@ func TestCopyScanResults(t *testing.T) {
 
 func TestApplyWhereConditions(t *testing.T) {
 	t.Run("map attributes", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 		attrs := map[string]any{"name": "Alice", "age": 30}
 
 		err := applyWhereConditions(q, attrs)
@@ -307,7 +308,7 @@ func TestApplyWhereConditions(t *testing.T) {
 	})
 
 	t.Run("struct attributes", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 		type User struct {
 			Name string
@@ -328,7 +329,7 @@ func TestApplyWhereConditions(t *testing.T) {
 	})
 
 	t.Run("struct pointer", func(t *testing.T) {
-		q := NewQuery(nil, nil, nil, "", nil, nil)
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 
 		type User struct {
 			Name string

@@ -1,12 +1,13 @@
 package query
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
 
 func TestBuildWheres(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.wheres = []whereClause{
 		{_type: "", query: "name = ?", args: []any{"Alice"}},
 		{_type: "AND", query: "age > ?", args: []any{18}},
@@ -30,7 +31,7 @@ func TestBuildWheres(t *testing.T) {
 }
 
 func TestBuildWheresWithIN(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.wheres = []whereClause{
 		{_type: "", query: "id IN (?)", args: []any{[]any{1, 2, 3}}},
 	}
@@ -51,7 +52,7 @@ func TestBuildWheresWithIN(t *testing.T) {
 }
 
 func TestBuildWheresEmpty(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	where, args := b.buildWheres()
@@ -65,7 +66,7 @@ func TestBuildWheresEmpty(t *testing.T) {
 }
 
 func TestLaravelStyleWhere(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("name", "Alice")
 	b := NewBuilder(q)
 
@@ -80,7 +81,7 @@ func TestLaravelStyleWhere(t *testing.T) {
 }
 
 func TestLaravelStyleOrWhere(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.OrWhere("name", "Bob")
 	b := NewBuilder(q)
 
@@ -95,7 +96,7 @@ func TestLaravelStyleOrWhere(t *testing.T) {
 }
 
 func TestExplicitOperatorWhere(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("age > ?", 18)
 	b := NewBuilder(q)
 
@@ -110,7 +111,7 @@ func TestExplicitOperatorWhere(t *testing.T) {
 }
 
 func TestMixedWhereStyles(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("name", "Alice")
 	q.Where("age > ?", 18)
 	b := NewBuilder(q)
@@ -175,7 +176,7 @@ func TestContainsOperator(t *testing.T) {
 }
 
 func TestWhereWithNoArgs(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("name IS NULL")
 	b := NewBuilder(q)
 
@@ -190,7 +191,7 @@ func TestWhereWithNoArgs(t *testing.T) {
 }
 
 func TestWhereWithMultipleArgs(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("BETWEEN", 1, 10)
 	b := NewBuilder(q)
 
@@ -206,7 +207,7 @@ func TestWhereWithMultipleArgs(t *testing.T) {
 }
 
 func TestWhereWithColumnContainingOperatorLikeString(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("internal", "value")
 	b := NewBuilder(q)
 
@@ -222,7 +223,7 @@ func TestWhereWithColumnContainingOperatorLikeString(t *testing.T) {
 }
 
 func TestWhereWithMixedCaseOperator(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("name like ?", "test")
 	b := NewBuilder(q)
 
@@ -238,7 +239,7 @@ func TestWhereWithMixedCaseOperator(t *testing.T) {
 }
 
 func TestWhereWithNilArgs(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Where("name")
 	b := NewBuilder(q)
 

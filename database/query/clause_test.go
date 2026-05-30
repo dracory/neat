@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
@@ -180,7 +181,7 @@ func TestWhereClauseBuilderOrType(t *testing.T) {
 func TestClauseOrderingInSQL(t *testing.T) {
 	// Verifies that BuildSelect emits clauses in the correct SQL order:
 	// SELECT … FROM … JOIN … WHERE … GROUP BY … HAVING … ORDER BY … LIMIT … OFFSET
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 	q.selects = []selectClause{{expr: "id"}}
 	q.joins = []joinClause{{_type: "LEFT JOIN", query: "orders ON orders.user_id = users.id"}}

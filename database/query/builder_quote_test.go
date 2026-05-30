@@ -1,11 +1,12 @@
 package query
 
 import (
+	"context"
 	"testing"
 )
 
 func TestQuoteIdentifier(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	// Test with nil driver
@@ -28,7 +29,7 @@ func TestQuoteIdentifier(t *testing.T) {
 }
 
 func TestQuoteWhereIdentifiers(t *testing.T) {
-	q := NewQuery(nil, nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	b := NewBuilder(q)
 
 	tests := []struct {
