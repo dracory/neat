@@ -9,9 +9,6 @@ import (
 )
 
 func TestMySQLSchemaTimestamps(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableName := "test_timestamps"
@@ -63,9 +60,6 @@ func TestMySQLSchemaTimestamps(t *testing.T) {
 }
 
 func TestMySQLSchemaTimestampsTz(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableNameTz := "test_timestamps_tz"
@@ -111,9 +105,6 @@ func TestMySQLSchemaTimestampsTz(t *testing.T) {
 }
 
 func TestMySQLSchemaSoftDeletes(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableName := "test_soft_deletes"
@@ -166,9 +157,6 @@ func TestMySQLSchemaSoftDeletes(t *testing.T) {
 }
 
 func TestMySQLSchemaDropTimestamps(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableName := "test_drop_timestamps"
@@ -205,9 +193,6 @@ func TestMySQLSchemaDropTimestamps(t *testing.T) {
 }
 
 func TestMySQLSchemaDropTimestampsTz(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableNameTz := "test_drop_timestamps_tz"
@@ -244,9 +229,6 @@ func TestMySQLSchemaDropTimestampsTz(t *testing.T) {
 }
 
 func TestMySQLSchemaTimestampPrecision(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableName := "test_precision"

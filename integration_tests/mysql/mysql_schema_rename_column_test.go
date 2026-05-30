@@ -4,13 +4,11 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
 func TestMySQLSchemaRenameColumn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 

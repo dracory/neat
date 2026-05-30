@@ -10,9 +10,6 @@ import (
 
 // TestMySQLIntegrationSoftDelete tests soft delete behavior
 func TestMySQLIntegrationSoftDelete(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -68,9 +65,6 @@ func TestMySQLIntegrationSoftDelete(t *testing.T) {
 
 // TestMySQLIntegrationWithTrashed tests WithTrashed method
 func TestMySQLIntegrationWithTrashed(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -130,9 +124,6 @@ func TestMySQLIntegrationWithTrashed(t *testing.T) {
 
 // TestMySQLIntegrationForceDelete tests ForceDelete method
 func TestMySQLIntegrationForceDelete(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -194,9 +185,6 @@ func TestMySQLIntegrationForceDelete(t *testing.T) {
 
 // TestMySQLIntegrationRestore tests Restore method
 func TestMySQLIntegrationRestore(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -276,9 +264,6 @@ func TestMySQLIntegrationRestore(t *testing.T) {
 
 // TestMySQLIntegrationSoftDeleteWithConditions tests soft delete with where conditions
 func TestMySQLIntegrationSoftDeleteWithConditions(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -322,9 +307,6 @@ func TestMySQLIntegrationSoftDeleteWithConditions(t *testing.T) {
 
 // TestMySQLIntegrationRestoreWithConditions tests restore with conditions
 func TestMySQLIntegrationRestoreWithConditions(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -373,9 +355,6 @@ func TestMySQLIntegrationRestoreWithConditions(t *testing.T) {
 
 // TestMySQLIntegrationOnlyTrashed tests OnlyTrashed method
 func TestMySQLIntegrationOnlyTrashed(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -418,9 +397,6 @@ func TestMySQLIntegrationOnlyTrashed(t *testing.T) {
 
 // TestMySQLIntegrationWithoutTrashed tests WithoutTrashed method
 func TestMySQLIntegrationWithoutTrashed(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()

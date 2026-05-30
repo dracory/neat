@@ -9,9 +9,6 @@ import (
 )
 
 func TestMySQLSchemaTableCreateHasDrop(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableName := "test_table"
@@ -47,9 +44,6 @@ func TestMySQLSchemaTableCreateHasDrop(t *testing.T) {
 }
 
 func TestMySQLSchemaTableRename(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	oldName := "old_table"
@@ -81,9 +75,6 @@ func TestMySQLSchemaTableRename(t *testing.T) {
 }
 
 func TestMySQLSchemaTableGetTables(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	table1 := "table1"
@@ -144,9 +135,6 @@ func TestMySQLSchemaTableGetTables(t *testing.T) {
 }
 
 func TestMySQLSchemaTableModify(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	tableName := "modify_table"

@@ -43,33 +43,7 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ## Phase 2: Advanced Integration Test Coverage (LOW PRIORITY)
 
-### 2.1 Read/Write Replica Routing Test
-
-**Status**: ✅ Complete
-**Priority**: MEDIUM
-
-**Purpose**: Test that reads go to replica and writes go to primary using different hosts
-
-**Current state**: 
-- Unit test exists: `database/query/query_accessors_test.go` (tests readConn/writeConn behavior)
-- Integration test created: `integration_tests/common/replica_routing_test.go`
-
-**Steps**:
-1. Create test with two real database instances
-2. Configure primary and replica in test config
-3. Verify SELECT queries use replica connection
-4. Verify INSERT/UPDATE/DELETE use primary connection
-5. Test connection failover scenarios
-
-**File created**: `integration_tests/common/replica_routing_test.go`
-
-**Note**: The integration test verifies that replica configuration is accepted and the database can be created. Actual routing behavior (readConn/writeConn) is thoroughly tested in unit tests.
-
-**Estimated effort**: 1 day
-
----
-
-### 2.2 InsertGetId PostgreSQL RETURNING Test
+### 2.1 InsertGetId PostgreSQL RETURNING Test
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -205,13 +179,12 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 2. Create SQL Server integration tests (Phase 1.2)
 
 **Week 2: Advanced Integration & Code Quality**
-3. Read/Write Replica Routing Test (Phase 2.1)
-4. InsertGetId PostgreSQL Test (Phase 2.2)
-5. Resolve TODO comments (Phase 3.1)
+3. InsertGetId PostgreSQL Test (Phase 2.1)
+4. Resolve TODO comments (Phase 3.1)
 
 **Week 3: CI/CD & Polish**
-8. Add code coverage reporting (Phase 3.3)
-9. Enhance GitHub Actions workflows (Phase 4.1)
+5. Add code coverage reporting (Phase 3.2)
+6. Enhance GitHub Actions workflows (Phase 4.1)
 
 **Optional (if time permits)**:
 - Additional CI/CD improvements
@@ -244,8 +217,7 @@ Use this checklist to track completion:
 - [ ] 1.2 Create SQL Server tests (~40 files)
 
 ### Phase 2: Advanced Integration
-- [ ] 2.1 Read/Write Replica Routing Test
-- [ ] 2.2 InsertGetId PostgreSQL Test
+- [ ] 2.1 InsertGetId PostgreSQL Test
 
 ### Phase 3: Code Quality
 - [ ] 3.1 Resolve TODO comments (13 items)
@@ -262,12 +234,12 @@ Use this checklist to track completion:
 ## Estimated Total Effort
 
 - **Phase 1**: 5-7 days
-- **Phase 2**: 1.5 days
+- **Phase 2**: 0.5 days
 - **Phase 3**: 1.5 days
 - **Phase 4**: 1.5 days
 - **Phase 5**: 3-4 days
 
-**Total**: 12.5-14.5 days (2.5-3 weeks for one developer)
+**Total**: 11.5-14.5 days (2.5-3 weeks for one developer)
 
 With 2-3 developers working in parallel: **1-1.5 weeks to zero gaps**
 
