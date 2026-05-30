@@ -100,6 +100,11 @@ func (w *TestQuery) LogQuery(sqlStr string, bindings []any, start time.Time) {
 	w.Q.logQuery(sqlStr, bindings, start)
 }
 
+// LogQueryOnQuery calls logQuery on a Query instance for testing.
+func LogQueryOnQuery(q *Query, sqlStr string, bindings []any, start time.Time) {
+	q.logQuery(sqlStr, bindings, start)
+}
+
 // MakeDBConfig builds a minimal DBConfig suitable for unit tests.
 func MakeDBConfig() *db.DBConfig {
 	return &db.DBConfig{
