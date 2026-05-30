@@ -395,3 +395,153 @@ func TestOmit(t *testing.T) {
 		t.Error("Expected non-nil Query from Omit")
 	}
 }
+
+func TestCrossJoin(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.CrossJoin("categories")
+
+	if result == nil {
+		t.Error("Expected non-nil Query from CrossJoin")
+	}
+}
+
+func TestCrossJoinSQLGeneration(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("products")
+	q.CrossJoin("categories")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "CROSS JOIN categories") {
+		t.Errorf("Expected SQL to contain 'CROSS JOIN categories', got: %s", sql)
+	}
+}
+
+func TestOrder(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.Order("name asc")
+
+	if result == nil {
+		t.Error("Expected non-nil Query from Order")
+	}
+}
+
+func TestOrderAscSQLGeneration(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Order("name ASC")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'name', got: %s", sql)
+	}
+}
+
+func TestOrderDescSQLGeneration(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Order("created_at DESC")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "desc") {
+		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)
+	}
+}
+
+func TestSelectWithAlias(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Select("name AS full_name")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "full_name") {
+		t.Errorf("Expected SQL to contain alias 'full_name', got: %s", sql)
+	}
+}
+
+func TestSelectWithSlice(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Select([]string{"id", "name", "email"})
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "id") || !strings.Contains(sql, "name") || !strings.Contains(sql, "email") {
+		t.Errorf("Expected SQL to contain all slice columns, got: %s", sql)
+	}
+}
+
+func TestMultipleOrderByChained(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.OrderBy("last_name").OrderBy("first_name", "desc")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "last_name") || !strings.Contains(sql, "first_name") {
+		t.Errorf("Expected SQL to contain both order columns, got: %s", sql)
+	}
+	if !strings.Contains(sql, "desc") {
+		t.Errorf("Expected SQL to contain 'desc' direction, got: %s", sql)
+	}
+}
+
+func TestLimitAndOffsetCombined(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Limit(20).Offset(40)
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "LIMIT") {
+		t.Errorf("Expected SQL to contain 'LIMIT', got: %s", sql)
+	}
+	if !strings.Contains(sql, "OFFSET") {
+		t.Errorf("Expected SQL to contain 'OFFSET', got: %s", sql)
+	}
+	if !strings.Contains(sql, "20") || !strings.Contains(sql, "40") {
+		t.Errorf("Expected SQL to contain LIMIT 20 and OFFSET 40, got: %s", sql)
+	}
+}
+
+func TestMethodChainingReturnsQuery(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+
+	result := q.Table("users").
+		Select("id").
+		Select("name").
+		Where("active = ?", true).
+		OrderBy("name").
+		Limit(10).
+		Offset(0)
+
+	if result == nil {
+		t.Error("Expected non-nil Query after method chaining")
+	}
+
+	wrapped := WrapQuery(result.(*Query))
+	sql, args := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "FROM") {
+		t.Errorf("Expected chained query to contain FROM clause, got: %s", sql)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument from chained where, got %d", len(args))
+	}
+}

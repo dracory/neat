@@ -383,6 +383,132 @@ func TestSharedLock_DialectDifferences(t *testing.T) {
 	}
 }
 
+func TestTableFromSubquery(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("(SELECT id, name FROM users WHERE active = ?) AS sub", 1)
+
+	wrapped := WrapQuery(q)
+	sql, args := wrapped.BuildSelectSQL()
+
+	if !contains(sql, "FROM") {
+		t.Errorf("Expected SQL to contain FROM clause, got: %s", sql)
+	}
+	if !contains(sql, "sub") {
+		t.Errorf("Expected SQL to contain subquery alias 'sub', got: %s", sql)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 argument from subquery, got %d", len(args))
+	}
+}
+
+func TestCloneQueryStateIsolation(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Where("status = ?", "active")
+	q.Select("id", "name")
+	q.OrderBy("name")
+	limit := 10
+	q.limit = &limit
+
+	clone := q.Clone().(*Query)
+
+	// Mutate the clone — original must be unaffected
+	clone.Table("posts")
+	clone.Where("id = ?", 99)
+
+	if q.table != "users" {
+		t.Errorf("Original table mutated by clone modification, got: %s", q.table)
+	}
+	if len(q.wheres) != 1 {
+		t.Errorf("Original wheres mutated by clone modification, got %d wheres", len(q.wheres))
+	}
+	if clone.table != "posts" {
+		t.Errorf("Clone table not updated, got: %s", clone.table)
+	}
+	if len(clone.wheres) != 2 {
+		t.Errorf("Clone wheres not updated, got %d wheres", len(clone.wheres))
+	}
+}
+
+func TestClonePreservesSelects(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Select("id", "name")
+
+	clone := q.Clone().(*Query)
+
+	if len(clone.selects) != len(q.selects) {
+		t.Errorf("Clone selects count mismatch: original %d, clone %d", len(q.selects), len(clone.selects))
+	}
+}
+
+func TestClonePreservesLimit(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Limit(5)
+
+	clone := q.Clone().(*Query)
+
+	if clone.limit == nil {
+		t.Fatal("Clone limit should not be nil")
+	}
+	if *clone.limit != 5 {
+		t.Errorf("Clone limit mismatch: expected 5, got %d", *clone.limit)
+	}
+
+	// Mutating clone's limit must not affect original
+	newLimit := 99
+	clone.limit = &newLimit
+	if *q.limit != 5 {
+		t.Errorf("Original limit mutated by clone modification")
+	}
+}
+
+func TestRawExpressionStruct(t *testing.T) {
+	expr := RawExpression{
+		SQL:  "NOW()",
+		Args: nil,
+	}
+
+	if expr.SQL != "NOW()" {
+		t.Errorf("Expected SQL 'NOW()', got '%s'", expr.SQL)
+	}
+	if expr.Args != nil {
+		t.Errorf("Expected nil Args, got %v", expr.Args)
+	}
+}
+
+func TestRawExpressionWithArgs(t *testing.T) {
+	expr := RawExpression{
+		SQL:  "DATE_ADD(NOW(), INTERVAL ? DAY)",
+		Args: []any{7},
+	}
+
+	if expr.SQL != "DATE_ADD(NOW(), INTERVAL ? DAY)" {
+		t.Errorf("Unexpected SQL: %s", expr.SQL)
+	}
+	if len(expr.Args) != 1 || expr.Args[0] != 7 {
+		t.Errorf("Unexpected Args: %v", expr.Args)
+	}
+}
+
+func TestWhereExistsSQLGeneration(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.WhereExists(func(sub contractsorm.Query) contractsorm.Query {
+		return sub.Table("orders").Where("orders.user_id = users.id")
+	})
+
+	sql, _ := NewBuilder(q).BuildSelect()
+
+	if !contains(sql, "EXISTS") {
+		t.Errorf("Expected SQL to contain 'EXISTS', got: %s", sql)
+	}
+	if !contains(sql, "orders") {
+		t.Errorf("Expected SQL to contain subquery table 'orders', got: %s", sql)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))
 }
