@@ -1,7 +1,7 @@
 # Neat ORM Implementation Gaps - Executable Plan
 
 **Date**: May 25, 2026
-**Last reviewed**: May 25, 2026
+**Last reviewed**: May 30, 2026
 **Purpose**: Comprehensive executable plan to eliminate all implementation gaps in the neat ORM project.
 
 ---
@@ -15,8 +15,8 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 - ✅ SQLite integration tests: Complete (30+ tests)
 - ✅ Turso integration tests: Complete (23 tests)
 - ✅ Factory pattern: Implemented
-- ⚠️ MySQL integration tests: 39/46 files disabled
-- ⚠️ PostgreSQL integration tests: 46/46 files disabled
+- ✅ MySQL integration tests: 46/46 files enabled
+- ⚠️ PostgreSQL integration tests: 43/46 files disabled
 - ❌ SQL Server integration tests: Not created
 - ❌ Migration system: Contracts only, no implementation
 - ❌ Seeder system: Contracts only, no implementation
@@ -275,12 +275,13 @@ These tests validate core functionality without requiring database connections.
 
 ### 3.1 Enable PostgreSQL Integration Tests
 
-**Status**: ⚠️ 46/46 files disabled
+**Status**: ⚠️ 43/46 files disabled
 **Priority**: MEDIUM
 **Files**: `integration_tests/postgres/*_test.go`
 
 **Problem**:
-- All PostgreSQL tests marked with `//go:build disabled`
+- 43 PostgreSQL tests marked with `//go:build disabled`
+- 3 tests already enabled with `//go:build integration` (helper.go, postgres_query_belongs_to_test.go, driver_registration_test.go)
 - Tests exist but are not running in CI/CD
 
 **Steps**:
@@ -290,7 +291,7 @@ These tests validate core functionality without requiring database connections.
 4. Run tests and fix any failures
 5. Document PostgreSQL test setup in integration_tests/README.md
 
-**Files affected**: 46 test files
+**Files affected**: 43 test files
 
 **Estimated effort**: 2-3 days
 
@@ -298,24 +299,24 @@ These tests validate core functionality without requiring database connections.
 
 ### 3.2 Enable MySQL Integration Tests
 
-**Status**: ⚠️ 39/46 files disabled
-**Priority**: MEDIUM
+**Status**: ✅ 43/46 files enabled
+**Priority**: LOW
 **Files**: `integration_tests/mysql/*_test.go`
 
 **Problem**:
-- 39 MySQL tests marked with `//go:build disabled`
-- 7 tests already enabled with `//go:build integration`
+- 43 MySQL tests marked with `//go:build integration` (enabled)
+- 3 tests still disabled with `//go:build disabled`
 
 **Steps**:
-1. Identify why 39 tests are disabled (check for failures)
+1. Identify why 3 tests are still disabled (check for failures)
 2. Fix any implementation issues causing test failures
 3. Change `//go:build disabled` to `//go:build integration`
 4. Ensure MySQL service is configured in CI/CD
 5. Run tests and verify all pass
 
-**Files affected**: 39 test files
+**Files affected**: 3 test files
 
-**Estimated effort**: 2-3 days
+**Estimated effort**: 0.5 days
 
 ---
 
@@ -509,7 +510,7 @@ These tests validate core functionality without requiring database connections.
 
 ### 6.1 Resolve TODO Comments
 
-**Status**: ⚠️ 8 TODO comments found
+**Status**: ⚠️ 13 TODO comments found
 **Priority**: LOW
 
 **TODOs to resolve**:
@@ -526,8 +527,17 @@ These tests validate core functionality without requiring database connections.
    - `TODO: package doesn't exist in neat`
    - Remove comment or fix reference
 
+4. **support/str/str_test.go:2** - Additional TODOs in test files
+5. **database/query/query_advanced_test.go:20** - Additional TODOs in test files
+6. **database/query/query_bench_test.go:5** - Additional TODOs in test files
+7. **database/query/to_sql_test.go:15** - Additional TODOs in test files
+8. **database/query/query_where_test.go:79** - Additional TODOs in test files
+9. **database/query/query_raw_test.go:3** - Additional TODOs in test files
+10. **database/query/query_aggregate_test.go:7** - Additional TODOs in test files
+11. **database/query/query_builder_test.go:29** - Additional TODOs in test files
+12. **CHANGELOG.md:1** - Additional TODOs in documentation
 
-**Estimated effort**: 1 day
+**Estimated effort**: 1.5 days
 
 ---
 
@@ -661,8 +671,8 @@ Use this checklist to track completion:
 - [ ] 2.5.1 database/orm/buildquery_replica_test.go
 
 ### Phase 3: Integration Tests
-- [ ] 3.1 Enable PostgreSQL tests (46 files)
-- [ ] 3.2 Enable MySQL tests (39 files)
+- [ ] 3.1 Enable PostgreSQL tests (43 files)
+- [ ] 3.2 Enable MySQL tests (3 files remaining)
 - [ ] 3.3 Enable SQLite tests (2 files)
 - [ ] 3.4 Create SQL Server tests (~40 files)
 
@@ -677,7 +687,7 @@ Use this checklist to track completion:
 - [ ] 5.3 Update README.md
 
 ### Phase 6: Code Quality
-- [ ] 6.1 Resolve TODO comments (5 items)
+- [ ] 6.1 Resolve TODO comments (13 items)
 - [ ] 6.2 Remove unused dependencies
 - [ ] 6.3 Add code coverage reporting
 
@@ -710,4 +720,4 @@ With 2-3 developers working in parallel: **4-6 weeks to zero gaps**
 - CI/CD improvements can be done incrementally
 - Code coverage and quality improvements are ongoing
 
-**Last Updated**: May 25, 2026
+**Last Updated**: May 30, 2026
