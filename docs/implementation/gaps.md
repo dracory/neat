@@ -15,130 +15,21 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 - ✅ SQLite integration tests: Complete (30+ tests)
 - ✅ Turso integration tests: Complete (23 tests)
 - ✅ Factory pattern: Implemented
+- ✅ Migration system: Implemented
+- ✅ Seeder system: Implemented
 - ✅ MySQL integration tests: 46/46 files enabled
 - ⚠️ PostgreSQL integration tests: 43/46 files disabled
 - ❌ SQL Server integration tests: Not created
-- ❌ Migration system: Contracts only, no implementation
-- ❌ Seeder system: Contracts only, no implementation
 
 ---
 
-## Phase 1: Critical Implementation Gaps (MUST FIX)
-
-These are incomplete features that will cause runtime errors if used.
-
-
-
-### 1.1 Migration System Implementation
-
-**Status**: ✅ IMPLEMENTED
-**Priority**: HIGH
-**Files**: `contracts/migration/`, `contracts/database/migration/`, `database/migration/`
-
-**Implementation Details**:
-- Created migration repository (`database/migration/repository.go`) - tracks applied migrations in database
-- Created migration runner (`database/migration/migrator.go`) - applies/rolls back migrations
-- Implemented migration file generation with timestamp-based naming
-- Added migration status tracking
-- Created basic unit tests (`database/migration/repository_test.go`)
-- Updated documentation to match implementation (`docs/migrations.md`)
-- Integrated migration methods into Database struct (`database/db.go`)
-
-**API Methods Added**:
-- `db.Migrate(paths ...string)` - Run all pending migrations
-- `db.MigrateDown(step int, paths ...string)` - Rollback migrations
-- `db.MigrateFresh(paths ...string)` - Drop all tables and re-run migrations
-- `db.MigrateReset(paths ...string)` - Rollback all and re-run migrations
-- `db.MigrationStatus(paths ...string)` - Get migration status
-
-**Current Limitations**:
-- Only "orm" driver supported (uses schema builder)
-- Migrations must be manually registered in global registry
-- Migration file generation creates Go files that need manual editing to register
-
-**Estimated effort**: 5-7 days for full implementation (COMPLETED)
-
----
-
-### 1.2 Seeder System Implementation
-
-**Status**: ✅ IMPLEMENTED
-**Priority**: MEDIUM
-**Files**: `contracts/seeder/`, `contracts/database/seeder/`, `database/seeder/`
-
-**Implementation Details**:
-- Created seeder registry (`database/seeder/registry.go`) - global registry for registering seeders
-- Created seeder runner (`database/seeder/runner.go`) - executes seeders with CallOnce tracking
-- Implemented CallOnce tracking to prevent duplicate runs
-- Added seeder methods to Database struct (`database/db.go`):
-  - `db.Seed(seeders)` - Run specified seeders
-  - `db.SeedOnce(seeders)` - Run specified seeders only once
-  - `db.Seeder()` - Get seeder facade for advanced operations
-- Created unit tests (`database/seeder/registry_test.go`, `database/seeder/runner_test.go`)
-- Added documentation (`docs/seeder.md`)
-- Created example (`examples/seeders/`)
-
-**API Methods Added**:
-- `db.Seed(seeders []contractsseeder.Seeder) error` - Runs the specified seeders
-- `db.SeedOnce(seeders []contractsseeder.Seeder) error` - Runs the specified seeders only once
-- `db.Seeder() contractsseeder.Facade` - Returns a seeder facade for advanced operations
-
-**Current Limitations**:
-- No built-in dependency ordering (seeders must be called in desired order manually)
-- CallOnce tracking is per-runner instance (not persisted across application restarts)
-
-**Estimated effort**: 2-3 days (COMPLETED)
-
----
-
-## Phase 2: Unit Test Coverage Gaps (HIGH PRIORITY)
+## Phase 1: Unit Test Coverage Gaps (HIGH PRIORITY)
 
 These tests validate core functionality without requiring database connections.
 
+### 1.1 Database/DB Tests
 
-
-
-### 2.1 Root Level Configuration Tests
-
-**Status**: ❌ Missing
-**Priority**: HIGH
-
-#### 2.1.1 db_context_test.go
-**Purpose**: Test database context handling
-**Test cases needed**:
-- WithContext() sets context correctly
-- Context propagates to queries
-- Context cancellation stops operations
-- Nil context handling
-
-**Estimated effort**: 0.5 days
-
-#### 2.1.2 db_pool_test.go
-**Purpose**: Test connection pool configuration
-**Test cases needed**:
-- MaxOpenConns configuration
-- MaxIdleConns configuration
-- ConnMaxLifetime configuration
-- ConnMaxIdleTime configuration
-- Pool exhaustion behavior
-
-**Estimated effort**: 0.5 days
-
-#### 2.1.3 db_ssl_test.go
-**Purpose**: Test SSL/TLS connection configuration
-**Test cases needed**:
-- SSL mode configuration (disable, require, verify-ca, verify-full)
-- Certificate path configuration
-- SSL parameter parsing from DSN
-- SSL configuration for each driver
-
-**Estimated effort**: 0.5 days
-
----
-
-### 2.2 Database/DB Tests
-
-#### 2.2.1 database/db/dsn_test.go
+#### 1.1.1 database/db/dsn_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -164,9 +55,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 2.3 Database/Query Tests
+### 1.2 Database/Query Tests
 
-#### 2.3.1 database/query/query_test.go
+#### 1.2.1 database/query/query_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -189,7 +80,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 2 days
 
-#### 2.3.2 database/query/clause_test.go
+#### 1.2.2 database/query/clause_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -206,7 +97,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 1 day
 
-#### 2.3.3 database/query/builder_test.go
+#### 1.2.3 database/query/builder_test.go
 
 **Status**: ❌ Missing
 **Priority**: HIGH
@@ -222,7 +113,7 @@ These tests validate core functionality without requiring database connections.
 
 **Estimated effort**: 1 day
 
-#### 2.3.4 database/query/where_exists_test.go
+#### 1.2.4 database/query/where_exists_test.go
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -239,9 +130,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 2.4 Database/Schema Tests
+### 1.3 Database/Schema Tests
 
-#### 2.4.1 database/schema/index_test.go
+#### 1.3.1 database/schema/index_test.go
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -259,9 +150,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 2.5 Database/ORM Tests
+### 1.4 Database/ORM Tests
 
-#### 2.5.1 database/orm/buildquery_replica_test.go
+#### 1.4.1 database/orm/buildquery_replica_test.go
 
 **Status**: ❌ Missing
 **Priority**: LOW
@@ -279,9 +170,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 3: Integration Test Enablement (MEDIUM PRIORITY)
+## Phase 2: Integration Test Enablement (MEDIUM PRIORITY)
 
-### 3.1 Enable PostgreSQL Integration Tests
+### 2.1 Enable PostgreSQL Integration Tests
 
 **Status**: ⚠️ 43/46 files disabled
 **Priority**: MEDIUM
@@ -305,7 +196,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 3.2 Enable MySQL Integration Tests
+### 2.2 Enable MySQL Integration Tests
 
 **Status**: ✅ 43/46 files enabled
 **Priority**: LOW
@@ -328,21 +219,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 3.3 Enable SQLite Disabled Tests
-
-**Status**: ✅ All previously disabled tests are now fixed
-**Priority**: LOW
-
-**Previously fixed issues**:
-1. **sqlite_schema_index_test.go:236** - Fixed RenameIndex savepoint issue
-2. **sqlite_query_json_test.go:149** - Implemented JSON_SET support for SQLite
-3. **sqlite_query_join_test.go:222, 256, 283** - Upgraded SQLite to v1.51.0 for RIGHT JOIN support
-
-**Remaining**: 2 tests in `sqlite_query_paginate_test.go` disabled for short mode only (not actual issues)
-
----
-
-### 3.4 Create SQL Server Integration Tests
+### 2.3 Create SQL Server Integration Tests
 
 **Status**: ❌ Not created
 **Priority**: MEDIUM
@@ -364,9 +241,9 @@ These tests validate core functionality without requiring database connections.
 ---
 
 
-## Phase 4: Advanced Integration Test Coverage (LOW PRIORITY)
+## Phase 3: Advanced Integration Test Coverage (LOW PRIORITY)
 
-### 4.1 Read/Write Replica Routing Test
+### 3.1 Read/Write Replica Routing Test
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -390,7 +267,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 4.2 InsertGetId PostgreSQL RETURNING Test
+### 3.2 InsertGetId PostgreSQL RETURNING Test
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
@@ -411,7 +288,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 4.3 SlowThreshold Warning Integration Test
+### 3.3 SlowThreshold Warning Integration Test
 
 **Status**: ❌ Missing
 **Priority**: LOW
@@ -431,9 +308,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 5: Documentation Gaps (MEDIUM PRIORITY)
+## Phase 4: Documentation Gaps (MEDIUM PRIORITY)
 
-### 5.1 Update Placeholder Documentation
+### 4.1 Update Placeholder Documentation
 
 **Status**: ⚠️ Marked as placeholders
 **Priority**: MEDIUM
@@ -454,40 +331,40 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 5.2 Create Missing Documentation
+### 4.2 Create Missing Documentation
 
 **Status**: ❌ Missing
 **Priority**: MEDIUM
 
 **Documents to create**:
 
-#### 5.2.1 docs/factory.md
+#### 4.2.1 docs/factory.md
 - Factory pattern usage (if implemented)
 - Defining factories
 - Using factories in tests
 - Factory relationships
 
-#### 5.2.2 docs/seeder.md
+#### 4.2.2 docs/seeder.md
 - Seeder usage (if implemented)
 - Creating seeders
 - Running seeders
 - Seeder dependencies
 
-#### 5.2.3 docs/testing.md
+#### 4.2.3 docs/testing.md
 - Testing guide for contributors
 - Running unit tests
 - Running integration tests
 - Writing new tests
 - Test database setup
 
-#### 5.2.4 docs/performance.md
+#### 4.2.4 docs/performance.md
 - Connection pooling best practices
 - Query optimization tips
 - Eager loading vs lazy loading
 - Batch operations
 - Benchmarking results
 
-#### 5.2.5 docs/api-reference.md
+#### 4.2.5 docs/api-reference.md
 - Complete API reference
 - All methods with signatures
 - Parameter descriptions
@@ -498,7 +375,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 5.3 Update README.md
+### 4.3 Update README.md
 
 **Status**: ⚠️ Contains inaccuracies
 **Priority**: HIGH
@@ -514,9 +391,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 6: Code Quality Improvements (LOW PRIORITY)
+## Phase 5: Code Quality Improvements (LOW PRIORITY)
 
-### 6.1 Resolve TODO Comments
+### 5.1 Resolve TODO Comments
 
 **Status**: ⚠️ 13 TODO comments found
 **Priority**: LOW
@@ -549,7 +426,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 6.2 Remove Unused Dependencies
+### 5.2 Remove Unused Dependencies
 
 **Status**: ⚠️ Unused dependencies in go.mod
 **Priority**: LOW
@@ -567,7 +444,7 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-### 6.3 Add Code Coverage Reporting
+### 5.3 Add Code Coverage Reporting
 
 **Status**: ❌ Not configured
 **Priority**: LOW
@@ -583,9 +460,9 @@ These tests validate core functionality without requiring database connections.
 
 ---
 
-## Phase 7: CI/CD Improvements (LOW PRIORITY)
+## Phase 6: CI/CD Improvements (LOW PRIORITY)
 
-### 7.1 Enhance GitHub Actions Workflows
+### 6.1 Enhance GitHub Actions Workflows
 
 **Status**: ⚠️ Basic workflows exist
 **Priority**: LOW
@@ -662,67 +539,57 @@ The project will have **ZERO GAPS** when:
 
 Use this checklist to track completion:
 
-### Phase 1: Critical Implementation
-- [ ] 1.1 Migration System (decision + implementation)
-- [ ] 1.2 Seeder System (decision + implementation)
+### Phase 1: Unit Tests
+- [ ] 1.1.1 database/db/dsn_test.go
+- [ ] 1.2.1 database/query/query_test.go
+- [ ] 1.2.2 database/query/clause_test.go
+- [ ] 1.2.3 database/query/builder_test.go
+- [ ] 1.2.4 database/query/where_exists_test.go
+- [ ] 1.3.1 database/schema/index_test.go
+- [ ] 1.4.1 database/orm/buildquery_replica_test.go
 
-### Phase 2: Unit Tests
-- [ ] 2.1.1 db_context_test.go
-- [ ] 2.1.2 db_pool_test.go
-- [ ] 2.1.3 db_ssl_test.go
-- [ ] 2.2.1 database/db/dsn_test.go
-- [ ] 2.3.1 database/query/query_test.go
-- [ ] 2.3.2 database/query/clause_test.go
-- [ ] 2.3.3 database/query/builder_test.go
-- [ ] 2.3.4 database/query/where_exists_test.go
-- [ ] 2.4.1 database/schema/index_test.go
-- [ ] 2.5.1 database/orm/buildquery_replica_test.go
+### Phase 2: Integration Tests
+- [ ] 2.1 Enable PostgreSQL tests (43 files)
+- [ ] 2.2 Enable MySQL tests (3 files remaining)
+- [ ] 2.3 Create SQL Server tests (~40 files)
 
-### Phase 3: Integration Tests
-- [ ] 3.1 Enable PostgreSQL tests (43 files)
-- [ ] 3.2 Enable MySQL tests (3 files remaining)
-- [ ] 3.3 Enable SQLite tests (2 files)
-- [ ] 3.4 Create SQL Server tests (~40 files)
+### Phase 3: Advanced Integration
+- [ ] 3.1 Read/Write Replica Routing Test
+- [ ] 3.2 InsertGetId PostgreSQL Test
+- [ ] 3.3 SlowThreshold Warning Test
 
-### Phase 4: Advanced Integration
-- [ ] 4.1 Read/Write Replica Routing Test
-- [ ] 4.2 InsertGetId PostgreSQL Test
-- [ ] 4.3 SlowThreshold Warning Test
+### Phase 4: Documentation
+- [ ] 4.1 Update placeholder docs (3 files)
+- [ ] 4.2 Create missing docs (5 files)
+- [ ] 4.3 Update README.md
 
-### Phase 5: Documentation
-- [ ] 5.1 Update placeholder docs (3 files)
-- [ ] 5.2 Create missing docs (5 files)
-- [ ] 5.3 Update README.md
+### Phase 5: Code Quality
+- [ ] 5.1 Resolve TODO comments (13 items)
+- [ ] 5.2 Remove unused dependencies
+- [ ] 5.3 Add code coverage reporting
 
-### Phase 6: Code Quality
-- [ ] 6.1 Resolve TODO comments (13 items)
-- [ ] 6.2 Remove unused dependencies
-- [ ] 6.3 Add code coverage reporting
-
-### Phase 7: CI/CD
-- [ ] 7.1 Enhance GitHub Actions workflows
+### Phase 6: CI/CD
+- [ ] 6.1 Enhance GitHub Actions workflows
 
 ---
 
 ## Estimated Total Effort
 
-- **Phase 1**: 5-7 days (depends on decisions)
-- **Phase 2**: 7.5 days
-- **Phase 3**: 8-12 days
-- **Phase 4**: 2 days
-- **Phase 5**: 5.5 days
-- **Phase 6**: 2 days
-- **Phase 7**: 1.5 days
+- **Phase 1**: 7.5 days
+- **Phase 2**: 5.5-9.5 days
+- **Phase 3**: 2 days
+- **Phase 4**: 5.5 days
+- **Phase 5**: 2 days
+- **Phase 6**: 1.5 days
 
-**Total**: 31-37 days (6-7 weeks for one developer)
+**Total**: 24-28 days (5-6 weeks for one developer)
 
-With 2-3 developers working in parallel: **4-6 weeks to zero gaps**
+With 2-3 developers working in parallel: **3-4 weeks to zero gaps**
 
 ---
 
 ## Notes
 
-- This plan assumes decisions on Migration and Seeder are made quickly
 - Integration test enablement may reveal additional bugs requiring fixes
 - Documentation effort can be parallelized with implementation work
 - CI/CD improvements can be done incrementally

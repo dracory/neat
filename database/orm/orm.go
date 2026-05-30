@@ -273,14 +273,10 @@ func (r *Orm) Observe(model any, observer contractsorm.Observer) {
 		Observer: observer,
 	})
 
+	// r.query is also stored in r.queries, so iterating r.queries is sufficient.
+	// Calling Observe on r.query separately would register the observer twice.
 	for _, q := range r.queries {
 		if queryWithObserver, ok := q.(contractsorm.QueryWithObserver); ok {
-			queryWithObserver.Observe(model, observer)
-		}
-	}
-
-	if r.query != nil {
-		if queryWithObserver, ok := r.query.(contractsorm.QueryWithObserver); ok {
 			queryWithObserver.Observe(model, observer)
 		}
 	}

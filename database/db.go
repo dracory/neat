@@ -81,12 +81,22 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 		opt(o)
 	}
 
+	// Handle nil context by using background context
+	if o.ctx == nil {
+		o.ctx = context.Background()
+	}
+
 	// Ensure default connection is set
 	if cfg.Default == "" && len(cfg.Connections) > 0 {
 		for name := range cfg.Connections {
 			cfg.Default = name
 			break
 		}
+	}
+
+	// Apply pool configuration from options if provided
+	if o.pool != nil {
+		cfg.Pool = *o.pool
 	}
 
 	// Create database instance
@@ -409,6 +419,11 @@ func (d *Database) GetQueryLog() []orm.QueryLog {
 // Factory returns the ORM factory for creating test data.
 func (d *Database) Factory() orm.Factory {
 	return d.ormInstance.Factory()
+}
+
+// Observe registers an observer for the given model.
+func (d *Database) Observe(model any, observer orm.Observer) {
+	d.ormInstance.Observe(model, observer)
 }
 
 // Migrate runs all pending migrations.
