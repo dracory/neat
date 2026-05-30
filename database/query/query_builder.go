@@ -32,9 +32,14 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 		processedArgs = make([]any, 0, len(args))
 		for _, arg := range args {
 			if fn, ok := arg.(func(orm.Query) orm.Query); ok {
-				subQuery := fn(q.newQuery())
+				subQuery := fn(q.Clone().(*Query))
+				// Temporarily remove driver to build subquery with ? placeholders
+				originalDriver := subQuery.(*Query).driver
+				subQuery.(*Query).driver = nil
 				builder := NewBuilder(subQuery.(*Query))
 				subSQL, subArgs := builder.BuildSelect()
+				// Restore driver
+				subQuery.(*Query).driver = originalDriver
 				if strings.Contains(queryStr, "?") {
 					queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
 				} else {
@@ -245,9 +250,14 @@ func (q *Query) Having(query any, args ...any) orm.Query {
 	processedArgs := make([]any, 0, len(args))
 	for _, arg := range args {
 		if fn, ok := arg.(func(orm.Query) orm.Query); ok {
-			subQuery := fn(q.newQuery())
+			subQuery := fn(q.Clone().(*Query))
+			// Temporarily remove driver to build subquery with ? placeholders
+			originalDriver := subQuery.(*Query).driver
+			subQuery.(*Query).driver = nil
 			builder := NewBuilder(subQuery.(*Query))
 			subSQL, subArgs := builder.BuildSelect()
+			// Restore driver
+			subQuery.(*Query).driver = originalDriver
 			if strings.Contains(queryStr, "?") {
 				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
 			} else {

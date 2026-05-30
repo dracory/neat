@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 func TestSelect(t *testing.T) {
@@ -517,6 +519,46 @@ func TestLimitAndOffsetCombined(t *testing.T) {
 	}
 	if !strings.Contains(sql, "20") || !strings.Contains(sql, "40") {
 		t.Errorf("Expected SQL to contain LIMIT 20 and OFFSET 40, got: %s", sql)
+	}
+}
+
+func TestSelectWithSubqueryClosure(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Select(func(sub orm.Query) orm.Query {
+		return sub.Table("orders").Select("user_id")
+	}, "sub")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "SELECT") {
+		t.Errorf("Expected SELECT in query with subquery closure, got: %s", sql)
+	}
+	if !strings.Contains(sql, "orders") {
+		t.Errorf("Expected subquery to reference 'orders', got: %s", sql)
+	}
+	if !strings.Contains(sql, "sub") {
+		t.Errorf("Expected subquery alias 'sub' in SELECT, got: %s", sql)
+	}
+}
+
+func TestHavingWithSubqueryClosure(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Group("status")
+	q.Having("id IN ?", func(sub orm.Query) orm.Query {
+		return sub.Table("orders").Select("user_id").Where("total > ?", 100)
+	})
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "HAVING") {
+		t.Errorf("Expected HAVING in query with subquery closure, got: %s", sql)
+	}
+	if !strings.Contains(sql, "orders") {
+		t.Errorf("Expected subquery to reference 'orders' in HAVING, got: %s", sql)
 	}
 }
 

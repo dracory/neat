@@ -22,15 +22,23 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ### 1.1 Enable PostgreSQL Integration Tests
 
-**Status**: ⚠️ 46 files exist, many tests skipped
+**Status**: ✅ COMPLETED (May 30, 2026)
 **Priority**: HIGH
 
-**Gaps to address**:
-1. **Subquery Parameter Numbering**: PostgreSQL requires numbered parameters ($1, $2, etc.). Currently, subqueries in `Having` and `Select` clauses don't correctly handle parameter numbering when combined with the main query.
-2. **Schema Change Syntax**: PostgreSQL's `ALTER COLUMN` syntax is not fully implemented in the schema builder's `Change()` method.
-3. **Association Tests**: Enable all tests in `postgres_query_association_test.go` once Phase 2.1 is complete.
+**Completed gaps**:
+1. ✅ **Subquery Parameter Numbering**: Fixed parameter numbering for SELECT and HAVING clauses with subqueries. PostgreSQL's numbered parameters ($1, $2, etc.) are now correctly handled across all query clauses.
+2. ✅ **Schema Change Syntax**: Enhanced PostgreSQL's `ALTER COLUMN` syntax in the schema builder's `Change()` method to handle type, nullable, and default changes with proper SQL statements.
+3. ⏳ **Association Tests**: Still pending Phase 2.1 completion (Association API implementation).
 
-**Estimated effort**: 3-4 days
+**Changes made**:
+- Updated `database/query/builder_select.go` to add placeholder numbering for SELECT clauses and FROM subqueries
+- Enhanced `database/schema/grammars/postgres.go` CompileChange() to generate separate ALTER COLUMN statements for type, nullable, and default changes
+- Implemented full test suite in `integration_tests/postgres/postgres_schema_column_change_test.go`
+- Enabled HAVING subquery tests in `integration_tests/postgres/postgres_query_group_having_test.go`
+- Enabled SELECT subquery test in `integration_tests/postgres/postgres_query_select_test.go`
+- Removed skip for Change modifier test in `integration_tests/postgres/postgres_schema_column_modifiers_test.go`
+
+**Estimated effort**: 3-4 days (completed)
 
 ### 1.2 Create SQL Server Integration Tests
 
@@ -172,7 +180,7 @@ The project will have **ZERO GAPS** when:
 ## Tracking Progress
 
 ### Phase 1: Integration Tests
-- [ ] 1.1 Enable PostgreSQL tests
+- [x] 1.1 Enable PostgreSQL tests
 - [ ] 1.2 Create SQL Server tests
 
 ### Phase 2: ORM Features

@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -61,6 +60,11 @@ func TestPostgresSchemaColumnModifiers(t *testing.T) {
 		t.Errorf("Expected comment 'this is a comment', got '%s'", colMap["comment_col"].Comment)
 	}
 
-	// Test Change modifier - skip for PostgreSQL due to syntax issues
-	t.Skip("Skipping Change modifier test - PostgreSQL Change() syntax not fully implemented")
+	// Test Change modifier
+	err = db.Schema().Table(tableName, func(table schema.Blueprint) {
+		table.String("nullable_col", 200).Change()
+	})
+	if err != nil {
+		t.Fatalf("Failed to change column: %v", err)
+	}
 }

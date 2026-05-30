@@ -52,11 +52,31 @@ func (r *Postgres) CompileChange(blueprint schema.Blueprint, command *schema.Com
 	if err != nil {
 		return "", err
 	}
-	column, err := r.getColumn(blueprint, command.Column)
+	columnName, err := r.wrap.Column(command.Column.GetName())
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("alter table %s alter column %s type %s", table, r.wrap.Quote(command.Column.GetName()), column), nil
+
+	var statements []string
+
+	// Type change
+	statements = append(statements, fmt.Sprintf("alter table %s alter column %s type %s", table, columnName, getType(r, command.Column)))
+
+	// Nullable change
+	if command.Column.GetNullable() {
+		statements = append(statements, fmt.Sprintf("alter table %s alter column %s drop not null", table, columnName))
+	} else {
+		statements = append(statements, fmt.Sprintf("alter table %s alter column %s set not null", table, columnName))
+	}
+
+	// Default change
+	if command.Column.GetDefault() != nil {
+		statements = append(statements, fmt.Sprintf("alter table %s alter column %s set default %s", table, columnName, getDefaultValue(command.Column.GetDefault())))
+	} else {
+		statements = append(statements, fmt.Sprintf("alter table %s alter column %s drop default", table, columnName))
+	}
+
+	return strings.Join(statements, "; "), nil
 }
 
 func (r *Postgres) CompileColumns(schema, table string) string {

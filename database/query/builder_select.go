@@ -35,9 +35,25 @@ func (b *Builder) BuildSelect() (string, []any) {
 			parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
 		}
 	} else if len(b.query.selects) > 0 {
+		// Get placeholder function for the dialect
+		placeholderFunc := func(n int) string { return "?" }
+		if b.query.driver != nil {
+			placeholderFunc = b.query.driver.Placeholder
+		}
+
+		// Start placeholder index for SELECT clause
+		placeholderIndex := 1
 		var selectParts []string
 		for _, s := range b.query.selects {
-			selectParts = append(selectParts, s.expr)
+			// Replace ? with dialect-specific placeholder
+			// Count placeholders first to avoid infinite loop if placeholderFunc returns "?"
+			placeholderCount := strings.Count(s.expr, "?")
+			replacedQuery := s.expr
+			for i := 0; i < placeholderCount; i++ {
+				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
+				placeholderIndex++
+			}
+			selectParts = append(selectParts, replacedQuery)
 			args = append(args, s.args...)
 		}
 		// Prepend DISTINCT if set
@@ -82,7 +98,22 @@ func (b *Builder) BuildSelect() (string, []any) {
 	if b.query.table != "" {
 		if strings.Contains(b.query.table, "(") && strings.Contains(b.query.table, ")") {
 			// Subquery in FROM, don't quote
-			parts = append(parts, fmt.Sprintf("FROM %s", b.query.table))
+			// Get placeholder function for the dialect
+			placeholderFunc := func(n int) string { return "?" }
+			if b.query.driver != nil {
+				placeholderFunc = b.query.driver.Placeholder
+			}
+			// Start placeholder index after SELECT clause parameters
+			placeholderIndex := len(args) + 1
+			// Replace ? with dialect-specific placeholder
+			// Count placeholders first to avoid infinite loop if placeholderFunc returns "?"
+			placeholderCount := strings.Count(b.query.table, "?")
+			replacedQuery := b.query.table
+			for i := 0; i < placeholderCount; i++ {
+				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
+				placeholderIndex++
+			}
+			parts = append(parts, fmt.Sprintf("FROM %s", replacedQuery))
 		} else {
 			parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
 		}
@@ -101,10 +132,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 		placeholderIndex := len(args) + 1
 		for _, join := range b.query.joins {
 			// Replace ? with dialect-specific placeholder
-			replacedQuery := strings.Replace(join.query, "?", placeholderFunc(placeholderIndex), -1)
-			// Count how many placeholders were replaced to increment index correctly
+			// Count placeholders first to avoid infinite loop if placeholderFunc returns "?"
 			placeholderCount := strings.Count(join.query, "?")
-			placeholderIndex += placeholderCount
+			replacedQuery := join.query
+			for i := 0; i < placeholderCount; i++ {
+				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
+				placeholderIndex++
+			}
 			parts = append(parts, fmt.Sprintf("%s %s", join._type, replacedQuery))
 			args = append(args, join.args...)
 		}
@@ -135,10 +169,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 		var havingParts []string
 		for _, having := range b.query.havings {
 			// Replace ? with dialect-specific placeholder
-			replacedQuery := strings.Replace(having.query, "?", placeholderFunc(placeholderIndex), -1)
-			// Count how many placeholders were replaced to increment index correctly
+			// Count placeholders first to avoid infinite loop if placeholderFunc returns "?"
 			placeholderCount := strings.Count(having.query, "?")
-			placeholderIndex += placeholderCount
+			replacedQuery := having.query
+			for i := 0; i < placeholderCount; i++ {
+				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
+				placeholderIndex++
+			}
 			havingParts = append(havingParts, replacedQuery)
 			args = append(args, having.args...)
 		}

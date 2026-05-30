@@ -124,3 +124,129 @@ func TestBuildSelectWithJoin(t *testing.T) {
 		t.Error("Expected LEFT JOIN in SQL")
 	}
 }
+
+func TestBuildSelectAggregateSkipsOrderBy(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.aggregate = "COUNT"
+	q.aggregateCol = "*"
+	q.orders = []orderClause{{column: "name", direction: "asc"}}
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected no ORDER BY in aggregate query, got: %s", sql)
+	}
+	if !strings.Contains(sql, "COUNT(*)") {
+		t.Errorf("Expected COUNT(*) in aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectAggregateSkipsLimit(t *testing.T) {
+	limit := 10
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.aggregate = "COUNT"
+	q.aggregateCol = "*"
+	q.limit = &limit
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if strings.Contains(sql, "LIMIT") {
+		t.Errorf("Expected no LIMIT in aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectAggregateSkipsOffset(t *testing.T) {
+	offset := 5
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.aggregate = "COUNT"
+	q.aggregateCol = "*"
+	q.offset = &offset
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if strings.Contains(sql, "OFFSET") {
+		t.Errorf("Expected no OFFSET in aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectAggregateSkipsLockForUpdate(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.aggregate = "COUNT"
+	q.aggregateCol = "*"
+	q.lockForUpdate = true
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if strings.Contains(sql, "FOR UPDATE") {
+		t.Errorf("Expected no FOR UPDATE in aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectAggregateSkipsSharedLock(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.aggregate = "SUM"
+	q.aggregateCol = "amount"
+	q.sharedLock = true
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if strings.Contains(sql, "FOR SHARE") || strings.Contains(sql, "LOCK IN SHARE MODE") {
+		t.Errorf("Expected no shared lock clause in aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectNonAggregateIncludesOrderBy(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.orders = []orderClause{{column: "name", direction: "asc"}}
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected ORDER BY in non-aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectNonAggregateIncludesLimit(t *testing.T) {
+	limit := 20
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.limit = &limit
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if !strings.Contains(sql, "LIMIT 20") {
+		t.Errorf("Expected LIMIT 20 in non-aggregate query, got: %s", sql)
+	}
+}
+
+func TestBuildSelectSubqueryFromPlaceholders(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "(SELECT id FROM orders WHERE amount > ?) sub"
+	q.tableArgs = []any{100}
+	b := NewBuilder(q)
+
+	sql, args := b.BuildSelect()
+	if !strings.Contains(sql, "FROM") {
+		t.Errorf("Expected FROM clause in subquery query, got: %s", sql)
+	}
+	if !strings.Contains(sql, "sub") {
+		t.Errorf("Expected subquery alias in SQL, got: %s", sql)
+	}
+	if len(args) != 1 || args[0] != 100 {
+		t.Errorf("Expected args [100], got %v", args)
+	}
+}
+
+func TestBuildSelectDialectPlaceholderInSelect(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "", nil, nil)
+	q.table = "users"
+	q.selects = []selectClause{{expr: "COALESCE(score, ?)", args: []any{0}}}
+	b := NewBuilder(q)
+
+	sql, args := b.BuildSelect()
+	if !strings.Contains(sql, "$1") {
+		t.Errorf("Expected postgres placeholder $1 in SELECT, got: %s", sql)
+	}
+	if len(args) != 1 || args[0] != 0 {
+		t.Errorf("Expected args [0], got %v", args)
+	}
+}

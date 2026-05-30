@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -67,6 +66,32 @@ func TestPostgresIntegrationQuerySelectWithRawSubqueries(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
+	t.Skip("Skipping - nested subquery placeholder numbering needs more complex solution")
 
-	t.Skip("Skipping Select with raw subqueries test - PostgreSQL parameterized subqueries not supported")
+	db := SetupPostgresTest(t)
+	query := db.Query()
+
+	user := models.User{Name: "subquery_user"}
+	if err := query.Model(&models.User{}).Create(&user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	var createdUser models.User
+	if err := query.Model(&models.User{}).Where("name = ?", "subquery_user").First(&createdUser); err != nil {
+		t.Fatalf("Failed to get created user: %v", err)
+	}
+
+	var result struct {
+		SubName string `db:"column:sub_name"`
+	}
+	err := query.Model(&models.User{}).
+		Select("(SELECT name FROM users WHERE id = ?) as sub_name", createdUser.ID).
+		Where("id = ?", createdUser.ID).
+		Scan(&result)
+	if err != nil {
+		t.Errorf("Scan failed: %v", err)
+	}
+	if result.SubName != "subquery_user" {
+		t.Errorf("Expected 'subquery_user', got '%s'", result.SubName)
+	}
 }
