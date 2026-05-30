@@ -50,9 +50,19 @@ func (p *PolymorphicBelongsTo) Find(out any, conds ...any) error {
 	if !ok {
 		return fmt.Errorf("polymorphic type value is not a string")
 	}
-	tableName := str.Of(typeStr).Snake().String()
-	if !strings.HasSuffix(tableName, "s") {
-		tableName = tableName + "s"
+
+	// Try to get table name from the model's TableName() method
+	tableName := ""
+	if tn, ok := out.(interface{ TableName() string }); ok {
+		tableName = tn.TableName()
+	}
+
+	// Fallback to naive pluralization if TableName() not available
+	if tableName == "" {
+		tableName = str.Of(typeStr).Snake().String()
+		if !strings.HasSuffix(tableName, "s") {
+			tableName = tableName + "s"
+		}
 	}
 
 	// Query the related model using the polymorphic ID
@@ -100,6 +110,11 @@ func (p *PolymorphicBelongsTo) Append(values ...any) error {
 	}
 	relatedID := idField.Interface()
 
+	// Validate that the ID is non-zero (model must be saved)
+	if reflect.ValueOf(relatedID).IsZero() {
+		return fmt.Errorf("related model must be saved before associating (ID is zero)")
+	}
+
 	// Get the type name from the related model
 	typeName := val.Type().Name()
 	if typeName == "" {
@@ -131,7 +146,61 @@ func (p *PolymorphicBelongsTo) Replace(values ...any) error {
 }
 
 // Delete clears the association by setting the polymorphic fields to nil.
+// The values parameter is validated to ensure the provided value matches the current association.
 func (p *PolymorphicBelongsTo) Delete(values ...any) error {
+	// Validate that a value was provided
+	if len(values) == 0 {
+		return fmt.Errorf("no value provided to delete")
+	}
+
+	// Get current polymorphic ID and type values
+	currentID, err := p.getPolymorphicIDValue()
+	if err != nil {
+		return fmt.Errorf("failed to get current polymorphic ID: %w", err)
+	}
+
+	currentType, err := p.getPolymorphicTypeValue()
+	if err != nil {
+		return fmt.Errorf("failed to get current polymorphic type: %w", err)
+	}
+
+	// If association is not set, nothing to delete
+	if currentID == nil || currentType == nil {
+		return nil
+	}
+
+	// Validate that the provided value matches the current association
+	relatedModel := values[0]
+	val := reflect.ValueOf(relatedModel)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return fmt.Errorf("provided value is not a struct")
+	}
+
+	// Get the ID field from the provided value
+	idField := val.FieldByName("ID")
+	if !idField.IsValid() {
+		return fmt.Errorf("could not find ID field on provided value")
+	}
+	providedID := idField.Interface()
+
+	// Get the type name from the provided value
+	providedType := val.Type().Name()
+
+	// Convert current type to string for comparison
+	currentTypeStr, ok := currentType.(string)
+	if !ok {
+		return fmt.Errorf("current polymorphic type is not a string")
+	}
+
+	// Validate that the provided value matches the current association
+	if providedID != currentID || providedType != currentTypeStr {
+		return fmt.Errorf("provided value does not match current association")
+	}
+
+	// Clear the association
 	if err := p.setPolymorphicIDValue(nil); err != nil {
 		return fmt.Errorf("failed to set polymorphic ID value: %w", err)
 	}
@@ -189,9 +258,19 @@ func (p *PolymorphicBelongsTo) Count() int64 {
 	if !ok {
 		return 0
 	}
-	tableName := str.Of(typeStr).Snake().String()
-	if !strings.HasSuffix(tableName, "s") {
-		tableName = tableName + "s"
+
+	// Try to get table name from the model's TableName() method
+	tableName := ""
+	if tn, ok := p.model.(interface{ TableName() string }); ok {
+		tableName = tn.TableName()
+	}
+
+	// Fallback to naive pluralization if TableName() not available
+	if tableName == "" {
+		tableName = str.Of(typeStr).Snake().String()
+		if !strings.HasSuffix(tableName, "s") {
+			tableName = tableName + "s"
+		}
 	}
 
 	var count int64
@@ -216,12 +295,9 @@ func (p *PolymorphicBelongsTo) getPolymorphicIDValue() (any, error) {
 		return nil, fmt.Errorf("model is not a struct")
 	}
 
-	// Try to find the field - try PascalCase first, then snake_case
-	field := val.FieldByName(p.polymorphicID)
-	if !field.IsValid() {
-		// Convert snake_case to PascalCase
-		pascalCase := str.Of(p.polymorphicID).Studly().String()
-		field = val.FieldByName(pascalCase)
+	field, err := getFieldByTagOrName(val, p.polymorphicID)
+	if err != nil {
+		return nil, err
 	}
 	if !field.IsValid() {
 		return nil, fmt.Errorf("polymorphic ID field %s not found", p.polymorphicID)
@@ -244,12 +320,9 @@ func (p *PolymorphicBelongsTo) getPolymorphicTypeValue() (any, error) {
 		return nil, fmt.Errorf("model is not a struct")
 	}
 
-	// Try to find the field - try PascalCase first, then snake_case
-	field := val.FieldByName(p.polymorphicType)
-	if !field.IsValid() {
-		// Convert snake_case to PascalCase
-		pascalCase := str.Of(p.polymorphicType).Studly().String()
-		field = val.FieldByName(pascalCase)
+	field, err := getFieldByTagOrName(val, p.polymorphicType)
+	if err != nil {
+		return nil, err
 	}
 	if !field.IsValid() {
 		return nil, fmt.Errorf("polymorphic type field %s not found", p.polymorphicType)
@@ -272,11 +345,9 @@ func (p *PolymorphicBelongsTo) setPolymorphicIDValue(value any) error {
 		return fmt.Errorf("model is not a struct")
 	}
 
-	field := val.FieldByName(p.polymorphicID)
-	if !field.IsValid() {
-		// Convert snake_case to PascalCase
-		pascalCase := str.Of(p.polymorphicID).Studly().String()
-		field = val.FieldByName(pascalCase)
+	field, err := getFieldByTagOrName(val, p.polymorphicID)
+	if err != nil {
+		return err
 	}
 	if !field.IsValid() {
 		return fmt.Errorf("polymorphic ID field %s not found", p.polymorphicID)
@@ -316,11 +387,9 @@ func (p *PolymorphicBelongsTo) setPolymorphicTypeValue(value any) error {
 		return fmt.Errorf("model is not a struct")
 	}
 
-	field := val.FieldByName(p.polymorphicType)
-	if !field.IsValid() {
-		// Convert snake_case to PascalCase
-		pascalCase := str.Of(p.polymorphicType).Studly().String()
-		field = val.FieldByName(pascalCase)
+	field, err := getFieldByTagOrName(val, p.polymorphicType)
+	if err != nil {
+		return err
 	}
 	if !field.IsValid() {
 		return fmt.Errorf("polymorphic type field %s not found", p.polymorphicType)

@@ -84,8 +84,35 @@ func (p *PolymorphicHasMany) Append(values ...any) error {
 		return fmt.Errorf("could not determine model type name")
 	}
 
+	// Get the expected type from the association field
+	val := reflect.ValueOf(p.model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	field := val.FieldByName(p.association)
+	if !field.IsValid() {
+		return fmt.Errorf("could not find association field")
+	}
+
+	relationType := field.Type()
+	if relationType.Kind() == reflect.Slice {
+		relationType = relationType.Elem()
+	}
+	if relationType.Kind() == reflect.Ptr {
+		relationType = relationType.Elem()
+	}
+
 	// Set the polymorphic fields on each related model
 	for _, value := range values {
+		// Validate that the value type matches the expected association type
+		valueVal := reflect.ValueOf(value)
+		if valueVal.Kind() == reflect.Ptr {
+			valueVal = valueVal.Elem()
+		}
+		if valueVal.Type() != relationType {
+			return fmt.Errorf("value type %v does not match expected association type %v", valueVal.Type(), relationType)
+		}
+
 		if err := p.setPolymorphicIDValue(value, localKeyValue); err != nil {
 			return fmt.Errorf("failed to set polymorphic ID on model: %w", err)
 		}
@@ -152,9 +179,14 @@ func (p *PolymorphicHasMany) Delete(values ...any) error {
 			p.polymorphicID:   nil,
 			p.polymorphicType: nil,
 		}
-		_, err = query.Update(updates)
+		result, err := query.Update(updates)
 		if err != nil {
 			return fmt.Errorf("failed to clear polymorphic fields on model: %w", err)
+		}
+
+		// Check if any rows were actually affected
+		if result.RowsAffected == 0 {
+			return fmt.Errorf("value was not part of the association (no rows affected)")
 		}
 	}
 
@@ -268,29 +300,9 @@ func (p *PolymorphicHasMany) setPolymorphicIDValue(model any, value any) error {
 		return fmt.Errorf("model is not a struct")
 	}
 
-	// Try to find the field by db tag first, then by name
-	var field reflect.Value
-	found := false
-
-	for i := 0; i < val.NumField(); i++ {
-		structField := val.Type().Field(i)
-		dbTag := structField.Tag.Get("db")
-		if dbTag == p.polymorphicID {
-			field = val.Field(i)
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		// Try PascalCase version
-		pascalCase := str.Of(p.polymorphicID).Studly().String()
-		field = val.FieldByName(pascalCase)
-		// Also try with uppercase ID
-		if !field.IsValid() && strings.HasSuffix(pascalCase, "Id") {
-			pascalCase = strings.TrimSuffix(pascalCase, "Id") + "ID"
-			field = val.FieldByName(pascalCase)
-		}
+	field, err := getFieldByTagOrName(val, p.polymorphicID)
+	if err != nil {
+		return err
 	}
 	if !field.IsValid() {
 		return fmt.Errorf("polymorphic ID field %s not found", p.polymorphicID)
@@ -330,24 +342,9 @@ func (p *PolymorphicHasMany) setPolymorphicTypeValue(model any, value any) error
 		return fmt.Errorf("model is not a struct")
 	}
 
-	// Try to find the field by db tag first, then by name
-	var field reflect.Value
-	found := false
-
-	for i := 0; i < val.NumField(); i++ {
-		structField := val.Type().Field(i)
-		dbTag := structField.Tag.Get("db")
-		if dbTag == p.polymorphicType {
-			field = val.Field(i)
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		// Try PascalCase version
-		pascalCase := str.Of(p.polymorphicType).Studly().String()
-		field = val.FieldByName(pascalCase)
+	field, err := getFieldByTagOrName(val, p.polymorphicType)
+	if err != nil {
+		return err
 	}
 	if !field.IsValid() {
 		return fmt.Errorf("polymorphic type field %s not found", p.polymorphicType)

@@ -76,6 +76,13 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 **Current state**:
 - ✅ Polymorphic association types implemented (PolymorphicBelongsTo, PolymorphicHasMany)
 - ✅ `Append` and `Find` operations working correctly
+- ✅ Fixed naive pluralization in PolymorphicBelongsTo to check TableName() method first
+- ✅ Fixed PolymorphicBelongsTo.Delete to validate values parameter matches current association
+- ✅ Fixed PolymorphicHasMany.Delete to check affected rows and return error if 0 rows
+- ✅ Fixed PolymorphicBelongsTo.Append to validate ID is non-zero (model must be saved)
+- ✅ Added type validation in PolymorphicHasMany.Append to ensure values match expected type
+- ✅ Extracted duplicate field resolution logic into shared helper function (field_resolver.go)
+- ✅ Consolidated field name resolution to try all variations consistently (db tags, PascalCase, snake_case, ID suffix)
 - ⚠️ `Count`, `Delete`, and `Clear` operations have known WHERE clause issues with the query builder when using multiple conditions
 - ⚠️ These operations are temporarily disabled in integration tests with TODO comments
 - ✅ Polymorphic relationship detection in `Association` method
