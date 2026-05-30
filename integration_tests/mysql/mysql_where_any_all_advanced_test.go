@@ -9,9 +9,6 @@ import (
 )
 
 func TestMySQLIntegrationWhereAnyAdvanced(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -60,9 +57,6 @@ func TestMySQLIntegrationWhereAnyAdvanced(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAllAdvanced(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -101,9 +95,6 @@ func TestMySQLIntegrationWhereAllAdvanced(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereNone(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -148,9 +139,6 @@ func TestMySQLIntegrationWhereNone(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereNoneAdvanced(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -182,9 +170,6 @@ func TestMySQLIntegrationWhereNoneAdvanced(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereEdgeCases(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -199,9 +184,6 @@ func TestMySQLIntegrationWhereEdgeCases(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAnyEmptyColumns(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	var found []models.User
@@ -212,9 +194,6 @@ func TestMySQLIntegrationWhereAnyEmptyColumns(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAnyInvalidOperator(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -232,9 +211,6 @@ func TestMySQLIntegrationWhereAnyInvalidOperator(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAnyInvalidColumn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -252,9 +228,6 @@ func TestMySQLIntegrationWhereAnyInvalidColumn(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAllEmptyColumns(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	var found []models.User
@@ -265,9 +238,6 @@ func TestMySQLIntegrationWhereAllEmptyColumns(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAllInvalidOperator(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -285,9 +255,6 @@ func TestMySQLIntegrationWhereAllInvalidOperator(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereAllInvalidColumn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -305,9 +272,6 @@ func TestMySQLIntegrationWhereAllInvalidColumn(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereNoneEmptyColumns(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	var found []models.User
@@ -318,9 +282,6 @@ func TestMySQLIntegrationWhereNoneEmptyColumns(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereNoneInvalidOperator(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -338,9 +299,6 @@ func TestMySQLIntegrationWhereNoneInvalidOperator(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereNoneInvalidColumn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()

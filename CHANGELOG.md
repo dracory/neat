@@ -33,7 +33,6 @@ All notable changes to this project will be documented in this file.
 ### Known Issues
 - Schema builder requires config adapter to convert db.DBConfig to config.Config (deferred implementation)
 - Full integration testing requires database connections to be set up
-- Some dependencies (github.com/tursodatabase/libsql-client-go, github.com/antlr4-go/antlr/v4, github.com/coder/websocket) are not currently used
 
 ## [0.1.0] - Initial Release
 

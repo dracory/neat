@@ -4,14 +4,12 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
 // TestMySQLIntegrationUpdateByModel tests updating a model instance
 func TestMySQLIntegrationUpdateByModel(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -67,9 +65,6 @@ func TestMySQLIntegrationUpdateByModel(t *testing.T) {
 
 // TestMySQLIntegrationUpdateByTable tests updating records using table method
 func TestMySQLIntegrationUpdateByTable(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -125,9 +120,6 @@ func TestMySQLIntegrationUpdateByTable(t *testing.T) {
 
 // TestMySQLIntegrationUpdateWithWhere tests updating with where clause
 func TestMySQLIntegrationUpdateWithWhere(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -189,9 +181,6 @@ func TestMySQLIntegrationUpdateWithWhere(t *testing.T) {
 
 // TestMySQLIntegrationUpdateMultipleColumns tests updating multiple columns
 func TestMySQLIntegrationUpdateMultipleColumns(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -244,9 +233,6 @@ func TestMySQLIntegrationUpdateMultipleColumns(t *testing.T) {
 
 // TestMySQLIntegrationUpdateOrCreate tests update or create operation
 func TestMySQLIntegrationUpdateOrCreate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -295,9 +281,6 @@ func TestMySQLIntegrationUpdateOrCreate(t *testing.T) {
 
 // TestMySQLIntegrationSaveUpdate tests save operation for updating existing records
 func TestMySQLIntegrationSaveUpdate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -346,9 +329,6 @@ func TestMySQLIntegrationSaveUpdate(t *testing.T) {
 
 // TestMySQLIntegrationSaveQuietly tests save quietly operation
 func TestMySQLIntegrationSaveQuietly(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()

@@ -6,14 +6,12 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
-	"github.com/dracory/neat/integration_tests/models"
+
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/integration_tests/models"
 )
 
 func TestMySQLTransactionCommit(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 
@@ -62,9 +60,6 @@ func TestMySQLTransactionCommit(t *testing.T) {
 }
 
 func TestMySQLTransactionRollback(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 
@@ -126,9 +121,6 @@ func TestMySQLTransactionRollback(t *testing.T) {
 }
 
 func TestMySQLTransactionErrorHandling(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 
@@ -143,9 +135,6 @@ func TestMySQLTransactionErrorHandling(t *testing.T) {
 }
 
 func TestMySQLNestedTransactions(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 
@@ -214,9 +203,6 @@ func TestMySQLNestedTransactions(t *testing.T) {
 }
 
 func TestMySQLTransactionIsolationLevels(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 

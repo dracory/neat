@@ -10,14 +10,12 @@ import (
 )
 
 func TestMySQLIntegrationWhereColumn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
 
 	// Cleanup test data
+	db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
 	defer func() {
 		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
 	}()
@@ -86,14 +84,12 @@ func TestMySQLIntegrationWhereColumn(t *testing.T) {
 }
 
 func TestMySQLIntegrationOrWhereColumn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
 
 	// Cleanup test data
+	db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
 	defer func() {
 		db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
 	}()
@@ -128,9 +124,6 @@ func TestMySQLIntegrationOrWhereColumn(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereExists(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -167,14 +160,12 @@ func TestMySQLIntegrationWhereExists(t *testing.T) {
 }
 
 func TestMySQLIntegrationWhereNot(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
 
 	// Cleanup test data
+	db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
 	defer func() {
 		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
 	}()
@@ -213,16 +204,16 @@ func TestMySQLIntegrationWhereNot(t *testing.T) {
 }
 
 func TestMySQLIntegrationOrWhereNot(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
 
-	// Cleanup test data
+	// Cleanup test data - clean up all test users
+	db.Query().Model(&models.User{}).Where("name LIKE ?", "user%").Delete(&models.User{})
+	db.Query().Model(&models.User{}).Where("name LIKE ?", "where_%").Delete(&models.User{})
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "user3"}).Delete(&models.User{})
+		db.Query().Model(&models.User{}).Where("name LIKE ?", "user%").Delete(&models.User{})
+		db.Query().Model(&models.User{}).Where("name LIKE ?", "where_%").Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -291,9 +282,6 @@ func TestMySQLIntegrationOrWhereNot(t *testing.T) {
 }
 
 func TestMySQLIntegrationExists(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()

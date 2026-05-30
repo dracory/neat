@@ -10,9 +10,6 @@ import (
 
 // TestMySQLIntegrationWhereIn tests WhereIn operation
 func TestMySQLIntegrationWhereIn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -48,9 +45,6 @@ func TestMySQLIntegrationWhereIn(t *testing.T) {
 
 // TestMySQLIntegrationOrWhereIn tests OrWhereIn operation
 func TestMySQLIntegrationOrWhereIn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -85,9 +79,6 @@ func TestMySQLIntegrationOrWhereIn(t *testing.T) {
 
 // TestMySQLIntegrationWhereNotIn tests WhereNotIn operation
 func TestMySQLIntegrationWhereNotIn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -122,9 +113,6 @@ func TestMySQLIntegrationWhereNotIn(t *testing.T) {
 
 // TestMySQLIntegrationOrWhereNotIn tests OrWhereNotIn operation
 func TestMySQLIntegrationOrWhereNotIn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -167,9 +155,6 @@ func TestMySQLIntegrationOrWhereNotIn(t *testing.T) {
 
 // TestMySQLIntegrationWhereBetween tests WhereBetween operation
 func TestMySQLIntegrationWhereBetween(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -204,9 +189,6 @@ func TestMySQLIntegrationWhereBetween(t *testing.T) {
 
 // TestMySQLIntegrationWhereNotBetween tests WhereNotBetween operation
 func TestMySQLIntegrationWhereNotBetween(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -241,9 +223,6 @@ func TestMySQLIntegrationWhereNotBetween(t *testing.T) {
 
 // TestMySQLIntegrationOrWhereBetween tests OrWhereBetween operation
 func TestMySQLIntegrationOrWhereBetween(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -278,9 +257,6 @@ func TestMySQLIntegrationOrWhereBetween(t *testing.T) {
 
 // TestMySQLIntegrationOrWhereNotBetween tests OrWhereNotBetween operation
 func TestMySQLIntegrationOrWhereNotBetween(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -320,9 +296,6 @@ func TestMySQLIntegrationOrWhereNotBetween(t *testing.T) {
 
 // TestMySQLIntegrationWhereNull tests WhereNull operation
 func TestMySQLIntegrationWhereNull(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -361,9 +334,6 @@ func TestMySQLIntegrationWhereNull(t *testing.T) {
 
 // TestMySQLIntegrationWhereNotNull tests WhereNotNull operation
 func TestMySQLIntegrationWhereNotNull(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -402,9 +372,6 @@ func TestMySQLIntegrationWhereNotNull(t *testing.T) {
 
 // TestMySQLIntegrationOrWhereNull tests OrWhereNull operation
 func TestMySQLIntegrationOrWhereNull(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -433,9 +400,6 @@ func TestMySQLIntegrationOrWhereNull(t *testing.T) {
 
 // TestMySQLIntegrationOrWhere tests OrWhere operation
 func TestMySQLIntegrationOrWhere(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
@@ -464,9 +428,6 @@ func TestMySQLIntegrationOrWhere(t *testing.T) {
 
 // TestMySQLIntegrationWhereColumnOperator tests where with column operator variations
 func TestMySQLIntegrationWhereColumnOperator(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
 
 	db := SetupMySQLTest(t)
 	query := db.Query()
