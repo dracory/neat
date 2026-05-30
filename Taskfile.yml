@@ -4,7 +4,7 @@ tasks:
   test:
     desc: Run all tests
     cmds:
-      - go test ./... -v
+      - go test ./... -v -count=1
 
   test-short:
     desc: Run short tests only
@@ -16,25 +16,20 @@ tasks:
     cmds:
       - go test ./... -cover -coverprofile=coverage.out -v
 
-  test-integration:
-    desc: Run all tests including integration tests
-    cmds:
-      - go test ./... -v -tags=integration
-
   test-integration-mysql:
     desc: Run MySQL integration tests
     cmds:
-      - go test ./integration_tests/mysql -v -tags=integration
+      - go test ./integration_tests/mysql/... -v
 
   test-integration-postgres:
     desc: Run PostgreSQL integration tests
     cmds:
-      - go test ./integration_tests/postgres -v -tags=integration
+      - go test ./integration_tests/postgres/... -v
 
   test-integration-sqlite:
     desc: Run SQLite integration tests
     cmds:
-      - go test ./integration_tests/sqlite -v -tags=integration
+      - go test ./integration_tests/sqlite/... -v
 
   build:
     desc: Build the project

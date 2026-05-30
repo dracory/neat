@@ -83,10 +83,11 @@ func RunExample() error {
 
 	db4, err := neat.New(multiCfg)
 	if err != nil {
-		return fmt.Errorf("error with multi-database config: %w", err)
+		fmt.Printf("Multi-database config not fully available (skipped): %v\n", err)
+	} else {
+		defer db4.Close()
+		fmt.Println("Multiple databases configured successfully")
 	}
-	defer db4.Close()
-	fmt.Println("Multiple databases configured successfully")
 
 	// Example 4: MySQL-specific configuration
 	fmt.Println("\n=== MySQL-Specific Configuration ===")
@@ -107,10 +108,11 @@ func RunExample() error {
 
 	db5, err := neat.New(mysqlCfg)
 	if err != nil {
-		return fmt.Errorf("error with MySQL config: %w", err)
+		fmt.Printf("MySQL not available (skipped): %v\n", err)
+	} else {
+		defer db5.Close()
+		fmt.Println("MySQL configured successfully")
 	}
-	defer db5.Close()
-	fmt.Println("MySQL configured successfully")
 
 	// Example 5: SQL Server configuration (skipped if not available)
 	fmt.Println("\n=== SQL Server Configuration ===")

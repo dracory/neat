@@ -11,35 +11,7 @@ on:
 
 jobs:
 
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Configure git for private modules
-      run: |
-        git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
-
-    - name: Set up Go
-      uses: actions/setup-go@v6
-      with:
-        go-version: '1.26'
-
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test with coverage
-      run: go test -v -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v '/integration_tests/')
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        files: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-
-  integration-tests:
+  tests:
     runs-on: ubuntu-latest
 
     services:
@@ -141,22 +113,13 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Run Integration Tests - MySQL
-      run: |
-        echo "Testing MySQL integration with zero-panic error handling..."
-        go test -v -run "TestMySQL.*" ./integration_tests/mysql/...
+    - name: Test with coverage
+      run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
-    - name: Run Integration Tests - PostgreSQL
-      run: |
-        echo "Testing PostgreSQL integration with zero-panic error handling..."
-        go test -v -run "TestPostgres.*" ./integration_tests/postgres/...
-
-    - name: Run Integration Tests - SQLite
-      run: |
-        echo "Testing SQLite integration with zero-panic error handling..."
-        go test -v -run "TestSQLite.*" ./integration_tests/sqlite/...
-
-    - name: Run Error Handling Integration Tests
-      run: |
-        echo "Testing error handling integration scenarios..."
-        go test -v -run "TestErrorHandlingIntegration" ./integration_tests/common/...
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

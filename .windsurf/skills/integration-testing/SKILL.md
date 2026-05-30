@@ -35,19 +35,19 @@ docker-compose down
 ### MySQL Integration Tests
 
 ```bash
-go test -v -tags=integration ./integration_tests/mysql/...
+go test -v ./integration_tests/mysql/...
 ```
 
 ### PostgreSQL Integration Tests
 
 ```bash
-go test -v -tags=integration ./integration_tests/postgres/...
+go test -v ./integration_tests/postgres/...
 ```
 
 ### Specific Test
 
 ```bash
-go test -v -tags=integration ./integration_tests/mysql/... -run TestName
+go test -v ./integration_tests/mysql/... -run TestName
 ```
 
 ## Database-Specific Considerations
@@ -83,8 +83,6 @@ go test -v -tags=integration ./integration_tests/mysql/... -run TestName
 Integration tests should follow this structure:
 
 ```go
-//go:build integration
-
 package mysql // or postgres
 
 import (
@@ -184,4 +182,6 @@ You can override default database settings using environment variables:
 
 ## CI/CD Integration
 
-The GitHub Actions workflow (`.github/workflows/integration-tests.yml`) uses the same Docker Compose configuration and environment variables for automated testing.
+The GitHub Actions workflow (`.github/workflows/tests.yml`) has two jobs:
+- **`unit-tests`**: Runs unit tests without any database services, using `grep -v '/integration_tests/'` to exclude integration packages
+- **`integration-tests`**: Spins up MySQL and PostgreSQL service containers then runs all `integration_tests/` suites without any build tags

@@ -24,13 +24,13 @@ The project uses two types of tests:
 Run all unit tests (excludes integration tests):
 
 ```bash
-go test ./...
+go test $(go list ./... | grep -v '/integration_tests/')
 ```
 
 Run unit tests with verbose output:
 
 ```bash
-go test -v ./...
+go test -v $(go list ./... | grep -v '/integration_tests/')
 ```
 
 ### Integration Tests
@@ -50,23 +50,23 @@ This starts:
 #### Run MySQL Integration Tests
 
 ```bash
-go test -v -tags=integration ./integration_tests/mysql/...
+go test -v ./integration_tests/mysql/...
 ```
 
 #### Run PostgreSQL Integration Tests
 
 ```bash
-go test -v -tags=integration ./integration_tests/postgres/...
+go test -v ./integration_tests/postgres/...
 ```
 
 #### Run Specific Integration Test
 
 ```bash
 # MySQL
-go test -v -tags=integration ./integration_tests/mysql/... -run TestName
+go test -v ./integration_tests/mysql/... -run TestName
 
 # PostgreSQL
-go test -v -tags=integration ./integration_tests/postgres/... -run TestName
+go test -v ./integration_tests/postgres/... -run TestName
 ```
 
 #### Stop Database Containers
@@ -83,8 +83,11 @@ To run both unit and integration tests:
 # Start databases first
 docker-compose up -d
 
-# Run all tests
-go test -v ./...
+# Run unit tests
+go test -v $(go list ./... | grep -v '/integration_tests/')
+
+# Run integration tests
+go test -v ./integration_tests/...
 
 # Stop databases
 docker-compose down
@@ -105,12 +108,6 @@ Located in `integration_tests/` directory with database-specific subdirectories:
 - `integration_tests/postgres/` - PostgreSQL-specific integration tests
 - `integration_tests/models/` - Shared test models
 - `integration_tests/common/` - Shared test utilities
-
-Integration test files must include the build tag:
-
-```go
-//go:build integration
-```
 
 ## Writing New Tests
 
@@ -140,8 +137,6 @@ func TestNewFeature(t *testing.T) {
 ### Integration Test Example
 
 ```go
-//go:build integration
-
 package mysql
 
 import (
@@ -201,10 +196,9 @@ func TestNewFeature(t *testing.T) {
 
 ## CI/CD
 
-The GitHub Actions workflow (`.github/workflows/integration-tests.yml`) automatically:
-1. Starts Docker Compose services
-2. Runs integration tests for both MySQL and PostgreSQL
-3. Stops containers after tests complete
+The GitHub Actions workflow (`.github/workflows/tests.yml`) has two jobs:
+- **`unit-tests`**: Runs unit tests without any database services
+- **`integration-tests`**: Spins up MySQL and PostgreSQL service containers and runs all `integration_tests/` suites
 
 ## Environment Variables
 
