@@ -28,3 +28,18 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: neat-sqlserver-test
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: YourStrong@Passw0rd
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourStrong@Passw0rd", "-No", "-Q", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

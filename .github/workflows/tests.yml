@@ -42,6 +42,20 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: YourStrong@Passw0rd
+          MSSQL_PID: Developer
+        ports:
+          - "1433:1433"
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -No -Q 'SELECT 1'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     env:
       MYSQL_HOST: 127.0.0.1
       MYSQL_PORT: 3306
@@ -53,6 +67,11 @@ jobs:
       POSTGRES_DATABASE: test
       POSTGRES_USER: test
       POSTGRES_PASS: test
+      SQLSERVER_HOST: 127.0.0.1
+      SQLSERVER_PORT: 1433
+      SQLSERVER_DATABASE: test
+      SQLSERVER_USER: sa
+      SQLSERVER_PASS: YourStrong@Passw0rd
       GITHUB_ACTIONS: true
 
     steps:
@@ -71,6 +90,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --yes postgresql-client
+
+    - name: Install SQL Server client
+      run: |
+        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+        curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+        sudo apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+        sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
 
     - name: Wait for MySQL service
       run: |
@@ -104,6 +131,14 @@ jobs:
     - name: Verify PostgreSQL connection
       run: |
         PGPASSWORD=${{ env.POSTGRES_PASS }} psql -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -d ${{ env.POSTGRES_DATABASE }} -U ${{ env.POSTGRES_USER }} -c "SELECT 1;"
+
+    - name: Create SQL Server test database
+      run: |
+        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -No -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'test') CREATE DATABASE test;"
+
+    - name: Verify SQL Server connection
+      run: |
+        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -No -Q "SELECT 1;"
 
     - name: Set up Go
       uses: actions/setup-go@v6

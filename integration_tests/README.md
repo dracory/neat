@@ -8,6 +8,7 @@ Integration tests require actual database connections to be set up. The tests ca
 
 - MySQL
 - PostgreSQL
+- SQL Server
 - SQLite
 - Turso
 
@@ -31,6 +32,13 @@ POSTGRES_USER=test
 POSTGRES_PASS=test
 POSTGRES_SSLMODE=disable
 
+# SQL Server
+SQLSERVER_HOST=127.0.0.1
+SQLSERVER_PORT=1433
+SQLSERVER_DATABASE=test
+SQLSERVER_USER=sa
+SQLSERVER_PASS=YourStrong@Passw0rd
+
 # Turso (optional - if not set, tests use local SQLite)
 TURSO_URL=your-database-url.turso.io
 TURSO_AUTH_TOKEN=your-auth-token
@@ -49,6 +57,9 @@ go test -tags=integration ./integration_tests/mysql/...
 
 # Run PostgreSQL integration tests
 go test -tags=integration ./integration_tests/postgres/...
+
+# Run SQL Server integration tests
+go test -tags=integration ./integration_tests/sqlserver/...
 
 # Run SQLite integration tests
 go test -tags=integration ./integration_tests/sqlite/...
@@ -69,4 +80,23 @@ Turso integration tests can run in two modes:
 
 ## CI/CD
 
-Integration tests are automatically run in GitHub Actions using the integration-tests.yml workflow. This workflow sets up MySQL, PostgreSQL, and SQLite services and runs the tests with the integration build tag.
+Integration tests are automatically run in GitHub Actions using the tests.yml workflow. This workflow sets up MySQL, PostgreSQL, and SQL Server services and runs the tests with the integration build tag.
+
+## Docker Compose
+
+For local development, you can use Docker Compose to spin up the required databases:
+
+```bash
+docker compose up -d
+```
+
+This will start:
+- MySQL on port 3306
+- PostgreSQL on port 55432
+- SQL Server on port 1433
+
+Note: SQL Server requires manual database creation. Run the following command after starting the container:
+
+```bash
+docker exec neat-sqlserver-test /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -No -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'test') CREATE DATABASE test;"
+```
