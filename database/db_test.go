@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 )
@@ -413,5 +414,195 @@ func TestRedactDSN(t *testing.T) {
 				t.Errorf("redactDSN() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// Mock seeder for testing
+type mockSeeder struct {
+	signature string
+	runCalled bool
+}
+
+func (m *mockSeeder) Signature() string {
+	return m.signature
+}
+
+func (m *mockSeeder) Run() error {
+	m.runCalled = true
+	return nil
+}
+
+func TestDatabase_Seed(t *testing.T) {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	seeder1 := &mockSeeder{signature: "seeder_1"}
+	seeder2 := &mockSeeder{signature: "seeder_2"}
+
+	seeders := []seeder.Seeder{seeder1, seeder2}
+
+	err = db.Seed(seeders)
+	if err != nil {
+		t.Errorf("Seed() failed: %v", err)
+	}
+
+	if !seeder1.runCalled {
+		t.Error("Expected seeder1.Run() to be called")
+	}
+	if !seeder2.runCalled {
+		t.Error("Expected seeder2.Run() to be called")
+	}
+}
+
+func TestDatabase_SeedOnce(t *testing.T) {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	seeder1 := &mockSeeder{signature: "seeder_1"}
+	seeders := []seeder.Seeder{seeder1}
+
+	// First call
+	err = db.SeedOnce(seeders)
+	if err != nil {
+		t.Errorf("SeedOnce() failed on first call: %v", err)
+	}
+
+	if !seeder1.runCalled {
+		t.Error("Expected seeder1.Run() to be called on first SeedOnce")
+	}
+
+	// Reset runCalled flag
+	seeder1.runCalled = false
+
+	// Second call - should skip
+	err = db.SeedOnce(seeders)
+	if err != nil {
+		t.Errorf("SeedOnce() failed on second call: %v", err)
+	}
+
+	if seeder1.runCalled {
+		t.Error("Expected seeder1.Run() to NOT be called on second SeedOnce")
+	}
+}
+
+func TestDatabase_Seeder(t *testing.T) {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	facade := db.Seeder()
+	if facade == nil {
+		t.Fatal("Expected non-nil seeder facade")
+	}
+
+	seeder1 := &mockSeeder{signature: "seeder_1"}
+	seeders := []seeder.Seeder{seeder1}
+
+	// Register seeders
+	facade.Register(seeders)
+
+	// Get seeder
+	retrieved := facade.GetSeeder("seeder_1")
+	if retrieved == nil {
+		t.Error("Expected seeder to be found")
+	}
+	if retrieved.Signature() != "seeder_1" {
+		t.Errorf("Expected signature 'seeder_1', got '%s'", retrieved.Signature())
+	}
+
+	// Get all seeders
+	allSeeders := facade.GetSeeders()
+	if len(allSeeders) != 1 {
+		t.Errorf("Expected 1 seeder, got %d", len(allSeeders))
+	}
+}
+
+func TestDatabase_Migrate(t *testing.T) {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	// Test Migrate with empty paths (should use default)
+	err = db.Migrate()
+	if err != nil {
+		t.Errorf("Migrate() failed: %v", err)
+	}
+}
+
+func TestDatabase_MigrationStatus(t *testing.T) {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	// Test MigrationStatus - should return empty slice when no migrations
+	status, err := db.MigrationStatus()
+	if err != nil {
+		t.Errorf("MigrationStatus() failed: %v", err)
+	}
+	// When no migrations are registered, status should be empty
+	if len(status) != 0 {
+		t.Errorf("Expected empty status when no migrations, got %d items", len(status))
 	}
 }

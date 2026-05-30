@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/dracory/neat/contracts/database/orm"
+	contractsseeder "github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
 	contractsMigration "github.com/dracory/neat/contracts/migration"
 	"github.com/dracory/neat/database/db"
 	databaseMigration "github.com/dracory/neat/database/migration"
 	databaseorm "github.com/dracory/neat/database/orm"
 	"github.com/dracory/neat/database/schema"
+	databaseseeder "github.com/dracory/neat/database/seeder"
 )
 
 // Database is the main entry point for the neat package.
@@ -26,6 +28,7 @@ type Database struct {
 	eventBus    *databaseorm.EventBus
 	ormInstance orm.Orm
 	schema      *schema.Schema
+	seeder      *databaseseeder.Runner
 }
 
 // Option is a functional option for configuring the Database.
@@ -92,6 +95,7 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 		config:   &cfg,
 		logger:   o.logger,
 		eventBus: o.eventBus,
+		seeder:   databaseseeder.NewRunner(),
 	}
 
 	// Initialize ORM
@@ -361,6 +365,7 @@ func (d *Database) Connection(name string) (*Database, error) {
 		eventBus:    d.eventBus,
 		ormInstance: ormConn,
 		schema:      schemaInstance,
+		seeder:      databaseseeder.NewRunner(),
 	}
 
 	return newDB, nil
@@ -441,4 +446,19 @@ func (d *Database) getMigrator(paths []string) contractsMigration.Migrator {
 		paths = []string{"./migrations"}
 	}
 	return databaseMigration.NewMigrator(d.config, d.ormInstance, d.schema, paths)
+}
+
+// Seed runs the specified seeders.
+func (d *Database) Seed(seeders []contractsseeder.Seeder) error {
+	return d.seeder.Call(seeders)
+}
+
+// SeedOnce runs the specified seeders only once.
+func (d *Database) SeedOnce(seeders []contractsseeder.Seeder) error {
+	return d.seeder.CallOnce(seeders)
+}
+
+// Seeder returns a seeder facade for advanced seeder operations.
+func (d *Database) Seeder() contractsseeder.Facade {
+	return d.seeder
 }
