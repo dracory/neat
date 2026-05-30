@@ -40,7 +40,11 @@ func (r *Blueprint) Boolean(column string) schema.ColumnDefinition {
 }
 
 func (r *Blueprint) Change() schema.ColumnDefinition {
-	return r.modifyColumn()
+	result := r.modifyColumn()
+	if result == nil {
+		return nil
+	}
+	return result
 }
 
 func (r *Blueprint) Build(query ormcontract.Query, grammar schema.Grammar) error {
