@@ -465,6 +465,16 @@ func (r *Blueprint) TinyText(column string) schema.ColumnDefinition {
 func (r *Blueprint) ToSql(grammar schema.Grammar) ([]string, error) {
 	r.addImpliedCommands(grammar)
 
+	// Generate CHANGE commands for columns marked as changed
+	for _, column := range r.columns {
+		if column.GetChange() && !r.hasChangeCommand(column.GetName()) {
+			r.addCommand(&schema.Command{
+				Name:   constants.CommandChange,
+				Column: column,
+			})
+		}
+	}
+
 	var statements []string
 	for _, command := range r.commands {
 		if command.ShouldBeSkipped {
@@ -473,6 +483,10 @@ func (r *Blueprint) ToSql(grammar schema.Grammar) ([]string, error) {
 
 		switch command.Name {
 		case constants.CommandAdd:
+			// Skip ADD command if the column is marked for change
+			if command.Column != nil && command.Column.GetChange() {
+				continue
+			}
 			stmt, err := grammar.CompileAdd(r, command)
 			if err != nil {
 				return nil, err
@@ -714,12 +728,35 @@ func (r *Blueprint) isCreate() bool {
 	return false
 }
 
+// hasChangeCommand checks if a CHANGE command already exists for the given column
+func (r *Blueprint) hasChangeCommand(columnName string) bool {
+	for _, cmd := range r.commands {
+		if cmd.Name == constants.CommandChange && cmd.Column != nil && cmd.Column.GetName() == columnName {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Blueprint) modifyColumn() *ColumnDefinition {
 	if len(r.columns) == 0 {
 		return nil
 	}
 
 	column := r.columns[len(r.columns)-1]
+
+	// Mark the column as changed
+	column.change = convert.Pointer(true)
+
+	// Remove the ADD command for this specific column
+	for i := len(r.commands) - 1; i >= 0; i-- {
+		cmd := r.commands[i]
+		if cmd.Name == constants.CommandAdd && cmd.Column.GetName() == column.GetName() {
+			r.commands = append(r.commands[:i], r.commands[i+1:]...)
+			break
+		}
+	}
+
 	r.addCommand(&schema.Command{
 		Name:   constants.CommandChange,
 		Column: column,

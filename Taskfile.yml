@@ -16,6 +16,26 @@ tasks:
     cmds:
       - go test ./... -cover -coverprofile=coverage.out -v
 
+  test-integration:
+    desc: Run all tests including integration tests
+    cmds:
+      - go test ./... -v -tags=integration
+
+  test-integration-mysql:
+    desc: Run MySQL integration tests
+    cmds:
+      - go test ./integration_tests/mysql -v -tags=integration
+
+  test-integration-postgres:
+    desc: Run PostgreSQL integration tests
+    cmds:
+      - go test ./integration_tests/postgres -v -tags=integration
+
+  test-integration-sqlite:
+    desc: Run SQLite integration tests
+    cmds:
+      - go test ./integration_tests/sqlite -v -tags=integration
+
   build:
     desc: Build the project
     cmds:
