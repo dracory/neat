@@ -1,5 +1,3 @@
-//go:build disabled
-
 package sqlite
 
 import (
@@ -79,16 +77,16 @@ func TestSQLiteIntegrationUpdateOrInsertWithStruct(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	query := db.Query()
 
-	err := query.Table("users").UpdateOrInsert(
-		models.User{Name: "insert_struct"},
-		models.User{Avatar: "avatar_struct"},
+	err := query.Model(&models.User{}).UpdateOrInsert(
+		map[string]any{"name": "insert_struct"},
+		map[string]any{"avatar": "avatar_struct"},
 	)
 	if err != nil {
 		t.Errorf("UpdateOrInsert with struct failed: %v", err)
 	}
 
 	var user models.User
-	err = query.Table("users").Where("name = ?", "insert_struct").First(&user)
+	err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "insert_struct").First(&user)
 	if err != nil {
 		t.Errorf("Failed to find inserted struct user: %v", err)
 	}
@@ -108,24 +106,24 @@ func TestSQLiteIntegrationUpdateOrInsertUpdateWithStruct(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	query := db.Query()
 
-	err := query.Table("users").UpdateOrInsert(
-		models.User{Name: "insert_struct"},
-		models.User{Avatar: "avatar_struct"},
+	err := query.Model(&models.User{}).UpdateOrInsert(
+		map[string]any{"name": "insert_struct"},
+		map[string]any{"avatar": "avatar_struct"},
 	)
 	if err != nil {
 		t.Errorf("UpdateOrInsert with struct failed: %v", err)
 	}
 
-	err = query.Table("users").UpdateOrInsert(
-		models.User{Name: "insert_struct"},
-		models.User{Avatar: "avatar_struct_updated"},
+	err = query.Model(&models.User{}).UpdateOrInsert(
+		map[string]any{"name": "insert_struct"},
+		map[string]any{"avatar": "avatar_struct_updated"},
 	)
 	if err != nil {
 		t.Errorf("UpdateOrInsert update with struct failed: %v", err)
 	}
 
 	var user models.User
-	err = query.Table("users").Where("name = ?", "insert_struct").First(&user)
+	err = query.Model(&models.User{}).Where("name = ?", "insert_struct").First(&user)
 	if err != nil {
 		t.Errorf("Failed to find updated struct user: %v", err)
 	}
@@ -142,7 +140,7 @@ func TestSQLiteIntegrationUpdateOrInsertWithWhereClause(t *testing.T) {
 	db := SetupSQLiteTest(t)
 	query := db.Query()
 
-	err := query.Table("users").UpdateOrInsert(
+	err := query.Model(&models.User{}).UpdateOrInsert(
 		map[string]any{"name": "insert_map"},
 		map[string]any{"avatar": "avatar_map"},
 	)
@@ -150,8 +148,8 @@ func TestSQLiteIntegrationUpdateOrInsertWithWhereClause(t *testing.T) {
 		t.Errorf("UpdateOrInsert with map failed: %v", err)
 	}
 
-	err = query.Table("users").Where("name = ?", "insert_map").UpdateOrInsert(
-		map[string]any{"name": "insert_map", "avatar": "avatar_map_updated"},
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map").UpdateOrInsert(
+		map[string]any{"name": "insert_map"},
 		map[string]any{"bio": "bio_updated"},
 	)
 	if err != nil {
@@ -159,7 +157,7 @@ func TestSQLiteIntegrationUpdateOrInsertWithWhereClause(t *testing.T) {
 	}
 
 	var user models.User
-	err = query.Table("users").Where("name = ?", "insert_map").First(&user)
+	err = query.Model(&models.User{}).Where("name = ?", "insert_map").First(&user)
 	if err != nil {
 		t.Errorf("Failed to find user with bio: %v", err)
 	}

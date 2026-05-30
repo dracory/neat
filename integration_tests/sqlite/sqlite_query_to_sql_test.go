@@ -17,7 +17,6 @@ func TestSQLiteIntegrationQueryToSql(t *testing.T) {
 
 	sql := query.Table("users").Where("id = ?", 1).ToSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("ToSql output: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -54,7 +53,6 @@ func TestSQLiteIntegrationQueryToSqlCount(t *testing.T) {
 
 	sql := query.Table("users").Where("name = ?", "test").ToSql().Count()
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("ToSql Count output: %s", sql)
 	if !strings.Contains(sql, "SELECT COUNT(*)") {
 		t.Error("Expected SELECT COUNT(*)")
 	}
@@ -76,7 +74,6 @@ func TestSQLiteIntegrationQueryToRawSqlCount(t *testing.T) {
 
 	sql := query.Table("users").Where("name = ?", "test").ToRawSql().Count()
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT COUNT(*)") {
 		t.Error("Expected SELECT COUNT(*)")
 	}
@@ -98,7 +95,6 @@ func TestSQLiteIntegrationQueryToSqlUpdate(t *testing.T) {
 
 	sql := query.Table("users").Where("id = ?", 1).ToSql().Update("name", "new_name")
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("ToSql Update output: %s", sql)
 	if !strings.Contains(sql, "UPDATE \"users\"") {
 		t.Error("Expected UPDATE \"users\"")
 	}
@@ -146,7 +142,6 @@ func TestSQLiteIntegrationQueryToRawSqlTableQualifiedColumn(t *testing.T) {
 	// The quoteIdentifier function handles them separately
 	sql := query.Table("users").Where("users.id = ?", 1).ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -167,7 +162,6 @@ func TestSQLiteIntegrationQueryToRawSqlFunctionCall(t *testing.T) {
 	// Function calls should not be quoted
 	sql := query.Table("users").Where("COUNT(id) > ?", 0).ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -189,7 +183,6 @@ func TestSQLiteIntegrationQueryToRawSqlBetween(t *testing.T) {
 	// WhereBetween adds the column name without quoting, expecting the builder to handle it
 	sql := query.Table("users").WhereBetween("id", 1, 10).ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -209,7 +202,6 @@ func TestSQLiteIntegrationQueryToRawSqlIn(t *testing.T) {
 	// IN should be handled by WhereIn which quotes the column before adding to query
 	sql := query.Table("users").WhereIn("id", []any{1, 2, 3}).ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -229,7 +221,6 @@ func TestSQLiteIntegrationQueryToRawSqlNull(t *testing.T) {
 	// NULL should not be quoted
 	sql := query.Table("users").Where("deleted_at IS NULL").ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -249,7 +240,6 @@ func TestSQLiteIntegrationQueryToRawSqlMultipleConditions(t *testing.T) {
 	// Multiple conditions with AND
 	sql := query.Table("users").Where("name = ?", "test").Where("age > ?", 18).ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}
@@ -272,7 +262,6 @@ func TestSQLiteIntegrationQueryToRawSqlOrCondition(t *testing.T) {
 	// OR condition
 	sql := query.Table("users").Where("name = ?", "test").OrWhere("email = ?", "test@example.com").ToRawSql().Get(&models.User{})
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("Generated SQL: %s", sql)
 	if !strings.Contains(sql, "SELECT * FROM \"users\"") {
 		t.Error("Expected SELECT * FROM \"users\"")
 	}

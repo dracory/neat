@@ -48,10 +48,6 @@ func TestTursoIntegrationQueryBatchCreateByStruct(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to query created users: %v", err)
 	}
-	t.Logf("Found %d users with name like batch_create_user%%", len(foundUsers))
-	for _, u := range foundUsers {
-		t.Logf("User: ID=%d, Name=%s", u.ID, u.Name)
-	}
 	if len(foundUsers) < 2 {
 		t.Error("Should have created at least 2 users")
 	}

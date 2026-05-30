@@ -1,5 +1,3 @@
-//go:build disabled
-
 package sqlite
 
 import (

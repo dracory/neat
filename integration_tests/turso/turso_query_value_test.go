@@ -103,7 +103,6 @@ func TestTursoIntegrationQueryToSqlValue(t *testing.T) {
 	var name string
 	sql := db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", 1).ToSql().Value("name", &name)
 	sql = strings.ReplaceAll(sql, "`", "\"")
-	t.Logf("ToSql Value output: %s", sql)
 	if !strings.Contains(sql, "SELECT name FROM \"users\"") {
 		t.Error("Expected SELECT name FROM \"users\"")
 	}
