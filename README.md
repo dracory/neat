@@ -1,5 +1,7 @@
 # Neat ORM
 
+[![codecov](https://codecov.io/gh/dracory/neat/branch/main/graph/badge.svg)](https://codecov.io/gh/dracory/neat)
+
 A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed to provide a clean and intuitive interface for database operations. Neat aims to feature parity with Laravel's Eloquent ORM while being built from scratch without GORM dependencies.
 
 ## Features
@@ -285,6 +287,23 @@ go test ./...
 ```bash
 go test -v ./...
 ```
+
+### Generating Coverage Reports
+
+To generate a coverage report locally:
+
+```bash
+# Generate coverage profile
+go test -coverprofile=coverage.out -covermode=atomic ./...
+
+# View coverage percentage in terminal
+go tool cover -func=coverage.out
+
+# Generate HTML coverage report
+go tool cover -html=coverage.out -o coverage.html
+```
+
+The HTML report can be opened in a browser to see detailed coverage information for each file and function.
 
 ## Contributing
 

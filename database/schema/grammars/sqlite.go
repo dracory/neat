@@ -123,7 +123,7 @@ func (r *Sqlite) CompileDropAllViews(views []string) (string, error) {
 }
 
 func (r *Sqlite) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
-	// TODO check Sqlite 3.35
+	// Requires SQLite 3.35+ for DROP COLUMN support
 	table, err := r.wrap.Table(blueprint.GetTableName())
 	if err != nil {
 		return nil, err

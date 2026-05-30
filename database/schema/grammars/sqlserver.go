@@ -158,7 +158,6 @@ func (r *Sqlserver) CompileDropColumn(blueprint schema.Blueprint, command *schem
 }
 
 func (r *Sqlserver) CompileDropDefaultConstraint(blueprint schema.Blueprint, command *schema.Command) (string, error) {
-	// TODO Add change logic
 	columns := fmt.Sprintf("'%s'", strings.Join(command.Columns, "','"))
 	table, err := r.wrap.Table(blueprint.GetTableName())
 	if err != nil {

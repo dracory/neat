@@ -498,8 +498,7 @@ func TestLength(t *testing.T) {
 func TestLimit(t *testing.T) {
 	assertEqual(t, "This is...", Of("This is a beautiful morning").Limit(7).String())
 	assertEqual(t, "This is****", Of("This is a beautiful morning").Limit(7, "****").String())
-	// TODO: Fix Unicode test - corrupted during suite conversion
-	// assertEqual(t, "这一...", Of("这是一段中文").Limit(3).String())
+	assertEqual(t, "这是一...", Of("这是一段中文").Limit(3).String())
 	assertEqual(t, "这是一段中文", Of("这是一段中文").Limit(9).String())
 }
 
@@ -528,8 +527,7 @@ func TestMask(t *testing.T) {
 
 	assertEqual(t, "krissssssssssssss", Of("krishan@email.com").Mask("something", 3).String())
 
-	// TODO: Fix Unicode test - corrupted during suite conversion
-	// assertEqual(t, "这一***", Of("这是一段中文").Mask("*", 3).String())
+	assertEqual(t, "这是****", Of("这是一段中文").Mask("*", 2).String())
 	assertEqual(t, "**一段中文", Of("这是一段中文").Mask("*", 0, 2).String())
 }
 

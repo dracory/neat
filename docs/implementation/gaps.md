@@ -64,60 +64,9 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ---
 
-## Phase 3: Code Quality Improvements (LOW PRIORITY)
+## Phase 3: CI/CD Improvements (LOW PRIORITY)
 
-### 3.1 Resolve TODO Comments
-
-**Status**: ⚠️ 13 TODO comments found
-**Priority**: LOW
-
-**TODOs to resolve**:
-
-1. **database/schema/grammars/sqlserver.go:161**
-   - `TODO Add change logic` for DropDefaultConstraint
-   - Implement or document limitation
-
-2. **database/schema/grammars/sqlite.go:126**
-   - `TODO check Sqlite 3.35` for DropColumn
-   - Verify SQLite version support and update
-
-3. **integration_tests/postgres/postgres_query_lock_test.go:10**
-   - `TODO: package doesn't exist in neat`
-   - Remove comment or fix reference
-
-4. **support/str/str_test.go:2** - Additional TODOs in test files
-5. **database/query/query_advanced_test.go:20** - Additional TODOs in test files
-6. **database/query/query_bench_test.go:5** - Additional TODOs in test files
-7. **database/query/to_sql_test.go:15** - Additional TODOs in test files
-8. **database/query/query_where_test.go:79** - Additional TODOs in test files
-9. **database/query/query_raw_test.go:3** - Additional TODOs in test files
-10. **database/query/query_aggregate_test.go:7** - Additional TODOs in test files
-11. **database/query/query_builder_test.go:29** - Additional TODOs in test files
-12. **CHANGELOG.md:1** - Additional TODOs in documentation
-
-**Estimated effort**: 1.5 days
-
----
-
-### 3.2 Add Code Coverage Reporting
-
-**Status**: ❌ Not configured
-**Priority**: LOW
-
-**Steps**:
-1. Add coverage reporting to GitHub Actions
-2. Integrate with Codecov or Coveralls
-3. Add coverage badge to README
-4. Set coverage thresholds
-5. Generate coverage reports locally
-
-**Estimated effort**: 0.5 days
-
----
-
-## Phase 4: CI/CD Improvements (LOW PRIORITY)
-
-### 4.1 Enhance GitHub Actions Workflows
+### 3.1 Enhance GitHub Actions Workflows
 
 **Status**: ⚠️ Basic workflows exist
 **Priority**: LOW
@@ -219,12 +168,8 @@ Use this checklist to track completion:
 ### Phase 2: Advanced Integration
 - [ ] 2.1 InsertGetId PostgreSQL Test
 
-### Phase 3: Code Quality
-- [ ] 3.1 Resolve TODO comments (13 items)
-- [ ] 3.2 Add code coverage reporting
-
-### Phase 4: CI/CD
-- [ ] 4.1 Enhance GitHub Actions workflows
+### Phase 3: CI/CD
+- [ ] 3.1 Enhance GitHub Actions workflows
 
 ### Phase 5: Advanced Features
 - [ ] 5.1 Spatial Data Type Support
@@ -236,10 +181,9 @@ Use this checklist to track completion:
 - **Phase 1**: 5-7 days
 - **Phase 2**: 0.5 days
 - **Phase 3**: 1.5 days
-- **Phase 4**: 1.5 days
-- **Phase 5**: 3-4 days
+- **Phase 4**: 3-4 days
 
-**Total**: 11.5-14.5 days (2.5-3 weeks for one developer)
+**Total**: 10-12.5 days (2-2.5 weeks for one developer)
 
 With 2-3 developers working in parallel: **1-1.5 weeks to zero gaps**
 
