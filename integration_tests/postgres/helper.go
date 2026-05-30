@@ -114,6 +114,7 @@ func cleanupPostgresTestData(t *testing.T, db *database.Database) {
 		`DELETE FROM books`,
 		`DELETE FROM peoples`,
 		`DELETE FROM json_datas`,
+		`DELETE FROM bigserial_users`,
 	}
 	for _, stmt := range stmts {
 		if _, err := sqlDB.Exec(stmt); err != nil {
@@ -136,11 +137,13 @@ func createPostgresTestTables(t *testing.T, db *database.Database) {
 		`DROP TABLE IF EXISTS users CASCADE`,
 		`DROP TABLE IF EXISTS peoples CASCADE`,
 		`DROP TABLE IF EXISTS json_datas CASCADE`,
+		`DROP TABLE IF EXISTS bigserial_users CASCADE`,
 		`DROP SEQUENCE IF EXISTS books_id_seq CASCADE`,
 		`DROP SEQUENCE IF EXISTS addresses_id_seq CASCADE`,
 		`DROP SEQUENCE IF EXISTS users_id_seq CASCADE`,
 		`DROP SEQUENCE IF EXISTS peoples_id_seq CASCADE`,
 		`DROP SEQUENCE IF EXISTS json_datas_id_seq CASCADE`,
+		`DROP SEQUENCE IF EXISTS bigserial_users_id_seq CASCADE`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id         BIGSERIAL PRIMARY KEY,
 			name       VARCHAR(255) NOT NULL DEFAULT '',
@@ -174,6 +177,12 @@ func createPostgresTestTables(t *testing.T, db *database.Database) {
 		`CREATE TABLE IF NOT EXISTS json_datas (
 			id         BIGSERIAL PRIMARY KEY,
 			data       JSONB NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS bigserial_users (
+			id         BIGSERIAL PRIMARY KEY,
+			name       VARCHAR(255) NOT NULL DEFAULT '',
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,

@@ -59,3 +59,15 @@ type JsonData struct {
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
+
+// BigSerialUser represents a user model with int64 ID for bigserial testing
+type BigSerialUser struct {
+	ID        int64     `db:"id"`
+	Name      string    `db:"name"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (BigSerialUser) TableName() string {
+	return "bigserial_users"
+}

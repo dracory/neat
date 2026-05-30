@@ -41,29 +41,6 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 ---
 
 
-## Phase 2: Advanced Integration Test Coverage (LOW PRIORITY)
-
-### 2.1 InsertGetId PostgreSQL RETURNING Test
-
-**Status**: ❌ Missing
-**Priority**: MEDIUM
-
-**Purpose**: Integration test asserting returned ID is non-zero for PostgreSQL
-
-**Current state**:
-- Unit test exists: `database/query/insert_get_id_test.go`
-- No PostgreSQL-specific integration test
-
-**Steps**:
-1. Add test to `integration_tests/postgres/postgres_query_create_test.go`
-2. Test InsertGetId returns correct ID
-3. Verify PostgreSQL RETURNING clause is used
-4. Test with serial and bigserial columns
-
-**Estimated effort**: 0.5 days
-
----
-
 ## Phase 3: CI/CD Improvements (LOW PRIORITY)
 
 ### 3.1 Enhance GitHub Actions Workflows
@@ -164,9 +141,6 @@ Use this checklist to track completion:
 ### Phase 1: Integration Tests
 - [ ] 1.1 Enable PostgreSQL tests (35/46 files passing, 11 skipped due to gaps)
 - [ ] 1.2 Create SQL Server tests (~40 files)
-
-### Phase 2: Advanced Integration
-- [ ] 2.1 InsertGetId PostgreSQL Test
 
 ### Phase 3: CI/CD
 - [ ] 3.1 Enhance GitHub Actions workflows
