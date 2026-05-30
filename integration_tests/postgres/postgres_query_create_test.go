@@ -139,7 +139,7 @@ func TestPostgreSQLIntegrationQueryInsertGetIdBigSerial(t *testing.T) {
 	if id == 0 {
 		t.Error("ID should not be zero for bigserial")
 	}
-	if user.ID != id {
+	if user.ID != int64(id) {
 		t.Errorf("Expected ID %d, got %d", id, user.ID)
 	}
 
