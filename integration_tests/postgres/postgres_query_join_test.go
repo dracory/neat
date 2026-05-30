@@ -1,12 +1,42 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
 import (
 	"testing"
+	"time"
 
+	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
+
+func seedJoinTestData(t *testing.T, db *database.Database) (uint, uint) {
+	now := time.Now()
+
+	user1 := models.User{Name: "join_user1", CreatedAt: now, UpdatedAt: now}
+	user2 := models.User{Name: "join_user2", CreatedAt: now, UpdatedAt: now}
+	if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
+		t.Fatalf("Failed to create user1: %v", err)
+	}
+	if err := db.Query().Model(&models.User{}).Create(&user2); err != nil {
+		t.Fatalf("Failed to create user2: %v", err)
+	}
+
+	var createdUser1, createdUser2 models.User
+	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user1").First(&createdUser1); err != nil {
+		t.Fatalf("Failed to get created user1: %v", err)
+	}
+	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user2").First(&createdUser2); err != nil {
+		t.Fatalf("Failed to get created user2: %v", err)
+	}
+
+	address1 := models.Address{Name: "address1", UserID: createdUser1.ID, CreatedAt: now, UpdatedAt: now}
+	if err := db.Query().Model(&models.Address{}).Create(&address1); err != nil {
+		t.Fatalf("Failed to create address1: %v", err)
+	}
+
+	return createdUser1.ID, createdUser2.ID
+}
 
 func TestPostgresIntegrationInnerJoin(t *testing.T) {
 	if testing.Short() {
@@ -14,30 +44,16 @@ func TestPostgresIntegrationInnerJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	userID1, _ := seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName    string `gorm:"column:name"`
-		AddressName string `gorm:"column:address_name"`
+		UserName    string `db:"column:name"`
+		AddressName string `db:"column:address_name"`
 	}
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id").
 		Select("users.name, addresses.name as address_name").
-		Where("users.id = ?", user1.ID).
+		Where("users.id = ?", userID1).
 		Scan(&results)
 
 	if err != nil {
@@ -60,24 +76,10 @@ func TestPostgresIntegrationInnerJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:name"`
+		UserName string `db:"column:name"`
 	}
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id AND addresses.name = ?", "address1").
@@ -98,24 +100,10 @@ func TestPostgresIntegrationInnerJoinWithAliases(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:name"`
+		UserName string `db:"column:name"`
 	}
 	err := db.Query().Table("users as u").
 		Join("addresses as a ON a.user_id = u.id").
@@ -136,25 +124,11 @@ func TestPostgresIntegrationLeftJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName    string  `gorm:"column:name"`
-		AddressName *string `gorm:"column:address_name"`
+		UserName    string  `db:"column:name"`
+		AddressName *string `db:"column:address_name"`
 	}
 	err := db.Query().Table("users").
 		LeftJoin("addresses ON addresses.user_id = users.id").
@@ -188,25 +162,11 @@ func TestPostgresIntegrationLeftJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName    string  `gorm:"column:name"`
-		AddressName *string `gorm:"column:address_name"`
+		UserName    string  `db:"column:name"`
+		AddressName *string `db:"column:address_name"`
 	}
 	err := db.Query().Table("users").
 		LeftJoin("addresses ON addresses.user_id = users.id AND addresses.name = ?", "non-existent").
@@ -234,24 +194,10 @@ func TestPostgresIntegrationLeftJoinWithAliases(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:name"`
+		UserName string `db:"column:name"`
 	}
 	err := db.Query().Table("users as u").
 		LeftJoin("addresses as a ON a.user_id = u.id").
@@ -272,25 +218,11 @@ func TestPostgresIntegrationRightJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName    *string `gorm:"column:name"`
-		AddressName string  `gorm:"column:address_name"`
+		UserName    *string `db:"column:name"`
+		AddressName string  `db:"column:address_name"`
 	}
 	err := db.Query().Table("users").
 		RightJoin("addresses ON addresses.user_id = users.id").
@@ -317,24 +249,10 @@ func TestPostgresIntegrationRightJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		AddressName string `gorm:"column:address_name"`
+		AddressName string `db:"column:address_name"`
 	}
 	err := db.Query().Table("users").
 		RightJoin("addresses ON addresses.user_id = users.id AND users.name = ?", "non-existent").
@@ -355,24 +273,10 @@ func TestPostgresIntegrationRightJoinWithAliases(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		AddressName string `gorm:"column:address_name"`
+		AddressName string `db:"column:address_name"`
 	}
 	err := db.Query().Table("users as u").
 		RightJoin("addresses as a ON a.user_id = u.id").
@@ -393,25 +297,11 @@ func TestPostgresIntegrationCrossJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName    string `gorm:"column:user_name"`
-		AddressName string `gorm:"column:address_name"`
+		UserName    string `db:"column:user_name"`
+		AddressName string `db:"column:address_name"`
 	}
 	err := db.Query().Table("users").
 		CrossJoin("addresses").
@@ -432,24 +322,10 @@ func TestPostgresIntegrationCrossJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:user_name"`
+		UserName string `db:"column:user_name"`
 	}
 	err := db.Query().Table("users").
 		CrossJoin("addresses").
@@ -471,24 +347,10 @@ func TestPostgresIntegrationCrossJoinWithSelect(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:name"`
+		UserName string `db:"column:name"`
 	}
 	err := db.Query().Table("users").
 		CrossJoin("addresses").
@@ -509,31 +371,18 @@ func TestPostgresIntegrationMultipleJoins(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
+	userID1, _ := seedJoinTestData(t, db)
 
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
-
-	book1 := models.Book{Name: "book1", UserID: user1.ID}
-	if err := query.Model(&models.Book{}).Create(&book1); err != nil {
+	now := time.Now()
+	book1 := models.Book{Name: "book1", UserID: userID1, CreatedAt: now, UpdatedAt: now}
+	if err := db.Query().Model(&models.Book{}).Create(&book1); err != nil {
 		t.Fatalf("Failed to create book1: %v", err)
 	}
 
 	var results []struct {
-		UserName    string `gorm:"column:user_name"`
-		AddressName string `gorm:"column:address_name"`
-		BookName    string `gorm:"column:book_name"`
+		UserName    string `db:"column:user_name"`
+		AddressName string `db:"column:address_name"`
+		BookName    string `db:"column:book_name"`
 	}
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id").
@@ -564,24 +413,10 @@ func TestPostgresIntegrationJoinChaining(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:name"`
+		UserName string `db:"column:name"`
 	}
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id").
@@ -603,24 +438,10 @@ func TestPostgresIntegrationComplexJoinScenarios(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	user1 := models.User{Name: "join_user1"}
-	user2 := models.User{Name: "join_user2"}
-	if err := query.Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := query.Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
+	seedJoinTestData(t, db)
 
 	var results []struct {
-		UserName string `gorm:"column:name"`
+		UserName string `db:"column:name"`
 	}
 	err := db.Query().Table("users").
 		Join("addresses ON addresses.user_id = users.id").

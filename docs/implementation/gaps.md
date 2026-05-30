@@ -13,7 +13,6 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 **Current Status:**
 - ⚠️ PostgreSQL integration tests: 35 files enabled, 11 files skipped due to unimplemented features
-- ⚠️ MySQL integration tests: All files enabled, some tests skipped due to unimplemented features
 - ❌ SQL Server integration tests: Not created
 
 ---
@@ -27,7 +26,7 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 **Files**: `integration_tests/postgres/*_test.go`
 
 **Skipped tests (gaps to address)**:
-- postgres_query_join_test.go - PostgreSQL custom type conflicts
+- ~~postgres_query_join_test.go - PostgreSQL custom type conflicts~~ (FIXED)
 - postgres_query_json_test.go - MySQL/SQLite JSON syntax incompatibility
 - postgres_query_omit_test.go - Soft-delete filter incompatibility
 - postgres_query_paginate_test.go - Soft-delete filter incompatibility
@@ -45,26 +44,6 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 1. Set up PostgreSQL test database in CI/CD
 2. Update GitHub Actions workflow to include PostgreSQL service
 3. Document PostgreSQL test setup in integration_tests/README.md
-
----
-
-### 1.1.1 Verify MySQL Integration Tests
-
-**Status**: ⚠️ Partially Complete (files enabled, some tests skipped due to gaps)
-**Priority**: MEDIUM
-**Files**: `integration_tests/mysql/*_test.go`
-
-**Skipped tests (gaps to address)**:
-- "ORM Raw() returns *Query struct which cannot be used as a map value in Create() — spatial inserts not yet supported" - Spatial data types not implemented (specific limitation, not general Raw() issue)
-
-**Note**: 
-- Raw(), Load(), and LoadMissing() methods ARE implemented - tests have been fixed to verify implementation
-- Increment/Decrement tests have been fixed to use valid columns (votes) instead of auto-increment ID
-- Only remaining gap is spatial data type support
-
-**Remaining steps**:
-1. Ensure MySQL service is configured in CI/CD
-2. Document MySQL test setup in integration_tests/README.md
 
 ---
 
@@ -252,6 +231,35 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ---
 
+## Phase 5: Advanced Features (LOW PRIORITY)
+
+### 5.1 Spatial Data Type Support
+
+**Status**: ❌ Not implemented
+**Priority**: LOW
+
+**Purpose**: Add support for MySQL/PostgreSQL spatial data types (GEOMETRY, POINT, LINESTRING, POLYGON, etc.) to match Laravel's spatial capabilities.
+
+**Current state**:
+- Test exists: `integration_tests/mysql/mysql_query_spatial_test.go` (skipped)
+- No spatial type definitions in ORM
+- No WKT/WKB format support
+- No spatial function support
+
+**Steps**:
+1. Add spatial type definitions in models (Geometry, Point, LineString, Polygon, etc.)
+2. Implement WKT (Well-Known Text) parsing and serialization
+3. Implement WKB (Well-Known Binary) parsing and serialization
+4. Add spatial column types to schema builder
+5. Add spatial query functions (ST_GeomFromText, ST_AsText, ST_Distance, etc.)
+6. Update Create() method to handle spatial data types
+7. Add spatial query scopes (WhereDistance, etc.)
+8. Write integration tests for spatial operations
+
+**Estimated effort**: 3-4 days
+
+---
+
 ## Execution Plan Summary
 
 ### Recommended Execution Order
@@ -299,7 +307,6 @@ Use this checklist to track completion:
 
 ### Phase 1: Integration Tests
 - [ ] 1.1 Enable PostgreSQL tests (35/46 files passing, 11 skipped due to gaps)
-- [ ] 1.1.1 Verify MySQL tests (files enabled, some tests skipped due to gaps)
 - [ ] 1.2 Create SQL Server tests (~40 files)
 
 ### Phase 2: Advanced Integration
@@ -315,6 +322,9 @@ Use this checklist to track completion:
 ### Phase 4: CI/CD
 - [ ] 4.1 Enhance GitHub Actions workflows
 
+### Phase 5: Advanced Features
+- [ ] 5.1 Spatial Data Type Support
+
 ---
 
 ## Estimated Total Effort
@@ -323,8 +333,9 @@ Use this checklist to track completion:
 - **Phase 2**: 2 days
 - **Phase 3**: 2 days
 - **Phase 4**: 1.5 days
+- **Phase 5**: 3-4 days
 
-**Total**: 10.5-12.5 days (2-2.5 weeks for one developer)
+**Total**: 13.5-16.5 days (2.5-3.5 weeks for one developer)
 
 With 2-3 developers working in parallel: **1-1.5 weeks to zero gaps**
 
