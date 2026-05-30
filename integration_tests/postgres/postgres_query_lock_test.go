@@ -1,4 +1,4 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
@@ -7,9 +7,7 @@ import (
 	"testing"
 	"time"
 
-	// "github.com/dracory/neat/database/gorm" // TODO: package doesn't exist in neat
-
-	"github.com/dracory/neat/database"
+	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -25,9 +23,9 @@ func TestPostgresLockForUpdate(t *testing.T) {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	err := db.Transaction(func(tx *database.Database) error {
+	err := db.Transaction(func(tx contractsorm.Query) error {
 		var result models.User
-		err := tx.Query().LockForUpdate().Where("name = ?", "lock_user").First(&result)
+		err := tx.Model(&models.User{}).LockForUpdate().Where("name = ?", "lock_user").First(&result)
 		if err != nil {
 			return err
 		}
@@ -53,9 +51,9 @@ func TestPostgresSharedLock(t *testing.T) {
 		t.Fatalf("Failed to create user: %v", err)
 	}
 
-	err := db.Transaction(func(tx *database.Database) error {
+	err := db.Transaction(func(tx contractsorm.Query) error {
 		var result models.User
-		err := tx.Query().SharedLock().Where("name = ?", "shared_lock_user").First(&result)
+		err := tx.Model(&models.User{}).SharedLock().Where("name = ?", "shared_lock_user").First(&result)
 		if err != nil {
 			return err
 		}
@@ -91,9 +89,9 @@ func TestPostgresConcurrentAccess(t *testing.T) {
 		defer wg.Done()
 		<-start
 
-		err := db.Transaction(func(tx *database.Database) error {
+		err := db.Transaction(func(tx contractsorm.Query) error {
 			var result models.User
-			err := tx.Query().LockForUpdate().Where("name = ?", "concurrent_user").First(&result)
+			err := tx.Model(&models.User{}).LockForUpdate().Where("name = ?", "concurrent_user").First(&result)
 			if err != nil {
 				return err
 			}
@@ -102,7 +100,7 @@ func TestPostgresConcurrentAccess(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			result.Name = "updated_by_tx1"
-			return tx.Query().Save(&result)
+			return tx.Save(&result)
 		})
 		if err != nil {
 			t.Errorf("Transaction 1 failed: %v", err)
@@ -117,10 +115,10 @@ func TestPostgresConcurrentAccess(t *testing.T) {
 		// Wait a bit to ensure Goroutine 1 starts first
 		time.Sleep(50 * time.Millisecond)
 
-		err := db.Transaction(func(tx *database.Database) error {
+		err := db.Transaction(func(tx contractsorm.Query) error {
 			var result models.User
 			// This should block until Goroutine 1 commits
-			err := tx.Query().LockForUpdate().Where("name = ?", "concurrent_user").First(&result)
+			err := tx.Model(&models.User{}).LockForUpdate().Where("name = ?", "concurrent_user").First(&result)
 			if err != nil {
 				return err
 			}
@@ -129,7 +127,7 @@ func TestPostgresConcurrentAccess(t *testing.T) {
 				t.Errorf("Expected 'updated_by_tx1', got '%s'", result.Name)
 			}
 			result.Name = "updated_by_tx2"
-			return tx.Query().Save(&result)
+			return tx.Save(&result)
 		})
 		if err != nil {
 			t.Errorf("Transaction 2 failed: %v", err)
@@ -140,7 +138,7 @@ func TestPostgresConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	var finalResult models.User
-	err := db.Query().Where("id = ?", user.ID).First(&finalResult)
+	err := db.Query().Model(&models.User{}).Where("id = ?", user.ID).First(&finalResult)
 	if err != nil {
 		t.Errorf("Failed to find final result: %v", err)
 	}

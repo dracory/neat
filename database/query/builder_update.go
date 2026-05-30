@@ -52,8 +52,10 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 		if colStr, ok := column.(string); ok {
 			// Check if the column string is already a complete SET expression (contains =)
 			if strings.Contains(colStr, "=") {
-				// Use the expression as-is (for Increment/Decrement)
-				setParts = append(setParts, colStr)
+				// Use the expression as-is (for Increment/Decrement), but replace ? with dialect-specific placeholder
+				replacedExpr := strings.Replace(colStr, "?", placeholderFunc(placeholderIndex), 1)
+				setParts = append(setParts, replacedExpr)
+				placeholderIndex++
 				setArgs = append(setArgs, values...)
 			} else if strings.Contains(colStr, "->") {
 				// Handle JSON path updates for MySQL and SQLite

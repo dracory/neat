@@ -26,7 +26,7 @@ func TestPostgresIntegrationInnerJoin(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -72,7 +72,7 @@ func TestPostgresIntegrationInnerJoinWithConditions(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -110,7 +110,7 @@ func TestPostgresIntegrationInnerJoinWithAliases(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -148,7 +148,7 @@ func TestPostgresIntegrationLeftJoin(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -200,7 +200,7 @@ func TestPostgresIntegrationLeftJoinWithConditions(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -246,7 +246,7 @@ func TestPostgresIntegrationLeftJoinWithAliases(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -284,7 +284,7 @@ func TestPostgresIntegrationRightJoin(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -329,7 +329,7 @@ func TestPostgresIntegrationRightJoinWithConditions(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -367,7 +367,7 @@ func TestPostgresIntegrationRightJoinWithAliases(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -405,7 +405,7 @@ func TestPostgresIntegrationCrossJoin(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -444,7 +444,7 @@ func TestPostgresIntegrationCrossJoinWithConditions(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -483,7 +483,7 @@ func TestPostgresIntegrationCrossJoinWithSelect(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -521,12 +521,12 @@ func TestPostgresIntegrationMultipleJoins(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
 	book1 := models.Book{Name: "book1", UserID: user1.ID}
-	if err := query.Create(&book1); err != nil {
+	if err := query.Model(&models.Book{}).Create(&book1); err != nil {
 		t.Fatalf("Failed to create book1: %v", err)
 	}
 
@@ -576,7 +576,7 @@ func TestPostgresIntegrationJoinChaining(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 
@@ -615,7 +615,7 @@ func TestPostgresIntegrationComplexJoinScenarios(t *testing.T) {
 	}
 
 	address1 := models.Address{Name: "address1", UserID: user1.ID}
-	if err := query.Create(&address1); err != nil {
+	if err := query.Model(&models.Address{}).Create(&address1); err != nil {
 		t.Fatalf("Failed to create address1: %v", err)
 	}
 

@@ -17,11 +17,17 @@ func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, e
 
 	incAmount := int64(1)
 	if len(amount) > 0 {
-		if val, ok := amount[0].(int64); ok {
-			incAmount = val
+		switch v := amount[0].(type) {
+		case int64:
+			incAmount = v
+		case int:
+			incAmount = int64(v)
+		case int32:
+			incAmount = int64(v)
 		}
 	}
 
+	// Use ? placeholder - the builder will replace it with dialect-specific placeholder
 	updateQuery := fmt.Sprintf("%s = %s + ?", column, column)
 	return q.Update(updateQuery, incAmount)
 }
@@ -34,11 +40,17 @@ func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, e
 
 	decAmount := int64(1)
 	if len(amount) > 0 {
-		if val, ok := amount[0].(int64); ok {
-			decAmount = val
+		switch v := amount[0].(type) {
+		case int64:
+			decAmount = v
+		case int:
+			decAmount = int64(v)
+		case int32:
+			decAmount = int64(v)
 		}
 	}
 
+	// Use ? placeholder - the builder will replace it with dialect-specific placeholder
 	updateQuery := fmt.Sprintf("%s = %s - ?", column, column)
 	return q.Update(updateQuery, decAmount)
 }

@@ -90,9 +90,24 @@ func (b *Builder) BuildSelect() (string, []any) {
 	}
 
 	// JOIN clauses
-	for _, join := range b.query.joins {
-		parts = append(parts, fmt.Sprintf("%s %s", join._type, join.query))
-		args = append(args, join.args...)
+	if len(b.query.joins) > 0 {
+		// Get placeholder function for the dialect
+		placeholderFunc := func(n int) string { return "?" }
+		if b.query.driver != nil {
+			placeholderFunc = b.query.driver.Placeholder
+		}
+
+		// Start placeholder index after FROM clause parameters
+		placeholderIndex := len(args) + 1
+		for _, join := range b.query.joins {
+			// Replace ? with dialect-specific placeholder
+			replacedQuery := strings.Replace(join.query, "?", placeholderFunc(placeholderIndex), -1)
+			// Count how many placeholders were replaced to increment index correctly
+			placeholderCount := strings.Count(join.query, "?")
+			placeholderIndex += placeholderCount
+			parts = append(parts, fmt.Sprintf("%s %s", join._type, replacedQuery))
+			args = append(args, join.args...)
+		}
 	}
 
 	// WHERE clauses (with automatic soft-delete filter)
@@ -109,9 +124,22 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// HAVING clauses
 	if len(b.query.havings) > 0 {
+		// Get placeholder function for the dialect
+		placeholderFunc := func(n int) string { return "?" }
+		if b.query.driver != nil {
+			placeholderFunc = b.query.driver.Placeholder
+		}
+
+		// Start placeholder index after WHERE clause parameters
+		placeholderIndex := len(args) + 1
 		var havingParts []string
 		for _, having := range b.query.havings {
-			havingParts = append(havingParts, having.query)
+			// Replace ? with dialect-specific placeholder
+			replacedQuery := strings.Replace(having.query, "?", placeholderFunc(placeholderIndex), -1)
+			// Count how many placeholders were replaced to increment index correctly
+			placeholderCount := strings.Count(having.query, "?")
+			placeholderIndex += placeholderCount
+			havingParts = append(havingParts, replacedQuery)
 			args = append(args, having.args...)
 		}
 		parts = append(parts, fmt.Sprintf("HAVING %s", strings.Join(havingParts, " AND ")))
