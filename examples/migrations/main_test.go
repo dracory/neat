@@ -6,10 +6,18 @@ import (
 	mainpkg "github.com/dracory/neat/examples/migrations"
 )
 
-func TestRunExample(t *testing.T) {
+func TestRunSchemaBuilderExample(t *testing.T) {
 	// Use in-memory SQLite for testing
-	err := mainpkg.RunExample("sqlite://:memory:")
+	err := mainpkg.RunSchemaBuilderExample("sqlite://:memory:")
 	if err != nil {
-		t.Fatalf("RunExample failed: %v", err)
+		t.Fatalf("RunSchemaBuilderExample failed: %v", err)
+	}
+}
+
+func TestRunMigrationSystemExample(t *testing.T) {
+	// Use in-memory SQLite for testing
+	err := mainpkg.RunMigrationSystemExample("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("RunMigrationSystemExample failed: %v", err)
 	}
 }

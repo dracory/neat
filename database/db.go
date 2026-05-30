@@ -11,7 +11,9 @@ import (
 
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
+	contractsMigration "github.com/dracory/neat/contracts/migration"
 	"github.com/dracory/neat/database/db"
+	databaseMigration "github.com/dracory/neat/database/migration"
 	databaseorm "github.com/dracory/neat/database/orm"
 	"github.com/dracory/neat/database/schema"
 )
@@ -402,4 +404,41 @@ func (d *Database) GetQueryLog() []orm.QueryLog {
 // Factory returns the ORM factory for creating test data.
 func (d *Database) Factory() orm.Factory {
 	return d.ormInstance.Factory()
+}
+
+// Migrate runs all pending migrations.
+func (d *Database) Migrate(paths ...string) error {
+	migrator := d.getMigrator(paths)
+	return migrator.Run()
+}
+
+// MigrateDown rolls back the last migration batch.
+func (d *Database) MigrateDown(step int, paths ...string) error {
+	migrator := d.getMigrator(paths)
+	return migrator.Rollback(step, 0)
+}
+
+// MigrateFresh drops all tables and re-runs all migrations.
+func (d *Database) MigrateFresh(paths ...string) error {
+	migrator := d.getMigrator(paths)
+	return migrator.Fresh()
+}
+
+// MigrateReset rolls back all migrations and re-runs them.
+func (d *Database) MigrateReset(paths ...string) error {
+	migrator := d.getMigrator(paths)
+	return migrator.Reset()
+}
+
+// MigrationStatus returns the status of all migrations.
+func (d *Database) MigrationStatus(paths ...string) ([]contractsMigration.Status, error) {
+	migrator := d.getMigrator(paths)
+	return migrator.Status()
+}
+
+func (d *Database) getMigrator(paths []string) contractsMigration.Migrator {
+	if len(paths) == 0 {
+		paths = []string{"./migrations"}
+	}
+	return databaseMigration.NewMigrator(d.config, d.ormInstance, d.schema, paths)
 }
