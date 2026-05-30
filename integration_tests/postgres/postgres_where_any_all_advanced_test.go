@@ -1,9 +1,10 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 

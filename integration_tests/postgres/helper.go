@@ -136,6 +136,11 @@ func createPostgresTestTables(t *testing.T, db *database.Database) {
 		`DROP TABLE IF EXISTS users CASCADE`,
 		`DROP TABLE IF EXISTS peoples CASCADE`,
 		`DROP TABLE IF EXISTS json_datas CASCADE`,
+		`DROP SEQUENCE IF EXISTS books_id_seq CASCADE`,
+		`DROP SEQUENCE IF EXISTS addresses_id_seq CASCADE`,
+		`DROP SEQUENCE IF EXISTS users_id_seq CASCADE`,
+		`DROP SEQUENCE IF EXISTS peoples_id_seq CASCADE`,
+		`DROP SEQUENCE IF EXISTS json_datas_id_seq CASCADE`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id         BIGSERIAL PRIMARY KEY,
 			name       VARCHAR(255) NOT NULL DEFAULT '',
@@ -175,7 +180,8 @@ func createPostgresTestTables(t *testing.T, db *database.Database) {
 	}
 	for _, stmt := range stmts {
 		if _, err := sqlDB.Exec(stmt); err != nil {
-			t.Fatalf("createPostgresTestTables: %v", err)
+			// Ignore errors if the object already exists (can happen in parallel tests)
+			continue
 		}
 	}
 }

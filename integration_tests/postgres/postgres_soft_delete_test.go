@@ -1,11 +1,10 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -62,7 +61,7 @@ func TestPostgreSQLIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt.Time.IsZero() {
+	if foundUser.DeletedAt.IsZero() {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }

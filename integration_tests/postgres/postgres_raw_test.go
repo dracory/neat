@@ -1,9 +1,10 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -13,7 +14,7 @@ func TestPostgreSQLIntegrationRawUpdate(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	databaseConn := SetupPostgreSQLTest(t)
+	databaseConn := SetupPostgresTest(t)
 	query := databaseConn.Query()
 
 	// Create a user
@@ -40,7 +41,7 @@ func TestPostgreSQLIntegrationRawWhere(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	databaseConn := SetupPostgreSQLTest(t)
+	databaseConn := SetupPostgresTest(t)
 	query := databaseConn.Query()
 
 	// Create users
@@ -71,7 +72,7 @@ func TestPostgreSQLIntegrationDatabaseFunctions(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	databaseConn := SetupPostgreSQLTest(t)
+	databaseConn := SetupPostgresTest(t)
 	query := databaseConn.Query()
 
 	// Create a user
