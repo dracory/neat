@@ -221,6 +221,83 @@ func TestWhereExists(t *testing.T) {
 	}
 }
 
+func TestWhereExistsSubquerySQLGeneration(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.WhereExists(func(sub orm.Query) orm.Query {
+		return sub.Table("orders").Where("orders.user_id = users.id")
+	})
+
+	sql, _ := NewBuilder(q).BuildSelect()
+
+	if !strings.Contains(sql, "EXISTS") {
+		t.Errorf("Expected SQL to contain 'EXISTS', got: %s", sql)
+	}
+	if !strings.Contains(sql, "orders") {
+		t.Errorf("Expected SQL to contain subquery table 'orders', got: %s", sql)
+	}
+	if !strings.Contains(sql, "SELECT") {
+		t.Errorf("Expected SQL to contain SELECT from subquery, got: %s", sql)
+	}
+}
+
+func TestWhereExistsWithArgs(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.WhereExists(func(sub orm.Query) orm.Query {
+		return sub.Table("orders").Where("orders.user_id = ?", 5)
+	})
+
+	sql, args := NewBuilder(q).BuildSelect()
+
+	if !strings.Contains(sql, "EXISTS") {
+		t.Errorf("Expected SQL to contain 'EXISTS', got: %s", sql)
+	}
+	if len(args) != 1 || args[0] != 5 {
+		t.Errorf("Expected args [5] from subquery, got %v", args)
+	}
+}
+
+func TestWhereNotExistsViaWhereNot(t *testing.T) {
+	// WhereNot wraps an expression in NOT(…); used to negate an EXISTS subquery.
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.WhereNot(func(sub orm.Query) orm.Query {
+		return sub.WhereExists(func(inner orm.Query) orm.Query {
+			return inner.Table("bans").Where("bans.user_id = users.id")
+		})
+	})
+
+	sql, _ := NewBuilder(q).BuildSelect()
+
+	if !strings.Contains(sql, "NOT") {
+		t.Errorf("Expected SQL to contain 'NOT', got: %s", sql)
+	}
+	if !strings.Contains(sql, "EXISTS") {
+		t.Errorf("Expected SQL to contain 'EXISTS', got: %s", sql)
+	}
+}
+
+func TestNestedWhereExists(t *testing.T) {
+	// Outer WHERE EXISTS + inner WHERE EXISTS (nested)
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.WhereExists(func(sub orm.Query) orm.Query {
+		return sub.Table("orders").WhereExists(func(inner orm.Query) orm.Query {
+			return inner.Table("order_items").Where("order_items.order_id = orders.id")
+		})
+	})
+
+	sql, _ := NewBuilder(q).BuildSelect()
+
+	if strings.Count(sql, "EXISTS") < 2 {
+		t.Errorf("Expected at least 2 'EXISTS' in nested SQL, got: %s", sql)
+	}
+	if !strings.Contains(sql, "order_items") {
+		t.Errorf("Expected SQL to contain inner subquery table 'order_items', got: %s", sql)
+	}
+}
+
 func TestWhereNot(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	result := q.WhereNot("id = ?", 1)
