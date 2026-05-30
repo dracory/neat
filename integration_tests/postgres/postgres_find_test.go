@@ -1,4 +1,4 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
@@ -11,7 +11,7 @@ import (
 
 // setupFindTest creates a database connection and sets up test tables
 func setupFindTest(t *testing.T) *database.Database {
-	return SetupPostgresConnection(t)
+	return SetupPostgresTest(t)
 }
 
 // TestPostgresIntegrationFirst tests First operation

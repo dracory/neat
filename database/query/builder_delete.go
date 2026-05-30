@@ -16,7 +16,6 @@ func (b *Builder) BuildDelete() (string, []any) {
 	// FROM clause
 	if b.query.table != "" {
 		parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
-		args = append(args, b.query.tableArgs...)
 	}
 
 	// Build WHERE clause (will be used for both normal WHERE and LIMIT workaround)

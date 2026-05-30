@@ -6,6 +6,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -130,7 +131,7 @@ func (f *FakeDriver) BeginTx(ctx context.Context, d *sql.DB, o *sql.TxOptions) (
 func (f *FakeDriver) Dialect() string { return f.DialectName }
 func (f *FakeDriver) Placeholder(n int) string {
 	if f.DialectName == "postgres" {
-		return "$1"
+		return fmt.Sprintf("$%d", n)
 	}
 	return "?"
 }

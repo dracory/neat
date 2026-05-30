@@ -17,11 +17,17 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	// Table name
 	if b.query.table != "" {
 		parts = append(parts, b.quoteIdentifier(b.query.table))
-		args = append(args, b.query.tableArgs...)
 	}
 
 	// SET clause
 	var setParts []string
+
+	// Get placeholder function for the dialect
+	placeholderFunc := func(n int) string { return "?" }
+	if b.query.driver != nil {
+		placeholderFunc = b.query.driver.Placeholder
+	}
+	placeholderIndex := 1
 
 	// Handle map[string]any for column/value pairs
 	if m, ok := column.(map[string]any); ok {
@@ -37,7 +43,8 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 			if omitted {
 				continue
 			}
-			setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(col)))
+			setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
+			placeholderIndex++
 			setArgs = append(setArgs, val)
 		}
 	} else if len(values) > 0 {
@@ -58,24 +65,29 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 
 					if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
 						// MySQL: JSON_SET(column, '$.path', value)
-						setParts = append(setParts, fmt.Sprintf("%s = JSON_SET(%s, '%s', ?)", jsonColumn, jsonColumn, jsonPath))
+						setParts = append(setParts, fmt.Sprintf("%s = JSON_SET(%s, '%s', %s)", jsonColumn, jsonColumn, jsonPath, placeholderFunc(placeholderIndex)))
+						placeholderIndex++
 						setArgs = append(setArgs, values[0])
 					} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
 						// SQLite: json_set(column, '$.path', value)
-						setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', ?)", jsonColumn, jsonColumn, jsonPath))
+						setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', %s)", jsonColumn, jsonColumn, jsonPath, placeholderFunc(placeholderIndex)))
+						placeholderIndex++
 						setArgs = append(setArgs, values[0])
 					} else {
 						// Fallback to normal behavior for other databases
-						setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
+						setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(colStr), placeholderFunc(placeholderIndex)))
+						placeholderIndex++
 						setArgs = append(setArgs, values[0])
 					}
 				} else {
 					// Fallback to normal behavior
-					setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
+					setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(colStr), placeholderFunc(placeholderIndex)))
+					placeholderIndex++
 					setArgs = append(setArgs, values[0])
 				}
 			} else {
-				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(colStr)))
+				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(colStr), placeholderFunc(placeholderIndex)))
+				placeholderIndex++
 				setArgs = append(setArgs, values[0])
 			}
 		}
@@ -95,7 +107,8 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 				if omitted {
 					continue
 				}
-				setParts = append(setParts, fmt.Sprintf("%s = ?", b.quoteIdentifier(col)))
+				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
+				placeholderIndex++
 				setArgs = append(setArgs, vals[i])
 			}
 		}
@@ -121,10 +134,10 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	var whereParts string
 	var whereArgs []any
 	if !isSoftDeleteOperation {
-		whereParts, whereArgs = b.buildWheresWithSoftDelete()
+		whereParts, whereArgs = b.buildWheresWithSoftDeleteIndex(placeholderIndex)
 	} else {
 		// For soft delete operations, use regular WHERE without soft-delete filter
-		whereParts, whereArgs = b.buildWheres()
+		whereParts, whereArgs = b.buildWheresWithIndex(placeholderIndex)
 	}
 
 	// LIMIT clause

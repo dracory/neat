@@ -49,10 +49,12 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 			rowPlaceholders := make([]string, v.Len())
+			paramCounter := 1
 			for i := 0; i < v.Len(); i++ {
 				placeholders := make([]string, len(columns))
 				for j := range placeholders {
-					placeholders[j] = placeholderFunc(j + 1)
+					placeholders[j] = placeholderFunc(paramCounter)
+					paramCounter++
 				}
 				rowPlaceholders[i] = fmt.Sprintf("(%s)", strings.Join(placeholders, ", "))
 			}

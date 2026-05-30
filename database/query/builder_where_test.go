@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestBuildWheres(t *testing.T) {
@@ -251,5 +252,158 @@ func TestWhereWithNilArgs(t *testing.T) {
 	}
 	if len(args) != 0 {
 		t.Errorf("Expected 0 args, got %d", len(args))
+	}
+}
+
+func TestBuildWheresWithSoftDelete(t *testing.T) {
+	type SoftDeleteModel struct {
+		ID        int
+		Name      string
+		DeletedAt *time.Time
+	}
+
+	model := &SoftDeleteModel{}
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.model = model
+	q.Where("name = ?", "Alice")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheresWithSoftDelete()
+
+	// Should include soft-delete filter
+	if !strings.Contains(where, "deleted_at IS NULL") {
+		t.Errorf("Expected 'deleted_at IS NULL' in WHERE clause, got %s", where)
+	}
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+}
+
+func TestBuildWheresWithSoftDeleteOnlyTrashed(t *testing.T) {
+	type SoftDeleteModel struct {
+		ID        int
+		Name      string
+		DeletedAt *time.Time
+	}
+
+	model := &SoftDeleteModel{}
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.model = model
+	q = q.OnlyTrashed().(*Query)
+	q.Where("name = ?", "Alice")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheresWithSoftDelete()
+
+	// Should include only trashed filter
+	if !strings.Contains(where, "deleted_at IS NOT NULL") {
+		t.Errorf("Expected 'deleted_at IS NOT NULL' in WHERE clause, got %s", where)
+	}
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+}
+
+func TestBuildWheresWithSoftDeleteWithTrashed(t *testing.T) {
+	type SoftDeleteModel struct {
+		ID        int
+		Name      string
+		DeletedAt *time.Time
+	}
+
+	model := &SoftDeleteModel{}
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.model = model
+	q = q.WithTrashed().(*Query)
+	q.Where("name = ?", "Alice")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheresWithSoftDelete()
+
+	// Should NOT include soft-delete filter
+	if strings.Contains(where, "deleted_at") {
+		t.Errorf("Expected no soft-delete filter in WHERE clause, got %s", where)
+	}
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+}
+
+func TestBuildWheresWithSoftDeleteNoModel(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Where("name = ?", "Alice")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheresWithSoftDelete()
+
+	// Should NOT include soft-delete filter (no model)
+	if strings.Contains(where, "deleted_at") {
+		t.Errorf("Expected no soft-delete filter in WHERE clause, got %s", where)
+	}
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+}
+
+func TestBuildWheresWithIndex(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.wheres = []whereClause{
+		{_type: "", query: "name = ?", args: []any{"Alice"}},
+		{_type: "AND", query: "age > ?", args: []any{18}},
+	}
+	b := NewBuilder(q)
+
+	where, args := b.buildWheresWithIndex(5)
+
+	if where == "" {
+		t.Error("Expected non-empty WHERE clause")
+	}
+	if !strings.Contains(where, "name = ?") {
+		t.Error("Expected 'name = ?' in WHERE clause")
+	}
+	if !strings.Contains(where, "age > ?") {
+		t.Error("Expected 'age > ?' in WHERE clause")
+	}
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d", len(args))
+	}
+}
+
+func TestBuildWheresWithSoftDeleteIndex(t *testing.T) {
+	type SoftDeleteModel struct {
+		ID        int
+		Name      string
+		DeletedAt *time.Time
+	}
+
+	model := &SoftDeleteModel{}
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.model = model
+	q.Where("name = ?", "Alice")
+	b := NewBuilder(q)
+
+	where, args := b.buildWheresWithSoftDeleteIndex(10)
+
+	// Should include soft-delete filter
+	if !strings.Contains(where, "deleted_at IS NULL") {
+		t.Errorf("Expected 'deleted_at IS NULL' in WHERE clause, got %s", where)
+	}
+	if !strings.Contains(where, "name = ?") {
+		t.Errorf("Expected 'name = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
 	}
 }
