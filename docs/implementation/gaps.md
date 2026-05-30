@@ -70,21 +70,34 @@ This document provides a complete, step-by-step plan to bring the neat ORM to pr
 
 ### 3.1 Raw Expressions in Create and Update
 
-**Status**: ❌ Not supported
+**Status**: ✅ Implemented
 **Priority**: MEDIUM
 
 **Purpose**: Support using `Raw()` expressions as values in `Create()` and `Update()` calls.
 
 **Current state**:
-- `Raw()` returns a `*Query` or similar structure that is not correctly handled when passed as a value in maps for `Create` or `Update`.
-- This blocks features like spatial data inserts (e.g., `ST_GeomFromText`).
+- Implemented `RawExpr()` function to create raw SQL expressions for use in Create/Update values.
+- Modified `BuildInsert` and `BuildUpdate` to detect `RawExpression` in values and inject SQL directly without parameterization.
+- Raw expressions can include their own arguments (e.g., `RawExpr("score + ?", 10)`).
+- This enables features like spatial data inserts (e.g., `ST_GeomFromText`) and database functions (e.g., `NOW()`).
 
-**Steps**:
-1. Modify `Create` and `Update` logic to detect raw expressions in values.
-2. Ensure raw expressions are not parameterized but injected directly into the SQL.
-3. Update `structScanDests` and related logic to handle these cases.
+**Usage example**:
+```go
+db.Table("users").Create(map[string]any{
+    "name":       "John",
+    "created_at": RawExpr("NOW()"),
+})
 
-**Estimated effort**: 2 days
+db.Table("users").Update(map[string]any{
+    "score": RawExpr("score + ?", 10),
+})
+```
+
+**Implementation details**:
+- Added `RawExpr()` public function in `database/query/query.go`
+- Modified `builder_insert.go` to handle raw expressions in both single and bulk inserts
+- Modified `builder_update.go` to handle raw expressions in map and struct updates
+- Added comprehensive tests in `builder_raw_expression_test.go`
 
 ---
 

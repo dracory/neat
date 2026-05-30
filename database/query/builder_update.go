@@ -43,9 +43,21 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 			if omitted {
 				continue
 			}
-			setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
-			placeholderIndex++
-			setArgs = append(setArgs, val)
+			// Check if value is a RawExpression
+			if rawExpr, ok := val.(RawExpression); ok {
+				// Use raw SQL directly with placeholder replacement
+				rawSQL := rawExpr.SQL
+				for _, arg := range rawExpr.Args {
+					rawSQL = strings.Replace(rawSQL, "?", placeholderFunc(placeholderIndex), 1)
+					placeholderIndex++
+					setArgs = append(setArgs, arg)
+				}
+				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), rawSQL))
+			} else {
+				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
+				placeholderIndex++
+				setArgs = append(setArgs, val)
+			}
 		}
 	} else if len(values) > 0 {
 		// Handle single column with value
@@ -109,9 +121,21 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 				if omitted {
 					continue
 				}
-				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
-				placeholderIndex++
-				setArgs = append(setArgs, vals[i])
+				// Check if value is a RawExpression
+				if rawExpr, ok := vals[i].(RawExpression); ok {
+					// Use raw SQL directly with placeholder replacement
+					rawSQL := rawExpr.SQL
+					for _, arg := range rawExpr.Args {
+						rawSQL = strings.Replace(rawSQL, "?", placeholderFunc(placeholderIndex), 1)
+						placeholderIndex++
+						setArgs = append(setArgs, arg)
+					}
+					setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), rawSQL))
+				} else {
+					setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
+					placeholderIndex++
+					setArgs = append(setArgs, vals[i])
+				}
 			}
 		}
 	}

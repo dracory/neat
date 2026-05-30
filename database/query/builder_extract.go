@@ -76,6 +76,7 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 					continue
 				}
 			}
+			// Keep RawExpression as-is - it will be handled by the builder
 			columns = append(columns, key.String())
 			values = append(values, value)
 		}

@@ -386,3 +386,110 @@ func TestBuildUpdateNonSoftDeleteOperation(t *testing.T) {
 		t.Error("Expected non-nil args")
 	}
 }
+
+func TestBuildUpdateWithRawExpression(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	builder := NewBuilder(q)
+
+	// Test update with raw expression
+	data := map[string]any{
+		"name":       "John",
+		"updated_at": RawExpr("NOW()"),
+	}
+
+	sql, args := builder.BuildUpdate(data)
+	if sql == "" {
+		t.Fatal("Expected SQL to be generated")
+	}
+
+	// Check that NOW() is in the SQL (not parameterized)
+	if !strings.Contains(sql, "NOW()") {
+		t.Errorf("Expected SQL to contain NOW(), got: %s", sql)
+	}
+
+	// Check that only non-raw values are in args
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg (name), got %d: %v", len(args), args)
+	}
+	if args[0] != "John" {
+		t.Errorf("Expected arg[0] to be 'John', got %v", args[0])
+	}
+}
+
+func TestBuildUpdateWithRawExpressionAndArgs(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	builder := NewBuilder(q)
+
+	// Test raw expression with arguments
+	data := map[string]any{
+		"name":  "John",
+		"score": RawExpr("score + ?", 5),
+	}
+
+	sql, args := builder.BuildUpdate(data)
+	if sql == "" {
+		t.Fatal("Expected SQL to be generated")
+	}
+
+	// Check that raw expression is in the SQL
+	if !strings.Contains(sql, "score + ?") {
+		t.Errorf("Expected SQL to contain 'score + ?', got: %s", sql)
+	}
+
+	// Check that both the name and the raw expression arg are in args
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d: %v", len(args), args)
+	}
+	if args[0] != "John" {
+		t.Errorf("Expected arg[0] to be 'John', got %v", args[0])
+	}
+	if args[1] != 5 {
+		t.Errorf("Expected arg[1] to be 5, got %v", args[1])
+	}
+}
+
+func TestBuildUpdateWithMixedRawAndRegular(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.table = "users"
+	builder := NewBuilder(q)
+
+	// Test mixing raw expressions with regular values in UPDATE
+	// Note: map iteration order is not guaranteed, so we just check that all args are present
+	data := map[string]any{
+		"name":  "John",
+		"score": RawExpr("score + ?", 5),
+		"age":   30,
+	}
+
+	sql, args := builder.BuildUpdate(data)
+	if sql == "" {
+		t.Fatal("Expected SQL to be generated")
+	}
+
+	// Check that raw expression is in the SQL
+	if !strings.Contains(sql, "score + ?") {
+		t.Errorf("Expected SQL to contain 'score + ?', got: %s", sql)
+	}
+
+	// Check that we have 3 args total
+	if len(args) != 3 {
+		t.Errorf("Expected 3 args, got %d: %v", len(args), args)
+	}
+
+	// Check that all expected values are in args (order may vary)
+	argsMap := make(map[any]bool)
+	for _, arg := range args {
+		argsMap[arg] = true
+	}
+	if !argsMap["John"] {
+		t.Errorf("Expected 'John' in args, got %v", args)
+	}
+	if !argsMap[30] {
+		t.Errorf("Expected 30 in args, got %v", args)
+	}
+	if !argsMap[5] {
+		t.Errorf("Expected 5 in args, got %v", args)
+	}
+}

@@ -130,6 +130,20 @@ type RawExpression struct {
 	Args []any
 }
 
+// RawExpr creates a new raw SQL expression for use in Create/Update values.
+// The SQL will be injected directly without parameterization.
+// Example: db.Table("users").Create(map[string]any{"created_at": RawExpr("NOW()")})
+func RawExpr(sql string, args ...any) RawExpression {
+	// Filter out nil arguments to prevent issues
+	filteredArgs := make([]any, 0, len(args))
+	for _, arg := range args {
+		if arg != nil {
+			filteredArgs = append(filteredArgs, arg)
+		}
+	}
+	return RawExpression{SQL: sql, Args: filteredArgs}
+}
+
 type orderClause struct {
 	column    string
 	direction string // "asc", "desc"

@@ -49,25 +49,63 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 			rowPlaceholders := make([]string, v.Len())
-			paramCounter := 1
+			placeholderIndex := 1
 			for i := 0; i < v.Len(); i++ {
 				placeholders := make([]string, len(columns))
 				for j := range placeholders {
-					placeholders[j] = placeholderFunc(paramCounter)
-					paramCounter++
+					// Check if this value is a RawExpression
+					valIndex := i*len(columns) + j
+					if valIndex < len(values) {
+						if rawExpr, ok := values[valIndex].(RawExpression); ok {
+							// Use raw SQL directly with placeholder replacement
+							// Replace ? placeholders in raw SQL with dialect-specific placeholders
+							rawSQL := rawExpr.SQL
+							for _, arg := range rawExpr.Args {
+								rawSQL = strings.Replace(rawSQL, "?", placeholderFunc(placeholderIndex), 1)
+								placeholderIndex++
+								args = append(args, arg)
+							}
+							placeholders[j] = rawSQL
+						} else {
+							placeholders[j] = placeholderFunc(placeholderIndex)
+							placeholderIndex++
+							args = append(args, values[valIndex])
+						}
+					} else {
+						placeholders[j] = placeholderFunc(placeholderIndex)
+						placeholderIndex++
+					}
 				}
 				rowPlaceholders[i] = fmt.Sprintf("(%s)", strings.Join(placeholders, ", "))
 			}
 			parts = append(parts, strings.Join(rowPlaceholders, ", "))
-			args = append(args, values...)
 		} else {
 			// Single insert
 			placeholders := make([]string, len(columns))
+			placeholderIndex := 1
 			for i := range placeholders {
-				placeholders[i] = placeholderFunc(i + 1)
+				// Check if this value is a RawExpression
+				if i < len(values) {
+					if rawExpr, ok := values[i].(RawExpression); ok {
+						// Use raw SQL directly with placeholder replacement
+						rawSQL := rawExpr.SQL
+						for _, arg := range rawExpr.Args {
+							rawSQL = strings.Replace(rawSQL, "?", placeholderFunc(placeholderIndex), 1)
+							placeholderIndex++
+							args = append(args, arg)
+						}
+						placeholders[i] = rawSQL
+					} else {
+						placeholders[i] = placeholderFunc(placeholderIndex)
+						placeholderIndex++
+						args = append(args, values[i])
+					}
+				} else {
+					placeholders[i] = placeholderFunc(placeholderIndex)
+					placeholderIndex++
+				}
 			}
 			parts = append(parts, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
-			args = append(args, values...)
 		}
 	}
 
