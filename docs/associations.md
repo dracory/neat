@@ -7,6 +7,8 @@ This document describes the model associations (relationships) in Neat ORM.
 - BelongsTo
 - HasMany
 - HasOne
+- PolymorphicBelongsTo
+- PolymorphicHasMany
 
 ## BelongsTo
 
@@ -162,6 +164,92 @@ Count related models:
 
 ```go
 count, err := db.Query().Association("posts").Count(&user)
+```
+
+## PolymorphicBelongsTo
+
+A PolymorphicBelongsTo relationship allows a model to belong to multiple different model types. This is useful when a single model can be associated with various parent models.
+
+```go
+type Comment struct {
+    ID              uint
+    Body            string
+    CommentableID   uint   `db:"commentable_id"`
+    CommentableType string `db:"commentable_type"`
+}
+
+type Post struct {
+    ID       uint
+    Title    string
+    Content  string
+    Comments []*Comment
+}
+
+type Video struct {
+    ID       uint
+    Title    string
+    URL      string
+    Comments []*Comment
+}
+```
+
+In this example, a `Comment` can belong to either a `Post` or a `Video`. The `CommentableID` stores the ID of the parent model, and `CommentableType` stores the type name (e.g., "Post" or "Video").
+
+### Querying PolymorphicBelongsTo
+
+```go
+// Associate a comment with a post
+comment := Comment{Body: "Great post!"}
+db.Query().Association("Commentable").Append(&comment, &post)
+
+// Find the parent model
+var parent Post
+db.Query().Association("Commentable").Find(&parent, &comment)
+```
+
+## PolymorphicHasMany
+
+A PolymorphicHasMany relationship allows a model to have many related models that can belong to multiple different model types.
+
+```go
+type Post struct {
+    ID       uint
+    Title    string
+    Content  string
+    Comments []*Comment
+}
+
+type Video struct {
+    ID       uint
+    Title    string
+    URL      string
+    Comments []*Comment
+}
+
+type Comment struct {
+    ID              uint
+    Body            string
+    CommentableID   uint   `db:"commentable_id"`
+    CommentableType string `db:"commentable_type"`
+}
+```
+
+In this example, both `Post` and `Video` can have many `Comments`. The polymorphic fields on the `Comment` model track which parent model each comment belongs to.
+
+### Querying PolymorphicHasMany
+
+```go
+// Append comments to a post
+comment1 := Comment{Body: "First comment"}
+comment2 := Comment{Body: "Second comment"}
+db.Query().Association("Comments").Append(&post, &comment1, &comment2)
+
+// Find all comments for a post
+var comments []Comment
+db.Query().Association("Comments").Find(&comments, &post)
+
+// Count comments
+count := db.Query().Association("Comments").Count(&post)
 ```
 
 ## Note

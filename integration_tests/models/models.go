@@ -71,3 +71,46 @@ type BigSerialUser struct {
 func (BigSerialUser) TableName() string {
 	return "bigserial_users"
 }
+
+// Comment represents a comment model with polymorphic associations
+// A comment can belong to a Post or a Video
+type Comment struct {
+	ID              uint      `db:"id"`
+	Body            string    `db:"body"`
+	CommentableID   uint      `db:"commentable_id"`
+	CommentableType string    `db:"commentable_type"`
+	CreatedAt       time.Time `db:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at"`
+}
+
+func (Comment) TableName() string {
+	return "comments"
+}
+
+// Post represents a post model
+type Post struct {
+	ID        uint       `db:"id"`
+	Title     string     `db:"title"`
+	Content   string     `db:"content"`
+	Comments  []*Comment `db:"-"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdatedAt time.Time  `db:"updated_at"`
+}
+
+func (Post) TableName() string {
+	return "posts"
+}
+
+// Video represents a video model
+type Video struct {
+	ID        uint       `db:"id"`
+	Title     string     `db:"title"`
+	URL       string     `db:"url"`
+	Comments  []*Comment `db:"-"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdatedAt time.Time  `db:"updated_at"`
+}
+
+func (Video) TableName() string {
+	return "videos"
+}

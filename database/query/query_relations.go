@@ -439,6 +439,38 @@ func (q *Query) Association(assocName string) contractsorm.Association {
 		return association.NewAssociation(q, q.model, assocName)
 	}
 
+	// Check for polymorphic relationships first
+	// Polymorphic BelongsTo: model has polymorphic_id and polymorphic_type fields
+	polymorphicID := assocName + "ID"
+	polymorphicType := assocName + "Type"
+
+	// Try PascalCase first
+	polymorphicIDField := v.FieldByName(polymorphicID)
+	polymorphicTypeField := v.FieldByName(polymorphicType)
+
+	// Try snake_case if PascalCase not found
+	if !polymorphicIDField.IsValid() || !polymorphicTypeField.IsValid() {
+		snakeID := str.Of(assocName).Snake().String() + "_id"
+		snakeType := str.Of(assocName).Snake().String() + "_type"
+		if !polymorphicIDField.IsValid() {
+			polymorphicIDField = v.FieldByName(snakeID)
+			if polymorphicIDField.IsValid() {
+				polymorphicID = snakeID
+			}
+		}
+		if !polymorphicTypeField.IsValid() {
+			polymorphicTypeField = v.FieldByName(snakeType)
+			if polymorphicTypeField.IsValid() {
+				polymorphicType = snakeType
+			}
+		}
+	}
+
+	// If both polymorphic fields exist, this is a PolymorphicBelongsTo
+	if polymorphicIDField.IsValid() && polymorphicTypeField.IsValid() {
+		return association.NewPolymorphicBelongsTo(q, q.model, assocName, polymorphicID, polymorphicType)
+	}
+
 	// Get the field for the association
 	field := v.FieldByName(assocName)
 	if !field.IsValid() {
@@ -447,7 +479,64 @@ func (q *Query) Association(assocName string) contractsorm.Association {
 
 	// Determine relationship type based on field type
 	if field.Kind() == reflect.Slice {
-		// HasMany relationship
+		// Check for PolymorphicHasMany
+		// The related model should have polymorphic_id and polymorphic_type fields
+		// We can detect this by checking if the field type has these fields
+		relationType := field.Type().Elem()
+		if relationType.Kind() == reflect.Ptr {
+			relationType = relationType.Elem()
+		}
+
+		if relationType.Kind() == reflect.Struct {
+			// Check if the related model has polymorphic fields
+			// Look for fields ending with _id that have corresponding _type fields
+			var polymorphicID, polymorphicType string
+
+			for i := 0; i < relationType.NumField(); i++ {
+				field := relationType.Field(i)
+				dbTag := field.Tag.Get("db")
+
+				// Skip empty db tags and primary key fields
+				if dbTag == "" || dbTag == "id" {
+					continue
+				}
+
+				// Check if this is a polymorphic ID field (ends with _id)
+				if strings.HasSuffix(dbTag, "_id") {
+					// Extract the base name (e.g., "commentable" from "commentable_id")
+					baseName := strings.TrimSuffix(dbTag, "_id")
+
+					// Skip if base name is empty (just "id")
+					if baseName == "" {
+						continue
+					}
+
+					// Check if there's a corresponding type field
+					typeDbTag := baseName + "_type"
+
+					// Look for the type field
+					for j := 0; j < relationType.NumField(); j++ {
+						if relationType.Field(j).Tag.Get("db") == typeDbTag {
+							polymorphicID = dbTag
+							polymorphicType = typeDbTag
+							break
+						}
+					}
+
+					if polymorphicID != "" {
+						break
+					}
+				}
+			}
+
+			if polymorphicID != "" && polymorphicType != "" {
+				// This is a PolymorphicHasMany
+				localKey := "id"
+				return association.NewPolymorphicHasMany(q, q.model, assocName, polymorphicID, polymorphicType, localKey)
+			}
+		}
+
+		// Regular HasMany relationship
 		// foreignKey: parent_type_id (e.g., user_id)
 		// localKey: id
 		parentTypeName := q.getParentTypeName(v)
