@@ -1,5 +1,3 @@
-//go:build disabled
-
 package common
 
 import (
@@ -60,7 +58,7 @@ func TestErrorHandlingIntegrationMySQL(t *testing.T) {
 	}
 
 	// Test with wrong password
-	dsn := "mysql://root:wrongpassword@127.0.0.1:3306/test"
+	dsn := "mysql://root:wrongpassword@127.0.0.1:3306/test?charset=utf8mb4"
 	_, err := neat.NewFromDSN(dsn)
 	if err == nil {
 		t.Error("Expected error for wrong MySQL password, got nil")
@@ -74,7 +72,7 @@ func TestErrorHandlingIntegrationPostgreSQL(t *testing.T) {
 	}
 
 	// Test with wrong password
-	dsn := "postgres://test:wrongpassword@127.0.0.1:5432/test?sslmode=disable"
+	dsn := "postgres://test:wrongpassword@127.0.0.1:55432/test?sslmode=disable"
 	_, err := neat.NewFromDSN(dsn)
 	if err == nil {
 		t.Error("Expected error for wrong PostgreSQL password, got nil")

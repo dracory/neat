@@ -1,5 +1,3 @@
-//go:build integration
-
 package postgres
 
 import (
@@ -14,7 +12,7 @@ func TestPostgresDriverRegistration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	dsn := "postgres://test:test@127.0.0.1:5432/test?sslmode=disable"
+	dsn := "postgres://test:test@127.0.0.1:55432/test?sslmode=disable"
 	db, err := neat.NewFromDSN(dsn)
 	if err != nil {
 		t.Fatalf("Failed to connect to PostgreSQL: %v", err)

@@ -95,7 +95,7 @@ func TestDatabaseName_DatabaseName(t *testing.T) {
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
 				Driver:   "sqlite",
-				Database: "testdb",
+				Database: ":memory:",
 			},
 		},
 	}
@@ -106,8 +106,8 @@ func TestDatabaseName_DatabaseName(t *testing.T) {
 	}
 	defer db.Close()
 
-	if db.DatabaseName() != "testdb" {
-		t.Errorf("Expected database name 'testdb', got '%s'", db.DatabaseName())
+	if db.DatabaseName() != ":memory:" {
+		t.Errorf("Expected database name ':memory:', got '%s'", db.DatabaseName())
 	}
 }
 

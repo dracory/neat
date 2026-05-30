@@ -64,18 +64,18 @@ func RunExample() error {
 				Driver:   "postgres",
 				Host:     "localhost",
 				Port:     5432,
-				Database: "primary_db",
-				Username: "user",
-				Password: "pass",
+				Database: "test",
+				Username: "test",
+				Password: "test",
 				SSLMode:  "disable",
 			},
 			"mysql": {
 				Driver:   "mysql",
 				Host:     "localhost",
 				Port:     3306,
-				Database: "secondary_db",
-				Username: "user",
-				Password: "pass",
+				Database: "test",
+				Username: "root",
+				Password: "root",
 				Charset:  "utf8mb4",
 			},
 		},
@@ -97,9 +97,9 @@ func RunExample() error {
 				Driver:   "mysql",
 				Host:     "localhost",
 				Port:     3306,
-				Database: "mydb",
+				Database: "test",
 				Username: "root",
-				Password: "password",
+				Password: "root",
 				Charset:  "utf8mb4",
 			},
 		},
@@ -112,7 +112,7 @@ func RunExample() error {
 	defer db5.Close()
 	fmt.Println("MySQL configured successfully")
 
-	// Example 5: SQL Server configuration
+	// Example 5: SQL Server configuration (skipped if not available)
 	fmt.Println("\n=== SQL Server Configuration ===")
 	sqlserverCfg := neat.DBConfig{
 		Default: "sqlserver",
@@ -130,10 +130,11 @@ func RunExample() error {
 
 	db6, err := neat.New(sqlserverCfg)
 	if err != nil {
-		return fmt.Errorf("error with SQL Server config: %w", err)
+		fmt.Printf("SQL Server not available (skipped): %v\n", err)
+	} else {
+		defer db6.Close()
+		fmt.Println("SQL Server configured successfully")
 	}
-	defer db6.Close()
-	fmt.Println("SQL Server configured successfully")
 
 	// Example 6: Debug mode
 	fmt.Println("\n=== Debug Mode Configuration ===")

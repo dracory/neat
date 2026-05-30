@@ -1,5 +1,3 @@
-//go:build integration
-
 package mysql
 
 import (
@@ -133,7 +131,12 @@ func TestMySQLIntegrationReadWriteSeparation(t *testing.T) {
 		Default: "rw",
 		Connections: map[string]neat.ConnectionConfig{
 			"rw": {
-				Driver: baseConn.Driver,
+				Driver:   baseConn.Driver,
+				Host:     baseConn.Host,
+				Port:     baseConn.Port,
+				Database: baseConn.Database,
+				Username: baseConn.Username,
+				Password: baseConn.Password,
 				Read: []neat.ReplicaConfig{
 					{Host: baseConn.Host, Port: baseConn.Port, Database: baseConn.Database, Username: baseConn.Username, Password: baseConn.Password},
 				},

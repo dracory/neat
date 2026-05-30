@@ -39,6 +39,7 @@ type options struct {
 	logger   log.Log
 	eventBus *databaseorm.EventBus
 	pool     *db.PoolConfig
+	skipPing bool
 }
 
 // WithContext sets the context for the database.
@@ -66,6 +67,13 @@ func WithEventBus(eventBus *databaseorm.EventBus) Option {
 func WithPool(pool db.PoolConfig) Option {
 	return func(o *options) {
 		o.pool = &pool
+	}
+}
+
+// SkipPing skips the initial database ping during connection.
+func SkipPing() Option {
+	return func(o *options) {
+		o.skipPing = true
 	}
 }
 
@@ -111,7 +119,7 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 	// Initialize ORM
 	ormInstance, err := databaseorm.BuildOrm(database.ctx, database.config, database.config.Default, database.logger, func() {
 		// Refresh function - for now a no-op
-	})
+	}, databaseorm.WithSkipPing(o.skipPing))
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ORM: %w", err)
 	}

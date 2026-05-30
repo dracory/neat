@@ -54,7 +54,25 @@ func NewOrm(
 	}
 }
 
-func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, refresh func()) (*Orm, error) {
+type OrmOption func(*ormOptions)
+
+type ormOptions struct {
+	skipPing bool
+}
+
+func WithSkipPing(skip bool) OrmOption {
+	return func(o *ormOptions) {
+		o.skipPing = skip
+	}
+}
+
+func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, refresh func(), opts ...OrmOption) (*Orm, error) {
+	// Apply options
+	o := &ormOptions{}
+	for _, opt := range opts {
+		opt(o)
+	}
+
 	// Initialize drivers and connections
 	drivers := make(map[string]driver.Driver)
 	dbConnections := make(map[string]*sql.DB)
@@ -65,7 +83,7 @@ func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log
 	}
 
 	// Build query for the connection
-	query, err := buildQuery(ctx, dbConfig, connection, log, drivers, dbConnections)
+	query, err := buildQuery(ctx, dbConfig, connection, log, drivers, dbConnections, o.skipPing)
 	if err != nil {
 		return NewOrm(ctx, dbConfig, connection, nil, nil, log, nil, refresh, drivers, dbConnections), err
 	}
@@ -77,7 +95,7 @@ func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log
 	return NewOrm(ctx, dbConfig, connection, query, queries, log, nil, refresh, drivers, dbConnections), nil
 }
 
-func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, drivers map[string]driver.Driver, dbConnections map[string]*sql.DB) (contractsorm.Query, error) {
+func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, drivers map[string]driver.Driver, dbConnections map[string]*sql.DB, skipPing bool) (contractsorm.Query, error) {
 	connConfig, ok := dbConfig.Connections[connection]
 	if !ok {
 		return nil, fmt.Errorf("connection %s not found in configuration", connection)
@@ -112,6 +130,14 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		sqlDB, err = dbDriver.Open(dsn)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open database connection: %w", err)
+		}
+
+		// Ping to validate the connection and credentials (unless skipped)
+		if !skipPing {
+			if err := dbDriver.Ping(ctx, sqlDB); err != nil {
+				sqlDB.Close()
+				return nil, fmt.Errorf("failed to ping database: %w", err)
+			}
 		}
 
 		// Configure connection pool from DBConfig.
@@ -206,7 +232,7 @@ func (r *Orm) Connection(name string) contractsorm.Orm {
 		return NewOrm(r.ctx, r.dbConfig, name, instance, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
 	}
 
-	query, err := buildQuery(r.ctx, r.dbConfig, name, r.log, r.drivers, r.dbConnections)
+	query, err := buildQuery(r.ctx, r.dbConfig, name, r.log, r.drivers, r.dbConnections, false)
 	if err != nil || query == nil {
 		r.log.Errorf("[Orm] Init %s connection error: %v", name, err)
 		return NewOrm(r.ctx, r.dbConfig, name, nil, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
