@@ -375,9 +375,13 @@ func TestSharedLock_DialectDifferences(t *testing.T) {
 			builder := NewBuilder(q)
 			sql, _ := builder.BuildSelect()
 
-			// All dialects use LOCK IN SHARE MODE syntax
-			if !contains(sql, "LOCK IN SHARE MODE") {
-				t.Errorf("Expected LOCK IN SHARE MODE in %s, got: %s", tc.name, sql)
+			// MySQL uses LOCK IN SHARE MODE, PostgreSQL uses FOR SHARE
+			expected := "LOCK IN SHARE MODE"
+			if tc.name == "PostgreSQL" {
+				expected = "FOR SHARE"
+			}
+			if !contains(sql, expected) {
+				t.Errorf("Expected %s in %s, got: %s", expected, tc.name, sql)
 			}
 		})
 	}

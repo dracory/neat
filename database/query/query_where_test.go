@@ -1175,7 +1175,7 @@ func TestJsonOperatorDifferences_Comparison(t *testing.T) {
 	}{
 		{"SQLite", driver.NewSQLite(), "json_extract", ""},
 		{"MySQL", driver.NewMySQL(), "JSON_CONTAINS", ""},
-		{"PostgreSQL", driver.NewPostgreSQL(), "JSON_CONTAINS", ""},
+		{"PostgreSQL", driver.NewPostgreSQL(), "", "@>"},
 	}
 
 	for _, tc := range testCases {
@@ -1206,7 +1206,7 @@ func TestJsonOperatorDifferences_KeyExistence(t *testing.T) {
 	}{
 		{"SQLite", driver.NewSQLite(), "json_type", ""},
 		{"MySQL", driver.NewMySQL(), "JSON_CONTAINS_PATH", ""},
-		{"PostgreSQL", driver.NewPostgreSQL(), "JSON_CONTAINS_PATH", ""},
+		{"PostgreSQL", driver.NewPostgreSQL(), "", "->"},
 	}
 
 	for _, tc := range testCases {
@@ -1236,7 +1236,7 @@ func TestJsonOperatorDifferences_ArrayLength(t *testing.T) {
 	}{
 		{"SQLite", driver.NewSQLite(), "json_array_length"},
 		{"MySQL", driver.NewMySQL(), "JSON_LENGTH"},
-		{"PostgreSQL", driver.NewPostgreSQL(), "JSON_LENGTH"},
+		{"PostgreSQL", driver.NewPostgreSQL(), "jsonb_array_length"},
 	}
 
 	for _, tc := range testCases {
