@@ -560,10 +560,12 @@ func (r *Sqlserver) TypeTimestamp(column schema.ColumnDefinition) string {
 		column.Default(Expression("CURRENT_TIMESTAMP"))
 	}
 
+	// Use datetime2 by default for better compatibility with Go's time.Time
+	// datetime has limited range (1753-9999), datetime2 has full range (0001-9999)
 	if column.GetPrecision() > 0 {
 		return fmt.Sprintf("datetime2(%d)", column.GetPrecision())
 	} else {
-		return "datetime"
+		return "datetime2"
 	}
 }
 

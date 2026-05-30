@@ -25,6 +25,7 @@ func (b *Builder) BuildDelete() (string, []any) {
 	// MySQL supports LIMIT directly in DELETE
 	// SQLite requires a subquery workaround: DELETE FROM ... WHERE rowid IN (SELECT rowid FROM ... ORDER BY ... LIMIT N)
 	// PostgreSQL supports LIMIT directly in DELETE
+	// SQL Server uses TOP instead of LIMIT
 	if b.query.limit != nil {
 		if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
 			// Add WHERE clause if it exists
@@ -57,6 +58,20 @@ func (b *Builder) BuildDelete() (string, []any) {
 				args = append(args, whereArgs...)
 			}
 			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
+			// SQL Server uses TOP instead of LIMIT
+			// Insert TOP after DELETE
+			for i, part := range parts {
+				if strings.HasPrefix(part, "DELETE") {
+					parts[i] = fmt.Sprintf("DELETE TOP (%d)%s", *b.query.limit, strings.TrimPrefix(part, "DELETE"))
+					break
+				}
+			}
+			// Add WHERE clause if it exists
+			if whereParts != "" {
+				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
+				args = append(args, whereArgs...)
+			}
 		} else {
 			// Other databases: add WHERE clause normally (LIMIT may or may not be supported)
 			if whereParts != "" {

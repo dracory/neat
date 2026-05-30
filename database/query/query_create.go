@@ -27,7 +27,9 @@ func (q *Query) Create(value any) error {
 	}
 
 	// Postgres: use RETURNING id to get inserted ID
+	// SQL Server: uses OUTPUT clause (already added in BuildInsert)
 	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
+	isSQLServer := q.driver != nil && q.driver.Dialect() == "sqlserver"
 	if isPostgres {
 		sqlStr = sqlStr + " RETURNING id"
 	}
@@ -37,8 +39,8 @@ func (q *Query) Create(value any) error {
 	var err error
 	start := time.Now()
 	if q.tx != nil {
-		if isPostgres {
-			// For PostgreSQL with RETURNING, use Query instead of Exec
+		if isPostgres || isSQLServer {
+			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
 			rows, err = q.tx.QueryContext(q.ctx, sqlStr, args...)
 			if err != nil {
@@ -46,12 +48,39 @@ func (q *Query) Create(value any) error {
 			}
 			defer rows.Close()
 
-			if rows.Next() {
-				var lastID int64
-				if err := rows.Scan(&lastID); err != nil {
-					return fmt.Errorf("failed to scan returned ID: %w", err)
+			// Handle bulk insert by setting IDs for each element
+			v := reflect.ValueOf(value)
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+				// Bulk insert: scan all returned IDs
+				i := 0
+				for rows.Next() {
+					var lastID int64
+					if err := rows.Scan(&lastID); err != nil {
+						return fmt.Errorf("failed to scan returned ID: %w", err)
+					}
+					if i < v.Len() {
+						elem := v.Index(i)
+						if elem.Kind() == reflect.Ptr {
+							elem = elem.Elem()
+						}
+						if elem.CanAddr() {
+							setModelPrimaryKey(elem.Addr().Interface(), lastID)
+						}
+					}
+					i++
 				}
-				setModelPrimaryKey(value, lastID)
+			} else {
+				// Single insert: scan one ID
+				if rows.Next() {
+					var lastID int64
+					if err := rows.Scan(&lastID); err != nil {
+						return fmt.Errorf("failed to scan returned ID: %w", err)
+					}
+					setModelPrimaryKey(value, lastID)
+				}
 			}
 		} else {
 			result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
@@ -62,8 +91,8 @@ func (q *Query) Create(value any) error {
 		if err != nil {
 			return err
 		}
-		if isPostgres {
-			// For PostgreSQL with RETURNING, use Query instead of Exec
+		if isPostgres || isSQLServer {
+			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
 			rows, err = dbConn.QueryContext(q.ctx, sqlStr, args...)
 			if err != nil {
@@ -71,12 +100,39 @@ func (q *Query) Create(value any) error {
 			}
 			defer rows.Close()
 
-			if rows.Next() {
-				var lastID int64
-				if err := rows.Scan(&lastID); err != nil {
-					return fmt.Errorf("failed to scan returned ID: %w", err)
+			// Handle bulk insert by setting IDs for each element
+			v := reflect.ValueOf(value)
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+				// Bulk insert: scan all returned IDs
+				i := 0
+				for rows.Next() {
+					var lastID int64
+					if err := rows.Scan(&lastID); err != nil {
+						return fmt.Errorf("failed to scan returned ID: %w", err)
+					}
+					if i < v.Len() {
+						elem := v.Index(i)
+						if elem.Kind() == reflect.Ptr {
+							elem = elem.Elem()
+						}
+						if elem.CanAddr() {
+							setModelPrimaryKey(elem.Addr().Interface(), lastID)
+						}
+					}
+					i++
 				}
-				setModelPrimaryKey(value, lastID)
+			} else {
+				// Single insert: scan one ID
+				if rows.Next() {
+					var lastID int64
+					if err := rows.Scan(&lastID); err != nil {
+						return fmt.Errorf("failed to scan returned ID: %w", err)
+					}
+					setModelPrimaryKey(value, lastID)
+				}
 			}
 		} else {
 			result, err = dbConn.ExecContext(q.ctx, sqlStr, args...)
@@ -88,8 +144,8 @@ func (q *Query) Create(value any) error {
 	}
 	q.logQuery(sqlStr, args, start)
 
-	// Populate last insert ID back into the model's primary key field (for non-PostgreSQL)
-	if !isPostgres {
+	// Populate last insert ID back into the model's primary key field (for non-PostgreSQL and non-SQLServer)
+	if !isPostgres && !isSQLServer {
 		if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)

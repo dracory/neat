@@ -250,3 +250,15 @@ func TestBuildSelectDialectPlaceholderInSelect(t *testing.T) {
 		t.Errorf("Expected args [0], got %v", args)
 	}
 }
+
+func TestBuildSelectWithLimitSQLServer(t *testing.T) {
+	limit := 10
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlserver"}, "users", nil, nil)
+	q.limit = &limit
+	b := NewBuilder(q)
+
+	sql, _ := b.BuildSelect()
+	if !strings.Contains(sql, "SELECT TOP 10") {
+		t.Error("Expected TOP 10 in SQL for SQL Server")
+	}
+}

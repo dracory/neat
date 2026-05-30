@@ -594,3 +594,26 @@ func TestBulkInsertSetsIDs(t *testing.T) {
 		t.Errorf("Struct ID %d doesn't match database ID %d", users[2].ID, fetchedUsers[2].ID)
 	}
 }
+
+// TestInsertGetIdSQLServer verifies that SQL Server uses OUTPUT clause
+// instead of RETURNING for getting inserted IDs.
+func TestInsertGetIdSQLServer(t *testing.T) {
+	w := openSQLiteQuery(t)
+	w.Q.Driver()
+
+	fakeSQLServer := &query.FakeDriver{DialectName: "sqlserver"}
+	sqlServerW := query.WrapQuery(query.NewTestQuery(w.PrimaryDB(), fakeSQLServer, query.MakeDBConfig(), nil))
+	sqlServerW.SetTable("users")
+
+	insertSQL, _ := sqlServerW.BuildInsertSQL(map[string]any{"id": 1, "name": "alice"})
+	if insertSQL == "" {
+		t.Fatal("expected non-empty INSERT SQL")
+	}
+	if !strings.Contains(insertSQL, "OUTPUT INSERTED") {
+		t.Errorf("expected SQL to contain 'OUTPUT INSERTED' for SQL Server, got: %s", insertSQL)
+	}
+	// Should NOT have RETURNING clause for SQL Server
+	if strings.Contains(insertSQL, "RETURNING") {
+		t.Errorf("expected no 'RETURNING' clause for SQL Server, got: %s", insertSQL)
+	}
+}

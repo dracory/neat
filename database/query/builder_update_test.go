@@ -493,3 +493,28 @@ func TestBuildUpdateWithMixedRawAndRegular(t *testing.T) {
 		t.Errorf("Expected 5 in args, got %v", args)
 	}
 }
+
+func TestBuildUpdateWithLimitSQLServer(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.driver = &FakeDriver{DialectName: "sqlserver"}
+	limit := 10
+	q.limit = &limit
+	q.Where("id > ?", 5)
+	b := NewBuilder(q)
+
+	sql, args := b.BuildUpdate("name", "Alice")
+
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+	// SQL Server uses TOP instead of LIMIT
+	if !strings.Contains(sql, "UPDATE TOP (10)") {
+		t.Error("Expected TOP clause in SQL for SQL Server")
+	}
+	if !strings.Contains(sql, "WHERE") {
+		t.Error("Expected WHERE clause in SQL")
+	}
+	if args == nil {
+		t.Error("Expected non-nil args")
+	}
+}

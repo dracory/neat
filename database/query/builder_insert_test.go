@@ -309,3 +309,61 @@ func TestBuildBulkInsertWithRawExpressionAndArgs(t *testing.T) {
 		t.Errorf("Expected arg[3] to be 5, got %v", args[3])
 	}
 }
+
+func TestBuildInsertWithSQLServerOutput(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.driver = &FakeDriver{DialectName: "sqlserver"}
+	q.table = "users"
+	builder := NewBuilder(q)
+
+	// Test insert with OUTPUT clause for SQL Server
+	data := map[string]any{
+		"id":    1,
+		"name":  "John",
+		"email": "john@example.com",
+	}
+
+	sql, args := builder.BuildInsert(data)
+	if sql == "" {
+		t.Fatal("Expected SQL to be generated")
+	}
+
+	// Check that OUTPUT clause is present for SQL Server (column is quoted)
+	if !strings.Contains(sql, "OUTPUT INSERTED") {
+		t.Errorf("Expected OUTPUT INSERTED in SQL for SQL Server, got: %s", sql)
+	}
+
+	// Check that args are present
+	if len(args) != 3 {
+		t.Errorf("Expected 3 args, got %d: %v", len(args), args)
+	}
+}
+
+func TestBuildInsertWithSQLServerOutputUUID(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.driver = &FakeDriver{DialectName: "sqlserver"}
+	q.table = "users"
+	builder := NewBuilder(q)
+
+	// Test insert with OUTPUT clause for UUID column
+	data := map[string]any{
+		"uuid":  "123e4567-e89b-12d3-a456-426614174000",
+		"name":  "John",
+		"email": "john@example.com",
+	}
+
+	sql, args := builder.BuildInsert(data)
+	if sql == "" {
+		t.Fatal("Expected SQL to be generated")
+	}
+
+	// Check that OUTPUT clause is present (column is quoted)
+	if !strings.Contains(sql, "OUTPUT INSERTED") {
+		t.Errorf("Expected OUTPUT INSERTED in SQL for SQL Server with UUID, got: %s", sql)
+	}
+
+	// Check that args are present
+	if len(args) != 3 {
+		t.Errorf("Expected 3 args, got %d: %v", len(args), args)
+	}
+}

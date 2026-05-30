@@ -134,3 +134,28 @@ func TestBuildDeleteWithLimitNoWhere(t *testing.T) {
 	// Args can be nil when there's no WHERE clause
 	_ = args
 }
+
+func TestBuildDeleteWithLimitSQLServer(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
+	q.driver = &FakeDriver{DialectName: "sqlserver"}
+	limit := 10
+	q.limit = &limit
+	q.Where("id > ?", 5)
+	b := NewBuilder(q)
+
+	sql, args := b.BuildDelete()
+
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+	// SQL Server uses TOP instead of LIMIT
+	if !strings.Contains(sql, "DELETE TOP (10)") {
+		t.Error("Expected TOP clause in SQL for SQL Server")
+	}
+	if !strings.Contains(sql, "WHERE") {
+		t.Error("Expected WHERE clause in SQL")
+	}
+	if args == nil {
+		t.Error("Expected non-nil args")
+	}
+}

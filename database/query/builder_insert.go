@@ -26,6 +26,20 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 		return "", nil
 	}
 
+	// Check if this is SQL Server and we need OUTPUT clause for LastInsertId
+	isSQLServer := b.query.driver != nil && b.query.driver.Dialect() == "sqlserver"
+	var idColumn string
+	if isSQLServer {
+		// Find the ID column for OUTPUT clause (check for common primary key names)
+		for _, col := range columns {
+			lowerCol := strings.ToLower(col)
+			if lowerCol == "id" || lowerCol == "user_id" || lowerCol == "post_id" || lowerCol == "uuid" {
+				idColumn = b.quoteIdentifier(col)
+				break
+			}
+		}
+	}
+
 	if len(columns) > 0 {
 		// Quote column names
 		quotedColumns := make([]string, len(columns))
@@ -33,6 +47,12 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 			quotedColumns[i] = b.quoteIdentifier(col)
 		}
 		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(quotedColumns, ", ")))
+
+		// Add OUTPUT clause for SQL Server if we have an ID column
+		if isSQLServer && idColumn != "" {
+			parts = append(parts, fmt.Sprintf("OUTPUT INSERTED.%s", idColumn))
+		}
+
 		parts = append(parts, "VALUES")
 
 		// Get placeholder function for the dialect

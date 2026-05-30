@@ -250,7 +250,24 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// LIMIT clause - skip for aggregate queries
 	if b.query.aggregate == "" && b.query.limit != nil {
-		parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		// SQL Server uses TOP instead of LIMIT
+		if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
+			// Insert TOP after SELECT (or SELECT DISTINCT)
+			for i, part := range parts {
+				if strings.HasPrefix(part, "SELECT") {
+					if strings.Contains(part, "SELECT DISTINCT") {
+						// SELECT DISTINCT TOP N
+						parts[i] = fmt.Sprintf("SELECT DISTINCT TOP %d%s", *b.query.limit, strings.TrimPrefix(part, "SELECT DISTINCT"))
+					} else {
+						// SELECT TOP N
+						parts[i] = fmt.Sprintf("SELECT TOP %d%s", *b.query.limit, strings.TrimPrefix(part, "SELECT"))
+					}
+					break
+				}
+			}
+		} else {
+			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+		}
 	}
 
 	// OFFSET clause - skip for aggregate queries
