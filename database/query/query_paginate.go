@@ -12,7 +12,7 @@ func (q *Query) Paginate(page, limit int, dest any, total *int64) error {
 	q.limit = &limit
 
 	// Get total count first
-	countQuery := *q
+	countQuery := q.Clone().(*Query)
 	countQuery.limit = nil
 	countQuery.offset = nil
 	var count int64

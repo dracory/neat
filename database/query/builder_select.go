@@ -145,8 +145,8 @@ func (b *Builder) BuildSelect() (string, []any) {
 		parts = append(parts, fmt.Sprintf("HAVING %s", strings.Join(havingParts, " AND ")))
 	}
 
-	// ORDER BY clauses
-	if len(b.query.orders) > 0 {
+	// ORDER BY clauses - skip for aggregate queries
+	if b.query.aggregate == "" && len(b.query.orders) > 0 {
 		var orderParts []string
 		for _, order := range b.query.orders {
 			orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
@@ -154,13 +154,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 		parts = append(parts, fmt.Sprintf("ORDER BY %s", strings.Join(orderParts, ", ")))
 	}
 
-	// LIMIT clause
-	if b.query.limit != nil {
+	// LIMIT clause - skip for aggregate queries
+	if b.query.aggregate == "" && b.query.limit != nil {
 		parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
 	}
 
-	// OFFSET clause
-	if b.query.offset != nil {
+	// OFFSET clause - skip for aggregate queries
+	if b.query.aggregate == "" && b.query.offset != nil {
 		// SQLite requires LIMIT when using OFFSET
 		if b.query.limit == nil && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
 			parts = append(parts, "LIMIT -1")
@@ -168,9 +168,9 @@ func (b *Builder) BuildSelect() (string, []any) {
 		parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
 	}
 
-	// Locking clauses
+	// Locking clauses - skip for aggregate queries
 	// Skip lock clauses for SQLite as it doesn't support them
-	if b.query.driver == nil || b.query.driver.Dialect() != "sqlite" {
+	if b.query.aggregate == "" && (b.query.driver == nil || b.query.driver.Dialect() != "sqlite") {
 		if b.query.lockForUpdate {
 			parts = append(parts, "FOR UPDATE")
 		} else if b.query.sharedLock {
