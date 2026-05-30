@@ -3,9 +3,13 @@ package db
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
+// maxDSNLength is the maximum allowed length for a DSN string.
+// This limit is set to 4096 characters to prevent excessively long DSNs
+// that could cause issues with database drivers or connection strings.
 const maxDSNLength = 4096
 
 // ParseDSN parses a DSN string and extracts connection information.
@@ -56,6 +60,13 @@ func parsePostgresDSN(dsn string) (ConnectionConfig, error) {
 		config.Password = password
 	}
 
+	// Parse port
+	if port := u.Port(); port != "" {
+		if portNum, err := strconv.Atoi(port); err == nil {
+			config.Port = portNum
+		}
+	}
+
 	// Parse query parameters
 	query := u.Query()
 	if schema := query.Get("search_path"); schema != "" {
@@ -86,6 +97,13 @@ func parseMySQLDSN(dsn string) (ConnectionConfig, error) {
 	config.Username = u.User.Username()
 	if password, ok := u.User.Password(); ok {
 		config.Password = password
+	}
+
+	// Parse port
+	if port := u.Port(); port != "" {
+		if portNum, err := strconv.Atoi(port); err == nil {
+			config.Port = portNum
+		}
 	}
 
 	// Parse query parameters
@@ -130,6 +148,13 @@ func parseSQLServerDSN(dsn string) (ConnectionConfig, error) {
 	config.Username = u.User.Username()
 	if password, ok := u.User.Password(); ok {
 		config.Password = password
+	}
+
+	// Parse port
+	if port := u.Port(); port != "" {
+		if portNum, err := strconv.Atoi(port); err == nil {
+			config.Port = portNum
+		}
 	}
 
 	// Parse query parameters
