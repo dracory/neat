@@ -418,11 +418,16 @@ func (q *Query) Without(relations ...string) contractsorm.Query {
 // The count is added as a column named "{relation}_count".
 // A constraint callback can be provided to filter the count query.
 func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
+	// Validate relation name
+	if relation == "" {
+		return q
+	}
+
 	newQuery := *q
 
 	cq := countQuery{
 		relation: relation,
-		column:   relation + "_count",
+		column:   str.Of(relation).Snake().String() + "_count",
 	}
 
 	// Check if a constraint callback is provided
@@ -440,6 +445,11 @@ func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
 // The exists result is added as a boolean column named "{relation}_exists".
 // A constraint callback can be provided to filter the exists query.
 func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
+	// Validate relation name
+	if relation == "" {
+		return q
+	}
+
 	newQuery := *q
 
 	eq := existsQuery{

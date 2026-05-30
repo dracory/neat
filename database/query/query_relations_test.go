@@ -1208,8 +1208,8 @@ func TestWithCount(t *testing.T) {
 	if resultQuery.withCountQueries[0].relation != "Posts" {
 		t.Errorf("Expected relation 'Posts', got '%s'", resultQuery.withCountQueries[0].relation)
 	}
-	if resultQuery.withCountQueries[0].column != "Posts_count" {
-		t.Errorf("Expected column 'Posts_count', got '%s'", resultQuery.withCountQueries[0].column)
+	if resultQuery.withCountQueries[0].column != "posts_count" {
+		t.Errorf("Expected column 'posts_count', got '%s'", resultQuery.withCountQueries[0].column)
 	}
 }
 
@@ -1310,8 +1310,8 @@ func TestWithCountSQLGeneration(t *testing.T) {
 	if !strings.Contains(sql, "posts") {
 		t.Errorf("Expected SQL to contain posts table, got: %s", sql)
 	}
-	if !strings.Contains(sql, "Posts_count") {
-		t.Errorf("Expected SQL to contain Posts_count alias, got: %s", sql)
+	if !strings.Contains(sql, "posts_count") {
+		t.Errorf("Expected SQL to contain posts_count alias, got: %s", sql)
 	}
 	if len(args) != 0 {
 		t.Errorf("Expected no args, got %d", len(args))
@@ -1354,8 +1354,8 @@ func TestWithExistsSQLGeneration(t *testing.T) {
 	if !strings.Contains(sql, "posts") {
 		t.Errorf("Expected SQL to contain posts table, got: %s", sql)
 	}
-	if !strings.Contains(sql, "Posts_exists") {
-		t.Errorf("Expected SQL to contain Posts_exists alias, got: %s", sql)
+	if !strings.Contains(sql, "posts_exists") {
+		t.Errorf("Expected SQL to contain posts_exists alias, got: %s", sql)
 	}
 	if len(args) != 0 {
 		t.Errorf("Expected no args, got %d", len(args))
@@ -1399,11 +1399,11 @@ func TestWithCountAndExistsTogether(t *testing.T) {
 	if !strings.Contains(sql, "EXISTS") {
 		t.Errorf("Expected SQL to contain EXISTS, got: %s", sql)
 	}
-	if !strings.Contains(sql, "Posts_count") {
-		t.Errorf("Expected SQL to contain Posts_count alias, got: %s", sql)
+	if !strings.Contains(sql, "posts_count") {
+		t.Errorf("Expected SQL to contain posts_count alias, got: %s", sql)
 	}
-	if !strings.Contains(sql, "Comments_exists") {
-		t.Errorf("Expected SQL to contain Comments_exists alias, got: %s", sql)
+	if !strings.Contains(sql, "comments_exists") {
+		t.Errorf("Expected SQL to contain comments_exists alias, got: %s", sql)
 	}
 	if len(args) != 0 {
 		t.Errorf("Expected no args, got %d", len(args))

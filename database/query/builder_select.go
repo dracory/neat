@@ -63,6 +63,9 @@ func (b *Builder) BuildSelect() (string, []any) {
 		// Add count subqueries
 		for _, cq := range b.query.withCountQueries {
 			countSubquery := b.buildCountSubquery(cq, placeholderFunc, placeholderIndex)
+			if countSubquery.sql == "" {
+				continue // Skip this subquery if validation failed
+			}
 			selectParts = append(selectParts, fmt.Sprintf("(%s) AS %s", countSubquery.sql, b.quoteIdentifier(cq.column)))
 			args = append(args, countSubquery.args...)
 			placeholderIndex += len(countSubquery.args)
@@ -71,7 +74,11 @@ func (b *Builder) BuildSelect() (string, []any) {
 		// Add exists subqueries
 		for _, eq := range b.query.withExistsQueries {
 			existsSubquery := b.buildExistsSubquery(eq, placeholderFunc, placeholderIndex)
-			selectParts = append(selectParts, fmt.Sprintf("(%s) AS %s", existsSubquery.sql, b.quoteIdentifier(eq.relation+"_exists")))
+			if existsSubquery.sql == "" {
+				continue // Skip this subquery if validation failed
+			}
+			existsAlias := str.Of(eq.relation).Snake().String() + "_exists"
+			selectParts = append(selectParts, fmt.Sprintf("(%s) AS %s", existsSubquery.sql, b.quoteIdentifier(existsAlias)))
 			args = append(args, existsSubquery.args...)
 			placeholderIndex += len(existsSubquery.args)
 		}
@@ -113,33 +120,31 @@ func (b *Builder) BuildSelect() (string, []any) {
 			parts = append(parts, "SELECT *")
 		}
 
-		// Add count subqueries to default SELECT
-		if len(b.query.withCountQueries) > 0 {
+		// Add count and exists subqueries to default SELECT
+		placeholderIndex := 1
+		if len(b.query.withCountQueries) > 0 || len(b.query.withExistsQueries) > 0 {
 			placeholderFunc := func(n int) string { return "?" }
 			if b.query.driver != nil {
 				placeholderFunc = b.query.driver.Placeholder
 			}
-			placeholderIndex := 1
 
 			for _, cq := range b.query.withCountQueries {
 				countSubquery := b.buildCountSubquery(cq, placeholderFunc, placeholderIndex)
+				if countSubquery.sql == "" {
+					continue // Skip this subquery if validation failed
+				}
 				parts[0] = parts[0] + fmt.Sprintf(", (%s) AS %s", countSubquery.sql, b.quoteIdentifier(cq.column))
 				args = append(args, countSubquery.args...)
 				placeholderIndex += len(countSubquery.args)
 			}
-		}
-
-		// Add exists subqueries to default SELECT
-		if len(b.query.withExistsQueries) > 0 {
-			placeholderFunc := func(n int) string { return "?" }
-			if b.query.driver != nil {
-				placeholderFunc = b.query.driver.Placeholder
-			}
-			placeholderIndex := 1
 
 			for _, eq := range b.query.withExistsQueries {
 				existsSubquery := b.buildExistsSubquery(eq, placeholderFunc, placeholderIndex)
-				parts[0] = parts[0] + fmt.Sprintf(", (%s) AS %s", existsSubquery.sql, b.quoteIdentifier(eq.relation+"_exists"))
+				if existsSubquery.sql == "" {
+					continue // Skip this subquery if validation failed
+				}
+				existsAlias := str.Of(eq.relation).Snake().String() + "_exists"
+				parts[0] = parts[0] + fmt.Sprintf(", (%s) AS %s", existsSubquery.sql, b.quoteIdentifier(existsAlias))
 				args = append(args, existsSubquery.args...)
 				placeholderIndex += len(existsSubquery.args)
 			}
@@ -312,6 +317,11 @@ func (b *Builder) buildCountSubquery(cq countQuery, placeholderFunc func(int) st
 		foreignKeyColumn = tableName + "_id"
 	}
 
+	// Validate that foreign key column was determined
+	if foreignKeyColumn == "" {
+		return subqueryResult{sql: "", args: nil}
+	}
+
 	// Build the count subquery
 	// SELECT COUNT(*) FROM related_table WHERE foreign_key = main_table.id
 	subquerySQL := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s = %s.id",
@@ -324,6 +334,7 @@ func (b *Builder) buildCountSubquery(cq countQuery, placeholderFunc func(int) st
 		// Create a temporary query to build the constraint
 		tempQuery := b.query.newQuery()
 		tempQuery.table = relationTable
+		tempQuery.driver = b.query.driver // Set driver for dialect support
 		tempQuery = cq.constraint(tempQuery).(*Query)
 
 		// Build the WHERE clause from the constraint
@@ -372,6 +383,11 @@ func (b *Builder) buildExistsSubquery(eq existsQuery, placeholderFunc func(int) 
 		foreignKeyColumn = tableName + "_id"
 	}
 
+	// Validate that foreign key column was determined
+	if foreignKeyColumn == "" {
+		return subqueryResult{sql: "", args: nil}
+	}
+
 	// Build the exists subquery
 	// SELECT EXISTS(SELECT 1 FROM related_table WHERE foreign_key = main_table.id)
 	subquerySQL := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s WHERE %s = %s.id",
@@ -384,6 +400,7 @@ func (b *Builder) buildExistsSubquery(eq existsQuery, placeholderFunc func(int) 
 		// Create a temporary query to build the constraint
 		tempQuery := b.query.newQuery()
 		tempQuery.table = relationTable
+		tempQuery.driver = b.query.driver // Set driver for dialect support
 		tempQuery = eq.constraint(tempQuery).(*Query)
 
 		// Build the WHERE clause from the constraint
