@@ -27,33 +27,27 @@ func (r Mysql) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			autoIncrement = true
 		}
 
-		// Handle NULL collation - MySQL returns NULL for non-text columns
-		collation := dbColumn.Collation
-		if dbColumn.Default != nil {
-			// If Default is a pointer, dereference it safely
-			defaultStr := cast.ToString(dbColumn.Default)
-			columns = append(columns, schema.Column{
-				Autoincrement: autoIncrement,
-				Collation:     collation,
-				Comment:       dbColumn.Comment,
-				Default:       defaultStr,
-				Name:          dbColumn.Name,
-				Nullable:      nullable,
-				Type:          dbColumn.Type,
-				TypeName:      dbColumn.TypeName,
-			})
-		} else {
-			columns = append(columns, schema.Column{
-				Autoincrement: autoIncrement,
-				Collation:     collation,
-				Comment:       dbColumn.Comment,
-				Default:       "",
-				Name:          dbColumn.Name,
-				Nullable:      nullable,
-				Type:          dbColumn.Type,
-				TypeName:      dbColumn.TypeName,
-			})
+		// Handle NULL collation and comment - MySQL returns NULL for non-text columns
+		var collation, comment string
+		if dbColumn.Collation != nil {
+			collation = *dbColumn.Collation
 		}
+		if dbColumn.Comment != nil {
+			comment = *dbColumn.Comment
+		}
+
+		// If Default is a pointer, dereference it safely
+		defaultStr := cast.ToString(dbColumn.Default)
+		columns = append(columns, schema.Column{
+			Autoincrement: autoIncrement,
+			Collation:     collation,
+			Comment:       comment,
+			Default:       defaultStr,
+			Name:          dbColumn.Name,
+			Nullable:      nullable,
+			Type:          dbColumn.Type,
+			TypeName:      dbColumn.TypeName,
+		})
 	}
 
 	return columns
@@ -90,4 +84,8 @@ func (r Mysql) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
 	}
 
 	return indexes
+}
+
+func (r Mysql) ProcessTables(dbTables []schema.Table) []schema.Table {
+	return dbTables
 }

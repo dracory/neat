@@ -90,6 +90,23 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migratio
 	}, nil
 }
 
+func (r *Schema) GetTables() ([]contractsschema.Table, error) {
+	var tables []contractsschema.Table
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+	if err := query.Raw(r.grammar.CompileTables(r.orm.DatabaseName())).Scan(&tables); err != nil {
+		return nil, err
+	}
+
+	if r.processor != nil {
+		tables = r.processor.ProcessTables(tables)
+	}
+
+	return tables, nil
+}
+
 func (r *Schema) Connection(name string) contractsschema.Schema {
 	s, err := NewSchema(r.config, r.log, r.orm.Connection(name), r.migrations)
 	if err != nil {

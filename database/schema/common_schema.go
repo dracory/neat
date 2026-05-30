@@ -8,8 +8,9 @@ import (
 )
 
 type CommonSchema struct {
-	grammar schema.Grammar
-	orm     orm.Orm
+	grammar   schema.Grammar
+	orm       orm.Orm
+	processor schema.Processor
 }
 
 func NewCommonSchema(grammar schema.Grammar, orm orm.Orm) *CommonSchema {
@@ -27,6 +28,10 @@ func (r *CommonSchema) GetTables() ([]schema.Table, error) {
 	}
 	if err := query.Raw(r.grammar.CompileTables(r.orm.DatabaseName())).Scan(&tables); err != nil {
 		return nil, err
+	}
+
+	if r.processor != nil {
+		tables = r.processor.ProcessTables(tables)
 	}
 
 	return tables, nil

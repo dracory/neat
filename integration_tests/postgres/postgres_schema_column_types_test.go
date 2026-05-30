@@ -1,4 +1,4 @@
-//go:build disabled
+//go:build integration
 
 package postgres
 
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/contracts/database/schema"
 )
 

@@ -35,9 +35,14 @@ func (r Sqlite) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			typeName = typeNameParts[0]
 		}
 
+		var collation string
+		if dbColumn.Collation != nil {
+			collation = *dbColumn.Collation
+		}
+
 		columns = append(columns, schema.Column{
 			Autoincrement: primaryKeyNum == 1 && dbColumn.Primary && ttype == "integer",
-			Collation:     dbColumn.Collation,
+			Collation:     collation,
 			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      cast.ToBool(dbColumn.Nullable),
@@ -90,4 +95,8 @@ func (r Sqlite) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
 	}
 
 	return indexes
+}
+
+func (r Sqlite) ProcessTables(dbTables []schema.Table) []schema.Table {
+	return dbTables
 }

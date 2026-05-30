@@ -4,12 +4,13 @@ type Processor interface {
 	ProcessColumns(dbColumns []DBColumn) []Column
 	ProcessForeignKeys(dbIndexes []DBForeignKey) []ForeignKey
 	ProcessIndexes(dbIndexes []DBIndex) []Index
+	ProcessTables(dbTables []Table) []Table
 }
 
 type DBColumn struct {
 	Autoincrement bool
-	Collation     string
-	Comment       string
+	Collation     *string
+	Comment       *string
 	Default       *string
 	Extra         string
 	Length        int

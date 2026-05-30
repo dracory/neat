@@ -132,11 +132,11 @@ type Index struct {
 
 type Table struct {
 	Collation string
-	Comment   string
+	Comment   *string
 	Engine    string
 	Name      string
 	Schema    string
-	Size      int
+	Size      *int
 }
 
 type Type struct {

@@ -19,10 +19,18 @@ func NewSqlserver() Sqlserver {
 func (r Sqlserver) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 	var columns []schema.Column
 	for _, dbColumn := range dbColumns {
+		var collation, comment string
+		if dbColumn.Collation != nil {
+			collation = *dbColumn.Collation
+		}
+		if dbColumn.Comment != nil {
+			comment = *dbColumn.Comment
+		}
+
 		columns = append(columns, schema.Column{
 			Autoincrement: dbColumn.Autoincrement,
-			Collation:     dbColumn.Collation,
-			Comment:       dbColumn.Comment,
+			Collation:     collation,
+			Comment:       comment,
 			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      cast.ToBool(dbColumn.Nullable),
@@ -53,6 +61,10 @@ func (r Sqlserver) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []sch
 
 func (r Sqlserver) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
 	return processIndexes(dbIndexes)
+}
+
+func (r Sqlserver) ProcessTables(dbTables []schema.Table) []schema.Table {
+	return dbTables
 }
 
 func getType(dbColumn schema.DBColumn) string {

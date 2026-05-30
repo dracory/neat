@@ -24,10 +24,18 @@ func (r Postgres) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			autoincrement = true
 		}
 
+		var collation, comment string
+		if dbColumn.Collation != nil {
+			collation = *dbColumn.Collation
+		}
+		if dbColumn.Comment != nil {
+			comment = *dbColumn.Comment
+		}
+
 		columns = append(columns, schema.Column{
 			Autoincrement: autoincrement,
-			Collation:     dbColumn.Collation,
-			Comment:       dbColumn.Comment,
+			Collation:     collation,
+			Comment:       comment,
 			Default:       cast.ToString(dbColumn.Default),
 			Name:          dbColumn.Name,
 			Nullable:      cast.ToBool(dbColumn.Nullable),
@@ -113,4 +121,8 @@ func (r Postgres) ProcessTypes(types []schema.Type) []schema.Type {
 	}
 
 	return types
+}
+
+func (r Postgres) ProcessTables(dbTables []schema.Table) []schema.Table {
+	return dbTables
 }
