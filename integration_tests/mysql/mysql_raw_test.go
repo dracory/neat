@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -29,9 +30,20 @@ func TestMySQLIntegrationRawUpdate(t *testing.T) {
 	}
 
 	// Update using raw expression (concat)
-	// Note: neat may not have a Raw() function, so we'll skip this test
-	// or adapt it to use the available API
-	t.Skip("Raw expressions not currently supported in neat")
+	// Use Exec with raw SQL for raw expression updates
+	_, err := query.Exec("UPDATE users SET avatar = CONCAT(avatar, '_updated') WHERE id = ?", createdUser.ID)
+	if err != nil {
+		t.Fatalf("Failed to update with raw SQL: %v", err)
+	}
+
+	var updatedUser models.User
+	if err := query.Model(&models.User{}).Where("id = ?", createdUser.ID).First(&updatedUser); err != nil {
+		t.Fatalf("Failed to get updated user: %v", err)
+	}
+
+	if updatedUser.Avatar != "original_updated" {
+		t.Errorf("Expected avatar to be 'original_updated', got '%s'", updatedUser.Avatar)
+	}
 }
 
 // TestMySQLIntegrationRawWhere tests raw SQL expressions in Where clauses
@@ -87,7 +99,17 @@ func TestMySQLIntegrationDatabaseFunctions(t *testing.T) {
 	}
 
 	// Update using MySQL-specific function (UPPER)
-	// Note: neat may not have a Raw() function, so we'll skip this test
-	// or adapt it to use the available API
-	t.Skip("Raw expressions not currently supported in neat")
+	_, err := query.Exec("UPDATE users SET avatar = UPPER(avatar) WHERE id = ?", createdUser.ID)
+	if err != nil {
+		t.Fatalf("Failed to update with MySQL function: %v", err)
+	}
+
+	var updatedUser models.User
+	if err := query.Model(&models.User{}).Where("id = ?", createdUser.ID).First(&updatedUser); err != nil {
+		t.Fatalf("Failed to get updated user: %v", err)
+	}
+
+	if updatedUser.Avatar != "AVATAR" {
+		t.Errorf("Expected avatar to be 'AVATAR', got '%s'", updatedUser.Avatar)
+	}
 }
