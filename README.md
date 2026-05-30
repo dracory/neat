@@ -6,7 +6,10 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 
 - **Query Builder**: Fluent and intuitive query building interface
 - **ORM**: Full ORM support with models and relationships
-- **Schema Builder**: Database schema creation and migration
+- **Schema Builder**: Database schema creation and modification
+- **Migrations**: Database migration system (ORM driver supported)
+- **Seeders**: Database seeding for test and initial data
+- **Factories**: Test data generation with factory pattern
 - **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso
 - **Transactions**: Robust transaction support
 - **Observers**: Model lifecycle event system
@@ -285,8 +288,39 @@ go test -v ./...
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome! Please open an issue or submit a pull request. For detailed contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Roadmap
 
-See [docs/implementation/plan.md](./docs/implementation/plan.md) for the implementation roadmap.
+### Current Status
+
+Neat ORM is actively developed with the following features implemented:
+- ✅ Query Builder with fluent interface
+- ✅ ORM with model support
+- ✅ Schema Builder for database operations
+- ✅ Migration system (ORM driver)
+- ✅ Seeder system for data seeding
+- ✅ Factory pattern for test data
+- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso)
+- ✅ Transaction support
+- ✅ Observer system for model events
+- ✅ Soft deletes
+- ✅ Associations (BelongsTo, HasMany, HasOne)
+- ✅ Connection pooling
+- ✅ Context support
+
+### Planned Features
+
+- [ ] Additional migration drivers (SQL, custom drivers)
+- [ ] More relationship types (HasManyThrough, BelongsToMany)
+- [ ] Query caching
+- [ ] Full-text search support
+- [ ] Polymorphic relationships
+- [ ] Scopes and global scopes
+- [ ] Mutators and accessors
+- [ ] Model casting
+- [ ] Validation integration
+- [ ] Query builder debugging tools
+- [ ] Additional database drivers
+
+For detailed implementation plans, see [docs/implementation/plan.md](./docs/implementation/plan.md).

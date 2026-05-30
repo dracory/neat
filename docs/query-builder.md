@@ -164,6 +164,55 @@ Generate SQL without executing:
 sql, err := db.Query().Where("name", "John").ToSql()
 ```
 
-## Note
+## Best Practices
 
-This documentation is a placeholder and will be expanded as the query builder API is finalized.
+1. **Use parameterized queries**: Always use `?` placeholders to prevent SQL injection
+2. **Chain methods**: The query builder is designed for method chaining - use it to build complex queries
+3. **Limit results**: Always use `Limit()` when you don't need all records to improve performance
+4. **Use transactions**: For multiple related operations, wrap them in a transaction
+5. **Index columns**: Ensure columns used in WHERE clauses are indexed for better performance
+6. **Avoid N+1 queries**: Use eager loading (With) instead of lazy loading when possible
+
+## Troubleshooting
+
+### Query returns no results
+- Check your WHERE conditions are correct
+- Verify the table name matches your database schema
+- Use `ToSql()` to debug the generated SQL
+
+### SQL injection concerns
+- Never concatenate user input into query strings
+- Always use `?` placeholders for dynamic values
+- The query builder automatically escapes parameters
+
+### Performance issues
+- Add indexes to frequently queried columns
+- Use `Limit()` to reduce result sets
+- Consider using `Select()` to only fetch needed columns
+- Use connection pooling for high-traffic applications
+
+## API Reference
+
+### Query Methods
+
+- `Get(dest any) error` - Execute query and populate dest
+- `First(dest any) error` - Get first matching record
+- `Find(dest any, id any) error` - Find record by ID
+- `Where(column string, value ...any) Query` - Add WHERE clause
+- `OrWhere(column string, value ...any) Query` - Add OR WHERE clause
+- `OrderBy(column string, direction string) Query` - Add ORDER BY clause
+- `Limit(limit int) Query` - Set result limit
+- `Offset(offset int) Query` - Set result offset
+- `Count() (int64, error)` - Count matching records
+- `Sum(column string) (float64, error)` - Sum column values
+- `Avg(column string) (float64, error)` - Average column values
+- `Min(column string) (float64, error)` - Minimum column value
+- `Max(column string) (float64, error)` - Maximum column value
+- `Join(table, first, operator, second string) Query` - Add INNER JOIN
+- `LeftJoin(table, first, operator, second string) Query` - Add LEFT JOIN
+- `GroupBy(columns ...string) Query` - Add GROUP BY clause
+- `Having(column string, operator string, value any) Query` - Add HAVING clause
+- `Create(value any) error` - Insert new record
+- `Update(column string, value any) error` - Update records
+- `Delete() (sql.Result, error)` - Delete records
+- `ToSql() (string, error)` - Generate SQL without executing

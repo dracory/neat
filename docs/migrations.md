@@ -191,6 +191,55 @@ The repository table contains:
 - Migrations must be manually registered in the global registry
 - Migration file generation creates Go files that need to be manually edited to register the migration
 
+## Best Practices
+
+1. **Always provide a Down method**: Ensure you can rollback any migration
+2. **Use descriptive names**: Make migration names clear and descriptive
+3. **Test migrations**: Always test migrations on a copy of your database
+4. **Keep migrations reversible**: Avoid destructive operations that can't be undone
+5. **Use transactions**: The migration system automatically wraps operations in transactions for atomicity
+6. **Register migrations in init()**: Ensure migrations are registered before they are run
+7. **Version control migrations**: Keep migration files in version control
+8. **One change per migration**: Keep migrations focused on a single schema change
+
+## Troubleshooting
+
+### Migration fails to run
+- Check if the migration is properly registered in the global registry
+- Verify the migration file is in the correct directory
+- Ensure the database connection is configured correctly
+- Check for syntax errors in the migration code
+
+### Rollback fails
+- Verify the Down method is properly implemented
+- Check if foreign key constraints prevent rollback
+- Ensure the migration was actually applied before rolling back
+
+### Migration status issues
+- Check the migrations table for inconsistencies
+- Use MigrateFresh to reset if status is corrupted
+- Verify batch numbers are correct
+
+## API Reference
+
+### Database Methods
+
+- `Migrate(paths ...string) error` - Run all pending migrations from specified paths
+- `MigrateDown(steps int, paths ...string) error` - Rollback the specified number of migrations
+- `MigrateFresh(paths ...string) error` - Drop all tables and re-run all migrations
+- `MigrateReset(paths ...string) error` - Rollback all migrations and re-run them
+- `MigrationStatus(paths ...string) ([]MigrationStatus, error) - Get migration status
+
+### Migration Status
+
+```go
+type MigrationStatus struct {
+    Name string    // Migration name
+    Batch int      // Batch number
+    Ran  bool      // Whether the migration has been run
+}
+```
+
 ## Migration Loading
 
 The migration system supports two ways to load migrations:
