@@ -161,18 +161,19 @@ jobs:
       run: go build -v ./...
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: latest
+      run: |
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        $(go env GOPATH)/bin/golangci-lint run --timeout 10m
 
     - name: Run gosec security scanning
       uses: securego/gosec@master
+      if: always()
       with:
         args: '-no-fail -fmt sarif -out results.sarif ./...'
 
     - name: Upload gosec results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      uses: github/codeql-action/upload-sarif@v4
+      if: always() && hashFiles('results.sarif') != ''
       with:
         sarif_file: results.sarif
 
