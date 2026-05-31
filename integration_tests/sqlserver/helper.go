@@ -10,7 +10,17 @@ import (
 	"github.com/dracory/neat/integration_tests/common"
 )
 
-// GetSQLServerConfig returns a SQL Server connection config from environment variables
+// GetSQLServerConfig builds a neat.DBConfig for SQL Server from environment variables.
+// It reads the following variables with the shown defaults:
+//
+//   - SQLSERVER_HOST     (default: 127.0.0.1)
+//   - SQLSERVER_PORT     (default: 1433)
+//   - SQLSERVER_DATABASE (default: test)
+//   - SQLSERVER_USER     (default: sa)
+//   - SQLSERVER_PASS     (default: YourStrong@Passw0rd)
+//
+// The returned config uses "sqlserver" as the default connection name and applies
+// sensible connection-pool defaults (5 idle / 10 open connections, 1-hour lifetimes).
 func GetSQLServerConfig() neat.DBConfig {
 	host := common.GetEnv("SQLSERVER_HOST", "127.0.0.1")
 	port := common.GetEnvInt("SQLSERVER_PORT", 1433)
@@ -157,7 +167,9 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	return db
 }
 
-// cleanupSQLServerTestData removes all data from test tables
+// cleanupSQLServerTestData truncates all test tables so that each test starts
+// with an empty dataset. Errors are silently ignored so the function is safe to
+// call before the tables have been created for the first time.
 func cleanupSQLServerTestData(t *testing.T, db *database.Database) {
 	t.Helper()
 	sqlDB, err := db.DB()
@@ -178,7 +190,11 @@ func cleanupSQLServerTestData(t *testing.T, db *database.Database) {
 	}
 }
 
-// createSQLServerTestTables creates all tables required by the integration test models.
+// createSQLServerTestTables drops (if they exist) and recreates all tables used by
+// the integration test models: users, addresses, books, and peoples. Tables are
+// dropped in a safe order that respects foreign-key dependencies (books and addresses
+// before users). The schema uses BIGINT IDENTITY primary keys and DATETIME2 columns
+// (preferred over the legacy DATETIME type for better precision and range).
 func createSQLServerTestTables(t *testing.T, db *database.Database) {
 	t.Helper()
 	sqlDB, err := db.DB()

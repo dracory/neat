@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"database/sql"
 	"reflect"
 	"testing"
 )
@@ -232,15 +233,15 @@ func TestStructScanDests(t *testing.T) {
 			t.Errorf("Expected 2 destinations, got %d", len(dests))
 		}
 
-		// Verify that destinations are pointers to the struct fields
+		// Verify that destinations are nullable wrappers for non-pointer value types
 		if dests[0] != nil {
-			if ptr, ok := dests[0].(*int); !ok || ptr != &user.ID {
-				t.Error("Expected dests[0] to be pointer to ID field")
+			if _, ok := dests[0].(*sql.NullInt64); !ok {
+				t.Errorf("Expected dests[0] to be *sql.NullInt64, got %T", dests[0])
 			}
 		}
 		if dests[1] != nil {
-			if ptr, ok := dests[1].(*string); !ok || ptr != &user.Name {
-				t.Error("Expected dests[1] to be pointer to Name field")
+			if _, ok := dests[1].(*sql.NullString); !ok {
+				t.Errorf("Expected dests[1] to be *sql.NullString, got %T", dests[1])
 			}
 		}
 	})
@@ -272,12 +273,14 @@ func TestCopyScanResults(t *testing.T) {
 		columns := []string{"id", "name"}
 		dests := structScanDests(reflect.ValueOf(&user).Elem(), columns)
 
-		// Simulate scan results
-		if idPtr, ok := dests[0].(*int); ok {
-			*idPtr = 42
+		// Simulate scan results using nullable wrappers
+		if ni, ok := dests[0].(*sql.NullInt64); ok {
+			ni.Int64 = 42
+			ni.Valid = true
 		}
-		if namePtr, ok := dests[1].(*string); ok {
-			*namePtr = "test"
+		if ns, ok := dests[1].(*sql.NullString); ok {
+			ns.String = "test"
+			ns.Valid = true
 		}
 
 		copyScanResults(reflect.ValueOf(&user).Elem(), columns, dests)
