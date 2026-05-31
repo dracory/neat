@@ -10,12 +10,14 @@ import (
 	"github.com/dracory/neat/contracts/migration"
 )
 
+// Repository manages migration records in the database.
 type Repository struct {
 	config config.Config
 	orm    contractsorm.Orm
 	table  string
 }
 
+// NewRepository creates a new Repository instance.
 func NewRepository(config config.Config, orm contractsorm.Orm) *Repository {
 	table := config.GetString("database.migrations.table", "migrations")
 	return &Repository{

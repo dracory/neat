@@ -324,6 +324,7 @@ func TestContainsAll(t *testing.T) {
 	assertFalse(t, Of("krishan kumar").ContainsAll("kumar", "xyz"))
 }
 
+// TestDirname tests the Dirname function.
 func TestDirname(t *testing.T) {
 	str := Of("/framework/support/str").Dirname().String()
 	if env.IsWindows() {
@@ -357,6 +358,7 @@ func TestDirname(t *testing.T) {
 	}
 }
 
+// TestEndsWith tests the EndsWith function.
 func TestEndsWith(t *testing.T) {
 	assertTrue(t, Of("bowen").EndsWith("wen"))
 	assertTrue(t, Of("bowen").EndsWith("bowen"))
@@ -374,11 +376,13 @@ func TestEndsWith(t *testing.T) {
 	assertFalse(t, Of("你好").EndsWith(""))
 }
 
+// TestExactly tests the Exactly function.
 func TestExactly(t *testing.T) {
 	assertTrue(t, Of("foo").Exactly("foo"))
 	assertFalse(t, Of("foo").Exactly("Foo"))
 }
 
+// TestExcerpt tests the Excerpt function.
 func TestExcerpt(t *testing.T) {
 	assertEqual(t, "...is a beautiful morn...", Of("This is a beautiful morning").Excerpt("beautiful", ExcerptOption{
 		Radius: 5,
@@ -392,6 +396,7 @@ func TestExcerpt(t *testing.T) {
 	}).String())
 }
 
+// TestExplode tests the Explode function.
 func TestExplode(t *testing.T) {
 	assertEqualStringSlice(t, []string{"Foo", "Bar", "Baz"}, Of("Foo Bar Baz").Explode(" "))
 	// with limit
@@ -400,12 +405,14 @@ func TestExplode(t *testing.T) {
 	assertEqualStringSlice(t, []string{}, Of("Foo Bar Baz").Explode(" ", -10))
 }
 
+// TestFinish tests the Finish function.
 func TestFinish(t *testing.T) {
 	assertEqual(t, "abbc", Of("ab").Finish("bc").String())
 	assertEqual(t, "abbc", Of("abbcbc").Finish("bc").String())
 	assertEqual(t, "abcbbc", Of("abcbbcbc").Finish("bc").String())
 }
 
+// TestHeadline tests the Headline function.
 func TestHeadline(t *testing.T) {
 	assertEqual(t, "Hello", Of("hello").Headline().String())
 	assertEqual(t, "This Is A Headline", Of("this is a headline").Headline().String())
@@ -413,6 +420,7 @@ func TestHeadline(t *testing.T) {
 	assertEqual(t, "Kebab-Case Is A Headline", Of("kebab-case is a headline").Headline().String())
 }
 
+// TestIs tests the Is function.
 func TestIs(t *testing.T) {
 	assertTrue(t, Of("foo").Is("foo", "bar", "baz"))
 	assertTrue(t, Of("foo123").Is("bar*", "baz*", "foo*"))
@@ -425,21 +433,25 @@ func TestIs(t *testing.T) {
 	assertFalse(t, Of("foo/bar/baz").Is("*BAZ*"))
 }
 
+// TestIsEmpty tests the IsEmpty function.
 func TestIsEmpty(t *testing.T) {
 	assertTrue(t, Of("").IsEmpty())
 	assertFalse(t, Of("F").IsEmpty())
 }
 
+// TestIsNotEmpty tests the IsNotEmpty function.
 func TestIsNotEmpty(t *testing.T) {
 	assertFalse(t, Of("").IsNotEmpty())
 	assertTrue(t, Of("F").IsNotEmpty())
 }
 
+// TestIsAscii tests the IsAscii function.
 func TestIsAscii(t *testing.T) {
 	assertTrue(t, Of("abc").IsAscii())
 	assertFalse(t, Of("你好").IsAscii())
 }
 
+// TestIsSlice tests the IsSlice function.
 func TestIsSlice(t *testing.T) {
 	// Test when the string represents a valid JSON array
 	assertTrue(t, Of(`["apple", "banana", "cherry"]`).IsSlice())
@@ -460,6 +472,7 @@ func TestIsSlice(t *testing.T) {
 	assertFalse(t, Of("").IsSlice())
 }
 
+// TestIsMap tests the IsMap function.
 func TestIsMap(t *testing.T) {
 	// Test when the string represents a valid JSON object
 	assertTrue(t, Of(`{"name": "John", "age": 30}`).IsMap())
@@ -480,6 +493,7 @@ func TestIsMap(t *testing.T) {
 	assertFalse(t, Of("").IsMap())
 }
 
+// TestIsUlid tests the IsUlid function.
 func TestIsUlid(t *testing.T) {
 	assertTrue(t, Of("01E65Z7XCHCR7X1P2MKF78ENRP").IsUlid())
 	// lowercase characters are not allowed
@@ -490,25 +504,30 @@ func TestIsUlid(t *testing.T) {
 	assertFalse(t, Of("01E65Z7XCHCR7X1P2MKF78ENR!").IsUlid())
 }
 
+// TestIsUuid tests the IsUuid function.
 func TestIsUuid(t *testing.T) {
 	assertTrue(t, Of("3f2504e0-4f89-41d3-9a0c-0305e82c3301").IsUuid())
 	assertFalse(t, Of("3f2504e0-4f89-41d3-9a0c-0305e82c3301-extra").IsUuid())
 }
 
+// TestKebab tests the Kebab function.
 func TestKebab(t *testing.T) {
 	assertEqual(t, "goravel-framework", Of("GoravelFramework").Kebab().String())
 }
 
+// TestLcFirst tests the LcFirst function.
 func TestLcFirst(t *testing.T) {
 	assertEqual(t, "framework", Of("Framework").LcFirst().String())
 	assertEqual(t, "framework", Of("framework").LcFirst().String())
 }
 
+// TestLength tests the Length function.
 func TestLength(t *testing.T) {
 	assertEqual(t, 11, Of("foo bar baz").Length())
 	assertEqual(t, 0, Of("").Length())
 }
 
+// TestLimit tests the Limit function.
 func TestLimit(t *testing.T) {
 	assertEqual(t, "This is...", Of("This is a beautiful morning").Limit(7).String())
 	assertEqual(t, "This is****", Of("This is a beautiful morning").Limit(7, "****").String())
@@ -516,15 +535,18 @@ func TestLimit(t *testing.T) {
 	assertEqual(t, "这是一段中文", Of("这是一段中文").Limit(9).String())
 }
 
+// TestLower tests the Lower function.
 func TestLower(t *testing.T) {
 	assertEqual(t, "foo bar baz", Of("FOO BAR BAZ").Lower().String())
 	assertEqual(t, "foo bar baz", Of("fOo Bar bAz").Lower().String())
 }
 
+// TestLTrim tests the LTrim function.
 func TestLTrim(t *testing.T) {
 	assertEqual(t, "foo ", Of(" foo ").LTrim().String())
 }
 
+// TestMask tests the Mask function.
 func TestMask(t *testing.T) {
 	assertEqual(t, "kri**************", Of("krishan@email.com").Mask("*", 3).String())
 	assertEqual(t, "*******@email.com", Of("krishan@email.com").Mask("*", 0, 7).String())
@@ -545,6 +567,7 @@ func TestMask(t *testing.T) {
 	assertEqual(t, "**一段中文", Of("这是一段中文").Mask("*", 0, 2).String())
 }
 
+// TestMatch tests the Match function.
 func TestMatch(t *testing.T) {
 	assertEqual(t, "World", Of("Hello, World!").Match("World").String())
 	assertEqual(t, "(test)", Of("This is a (test) string").Match(`\([^)]+\)`).String())
@@ -554,6 +577,7 @@ func TestMatch(t *testing.T) {
 	assertEqual(t, "[456]", Of("123 [456]").Match(`\[456\]`).String())
 }
 
+// TestMatchAll tests the MatchAll function.
 func TestMatchAll(t *testing.T) {
 	assertEqualStringSlice(t, []string{"World"}, Of("Hello, World!").MatchAll("World"))
 	assertEqualStringSlice(t, []string{"(test)"}, Of("This is a (test) string").MatchAll(`\([^)]+\)`))
@@ -563,6 +587,7 @@ func TestMatchAll(t *testing.T) {
 	assertEqualStringSlice(t, []string{"[456]"}, Of("123 [456]").MatchAll(`\[456\]`))
 }
 
+// TestIsMatch tests the IsMatch function.
 func TestIsMatch(t *testing.T) {
 	// Test matching with a single pattern
 	assertTrue(t, Of("Hello, Goravel!").IsMatch(`.*,.*!`))
@@ -583,11 +608,13 @@ func TestIsMatch(t *testing.T) {
 	assertTrue(t, Of("Hello, Goravel!").IsMatch(`^[a-zA-Z,!]+$`, `^(.*(.*(.*)))`))
 }
 
+// TestNewLine tests the NewLine function.
 func TestNewLine(t *testing.T) {
 	assertEqual(t, "Goravel\n", Of("Goravel").NewLine().String())
 	assertEqual(t, "Goravel\n\nbar", Of("Goravel").NewLine(2).Append("bar").String())
 }
 
+// TestPadBoth tests the PadBoth function.
 func TestPadBoth(t *testing.T) {
 	// Test padding with spaces
 	assertEqual(t, "   Hello   ", Of("Hello").PadBoth(11, " ").String())
@@ -597,18 +624,21 @@ func TestPadBoth(t *testing.T) {
 	assertEqual(t, "      ", Of("").PadBoth(6, " ").String())
 }
 
+// TestPadLeft tests the PadLeft function.
 func TestPadLeft(t *testing.T) {
 	assertEqual(t, "   Goravel", Of("Goravel").PadLeft(10, " ").String())
 	assertEqual(t, "==Goravel", Of("Goravel").PadLeft(9, "=").String())
 	assertEqual(t, "Goravel", Of("Goravel").PadLeft(3, " ").String())
 }
 
+// TestPadRight tests the PadRight function.
 func TestPadRight(t *testing.T) {
 	assertEqual(t, "Goravel   ", Of("Goravel").PadRight(10, " ").String())
 	assertEqual(t, "Goravel==", Of("Goravel").PadRight(9, "=").String())
 	assertEqual(t, "Goravel", Of("Goravel").PadRight(3, " ").String())
 }
 
+// TestPipe tests the Pipe function.
 func TestPipe(t *testing.T) {
 	callback := func(str string) string {
 		return Of(str).Append("bar").String()
@@ -616,12 +646,14 @@ func TestPipe(t *testing.T) {
 	assertEqual(t, "foobar", Of("foo").Pipe(callback).String())
 }
 
+// TestPrepend tests the Prepend function.
 func TestPrepend(t *testing.T) {
 	assertEqual(t, "foobar", Of("bar").Prepend("foo").String())
 	assertEqual(t, "foobar", Of("bar").Prepend("foo").Prepend("").String())
 	assertEqual(t, "foobar", Of("bar").Prepend("foo").Prepend().String())
 }
 
+// TestRemove tests the Remove function.
 func TestRemove(t *testing.T) {
 	assertEqual(t, "Fbar", Of("Foobar").Remove("o").String())
 	assertEqual(t, "Foo", Of("Foobar").Remove("bar").String())
@@ -633,11 +665,13 @@ func TestRemove(t *testing.T) {
 	assertEqual(t, "Foobar", Of("Foo|bar").Remove("f", "|").String())
 }
 
+// TestRepeat tests the Repeat function.
 func TestRepeat(t *testing.T) {
 	assertEqual(t, "aaaaa", Of("a").Repeat(5).String())
 	assertEqual(t, "", Of("").Repeat(5).String())
 }
 
+// TestReplace tests the Replace function.
 func TestReplace(t *testing.T) {
 	assertEqual(t, "foo/foo/foo", Of("?/?/?").Replace("?", "foo").String())
 	assertEqual(t, "foo/foo/foo", Of("x/x/x").Replace("X", "foo", false).String())
@@ -645,6 +679,7 @@ func TestReplace(t *testing.T) {
 	assertEqual(t, "?/?/?", Of("? ? ?").Replace(" ", "/").String())
 }
 
+// TestReplaceEnd tests the ReplaceEnd function.
 func TestReplaceEnd(t *testing.T) {
 	assertEqual(t, "Golang is great!", Of("Golang is good!").ReplaceEnd("good!", "great!").String())
 	assertEqual(t, "Hello, World!", Of("Hello, Earth!").ReplaceEnd("Earth!", "World!").String())
@@ -654,6 +689,7 @@ func TestReplaceEnd(t *testing.T) {
 	assertEqual(t, "Golang is good!", Of("Golang is good!").ReplaceEnd("excellent!", "great!").String())
 }
 
+// TestReplaceFirst tests the ReplaceFirst function.
 func TestReplaceFirst(t *testing.T) {
 	assertEqual(t, "fooqux foobar", Of("foobar foobar").ReplaceFirst("bar", "qux").String())
 	assertEqual(t, "foo/qux? foo/bar?", Of("foo/bar? foo/bar?").ReplaceFirst("bar?", "qux?").String())
@@ -665,6 +701,7 @@ func TestReplaceFirst(t *testing.T) {
 	assertEqual(t, "Jönköping Malmö", Of("Jönköping Malmö").ReplaceFirst("", "yyy").String())
 }
 
+// TestReplaceLast tests the ReplaceLast function.
 func TestReplaceLast(t *testing.T) {
 	assertEqual(t, "foobar fooqux", Of("foobar foobar").ReplaceLast("bar", "qux").String())
 	assertEqual(t, "foo/bar? foo/qux?", Of("foo/bar? foo/bar?").ReplaceLast("bar?", "qux?").String())
@@ -676,6 +713,7 @@ func TestReplaceLast(t *testing.T) {
 	assertEqual(t, "Malmö Jönköping", Of("Malmö Jönköping").ReplaceLast("", "yyy").String())
 }
 
+// TestReplaceMatches tests the ReplaceMatches function.
 func TestReplaceMatches(t *testing.T) {
 	assertEqual(t, "Golang is great!", Of("Golang is good!").ReplaceMatches("good", "great").String())
 	assertEqual(t, "Hello, World!", Of("Hello, Earth!").ReplaceMatches("Earth", "World").String())
@@ -689,6 +727,7 @@ func TestReplaceMatches(t *testing.T) {
 	assertEqual(t, "Hello, World!", Of("Hello, World!").ReplaceMatches("Golang", "Great").String())
 }
 
+// TestReplaceStart tests the ReplaceStart function.
 func TestReplaceStart(t *testing.T) {
 	assertEqual(t, "foobar foobar", Of("foobar foobar").ReplaceStart("bar", "qux").String())
 	assertEqual(t, "foo/bar? foo/bar?", Of("foo/bar? foo/bar?").ReplaceStart("bar?", "qux?").String())
@@ -701,11 +740,13 @@ func TestReplaceStart(t *testing.T) {
 	assertEqual(t, "Jönköping Malmö", Of("Jönköping Malmö").ReplaceStart("", "yyy").String())
 }
 
+// TestRTrim tests the RTrim function.
 func TestRTrim(t *testing.T) {
 	assertEqual(t, " foo", Of(" foo ").RTrim().String())
 	assertEqual(t, " foo", Of(" foo__").RTrim("_").String())
 }
 
+// TestSnake tests the Snake function.
 func TestSnake(t *testing.T) {
 	assertEqual(t, "goravel_g_o_framework", Of("GoravelGOFramework").Snake().String())
 	assertEqual(t, "goravel_go_framework", Of("GoravelGoFramework").Snake().String())
@@ -716,12 +757,14 @@ func TestSnake(t *testing.T) {
 	assertEqual(t, "żółta_łódka", Of("ŻółtaŁódka").Snake().String())
 }
 
+// TestSplit tests the Split function.
 func TestSplit(t *testing.T) {
 	assertEqualStringSlice(t, []string{"one", "two", "three", "four"}, Of("one-two-three-four").Split("-"))
 	assertEqualStringSlice(t, []string{"", "", "D", "E", "", ""}, Of(",,D,E,,").Split(","))
 	assertEqualStringSlice(t, []string{"one", "two", "three,four"}, Of("one,two,three,four").Split(",", 3))
 }
 
+// TestSquish tests the Squish function.
 func TestSquish(t *testing.T) {
 	assertEqual(t, "Hello World", Of("  Hello   World  ").Squish().String())
 	assertEqual(t, "A B C", Of("A  B  C").Squish().String())
@@ -732,12 +775,14 @@ func TestSquish(t *testing.T) {
 	assertEqual(t, "", Of("").Squish().String())
 }
 
+// TestStart tests the Start function.
 func TestStart(t *testing.T) {
 	assertEqual(t, "/test/string", Of("test/string").Start("/").String())
 	assertEqual(t, "/test/string", Of("/test/string").Start("/").String())
 	assertEqual(t, "/test/string", Of("//test/string").Start("/").String())
 }
 
+// TestStartsWith tests the StartsWith function.
 func TestStartsWith(t *testing.T) {
 	assertTrue(t, Of("Wenbo Han").StartsWith("Wen"))
 	assertTrue(t, Of("Wenbo Han").StartsWith("Wenbo"))
@@ -748,6 +793,7 @@ func TestStartsWith(t *testing.T) {
 	assertFalse(t, Of("Jönköping").StartsWith("Jonko"))
 }
 
+// TestStudly tests the Studly function.
 func TestStudly(t *testing.T) {
 	assertEqual(t, "GoravelGOFramework", Of("Goravel_g_o_framework").Studly().String())
 	assertEqual(t, "GoravelGOFramework", Of("Goravel_gO_framework").Studly().String())
@@ -760,6 +806,7 @@ func TestStudly(t *testing.T) {
 	assertEqual(t, "FooBar", Of("foo.bar").Studly().String())
 }
 
+// TestSubstrString tests the Substr function.
 func TestSubstrString(t *testing.T) {
 	assertEqual(t, "Ё", Of("БГДЖИЛЁ").Substr(-1).String())
 	assertEqual(t, "ЛЁ", Of("БГДЖИЛЁ").Substr(-2).String())
@@ -774,6 +821,7 @@ func TestSubstrString(t *testing.T) {
 	assertEqual(t, "", Of("Б").Substr(2).String())
 }
 
+// TestSwap tests the Swap function.
 func TestSwap(t *testing.T) {
 	assertEqual(t, "Go is excellent", Of("Golang is awesome").Swap(map[string]string{
 		"Golang":  "Go",
@@ -786,6 +834,7 @@ func TestSwap(t *testing.T) {
 	}).String())
 }
 
+// TestTap tests the Tap function.
 func TestTap(t *testing.T) {
 	tap := Of("foobarbaz")
 	fromTehTap := ""
@@ -796,16 +845,19 @@ func TestTap(t *testing.T) {
 	assertEqual(t, "foobarbaz", tap.String())
 }
 
+// TestTitle tests the Title function.
 func TestTitle(t *testing.T) {
 	assertEqual(t, "Krishan Kumar", Of("krishan kumar").Title().String())
 	assertEqual(t, "Krishan Kumar", Of("kriSHan kuMAr").Title().String())
 }
 
+// TestTrim tests the Trim function.
 func TestTrim(t *testing.T) {
 	assertEqual(t, "foo", Of(" foo ").Trim().String())
 	assertEqual(t, "foo", Of("_foo_").Trim("_").String())
 }
 
+// TestUcFirst tests the UcFirst function.
 func TestUcFirst(t *testing.T) {
 	assertEqual(t, "", Of("").UcFirst().String())
 	assertEqual(t, "Framework", Of("framework").UcFirst().String())
@@ -814,12 +866,14 @@ func TestUcFirst(t *testing.T) {
 	assertEqual(t, "Goravel framework", Of("goravel framework").UcFirst().String())
 }
 
+// TestUcSplit tests the UcSplit function.
 func TestUcSplit(t *testing.T) {
 	assertEqualStringSlice(t, []string{"Krishan", "Kumar"}, Of("KrishanKumar").UcSplit())
 	assertEqualStringSlice(t, []string{"Hello", "From", "Goravel"}, Of("HelloFromGoravel").UcSplit())
 	assertEqualStringSlice(t, []string{"He_llo_", "World"}, Of("He_llo_World").UcSplit())
 }
 
+// TestUnless tests the Unless function.
 func TestUnless(t *testing.T) {
 	str := Of("Hello, World!")
 
@@ -845,11 +899,13 @@ func TestUnless(t *testing.T) {
 	}).String())
 }
 
+// TestUpper tests the Upper function.
 func TestUpper(t *testing.T) {
 	assertEqual(t, "FOO BAR BAZ", Of("foo bar baz").Upper().String())
 	assertEqual(t, "FOO BAR BAZ", Of("foO bAr BaZ").Upper().String())
 }
 
+// TestWhen tests the When function.
 func TestWhen(t *testing.T) {
 	// true
 	assertEqual(t, "when true", Of("when ").When(true, func(s *String) *String {
@@ -871,6 +927,7 @@ func TestWhen(t *testing.T) {
 	}).String())
 }
 
+// TestWhenContains tests the WhenContains function.
 func TestWhenContains(t *testing.T) {
 	assertEqual(t, "Tony Stark", Of("stark").WhenContains("tar", func(s *String) *String {
 		return s.Prepend("Tony ").Title()
@@ -889,6 +946,7 @@ func TestWhenContains(t *testing.T) {
 	}).String())
 }
 
+// TestWhenContainsAll tests the WhenContainsAll function.
 func TestWhenContainsAll(t *testing.T) {
 	// Test when all values are present
 	assertEqual(t, "Tony Stark", Of("tony stark").WhenContainsAll([]string{"tony", "stark"},
@@ -918,6 +976,7 @@ func TestWhenContainsAll(t *testing.T) {
 	).String())
 }
 
+// TestWhenEmpty tests the WhenEmpty function.
 func TestWhenEmpty(t *testing.T) {
 	// Test when the string is empty
 	assertEqual(t, "DEFAULT", Of("").WhenEmpty(
@@ -933,6 +992,7 @@ func TestWhenEmpty(t *testing.T) {
 	).String())
 }
 
+// TestWhenIsAscii tests the WhenIsAscii function.
 func TestWhenIsAscii(t *testing.T) {
 	assertEqual(t, "Ascii: A", Of("A").WhenIsAscii(
 		func(s *String) *String {
@@ -952,6 +1012,7 @@ func TestWhenIsAscii(t *testing.T) {
 	).String())
 }
 
+// TestWhenNotEmpty tests the WhenNotEmpty function.
 func TestWhenNotEmpty(t *testing.T) {
 	// Test when the string is not empty
 	assertEqual(t, "UPPERCASE", Of("uppercase").WhenNotEmpty(
@@ -971,6 +1032,7 @@ func TestWhenNotEmpty(t *testing.T) {
 	).String())
 }
 
+// TestWhenStartsWith tests the WhenStartsWith function.
 func TestWhenStartsWith(t *testing.T) {
 	// Test when the string starts with a specific prefix
 	assertEqual(t, "Tony Stark", Of("tony stark").WhenStartsWith([]string{"ton"},
@@ -1010,6 +1072,7 @@ func TestWhenStartsWith(t *testing.T) {
 	).String())
 }
 
+// TestWhenEndsWith tests the WhenEndsWith function.
 func TestWhenEndsWith(t *testing.T) {
 	// Test when the string ends with a specific suffix
 	assertEqual(t, "Tony Stark", Of("tony stark").WhenEndsWith([]string{"ark"},
@@ -1049,6 +1112,7 @@ func TestWhenEndsWith(t *testing.T) {
 	).String())
 }
 
+// TestWhenExactly tests the WhenExactly function.
 func TestWhenExactly(t *testing.T) {
 	// Test when the string exactly matches the expected value
 	assertEqual(t, "Nailed it...!", Of("Tony Stark").WhenExactly("Tony Stark",
@@ -1078,6 +1142,7 @@ func TestWhenExactly(t *testing.T) {
 	).String())
 }
 
+// TestWhenNotExactly tests the WhenNotExactly function.
 func TestWhenNotExactly(t *testing.T) {
 	// Test when the string does not exactly match the expected value with an "else" callback
 	assertEqual(t, "Iron Man", Of("Tony").WhenNotExactly("Tony Stark",
@@ -1097,6 +1162,7 @@ func TestWhenNotExactly(t *testing.T) {
 	).String())
 }
 
+// TestWhenIs tests the WhenIs function.
 func TestWhenIs(t *testing.T) {
 	// Test when the string exactly matches the expected value with an "if" callback
 	assertEqual(t, "Winner: /", Of("/").WhenIs("/",
@@ -1133,6 +1199,7 @@ func TestWhenIs(t *testing.T) {
 	).String())
 }
 
+// TestWhenIsUlid tests the WhenIsUlid function.
 func TestWhenIsUlid(t *testing.T) {
 	// Test when the string is a valid ULID with an "if" callback
 	assertEqual(t, "Ulid: 01GJSNW9MAF792C0XYY8RX6QFT", Of("01GJSNW9MAF792C0XYY8RX6QFT").WhenIsUlid(
@@ -1162,6 +1229,7 @@ func TestWhenIsUlid(t *testing.T) {
 	).String())
 }
 
+// TestWhenIsUuid tests the WhenIsUuid function.
 func TestWhenIsUuid(t *testing.T) {
 	// Test when the string is a valid UUID with an "if" callback
 	assertEqual(t, "Uuid: 2cdc7039-65a6-4ac7-8e5d-d554a98e7b15", Of("2cdc7039-65a6-4ac7-8e5d-d554a98e7b15").WhenIsUuid(
@@ -1189,6 +1257,7 @@ func TestWhenIsUuid(t *testing.T) {
 	).String())
 }
 
+// TestWhenTest tests the WhenTest function.
 func TestWhenTest(t *testing.T) {
 	// Test when the regular expression matches with an "if" callback
 	assertEqual(t, "Winner: foo bar", Of("foo bar").WhenTest(`bar*`,
@@ -1218,16 +1287,19 @@ func TestWhenTest(t *testing.T) {
 	).String())
 }
 
+// TestWordCount tests the WordCount function.
 func TestWordCount(t *testing.T) {
 	assertEqual(t, 2, Of("Hello, world!").WordCount())
 	assertEqual(t, 10, Of("Hi, this is my first contribution to the Goravel framework.").WordCount())
 }
 
+// TestWords tests the Words function.
 func TestWords(t *testing.T) {
 	assertEqual(t, "Perfectly balanced, as >>>", Of("Perfectly balanced, as all things should be.").Words(3, " >>>").String())
 	assertEqual(t, "Perfectly balanced, as all things should be.", Of("Perfectly balanced, as all things should be.").Words(100).String())
 }
 
+// TestFieldsFunc tests the fieldsFunc helper function.
 func TestFieldsFunc(t *testing.T) {
 	tests := []struct {
 		input          string
@@ -1269,6 +1341,7 @@ func TestFieldsFunc(t *testing.T) {
 	}
 }
 
+// TestSubstr tests the Substr helper function.
 func TestSubstr(t *testing.T) {
 	assertEqual(t, "world", Substr("Hello, world!", 7, 5))
 	assertEqual(t, "", Substr("Golang", 10))
@@ -1279,6 +1352,7 @@ func TestSubstr(t *testing.T) {
 	assertEqual(t, "世界！", Substr("你好，世界！", 3, 3))
 }
 
+// TestMaximum tests the maximum helper function.
 func TestMaximum(t *testing.T) {
 	assertEqual(t, 10, maximum(5, 10))
 	assertEqual(t, 3.14, maximum(3.14, 2.71))
@@ -1287,6 +1361,7 @@ func TestMaximum(t *testing.T) {
 	assertEqual(t, 42, maximum(42, 42))
 }
 
+// TestRandom tests the Random helper function.
 func TestRandom(t *testing.T) {
 	assertLen(t, Random(10), 10)
 	assertEmpty(t, Random(0))
@@ -1295,12 +1370,14 @@ func TestRandom(t *testing.T) {
 	})
 }
 
+// TestCase2Camel tests the Case2Camel helper function.
 func TestCase2Camel(t *testing.T) {
 	assertEqual(t, "GoravelFramework", Case2Camel("goravel_framework"))
 	assertEqual(t, "GoravelFramework1", Case2Camel("goravel_framework1"))
 	assertEqual(t, "GoravelFramework", Case2Camel("GoravelFramework"))
 }
 
+// TestCamel2Case tests the Camel2Case helper function.
 func TestCamel2Case(t *testing.T) {
 	assertEqual(t, "goravel_framework", Camel2Case("GoravelFramework"))
 	assertEqual(t, "goravel_framework1", Camel2Case("GoravelFramework1"))

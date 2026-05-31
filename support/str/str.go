@@ -16,6 +16,7 @@ import (
 	"golang.org/x/text/language"
 )
 
+// String represents a string value with fluent chainable methods for manipulation.
 type String struct {
 	value string
 }
@@ -952,6 +953,7 @@ func Substr(str string, start int, length ...int) string {
 	return string(runes[start:end])
 }
 
+// Random generates a random string of the specified length.
 func Random(length int) string {
 	b := make([]byte, length)
 	_, err := rand.Read(b)
@@ -1008,14 +1010,17 @@ func Camel2Case(name string) string {
 	return buffer.String()
 }
 
+// Buffer is a wrapper around bytes.Buffer for building strings.
 type Buffer struct {
 	*bytes.Buffer
 }
 
+// NewBuffer creates a new Buffer instance.
 func NewBuffer() *Buffer {
 	return &Buffer{Buffer: new(bytes.Buffer)}
 }
 
+// Append appends the given value to the buffer.
 func (b *Buffer) Append(i any) *Buffer {
 	switch val := i.(type) {
 	case int:
@@ -1036,6 +1041,7 @@ func (b *Buffer) Append(i any) *Buffer {
 	return b
 }
 
+// append is a helper method to append a string to the buffer.
 func (b *Buffer) append(s string) *Buffer {
 	b.WriteString(s)
 

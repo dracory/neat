@@ -91,34 +91,40 @@ type Query struct {
 	withExistsQueries []existsQuery
 }
 
+// countQuery represents a count subquery for eager loading.
 type countQuery struct {
 	relation   string
 	column     string
 	constraint func(contractsorm.Query) contractsorm.Query
 }
 
+// existsQuery represents an exists subquery for eager loading.
 type existsQuery struct {
 	relation   string
 	constraint func(contractsorm.Query) contractsorm.Query
 }
 
+// whereClause represents a WHERE clause in a query.
 type whereClause struct {
 	_type string // "and", "or"
 	query string
 	args  []any
 }
 
+// joinClause represents a JOIN clause in a query.
 type joinClause struct {
 	_type string // "join", "left join", "right join", "cross join"
 	query string
 	args  []any
 }
 
+// havingClause represents a HAVING clause in a query.
 type havingClause struct {
 	query string
 	args  []any
 }
 
+// selectClause represents a SELECT clause in a query.
 type selectClause struct {
 	expr string
 	args []any
@@ -144,6 +150,7 @@ func RawExpr(sql string, args ...any) RawExpression {
 	return RawExpression{SQL: sql, Args: filteredArgs}
 }
 
+// orderClause represents an ORDER BY clause in a query.
 type orderClause struct {
 	column    string
 	direction string // "asc", "desc"

@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-// GetEnv gets an environment variable or returns a default value
+// GetEnv gets an environment variable or returns a default value.
 func GetEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -13,7 +13,7 @@ func GetEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// GetEnvInt gets an environment variable as an integer or returns a default value
+// GetEnvInt gets an environment variable as an integer or returns a default value.
 func GetEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		var parsed int

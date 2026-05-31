@@ -16,6 +16,7 @@ import (
 	"github.com/dracory/neat/database/schema"
 )
 
+// Migrator handles database migrations.
 type Migrator struct {
 	config     config.Config
 	orm        contractsorm.Orm
@@ -24,6 +25,7 @@ type Migrator struct {
 	paths      []string
 }
 
+// NewMigrator creates a new Migrator instance.
 func NewMigrator(config config.Config, orm contractsorm.Orm, schema *schema.Schema, paths []string) *Migrator {
 	return &Migrator{
 		config:     config,

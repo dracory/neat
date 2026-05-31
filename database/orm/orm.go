@@ -14,6 +14,7 @@ import (
 	"github.com/dracory/neat/database/query"
 )
 
+// Orm represents the ORM instance for database operations.
 type Orm struct {
 	ctx             context.Context
 	dbConfig        *db.DBConfig
@@ -28,6 +29,7 @@ type Orm struct {
 	dbConnections   map[string]*sql.DB
 }
 
+// NewOrm creates a new Orm instance.
 func NewOrm(
 	ctx context.Context,
 	dbConfig *db.DBConfig,
@@ -54,18 +56,22 @@ func NewOrm(
 	}
 }
 
+// OrmOption is a function that configures Orm options.
 type OrmOption func(*ormOptions)
 
+// ormOptions holds configuration options for Orm.
 type ormOptions struct {
 	skipPing bool
 }
 
+// WithSkipPing sets whether to skip the database ping during initialization.
 func WithSkipPing(skip bool) OrmOption {
 	return func(o *ormOptions) {
 		o.skipPing = skip
 	}
 }
 
+// BuildOrm builds and initializes a new Orm instance with the given configuration.
 func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, refresh func(), opts ...OrmOption) (*Orm, error) {
 	// Apply options
 	o := &ormOptions{}
@@ -95,6 +101,7 @@ func BuildOrm(ctx context.Context, dbConfig *db.DBConfig, connection string, log
 	return NewOrm(ctx, dbConfig, connection, query, queries, log, nil, refresh, drivers, dbConnections), nil
 }
 
+// buildQuery builds a query instance for the given connection.
 func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, log log.Log, drivers map[string]driver.Driver, dbConnections map[string]*sql.DB, skipPing bool) (contractsorm.Query, error) {
 	connConfig, ok := dbConfig.Connections[connection]
 	if !ok {

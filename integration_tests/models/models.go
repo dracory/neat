@@ -6,7 +6,7 @@ import (
 	"github.com/dracory/neat/database/soft_delete"
 )
 
-// User represents a user model with associations
+// User represents a user model with associations.
 type User struct {
 	soft_delete.SoftDeletes
 	ID        uint      `db:"id"`
@@ -20,7 +20,7 @@ type User struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-// Address represents an address model
+// Address represents an address model.
 type Address struct {
 	ID        uint      `db:"id"`
 	Name      string    `db:"name"`
@@ -34,7 +34,7 @@ func (Address) TableName() string {
 	return "addresses"
 }
 
-// Book represents a book model
+// Book represents a book model.
 type Book struct {
 	ID        uint      `db:"id"`
 	Name      string    `db:"name"`
@@ -44,7 +44,7 @@ type Book struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-// People represents a people model
+// People represents a people model.
 type People struct {
 	ID        uint      `db:"id"`
 	Body      string    `db:"body"`
@@ -52,7 +52,7 @@ type People struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-// JsonData represents a JSON data model
+// JsonData represents a JSON data model.
 type JsonData struct {
 	ID        uint      `db:"id"`
 	Data      string    `db:"data"`
@@ -60,7 +60,7 @@ type JsonData struct {
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-// BigSerialUser represents a user model with int64 ID for bigserial testing
+// BigSerialUser represents a user model with int64 ID for bigserial testing.
 type BigSerialUser struct {
 	ID        int64     `db:"id"`
 	Name      string    `db:"name"`
@@ -72,8 +72,8 @@ func (BigSerialUser) TableName() string {
 	return "bigserial_users"
 }
 
-// Comment represents a comment model with polymorphic associations
-// A comment can belong to a Post or a Video
+// Comment represents a comment model with polymorphic associations.
+// A comment can belong to a Post or a Video.
 type Comment struct {
 	ID              uint      `db:"id"`
 	Body            string    `db:"body"`
@@ -87,7 +87,7 @@ func (Comment) TableName() string {
 	return "comments"
 }
 
-// Post represents a post model
+// Post represents a post model.
 type Post struct {
 	ID        uint       `db:"id"`
 	Title     string     `db:"title"`
@@ -101,7 +101,7 @@ func (Post) TableName() string {
 	return "posts"
 }
 
-// Video represents a video model
+// Video represents a video model.
 type Video struct {
 	ID        uint       `db:"id"`
 	Title     string     `db:"title"`
