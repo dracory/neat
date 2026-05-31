@@ -41,15 +41,10 @@ func (b *Builder) quoteIdentifier(name string) string {
 	}
 
 	// Handle space alias (e.g., "users u")
-	// Only apply if not already handled by AS check above
 	if idx := strings.Index(name, " "); idx != -1 {
-		upperAfterSpace := strings.ToUpper(name[idx+1:])
-		// If the part after space starts with "AS ", it should have been handled above
-		if !strings.HasPrefix(upperAfterSpace, "AS ") {
-			identifier := strings.TrimSpace(name[:idx])
-			alias := strings.TrimSpace(name[idx+1:])
-			return fmt.Sprintf("%s %s", b.quoteIdentifier(identifier), b.quoteIdentifier(alias))
-		}
+		identifier := strings.TrimSpace(name[:idx])
+		alias := strings.TrimSpace(name[idx+1:])
+		return fmt.Sprintf("%s %s", b.quoteIdentifier(identifier), b.quoteIdentifier(alias))
 	}
 
 	return fmt.Sprintf("%s%s%s", quoteChar, name, quoteChar)

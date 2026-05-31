@@ -9,6 +9,9 @@ import (
 
 // Count returns the number of records matching the query.
 func (q *Query) Count(count *int64) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	if err := q.validateAggregate("*", count); err != nil {
 		return err
 	}
@@ -38,7 +41,7 @@ func (q *Query) Count(count *int64) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute COUNT query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute COUNT query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
@@ -49,6 +52,9 @@ func (q *Query) Count(count *int64) error {
 
 // Sum returns the sum of the specified column.
 func (q *Query) Sum(column string, dest any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
 	}
@@ -76,7 +82,7 @@ func (q *Query) Sum(column string, dest any) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute SUM query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute SUM query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
@@ -87,6 +93,9 @@ func (q *Query) Sum(column string, dest any) error {
 
 // Avg returns the average of the specified column.
 func (q *Query) Avg(column string, dest any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
 	}
@@ -114,7 +123,7 @@ func (q *Query) Avg(column string, dest any) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute AVG query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute AVG query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
@@ -125,6 +134,9 @@ func (q *Query) Avg(column string, dest any) error {
 
 // Min returns the minimum value of the specified column.
 func (q *Query) Min(column string, dest any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
 	}
@@ -152,7 +164,7 @@ func (q *Query) Min(column string, dest any) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute MIN query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute MIN query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
@@ -163,6 +175,9 @@ func (q *Query) Min(column string, dest any) error {
 
 // Max returns the maximum value of the specified column.
 func (q *Query) Max(column string, dest any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
 	}
@@ -190,7 +205,7 @@ func (q *Query) Max(column string, dest any) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute MAX query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute MAX query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
@@ -201,6 +216,9 @@ func (q *Query) Max(column string, dest any) error {
 
 // Exists checks if any records match the query.
 func (q *Query) Exists(exists *bool) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	// Use a clone to avoid mutating the query state
 	clone := q.Clone().(*Query)
 	clone.aggregate = "COUNT"
@@ -227,7 +245,7 @@ func (q *Query) Exists(exists *bool) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute EXISTS query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute EXISTS query: %w", err), q.isProduction())
 	}
 
 	*exists = count > 0
@@ -240,6 +258,9 @@ func (q *Query) Exists(exists *bool) error {
 
 // Pluck retrieves a single column's values from the query results.
 func (q *Query) Pluck(column string, dest any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	// Use a clone to avoid mutating the query state
 	clone := q.Clone().(*Query)
 	clone.selects = []selectClause{{expr: column}}
@@ -253,7 +274,7 @@ func (q *Query) Pluck(column string, dest any) error {
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
 		if err != nil {
-			return fmt.Errorf("failed to execute PLUCK query: %w", err)
+			return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
 		}
 		defer rows.Close()
 
@@ -267,7 +288,7 @@ func (q *Query) Pluck(column string, dest any) error {
 
 	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("failed to execute PLUCK query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
 	}
 	defer rows.Close()
 
@@ -276,6 +297,9 @@ func (q *Query) Pluck(column string, dest any) error {
 
 // Value retrieves a single column's value from the first result.
 func (q *Query) Value(column string, dest any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	// Use a clone to avoid mutating the query state
 	clone := q.Clone().(*Query)
 	clone.selects = []selectClause{{expr: column}}
@@ -302,7 +326,7 @@ func (q *Query) Value(column string, dest any) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute VALUE query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute VALUE query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled

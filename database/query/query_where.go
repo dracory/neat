@@ -79,7 +79,9 @@ func (q *Query) OrWhereNull(column string) orm.Query {
 func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 	// Validate column names
 	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
-		q.buildError = fmt.Errorf("invalid column name in WhereColumn: column names must be simple identifiers")
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid column name in WhereColumn: column names must be simple identifiers")
+		}
 		return q
 	}
 	// Validate operator against allowed whitelist
@@ -87,7 +89,9 @@ func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
 	}
 	if !allowedOperators[operator] {
-		q.buildError = fmt.Errorf("invalid operator in WhereColumn: %s", operator)
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid operator in WhereColumn: %s", operator)
+		}
 		return q
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})
@@ -171,10 +175,28 @@ func (q *Query) WhereAny(columns []string, operator string, value any) orm.Query
 		// Return without adding a clause for empty columns
 		return q
 	}
+	// Validate operator against allowed whitelist (case-insensitive)
+	allowedOperators := map[string]bool{
+		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
+		"LIKE": true, "NOT LIKE": true, "ILIKE": true, "NOT ILIKE": true,
+	}
+	normOp := strings.ToUpper(strings.TrimSpace(operator))
+	if !allowedOperators[normOp] {
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid operator in WhereAny: %s", operator)
+		}
+		return q
+	}
 	var parts []string
 	var args []any
 	for _, col := range columns {
-		parts = append(parts, fmt.Sprintf("%s %s ?", col, operator))
+		if !isSimpleIdentifier(col) {
+			if q.buildError == nil {
+				q.buildError = fmt.Errorf("invalid column name in WhereAny: %s", col)
+			}
+			return q
+		}
+		parts = append(parts, fmt.Sprintf("%s %s ?", col, normOp))
 		args = append(args, value)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: "(" + strings.Join(parts, " OR ") + ")", args: args})
@@ -187,10 +209,28 @@ func (q *Query) WhereAll(columns []string, operator string, value any) orm.Query
 		// Return without adding a clause for empty columns
 		return q
 	}
+	// Validate operator against allowed whitelist (case-insensitive)
+	allowedOperators := map[string]bool{
+		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
+		"LIKE": true, "NOT LIKE": true, "ILIKE": true, "NOT ILIKE": true,
+	}
+	normOp := strings.ToUpper(strings.TrimSpace(operator))
+	if !allowedOperators[normOp] {
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid operator in WhereAll: %s", operator)
+		}
+		return q
+	}
 	var parts []string
 	var args []any
 	for _, col := range columns {
-		parts = append(parts, fmt.Sprintf("%s %s ?", col, operator))
+		if !isSimpleIdentifier(col) {
+			if q.buildError == nil {
+				q.buildError = fmt.Errorf("invalid column name in WhereAll: %s", col)
+			}
+			return q
+		}
+		parts = append(parts, fmt.Sprintf("%s %s ?", col, normOp))
 		args = append(args, value)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: "(" + strings.Join(parts, " AND ") + ")", args: args})
@@ -203,10 +243,28 @@ func (q *Query) WhereNone(columns []string, operator string, value any) orm.Quer
 		// Return without adding a clause for empty columns
 		return q
 	}
+	// Validate operator against allowed whitelist (case-insensitive)
+	allowedOperators := map[string]bool{
+		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
+		"LIKE": true, "NOT LIKE": true, "ILIKE": true, "NOT ILIKE": true,
+	}
+	normOp := strings.ToUpper(strings.TrimSpace(operator))
+	if !allowedOperators[normOp] {
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid operator in WhereNone: %s", operator)
+		}
+		return q
+	}
 	var parts []string
 	var args []any
 	for _, col := range columns {
-		parts = append(parts, fmt.Sprintf("%s %s ?", col, operator))
+		if !isSimpleIdentifier(col) {
+			if q.buildError == nil {
+				q.buildError = fmt.Errorf("invalid column name in WhereNone: %s", col)
+			}
+			return q
+		}
+		parts = append(parts, fmt.Sprintf("%s %s ?", col, normOp))
 		args = append(args, value)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: "NOT (" + strings.Join(parts, " OR ") + ")", args: args})

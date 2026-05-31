@@ -24,7 +24,7 @@ func (q *Query) Get(dest any) error {
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
 		if err != nil {
-			return fmt.Errorf("failed to execute query: %w", err)
+			return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
 		}
 		q.logQuery(sql, args, start)
 		if err := q.scanRows(rows, dest); err != nil {
@@ -55,7 +55,7 @@ func (q *Query) Get(dest any) error {
 
 	rows, err := dbConn.QueryContext(q.ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("failed to execute query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
 	}
 	q.logQuery(sql, args, start)
 	if err := q.scanRows(rows, dest); err != nil {

@@ -13,8 +13,25 @@ import (
 // Table sets the table for the query.
 func (q *Query) Table(name string, args ...any) contractsorm.Query {
 	// Validate table name is a simple identifier (unless it's a subquery or has an alias)
-	if !strings.Contains(name, "(") && !isSimpleIdentifier(name) && !strings.Contains(name, " ") {
-		return q
+	if !strings.Contains(name, "(") {
+		parts := strings.Fields(name)
+		// Allow "table", "table alias", or "table AS alias"
+		switch len(parts) {
+		case 1:
+			if !isSimpleIdentifier(parts[0]) {
+				return q
+			}
+		case 2:
+			if !isSimpleIdentifier(parts[0]) || !isSimpleIdentifier(parts[1]) {
+				return q
+			}
+		case 3:
+			if strings.ToUpper(parts[1]) != "AS" || !isSimpleIdentifier(parts[0]) || !isSimpleIdentifier(parts[2]) {
+				return q
+			}
+		default:
+			return q
+		}
 	}
 	q.table = name
 	q.tableArgs = nil

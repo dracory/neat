@@ -110,7 +110,7 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute raw SQL: %w", err)
+		return nil, sanitizeError(fmt.Errorf("failed to execute raw SQL: %w", err), q.isProduction())
 	}
 
 	if result == nil {
@@ -190,7 +190,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute RESTORE query: %w", err)
+		return nil, sanitizeError(fmt.Errorf("failed to execute RESTORE query: %w", err), q.isProduction())
 	}
 	q.logQuery(sql, args, start)
 
@@ -247,7 +247,7 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute FORCE DELETE query: %w", err)
+		return nil, sanitizeError(fmt.Errorf("failed to execute FORCE DELETE query: %w", err), q.isProduction())
 	}
 	q.logQuery(sql, args, start)
 

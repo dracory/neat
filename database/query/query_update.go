@@ -12,6 +12,9 @@ import (
 
 // Update updates records in the database.
 func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
+	if q.buildError != nil {
+		return nil, q.buildError
+	}
 	// Fire Updating event if not disabled
 	if !q.withoutEvents && q.model != nil {
 		attributes := observer.ExtractModelAttributes(q.model)
@@ -43,7 +46,7 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute UPDATE query: %w", err)
+		return nil, sanitizeError(fmt.Errorf("failed to execute UPDATE query: %w", err), q.isProduction())
 	}
 	q.logQuery(sqlStr, args, start)
 

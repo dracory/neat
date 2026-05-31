@@ -11,6 +11,9 @@ import (
 
 // Create inserts a new record into the database.
 func (q *Query) Create(value any) error {
+	if q.buildError != nil {
+		return q.buildError
+	}
 	// Fire Creating event if not disabled
 	if !q.withoutEvents {
 		attributes := observer.ExtractModelAttributes(value)
@@ -44,7 +47,7 @@ func (q *Query) Create(value any) error {
 			var rows *sql.Rows
 			rows, err = q.tx.QueryContext(q.ctx, sqlStr, args...)
 			if err != nil {
-				return fmt.Errorf("failed to execute INSERT query: %w", err)
+				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
 			defer rows.Close()
 
@@ -96,7 +99,7 @@ func (q *Query) Create(value any) error {
 			var rows *sql.Rows
 			rows, err = dbConn.QueryContext(q.ctx, sqlStr, args...)
 			if err != nil {
-				return fmt.Errorf("failed to execute INSERT query: %w", err)
+				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
 			defer rows.Close()
 
@@ -140,7 +143,7 @@ func (q *Query) Create(value any) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to execute INSERT query: %w", err)
+		return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 	}
 	q.logQuery(sqlStr, args, start)
 

@@ -418,6 +418,9 @@ func (q *Query) newQuery() *Query {
 	newQ.queryLog = q.queryLog
 	newQ.withRelations = nil
 	newQ.relationConstraints = nil
+	// Note: buildError is intentionally NOT copied to newQuery()
+	// newQuery() creates a fresh query without inheriting build errors
+	// Use Clone() to preserve buildError across query copies
 	return newQ
 }
 
