@@ -269,6 +269,17 @@ func (r *Postgres) CompileForeign(blueprint schema.Blueprint, command *schema.Co
 	return sql, nil
 }
 
+func (r *Postgres) addSrid(ttype string, column schema.ColumnDefinition) string {
+	if column.GetSrid() > 0 {
+		if strings.Contains(ttype, "(") {
+			return strings.Replace(ttype, ")", fmt.Sprintf(",%d)", column.GetSrid()), 1)
+		}
+		return fmt.Sprintf("%s(Geometry,%d)", ttype, column.GetSrid())
+	}
+
+	return ttype
+}
+
 func (r *Postgres) CompileForeignKeys(schema, table string) string {
 	return fmt.Sprintf(
 		`SELECT 
@@ -588,12 +599,24 @@ func (r *Postgres) TypeFloat(column schema.ColumnDefinition) string {
 	return "float"
 }
 
+func (r *Postgres) TypeGeometry(column schema.ColumnDefinition) string {
+	return r.addSrid("geometry", column)
+}
+
+func (r *Postgres) TypeGeometryCollection(column schema.ColumnDefinition) string {
+	return r.addSrid("geometry(GeometryCollection)", column)
+}
+
 func (r *Postgres) TypeInteger(column schema.ColumnDefinition) string {
 	if column.GetAutoIncrement() {
 		return "serial"
 	}
 
 	return "integer"
+}
+
+func (r *Postgres) TypeLineString(column schema.ColumnDefinition) string {
+	return r.addSrid("geometry(LineString)", column)
 }
 
 func (r *Postgres) TypeJson(column schema.ColumnDefinition) string {
@@ -614,6 +637,26 @@ func (r *Postgres) TypeMediumInteger(column schema.ColumnDefinition) string {
 
 func (r *Postgres) TypeMediumText(column schema.ColumnDefinition) string {
 	return "text"
+}
+
+func (r *Postgres) TypeMultiLineString(_ schema.ColumnDefinition) string {
+	return "multilinestring"
+}
+
+func (r *Postgres) TypeMultiPoint(_ schema.ColumnDefinition) string {
+	return "multipoint"
+}
+
+func (r *Postgres) TypeMultiPolygon(_ schema.ColumnDefinition) string {
+	return "multipolygon"
+}
+
+func (r *Postgres) TypePoint(_ schema.ColumnDefinition) string {
+	return "point"
+}
+
+func (r *Postgres) TypePolygon(_ schema.ColumnDefinition) string {
+	return "polygon"
 }
 
 func (r *Postgres) TypeSmallInteger(column schema.ColumnDefinition) string {

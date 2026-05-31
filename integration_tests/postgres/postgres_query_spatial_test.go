@@ -1,5 +1,5 @@
 
-package mysql
+package postgres
 
 import (
 	"testing"
@@ -8,25 +8,22 @@ import (
 	"github.com/dracory/neat/database/query"
 )
 
-type SpatialModel struct {
-	ID       uint   `db:"id"`
-	Name     string `db:"name"`
-	Location string `db:"location"`
-}
-
-func (SpatialModel) TableName() string {
-	return "spatial_models"
-}
-
-func TestMySQLIntegrationSpatial(t *testing.T) {
+func TestPostgresIntegrationSpatial(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupMySQLTest(t)
+	db := SetupPostgresTest(t)
+
+	// Check if PostGIS is installed
+	var postgisVersion string
+	err := db.Query().Select(query.RawExpr("PostGIS_Version()")).Scan(&postgisVersion)
+	if err != nil {
+		t.Skip("PostGIS not installed, skipping spatial tests")
+	}
 
 	// Create table with spatial column
-	err := db.Schema().Create("spatial_models", func(blueprint neatcontracts.Blueprint) {
+	err = db.Schema().Create("spatial_models", func(blueprint neatcontracts.Blueprint) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Point("location")
@@ -59,8 +56,8 @@ func TestMySQLIntegrationSpatial(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	} else {
-		name := string(results[0]["name"].([]byte))
-		locationText := string(results[0]["location_text"].([]byte))
+		name := results[0]["name"].(string)
+		locationText := results[0]["location_text"].(string)
 
 		if name != "Point 1" {
 			t.Errorf("Expected name 'Point 1', got %s", name)

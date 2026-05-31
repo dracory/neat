@@ -69,6 +69,10 @@ type Blueprint interface {
 	Foreign(column ...string) ForeignKeyDefinition
 	// FullText Specify a fulltext for the table.
 	FullText(column ...string) IndexDefinition
+	// Geometry Create a new geometry column on the table.
+	Geometry(column string) ColumnDefinition
+	// GeometryCollection Create a new geometrycollection column on the table.
+	GeometryCollection(column string) ColumnDefinition
 	// GetAddedColumns Get the added columns.
 	GetAddedColumns() []ColumnDefinition
 	// GetCommands Get the commands.
@@ -91,6 +95,8 @@ type Blueprint interface {
 	Json(column string) ColumnDefinition
 	// Jsonb Create a new jsonb column on the table.
 	Jsonb(column string) ColumnDefinition
+	// LineString Create a new linestring column on the table.
+	LineString(column string) ColumnDefinition
 	// LongText Create a new long text column on the table.
 	LongText(column string) ColumnDefinition
 	// MediumIncrements Create a new auto-incrementing medium integer (3-byte) column on the table.
@@ -99,6 +105,16 @@ type Blueprint interface {
 	MediumInteger(column string) ColumnDefinition
 	// MediumText Create a new medium text column on the table.
 	MediumText(column string) ColumnDefinition
+	// MultiLineString Create a new multilinestring column on the table.
+	MultiLineString(column string) ColumnDefinition
+	// MultiPoint Create a new multipoint column on the table.
+	MultiPoint(column string) ColumnDefinition
+	// MultiPolygon Create a new multipolygon column on the table.
+	MultiPolygon(column string) ColumnDefinition
+	// Point Create a new point column on the table.
+	Point(column string) ColumnDefinition
+	// Polygon Create a new polygon column on the table.
+	Polygon(column string) ColumnDefinition
 	// Primary Specify the primary key(s) for the table.
 	Primary(column ...string)
 	// Rename the table to a given name.
