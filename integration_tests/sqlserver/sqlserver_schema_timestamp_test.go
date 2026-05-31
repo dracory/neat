@@ -30,8 +30,8 @@ func TestSQLServerSchemaTimestamps(t *testing.T) {
 	for _, col := range columns {
 		if col.Name == "created_at" {
 			hasCreatedAt = true
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetime2" {
+				t.Errorf("Expected type 'datetime2', got '%s'", col.TypeName)
 			}
 			if !col.Nullable {
 				t.Error("created_at should be nullable")
@@ -39,8 +39,8 @@ func TestSQLServerSchemaTimestamps(t *testing.T) {
 		}
 		if col.Name == "updated_at" {
 			hasUpdatedAt = true
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetime2" {
+				t.Errorf("Expected type 'datetime2', got '%s'", col.TypeName)
 			}
 			if !col.Nullable {
 				t.Error("updated_at should be nullable")
@@ -81,14 +81,14 @@ func TestSQLServerSchemaTimestampsTz(t *testing.T) {
 	for _, col := range columns {
 		if col.Name == "created_at" {
 			hasCreatedAt = true
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetimeoffset" {
+				t.Errorf("Expected type 'datetimeoffset', got '%s'", col.TypeName)
 			}
 		}
 		if col.Name == "updated_at" {
 			hasUpdatedAt = true
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetimeoffset" {
+				t.Errorf("Expected type 'datetimeoffset', got '%s'", col.TypeName)
 			}
 		}
 	}
@@ -127,8 +127,8 @@ func TestSQLServerSchemaSoftDeletes(t *testing.T) {
 	for _, col := range columns {
 		if col.Name == "deleted_at" {
 			hasDeletedAt = true
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetime2" {
+				t.Errorf("Expected type 'datetime2', got '%s'", col.TypeName)
 			}
 			if !col.Nullable {
 				t.Error("deleted_at should be nullable")
@@ -136,8 +136,8 @@ func TestSQLServerSchemaSoftDeletes(t *testing.T) {
 		}
 		if col.Name == "deleted_at_tz" {
 			hasDeletedAtTz = true
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetimeoffset" {
+				t.Errorf("Expected type 'datetimeoffset', got '%s'", col.TypeName)
 			}
 			if !col.Nullable {
 				t.Error("deleted_at_tz should be nullable")
@@ -248,8 +248,8 @@ func TestSQLServerSchemaTimestampPrecision(t *testing.T) {
 
 	for _, col := range columns {
 		if col.Name == "created_at" || col.Name == "updated_at" || col.Name == "deleted_at" {
-			if col.TypeName != "datetime" {
-				t.Errorf("Expected type 'datetime', got '%s'", col.TypeName)
+			if col.TypeName != "datetime2" {
+				t.Errorf("Expected type 'datetime2', got '%s'", col.TypeName)
 			}
 		}
 	}

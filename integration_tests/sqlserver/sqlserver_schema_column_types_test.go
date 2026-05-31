@@ -78,7 +78,7 @@ func TestSQLServerSchemaColumnTypeChar(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "char_col", func(t schema.Blueprint) { t.Char("col", 10) }, "char", false, false, "")
+	testColumnType(t, db, "char_col", func(t schema.Blueprint) { t.Char("col", 10) }, "nchar", false, false, "")
 }
 
 func TestSQLServerSchemaColumnTypeDate(t *testing.T) {
@@ -94,7 +94,7 @@ func TestSQLServerSchemaColumnTypeDateTime(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "datetime_col", func(t schema.Blueprint) { t.DateTime("col") }, "datetime", false, false, "")
+	testColumnType(t, db, "datetime_col", func(t schema.Blueprint) { t.DateTime("col") }, "datetime2", false, false, "")
 }
 
 func TestSQLServerSchemaColumnTypeDateTimeTz(t *testing.T) {
@@ -102,7 +102,7 @@ func TestSQLServerSchemaColumnTypeDateTimeTz(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "datetime_tz_col", func(t schema.Blueprint) { t.DateTimeTz("col") }, "datetime", false, false, "")
+	testColumnType(t, db, "datetime_tz_col", func(t schema.Blueprint) { t.DateTimeTz("col") }, "datetimeoffset", false, false, "")
 }
 
 func TestSQLServerSchemaColumnTypeDecimal(t *testing.T) {
@@ -134,7 +134,7 @@ func TestSQLServerSchemaColumnTypeFloat(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "float_col", func(t schema.Blueprint) { t.Float("col") }, "real", false, false, "")
+	testColumnType(t, db, "float_col", func(t schema.Blueprint) { t.Float("col") }, "float", false, false, "")
 }
 
 func TestSQLServerSchemaColumnTypeID(t *testing.T) {
@@ -270,7 +270,7 @@ func TestSQLServerSchemaColumnTypeTimestamp(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "timestamp_col", func(t schema.Blueprint) { t.Timestamp("col") }, "datetime", false, false, "")
+	testColumnType(t, db, "timestamp_col", func(t schema.Blueprint) { t.Timestamp("col") }, "datetime2", false, false, "")
 }
 
 func TestSQLServerSchemaColumnTypeTimestampTz(t *testing.T) {
@@ -278,7 +278,7 @@ func TestSQLServerSchemaColumnTypeTimestampTz(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "timestamp_tz_col", func(t schema.Blueprint) { t.TimestampTz("col") }, "datetime", false, false, "")
+	testColumnType(t, db, "timestamp_tz_col", func(t schema.Blueprint) { t.TimestampTz("col") }, "datetimeoffset", false, false, "")
 }
 
 func TestSQLServerSchemaColumnTypeTinyIncrements(t *testing.T) {
@@ -358,5 +358,5 @@ func TestSQLServerSchemaColumnTypeDefault(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupSQLServerTest(t)
-	testColumnType(t, db, "default_col", func(t schema.Blueprint) { t.String("col").Default("test") }, "nvarchar", false, false, "test")
+	testColumnType(t, db, "default_col", func(t schema.Blueprint) { t.String("col").Default("test") }, "nvarchar", false, false, "('test')")
 }

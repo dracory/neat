@@ -160,6 +160,22 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+
+    - name: Run gosec security scanning
+      uses: securego/gosec@master
+      with:
+        args: '-no-fail -fmt sarif -out results.sarif ./...'
+
+    - name: Upload gosec results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: results.sarif
+
     - name: Test with coverage
       run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
 

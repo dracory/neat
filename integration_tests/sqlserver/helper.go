@@ -2,12 +2,18 @@ package sqlserver
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
+)
+
+var (
+	tablesCreated bool
+	tablesMutex   sync.Mutex
 )
 
 // GetSQLServerConfig builds a neat.DBConfig for SQL Server from environment variables.
@@ -195,8 +201,19 @@ func cleanupSQLServerTestData(t *testing.T, db *database.Database) {
 // dropped in a safe order that respects foreign-key dependencies (books and addresses
 // before users). The schema uses BIGINT IDENTITY primary keys and DATETIME2 columns
 // (preferred over the legacy DATETIME type for better precision and range).
+// This function uses a mutex to ensure tables are only created once across all tests.
 func createSQLServerTestTables(t *testing.T, db *database.Database) {
 	t.Helper()
+
+	tablesMutex.Lock()
+	defer tablesMutex.Unlock()
+
+	if tablesCreated {
+		// Tables already created, just cleanup data
+		cleanupSQLServerTestData(t, db)
+		return
+	}
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		t.Fatalf("createSQLServerTestTables: DB(): %v", err)
@@ -242,4 +259,6 @@ func createSQLServerTestTables(t *testing.T, db *database.Database) {
 			t.Fatalf("createSQLServerTestTables: %v", err)
 		}
 	}
+
+	tablesCreated = true
 }
