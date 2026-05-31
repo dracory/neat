@@ -12,8 +12,8 @@ import (
 
 // Table sets the table for the query.
 func (q *Query) Table(name string, args ...any) contractsorm.Query {
-	// Validate table name is a simple identifier (unless it's a subquery)
-	if !strings.Contains(name, "(") && !isSimpleIdentifier(name) {
+	// Validate table name is a simple identifier (unless it's a subquery or has an alias)
+	if !strings.Contains(name, "(") && !isSimpleIdentifier(name) && !strings.Contains(name, " ") {
 		return q
 	}
 	q.table = name

@@ -79,6 +79,7 @@ func (q *Query) OrWhereNull(column string) orm.Query {
 func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 	// Validate column names
 	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
+		q.buildError = fmt.Errorf("invalid column name in WhereColumn: column names must be simple identifiers")
 		return q
 	}
 	// Validate operator against allowed whitelist
@@ -86,6 +87,7 @@ func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
 	}
 	if !allowedOperators[operator] {
+		q.buildError = fmt.Errorf("invalid operator in WhereColumn: %s", operator)
 		return q
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})
@@ -96,6 +98,7 @@ func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 func (q *Query) OrWhereColumn(first, operator, second string) orm.Query {
 	// Validate column names
 	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
+		q.buildError = fmt.Errorf("invalid column name in OrWhereColumn: column names must be simple identifiers")
 		return q
 	}
 	// Validate operator against allowed whitelist
@@ -103,6 +106,7 @@ func (q *Query) OrWhereColumn(first, operator, second string) orm.Query {
 		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
 	}
 	if !allowedOperators[operator] {
+		q.buildError = fmt.Errorf("invalid operator in OrWhereColumn: %s", operator)
 		return q
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})

@@ -6,6 +6,10 @@ import (
 
 // Scan executes the query and scans the results into the destination.
 func (q *Query) Scan(dest any) error {
+	// Check for build errors from query construction
+	if q.buildError != nil {
+		return q.buildError
+	}
 	// Build SELECT query
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()

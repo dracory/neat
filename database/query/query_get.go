@@ -9,6 +9,10 @@ import (
 // Get retrieves all records matching the query.
 func (q *Query) Get(dest any) error {
 	q = q.applyScopes()
+	// Check for build errors from query construction
+	if q.buildError != nil {
+		return q.buildError
+	}
 	// Use a clone to avoid mutating the original query state
 	clone := q.Clone().(*Query)
 

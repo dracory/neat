@@ -89,6 +89,9 @@ type Query struct {
 	// Count and Exists subqueries
 	withCountQueries  []countQuery
 	withExistsQueries []existsQuery
+
+	// Validation error
+	buildError error
 }
 
 // countQuery represents a count subquery for eager loading.
@@ -266,6 +269,7 @@ func (q *Query) Clone() contractsorm.Query {
 	}
 	clone.withCountQueries = append([]countQuery{}, q.withCountQueries...)
 	clone.withExistsQueries = append([]existsQuery{}, q.withExistsQueries...)
+	clone.buildError = q.buildError
 
 	// Transaction state
 	clone.inTransaction = q.inTransaction
