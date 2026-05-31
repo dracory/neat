@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// TestError_ModulePrefix verifies that errors include module names for debugging.
 func TestError_ModulePrefix(t *testing.T) {
 	// This test verifies that errors include module names for debugging
 	// While this could expose internal structure, it's valuable for debugging

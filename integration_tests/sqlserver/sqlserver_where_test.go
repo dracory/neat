@@ -6,6 +6,8 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerIntegrationWhereIn verifies that WhereIn() filters rows to only
+// those whose ID appears in the provided slice, returning exactly 2 of 3 users.
 func TestSQLServerIntegrationWhereIn(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -40,6 +42,9 @@ func TestSQLServerIntegrationWhereIn(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationOrWhereIn verifies that OrWhereIn() broadens a WHERE
+// clause: rows matching the base condition OR whose ID is in the slice are
+// returned, yielding 2 results even though the base condition matches nothing.
 func TestSQLServerIntegrationOrWhereIn(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -73,6 +78,9 @@ func TestSQLServerIntegrationOrWhereIn(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationWhereNotIn verifies that WhereNotIn() excludes rows
+// whose ID appears in the provided slice, returning only the one user not in
+// the exclusion list.
 func TestSQLServerIntegrationWhereNotIn(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

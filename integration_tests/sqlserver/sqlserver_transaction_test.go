@@ -9,6 +9,9 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerTransactionCommit verifies that a committed transaction persists
+// its changes: a single-operation commit and a multi-operation commit are both
+// confirmed by querying the database after the transaction closes.
 func TestSQLServerTransactionCommit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -58,6 +61,9 @@ func TestSQLServerTransactionCommit(t *testing.T) {
 	}
 }
 
+// TestSQLServerTransactionRollback verifies that a transaction is rolled back
+// when the callback returns an error, leaving the database unchanged. It also
+// tests the explicit Begin()/Rollback() API to confirm rows are not persisted.
 func TestSQLServerTransactionRollback(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -120,6 +126,8 @@ func TestSQLServerTransactionRollback(t *testing.T) {
 	}
 }
 
+// TestSQLServerTransactionErrorHandling verifies that an error returned from
+// the transaction callback is propagated as-is to the caller.
 func TestSQLServerTransactionErrorHandling(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -136,6 +144,11 @@ func TestSQLServerTransactionErrorHandling(t *testing.T) {
 	}
 }
 
+// TestSQLServerNestedTransactions verifies nested transaction behaviour using
+// SQL Server savepoints (SAVE TRANSACTION / ROLLBACK TRANSACTION):
+//   - An outer + inner transaction that both succeed persist two rows.
+//   - An outer transaction that succeeds while the inner transaction rolls back
+//     persists only the outer row, leaving the inner row absent.
 func TestSQLServerNestedTransactions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -205,6 +218,9 @@ func TestSQLServerNestedTransactions(t *testing.T) {
 	}
 }
 
+// TestSQLServerTransactionIsolationLevels verifies that transactions can be
+// started with ReadCommitted, RepeatableRead, and Serializable isolation levels
+// without error.
 func TestSQLServerTransactionIsolationLevels(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

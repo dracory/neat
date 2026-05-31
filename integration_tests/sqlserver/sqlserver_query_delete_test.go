@@ -6,6 +6,8 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerIntegrationQueryDeleteByModel verifies that Delete() via a model
+// removes exactly one row and reports RowsAffected = 1.
 func TestSQLServerIntegrationQueryDeleteByModel(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -33,6 +35,8 @@ func TestSQLServerIntegrationQueryDeleteByModel(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryDeleteByTable verifies that Delete() via a raw
+// table name with a WHERE clause removes exactly one matching row.
 func TestSQLServerIntegrationQueryDeleteByTable(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -55,6 +59,8 @@ func TestSQLServerIntegrationQueryDeleteByTable(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryDeleteByModelWithWhere verifies that a targeted
+// DELETE only removes the row matching the WHERE clause, leaving other rows intact.
 func TestSQLServerIntegrationQueryDeleteByModelWithWhere(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

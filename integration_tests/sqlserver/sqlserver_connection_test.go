@@ -10,6 +10,8 @@ import (
 	"github.com/dracory/neat/database"
 )
 
+// TestSQLServerIntegrationConnection verifies that a connection to SQL Server can be
+// established and that the resulting *database.Database is non-nil and pingable.
 func TestSQLServerIntegrationConnection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -31,6 +33,10 @@ func TestSQLServerIntegrationConnection(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationConnectionSwitch verifies that two named connections
+// ("sqlserver" and "sqlserver2") can be obtained from the same config, that each
+// connection can create its own table, and that inserts on one connection are
+// visible only through that connection's table.
 func TestSQLServerIntegrationConnectionSwitch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -99,6 +105,8 @@ func TestSQLServerIntegrationConnectionSwitch(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationConnectionDefaultName verifies that passing an empty
+// string to Connection() returns the default connection ("sqlserver").
 func TestSQLServerIntegrationConnectionDefaultName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -122,6 +130,8 @@ func TestSQLServerIntegrationConnectionDefaultName(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationConnectionNonExistent verifies that requesting a
+// connection name that does not exist in the config returns an error.
 func TestSQLServerIntegrationConnectionNonExistent(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -141,6 +151,9 @@ func TestSQLServerIntegrationConnectionNonExistent(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationConnectionPoolSettings verifies that a database can be
+// constructed with custom pool settings (MaxIdleConns, MaxOpenConns, lifetimes)
+// without error, and that the underlying sql.DB is accessible.
 func TestSQLServerIntegrationConnectionPoolSettings(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

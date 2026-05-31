@@ -10,6 +10,7 @@ const (
 
 type Driver string
 
+// String returns the string representation of the Driver.
 func (d Driver) String() string {
 	return string(d)
 }

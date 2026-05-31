@@ -6,6 +6,9 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerIntegrationQueryCreateByStruct verifies that a struct can be
+// inserted via Create() and that the resulting record is queryable by name,
+// with a non-zero ID assigned by the database.
 func TestSQLServerIntegrationQueryCreateByStruct(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -30,6 +33,9 @@ func TestSQLServerIntegrationQueryCreateByStruct(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryBatchCreateByStruct verifies that a slice of
+// structs can be inserted in a single Create() call and that all rows are
+// subsequently retrievable.
 func TestSQLServerIntegrationQueryBatchCreateByStruct(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -57,6 +63,9 @@ func TestSQLServerIntegrationQueryBatchCreateByStruct(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryInsertGetIdByStruct verifies that InsertGetId()
+// with a struct returns a non-zero ID and writes that ID back to the struct's
+// ID field via the OUTPUT clause.
 func TestSQLServerIntegrationQueryInsertGetIdByStruct(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -78,6 +87,8 @@ func TestSQLServerIntegrationQueryInsertGetIdByStruct(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryInsertGetIdByMap verifies that InsertGetId() with
+// a map returns a non-zero ID that can be used to retrieve the inserted row.
 func TestSQLServerIntegrationQueryInsertGetIdByMap(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

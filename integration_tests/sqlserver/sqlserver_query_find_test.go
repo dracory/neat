@@ -6,6 +6,8 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerIntegrationQueryFindById verifies that a user can be found by its
+// primary key ID using First() with a WHERE clause.
 func TestSQLServerIntegrationQueryFindById(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -37,6 +39,8 @@ func TestSQLServerIntegrationQueryFindById(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryFindWithWhere verifies that First() returns the
+// correct user when filtered by an exact name match.
 func TestSQLServerIntegrationQueryFindWithWhere(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -60,6 +64,8 @@ func TestSQLServerIntegrationQueryFindWithWhere(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationQueryFindWithConditions verifies that Find() with a
+// WHERE condition returns only the rows that satisfy the filter, not all rows.
 func TestSQLServerIntegrationQueryFindWithConditions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

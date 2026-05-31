@@ -14,6 +14,7 @@ type EventBus struct {
 type EventHandler func(event any)
 
 // NewEventBus creates a new EventBus.
+// It initializes an empty event bus with no registered listeners.
 func NewEventBus() *EventBus {
 	return &EventBus{
 		listeners: make(map[string][]EventHandler),
@@ -21,6 +22,7 @@ func NewEventBus() *EventBus {
 }
 
 // Listen registers a handler for the given event name.
+// The handler will be called whenever the event is dispatched.
 func (e *EventBus) Listen(eventName string, handler EventHandler) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -28,6 +30,7 @@ func (e *EventBus) Listen(eventName string, handler EventHandler) {
 }
 
 // Dispatch dispatches an event to all registered listeners.
+// It calls each handler synchronously in the order they were registered.
 func (e *EventBus) Dispatch(eventName string, event any) {
 	e.mu.RLock()
 	handlers := e.listeners[eventName]
@@ -39,6 +42,7 @@ func (e *EventBus) Dispatch(eventName string, event any) {
 }
 
 // Forget removes all listeners for the given event name.
+// This clears all handlers registered for the specified event.
 func (e *EventBus) Forget(eventName string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

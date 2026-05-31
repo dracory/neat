@@ -8,6 +8,9 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// seedJoinTestData creates two users and one address linked to the first user.
+// It returns the IDs of both users so callers can assert join behaviour where
+// one user has an address and the other does not.
 func seedJoinTestData(t *testing.T, db *database.Database) (uint, uint) {
 	now := time.Now()
 
@@ -36,6 +39,8 @@ func seedJoinTestData(t *testing.T, db *database.Database) (uint, uint) {
 	return createdUser1.ID, createdUser2.ID
 }
 
+// TestSQLServerIntegrationJoinInner verifies that an INNER JOIN between users
+// and addresses returns only the user that has an associated address.
 func TestSQLServerIntegrationJoinInner(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -68,6 +73,9 @@ func TestSQLServerIntegrationJoinInner(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationJoinLeft verifies that a LEFT JOIN between users and
+// addresses returns both users, with NULL address columns for the user that has
+// no address (scanned as an empty string via sql.NullString).
 func TestSQLServerIntegrationJoinLeft(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

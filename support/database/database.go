@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// GetID returns the primary key value from the given model.
 func GetID(dest any) any {
 	if dest == nil {
 		return nil
@@ -16,6 +17,7 @@ func GetID(dest any) any {
 	return GetIDByReflect(t, v)
 }
 
+// GetIDByReflect returns the primary key value from the given reflect type and value.
 func GetIDByReflect(t reflect.Type, v reflect.Value) any {
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()

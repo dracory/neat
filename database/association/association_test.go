@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// TestAssociationStructCreation tests that we can create association structures without requiring a full Query implementation.
 func TestAssociationStructCreation(t *testing.T) {
 	// Test that we can create association structures without requiring a full Query implementation
 	model := &struct{ ID uint }{ID: 1}
@@ -61,6 +62,7 @@ func TestAssociationStructCreation(t *testing.T) {
 	}
 }
 
+// TestAssociationBaseMethods tests that base methods return errors (as expected for base implementation).
 func TestAssociationBaseMethods(t *testing.T) {
 	model := &struct{ ID uint }{ID: 1}
 	assoc := NewAssociation(nil, model, "user")
@@ -92,6 +94,7 @@ func TestAssociationBaseMethods(t *testing.T) {
 	}
 }
 
+// TestBelongsToGetForeignKeyValue tests getting the foreign key value from a BelongsTo association.
 func TestBelongsToGetForeignKeyValue(t *testing.T) {
 	type User struct {
 		ID     uint
@@ -115,6 +118,7 @@ func TestBelongsToGetForeignKeyValue(t *testing.T) {
 	}
 }
 
+// TestBelongsToGetForeignKeyValueSnakeCase tests getting the foreign key value with snake_case field names.
 func TestBelongsToGetForeignKeyValueSnakeCase(t *testing.T) {
 	type User struct {
 		ID     uint
@@ -138,6 +142,7 @@ func TestBelongsToGetForeignKeyValueSnakeCase(t *testing.T) {
 	}
 }
 
+// TestBelongsToSetForeignKeyValue tests setting the foreign key value on a BelongsTo association.
 func TestBelongsToSetForeignKeyValue(t *testing.T) {
 	type User struct {
 		ID     uint
@@ -161,6 +166,7 @@ func TestBelongsToSetForeignKeyValue(t *testing.T) {
 	}
 }
 
+// TestBelongsToSetForeignKeyValueNil tests setting the foreign key value to nil on a BelongsTo association.
 func TestBelongsToSetForeignKeyValueNil(t *testing.T) {
 	type User struct {
 		ID     uint
@@ -184,6 +190,7 @@ func TestBelongsToSetForeignKeyValueNil(t *testing.T) {
 	}
 }
 
+// TestHasOneGetLocalKeyValue tests getting the local key value from a HasOne association.
 func TestHasOneGetLocalKeyValue(t *testing.T) {
 	type User struct {
 		ID uint
@@ -206,6 +213,7 @@ func TestHasOneGetLocalKeyValue(t *testing.T) {
 	}
 }
 
+// TestHasOneGetLocalKeyValuePascalCase tests getting the local key value with PascalCase field names.
 func TestHasOneGetLocalKeyValuePascalCase(t *testing.T) {
 	type User struct {
 		ID uint
@@ -228,6 +236,7 @@ func TestHasOneGetLocalKeyValuePascalCase(t *testing.T) {
 	}
 }
 
+// TestHasOneSetForeignKeyValue tests setting the foreign key value on a HasOne association.
 func TestHasOneSetForeignKeyValue(t *testing.T) {
 	type Address struct {
 		ID     uint
@@ -251,6 +260,7 @@ func TestHasOneSetForeignKeyValue(t *testing.T) {
 	}
 }
 
+// TestHasOneSetForeignKeyValueSnakeCase tests setting the foreign key value with snake_case field names.
 func TestHasOneSetForeignKeyValueSnakeCase(t *testing.T) {
 	type Address struct {
 		ID     uint
@@ -274,6 +284,7 @@ func TestHasOneSetForeignKeyValueSnakeCase(t *testing.T) {
 	}
 }
 
+// TestHasManyGetLocalKeyValue tests getting the local key value from a HasMany association.
 func TestHasManyGetLocalKeyValue(t *testing.T) {
 	type User struct {
 		ID uint
@@ -296,6 +307,7 @@ func TestHasManyGetLocalKeyValue(t *testing.T) {
 	}
 }
 
+// TestHasManySetForeignKeyValue tests setting the foreign key value on a HasMany association.
 func TestHasManySetForeignKeyValue(t *testing.T) {
 	type Book struct {
 		ID     uint
@@ -319,6 +331,7 @@ func TestHasManySetForeignKeyValue(t *testing.T) {
 	}
 }
 
+// TestHasManySetForeignKeyValueSnakeCase tests setting the foreign key value with snake_case field names.
 func TestHasManySetForeignKeyValueSnakeCase(t *testing.T) {
 	type Book struct {
 		ID     uint

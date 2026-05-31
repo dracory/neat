@@ -39,6 +39,7 @@ type TestStructNoPK struct {
 	name string
 }
 
+// TestGetID tests the GetID function.
 func TestGetID(t *testing.T) {
 	tests := []struct {
 		description string
@@ -151,6 +152,7 @@ func TestGetID(t *testing.T) {
 	}
 }
 
+// TestGetIDByReflect tests the GetIDByReflect function.
 func TestGetIDByReflect(t *testing.T) {
 	tests := []struct {
 		description string

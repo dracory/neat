@@ -49,6 +49,8 @@ func (level *Level) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// MarshalText implements encoding.TextMarshaler.
+// It converts the Level to its text representation.
 func (level Level) MarshalText() ([]byte, error) {
 	switch level {
 	case DebugLevel:

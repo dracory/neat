@@ -74,6 +74,7 @@ type PoolConfig struct {
 }
 
 // GetString implements config.Config interface for DBConfig.
+// It retrieves a string value from the configuration based on the given path.
 func (c *DBConfig) GetString(path string, defaultValue ...any) string {
 	switch path {
 	case "database.default":
@@ -156,6 +157,7 @@ func (c *DBConfig) GetString(path string, defaultValue ...any) string {
 }
 
 // GetInt implements config.Config interface for DBConfig.
+// It retrieves an integer value from the configuration based on the given path.
 func (c *DBConfig) GetInt(path string, defaultValue ...any) int {
 	switch path {
 	case "database.slow_threshold":
@@ -221,6 +223,7 @@ func (c *DBConfig) GetInt(path string, defaultValue ...any) int {
 }
 
 // GetBool implements config.Config interface for DBConfig.
+// It retrieves a boolean value from the configuration based on the given path.
 func (c *DBConfig) GetBool(path string, defaultValue ...any) bool {
 	switch path {
 	case "app.debug":
@@ -253,6 +256,7 @@ func (c *DBConfig) GetBool(path string, defaultValue ...any) bool {
 }
 
 // Get implements config.Config interface for DBConfig.
+// It retrieves any value from the configuration based on the given path.
 func (c *DBConfig) Get(path string, defaultValue ...any) any {
 	// Handle connection-specific maps
 	if strings.HasPrefix(path, "database.connections.") {
@@ -288,6 +292,7 @@ func (c *DBConfig) Get(path string, defaultValue ...any) any {
 }
 
 // Env implements config.Config interface for DBConfig (stub).
+// It retrieves an environment variable value.
 func (c *DBConfig) Env(envName string, defaultValue ...any) any {
 	if len(defaultValue) > 0 {
 		return defaultValue[0]
@@ -296,10 +301,12 @@ func (c *DBConfig) Env(envName string, defaultValue ...any) any {
 }
 
 // Add implements config.Config interface for DBConfig (stub).
+// It adds a new configuration entry.
 func (c *DBConfig) Add(name string, configuration any) {
 	// Not implemented for standalone module
 }
 
+// splitPath splits a dot-separated path into its components.
 func splitPath(path string) []string {
 	var parts []string
 	current := ""
@@ -320,6 +327,7 @@ func splitPath(path string) []string {
 }
 
 // New creates a new Database instance from a DBConfig.
+// It converts the neat.DBConfig to the internal database.db.DBConfig and initializes the database.
 func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 	// Convert neat.DBConfig to database.db.DBConfig
 	dbConfig := db.DBConfig{
@@ -373,6 +381,7 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 }
 
 // NewFromDSN creates a new Database instance from a DSN string.
+// It parses the DSN and initializes the database connection.
 func NewFromDSN(dsn string, opts ...database.Option) (*database.Database, error) {
 	return database.NewFromDSN(dsn, opts...)
 }

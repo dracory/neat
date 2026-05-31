@@ -8,6 +8,7 @@ import (
 	"github.com/dracory/neat/support/env"
 )
 
+// TestAfter tests the After function.
 func TestAfter(t *testing.T) {
 	// Test After: returns substring after first occurrence of search string
 	testCases := []struct {
@@ -28,6 +29,7 @@ func TestAfter(t *testing.T) {
 	}
 }
 
+// TestAfterLast tests the AfterLast function.
 func TestAfterLast(t *testing.T) {
 	// Test AfterLast: returns substring after last occurrence of search string
 	testCases := []struct {
@@ -68,6 +70,7 @@ func afterLast(s, search string) string {
 	return s
 }
 
+// TestAppend tests the Append function.
 func TestAppend(t *testing.T) {
 	// Test Append: appends strings together
 	assertEqual(t, "foobar", appendStr("foo", "bar"))
@@ -75,6 +78,7 @@ func TestAppend(t *testing.T) {
 	assertEqual(t, "foobar", appendStr("foo", "bar"))
 }
 
+// TestBasename tests the Basename function.
 func TestBasename(t *testing.T) {
 	// Test Basename: returns the basename of a file path
 	testCases := []struct {
@@ -110,6 +114,7 @@ func TestBasename(t *testing.T) {
 	assertEqual(t, "str", basename("/framework/support/str/str.go", ".go"))
 }
 
+// TestBefore tests the Before function.
 func TestBefore(t *testing.T) {
 	// Test Before: returns substring before first occurrence of search string
 	testCases := []struct {
@@ -235,6 +240,7 @@ func assertPanics(t *testing.T, f func()) {
 	f()
 }
 
+// TestBeforeLast tests the BeforeLast function.
 func TestBeforeLast(t *testing.T) {
 	assertEqual(t, "Goravel", Of("GoravelFramework").BeforeLast("Framework").String())
 	assertEqual(t, "paralle", Of("parallel").BeforeLast("l").String())
@@ -242,6 +248,7 @@ func TestBeforeLast(t *testing.T) {
 	assertEqual(t, "abc", Of("abc123def").BeforeLast("123").String())
 }
 
+// TestBetween tests the Between function.
 func TestBetween(t *testing.T) {
 	assertEqual(t, "foobarbaz", Of("foobarbaz").Between("", "b").String())
 	assertEqual(t, "foobarbaz", Of("foobarbaz").Between("f", "").String())
@@ -251,6 +258,7 @@ func TestBetween(t *testing.T) {
 	assertEqual(t, "foo][bar][baz", Of("[foo][bar][baz]").Between("[", "]").String())
 }
 
+// TestBetweenFirst tests the BetweenFirst function.
 func TestBetweenFirst(t *testing.T) {
 	assertEqual(t, "foobarbaz", Of("foobarbaz").BetweenFirst("", "b").String())
 	assertEqual(t, "foobarbaz", Of("foobarbaz").BetweenFirst("f", "").String())
@@ -260,6 +268,7 @@ func TestBetweenFirst(t *testing.T) {
 	assertEqual(t, "foobar", Of("foofoobarbaz").BetweenFirst("foo", "baz").String())
 }
 
+// TestCamel tests the Camel function.
 func TestCamel(t *testing.T) {
 	assertEqual(t, "goravelGOFramework", Of("Goravel_g_o_framework").Camel().String())
 	assertEqual(t, "goravelGOFramework", Of("Goravel_gO_framework").Camel().String())
@@ -272,6 +281,7 @@ func TestCamel(t *testing.T) {
 	assertEqual(t, "fooBar", Of("foo.bar").Camel().String())
 }
 
+// TestCharAt tests the CharAt function.
 func TestCharAt(t *testing.T) {
 	assertEqual(t, "好", Of("你好，世界！").CharAt(1))
 	assertEqual(t, "त", Of("नमस्ते, दुनिया!").CharAt(4))
@@ -280,6 +290,7 @@ func TestCharAt(t *testing.T) {
 	assertEqual(t, "", Of("こんにちは、世界！").CharAt(-200))
 }
 
+// TestChopEnd tests the ChopEnd function.
 func TestChopEnd(t *testing.T) {
 	assertEqual(t, "Goravel", Of("GoravelFramework").ChopEnd("Framework").String())
 	assertEqual(t, "https://goravel", Of("https://goravel.dev").ChopEnd(".dev").String())
@@ -288,6 +299,7 @@ func TestChopEnd(t *testing.T) {
 	assertEqual(t, "go", Of("golaravel").ChopEnd("laravel").String())
 }
 
+// TestChopStart tests the ChopStart function.
 func TestChopStart(t *testing.T) {
 	assertEqual(t, "Framework", Of("GoravelFramework").ChopStart("Goravel").String())
 	assertEqual(t, "goravel.dev", Of("https://goravel.dev").ChopStart("https://").String())
@@ -296,6 +308,7 @@ func TestChopStart(t *testing.T) {
 	assertEqual(t, "goravel", "go"+Of("laravel").ChopStart("la").String())
 }
 
+// TestContains tests the Contains function.
 func TestContains(t *testing.T) {
 	assertTrue(t, Of("kkumar").Contains("uma"))
 	assertTrue(t, Of("kkumar").Contains("kumar"))
@@ -304,6 +317,7 @@ func TestContains(t *testing.T) {
 	assertFalse(t, Of("kkumar").Contains(""))
 }
 
+// TestContainsAll tests the ContainsAll function.
 func TestContainsAll(t *testing.T) {
 	assertTrue(t, Of("krishan kumar").ContainsAll("krishan", "kumar"))
 	assertTrue(t, Of("krishan kumar").ContainsAll("kumar"))

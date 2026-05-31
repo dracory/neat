@@ -6,6 +6,9 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerIntegrationSoftDelete verifies that deleting a model with a
+// deleted_at column performs a soft delete: the row is hidden from normal
+// queries but visible when WithTrashed() is used, and deleted_at is non-nil.
 func TestSQLServerIntegrationSoftDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -58,6 +61,9 @@ func TestSQLServerIntegrationSoftDelete(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationWithTrashed verifies that after soft-deleting one of
+// two users, a normal Find() returns only the active user, while WithTrashed()
+// returns both the active and the soft-deleted user.
 func TestSQLServerIntegrationWithTrashed(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

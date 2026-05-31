@@ -211,6 +211,7 @@ func (c *DBConfig) Add(name string, configuration any) {
 	// Not implemented for standalone module
 }
 
+// splitPath splits a dot-separated path into its components.
 func splitPath(path string) []string {
 	var parts []string
 	current := ""

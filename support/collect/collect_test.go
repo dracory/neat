@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestCount tests the Count function.
 func TestCount(t *testing.T) {
 	count := Count([]int{1, 5, 1})
 	if count != 3 {
@@ -13,6 +14,7 @@ func TestCount(t *testing.T) {
 	}
 }
 
+// TestCountBy tests the CountBy function.
 func TestCountBy(t *testing.T) {
 	count := CountBy([]int{1, 5, 1}, func(i int) bool {
 		return i < 4
@@ -22,6 +24,7 @@ func TestCountBy(t *testing.T) {
 	}
 }
 
+// TestEach tests the Each function.
 func TestEach(t *testing.T) {
 	Each([]string{"hello", "world"}, func(x string, i int) {
 		if i == 0 {
@@ -41,6 +44,7 @@ func TestEach(t *testing.T) {
 	})
 }
 
+// TestFilter tests the Filter function.
 func TestFilter(t *testing.T) {
 	even := Filter([]int{1, 2, 3, 4}, func(x int, index int) bool {
 		return x%2 == 0
@@ -50,6 +54,7 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+// TestGroupBy tests the GroupBy function.
 func TestGroupBy(t *testing.T) {
 	groups := GroupBy([]int{0, 1, 2, 3, 4, 5}, func(i int) int {
 		return i % 3
@@ -60,6 +65,7 @@ func TestGroupBy(t *testing.T) {
 	}
 }
 
+// TestKeys tests the Keys function.
 func TestKeys(t *testing.T) {
 	keys1 := Keys[int, string](map[int]string{1: "foo", 2: "bar"})
 	keys2 := Keys[string, int](map[string]int{"foo": 1, "bar": 2})
@@ -73,6 +79,7 @@ func TestKeys(t *testing.T) {
 	}
 }
 
+// TestMap tests the Map function.
 func TestMap(t *testing.T) {
 	results1 := Map([]int64{1, 2, 3, 4}, func(x int64, _ int) string {
 		return strconv.FormatInt(x, 10)
@@ -88,6 +95,7 @@ func TestMap(t *testing.T) {
 	}
 }
 
+// TestMax tests the Max function.
 func TestMax(t *testing.T) {
 	max1 := Max([]int{1, 2, 3})
 	max2 := Max([]int{})
@@ -99,6 +107,7 @@ func TestMax(t *testing.T) {
 	}
 }
 
+// TestMerge tests the Merge function.
 func TestMerge(t *testing.T) {
 	mergedMaps1 := Merge[string, int](
 		map[string]int{"a": 1, "b": 2},
@@ -116,6 +125,7 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+// TestMin tests the Min function.
 func TestMin(t *testing.T) {
 	min1 := Min([]int{1, 2, 3})
 	min2 := Min([]int{})
@@ -127,6 +137,7 @@ func TestMin(t *testing.T) {
 	}
 }
 
+// TestReverse tests the Reverse function.
 func TestReverse(t *testing.T) {
 	reverseOrder1 := Reverse([]int{0, 1, 2, 3, 4, 5})
 	reverseOrder2 := Reverse([]string{"a", "b", "c", "d"})
@@ -138,6 +149,7 @@ func TestReverse(t *testing.T) {
 	}
 }
 
+// TestSplit tests the Split function.
 func TestSplit(t *testing.T) {
 	result := Split([]int{0, 1, 2, 3, 4, 5}, 2)
 	result1 := Split([]int{0, 1, 2, 3, 4, 5, 6}, 2)
@@ -162,6 +174,7 @@ func TestSplit(t *testing.T) {
 	}
 }
 
+// TestSum tests the Sum function.
 func TestSum(t *testing.T) {
 	list := []int{1, 2, 3, 4, 5}
 	sum := Sum(list)
@@ -170,6 +183,7 @@ func TestSum(t *testing.T) {
 	}
 }
 
+// TestUnique tests the Unique function.
 func TestUnique(t *testing.T) {
 	uniqValues1 := Unique([]int{1, 2, 2, 1})
 	uniqValues2 := Unique([]string{"a", "b", "b", "a"})
@@ -181,6 +195,7 @@ func TestUnique(t *testing.T) {
 	}
 }
 
+// TestValues tests the Values function.
 func TestValues(t *testing.T) {
 	values1 := Values[string, int](map[string]int{"foo": 1, "bar": 2})
 	values2 := Values[int, string](map[int]string{1: "foo", 2: "bar"})

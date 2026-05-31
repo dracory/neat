@@ -6,6 +6,9 @@ import (
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
+// TestSQLServerSchemaTableCreateHasDrop verifies the full lifecycle of a table:
+// DropIfExists (no-op when absent), Create, HasTable, Drop, and a second
+// DropIfExists (no-op when absent again).
 func TestSQLServerSchemaTableCreateHasDrop(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -44,6 +47,8 @@ func TestSQLServerSchemaTableCreateHasDrop(t *testing.T) {
 	}
 }
 
+// TestSQLServerSchemaTableRename verifies that Rename() moves a table to the
+// new name, that the old name no longer exists, and that the new name does.
 func TestSQLServerSchemaTableRename(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -78,6 +83,8 @@ func TestSQLServerSchemaTableRename(t *testing.T) {
 	db.Schema().Drop(newName)
 }
 
+// TestSQLServerSchemaTableGetTables verifies that GetTableListing() and
+// GetTables() both reflect newly created tables in their results.
 func TestSQLServerSchemaTableGetTables(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -141,6 +148,8 @@ func TestSQLServerSchemaTableGetTables(t *testing.T) {
 	db.Schema().Drop(table2)
 }
 
+// TestSQLServerSchemaTableModify verifies that Table() can alter an existing
+// table by adding a new column without error.
 func TestSQLServerSchemaTableModify(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

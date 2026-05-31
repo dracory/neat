@@ -11,6 +11,7 @@ type foo struct {
 	Age  int
 }
 
+// TestTap tests the Tap function.
 func TestTap(t *testing.T) {
 	// pointer
 	f := &foo{Name: "foo"}
@@ -62,6 +63,7 @@ func TestTap(t *testing.T) {
 	}
 }
 
+// TestWith tests the With function.
 func TestWith(t *testing.T) {
 	// pointer
 	f := &foo{Name: "foo"}
@@ -102,6 +104,7 @@ func TestWith(t *testing.T) {
 	}
 }
 
+// TestTransform tests the Transform function.
 func TestTransform(t *testing.T) {
 	if got := Transform(1, strconv.Itoa); got != "1" {
 		t.Errorf("expected 1, got %s", got)
@@ -114,6 +117,7 @@ func TestTransform(t *testing.T) {
 	}
 }
 
+// TestDefault tests the Default function.
 func TestDefault(t *testing.T) {
 	// string
 	if got := Default("", "foo"); got != "foo" {
@@ -161,6 +165,7 @@ func TestDefault(t *testing.T) {
 	}
 }
 
+// TestPointer tests the Pointer function.
 func TestPointer(t *testing.T) {
 	if got := *Pointer("foo"); got != "foo" {
 		t.Errorf("expected foo, got %s", got)

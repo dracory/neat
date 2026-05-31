@@ -24,6 +24,7 @@ func IsArm() bool {
 	return runtime.GOARCH == "arm" || runtime.GOARCH == "arm64"
 }
 
+// IsArtisan checks if the application is running using artisan.
 func IsArtisan() bool {
 	for _, arg := range os.Args {
 		if arg == "artisan" {
@@ -95,6 +96,7 @@ func Is64Bit() bool {
 	return runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64"
 }
 
+// CurrentAbsolutePath returns the current absolute path of the application.
 func CurrentAbsolutePath() string {
 	executable, err := os.Executable()
 	if err != nil {

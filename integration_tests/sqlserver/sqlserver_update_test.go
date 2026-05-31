@@ -6,6 +6,8 @@ import (
 	"github.com/dracory/neat/integration_tests/models"
 )
 
+// TestSQLServerIntegrationUpdateByModel verifies that Update() via a model with
+// a WHERE clause updates all matching rows and reports the correct RowsAffected.
 func TestSQLServerIntegrationUpdateByModel(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -49,6 +51,9 @@ func TestSQLServerIntegrationUpdateByModel(t *testing.T) {
 	}
 }
 
+// TestSQLServerIntegrationUpdateByTable verifies that Update() via a raw table
+// name with a WHERE clause updates all matching rows and reports the correct
+// RowsAffected.
 func TestSQLServerIntegrationUpdateByTable(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
