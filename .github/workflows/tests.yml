@@ -43,7 +43,7 @@ jobs:
           --health-retries=5
 
       sqlserver:
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
           SA_PASSWORD: YourStrong@Passw0rd
@@ -51,7 +51,7 @@ jobs:
         ports:
           - "1433:1433"
         options: >-
-          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -No -Q 'SELECT 1'"
+          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q 'SELECT 1'"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -166,10 +166,10 @@ jobs:
         $(go env GOPATH)/bin/golangci-lint run --timeout 10m
 
     - name: Run gosec security scanning
-      uses: securego/gosec@master
       if: always()
-      with:
-        args: '-no-fail -fmt sarif -out results.sarif ./...'
+      run: |
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
+        $(go env GOPATH)/bin/gosec -no-fail -fmt sarif -out results.sarif ./...
 
     - name: Upload gosec results to GitHub Security
       uses: github/codeql-action/upload-sarif@v4
