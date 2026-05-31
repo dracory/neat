@@ -81,6 +81,10 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 		// Already in a transaction, create a savepoint for nested transaction
 		q.savepointLevel++
 		savepointName := fmt.Sprintf("neat_sp_%d", q.savepointLevel)
+		// Validate savepoint name is a simple identifier
+		if !isSimpleIdentifier(savepointName) {
+			return nil, fmt.Errorf("invalid savepoint name")
+		}
 		var savepointSQL string
 		if q.driver != nil && q.driver.Dialect() == "sqlserver" {
 			savepointSQL = fmt.Sprintf("SAVE TRANSACTION %s", savepointName)
@@ -185,6 +189,11 @@ func (q *Query) RollbackTo(level string) error {
 		return fmt.Errorf("not in a transaction")
 	}
 
+	// Validate savepoint name is a simple identifier
+	if !isSimpleIdentifier(level) {
+		return fmt.Errorf("invalid savepoint name")
+	}
+
 	// Execute savepoint rollback (dialect-specific)
 	var rollbackSQL string
 	if q.driver != nil && q.driver.Dialect() == "sqlserver" {
@@ -203,6 +212,11 @@ func (q *Query) RollbackTo(level string) error {
 func (q *Query) SavePoint(name string) error {
 	if !q.inTransaction || q.tx == nil {
 		return fmt.Errorf("not in a transaction")
+	}
+
+	// Validate savepoint name is a simple identifier
+	if !isSimpleIdentifier(name) {
+		return fmt.Errorf("invalid savepoint name")
 	}
 
 	// Execute savepoint creation (dialect-specific)

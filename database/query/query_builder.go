@@ -17,7 +17,11 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 		builder := NewBuilder(subQuery.(*Query))
 		subSQL, subArgs := builder.BuildSelect()
 		if len(args) > 0 {
-			queryStr = fmt.Sprintf("(%s) as %s", subSQL, args[0])
+			alias := fmt.Sprintf("%v", args[0])
+			if !isSimpleIdentifier(alias) {
+				return q
+			}
+			queryStr = fmt.Sprintf("(%s) as %s", subSQL, alias)
 		} else {
 			queryStr = fmt.Sprintf("(%s)", subSQL)
 		}
@@ -29,6 +33,7 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 			queryStr = raw.SQL
 			args = append(raw.Args, args...)
 		} else {
+			// Plain string: pass through as a raw SQL expression (caller responsible for safety)
 			queryStr = fmt.Sprintf("%v", query)
 		}
 
@@ -202,12 +207,21 @@ func (q *Query) Order(value any) orm.Query {
 	if strings.Contains(upperExpr, " DESC") {
 		expr = strings.TrimSuffix(expr, " DESC")
 		expr = strings.TrimSuffix(expr, " desc")
+		if !isSimpleIdentifier(expr) {
+			return q
+		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: "desc"})
 	} else if strings.Contains(upperExpr, " ASC") {
 		expr = strings.TrimSuffix(expr, " ASC")
 		expr = strings.TrimSuffix(expr, " asc")
+		if !isSimpleIdentifier(expr) {
+			return q
+		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: "asc"})
 	} else {
+		if !isSimpleIdentifier(expr) {
+			return q
+		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: "asc"})
 	}
 	return q
@@ -217,7 +231,14 @@ func (q *Query) Order(value any) orm.Query {
 func (q *Query) OrderBy(column string, direction ...string) orm.Query {
 	dir := "asc"
 	if len(direction) > 0 {
-		dir = direction[0]
+		dir = strings.ToLower(direction[0])
+		if dir != "asc" && dir != "desc" {
+			dir = "asc"
+		}
+	}
+	// Validate column is a simple identifier
+	if !isSimpleIdentifier(column) {
+		return q
 	}
 	q.orders = append(q.orders, orderClause{column: column, direction: dir})
 	return q
@@ -225,6 +246,9 @@ func (q *Query) OrderBy(column string, direction ...string) orm.Query {
 
 // OrderByDesc adds an order by clause with desc direction.
 func (q *Query) OrderByDesc(column string) orm.Query {
+	if !isSimpleIdentifier(column) {
+		return q
+	}
 	q.orders = append(q.orders, orderClause{column: column, direction: "desc"})
 	return q
 }
@@ -247,7 +271,11 @@ func (q *Query) Distinct(args ...any) orm.Query {
 	if len(args) > 0 {
 		q.distinctCols = make([]string, 0)
 		for _, arg := range args {
-			q.distinctCols = append(q.distinctCols, fmt.Sprintf("%v", arg))
+			col := fmt.Sprintf("%v", arg)
+			// Validate column name is a simple identifier
+			if isSimpleIdentifier(col) {
+				q.distinctCols = append(q.distinctCols, col)
+			}
 		}
 	}
 	return q
@@ -279,6 +307,9 @@ func (q *Query) CrossJoin(query string, args ...any) orm.Query {
 
 // Group adds a group by clause to the query.
 func (q *Query) Group(name string) orm.Query {
+	if !isSimpleIdentifier(name) {
+		return q
+	}
 	q.groups = append(q.groups, name)
 	return q
 }

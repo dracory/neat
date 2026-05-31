@@ -341,8 +341,8 @@ func TestCrossDialectOrderBy(t *testing.T) {
 				t.Errorf("Expected ORDER BY clause in %s, got: %s", tc.name, sql)
 			}
 
-			if !strings.Contains(sql, "DESC") {
-				t.Errorf("Expected DESC in %s, got: %s", tc.name, sql)
+			if !strings.Contains(sql, "desc") {
+				t.Errorf("Expected desc in %s, got: %s", tc.name, sql)
 			}
 
 			if len(args) != 0 {

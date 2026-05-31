@@ -137,8 +137,11 @@ type RawExpression struct {
 }
 
 // RawExpr creates a new raw SQL expression for use in Create/Update values.
-// The SQL will be injected directly without parameterization.
+// WARNING: This function injects SQL directly without parameterization. NEVER pass user input to this function.
+// The SQL will be injected directly into the query, creating a SQL injection vulnerability if used with untrusted data.
 // Example: db.Table("users").Create(map[string]any{"created_at": RawExpr("NOW()")})
+// Safe usage: Only use with hardcoded SQL expressions like "NOW()", "CURRENT_TIMESTAMP", etc.
+// Dangerous usage: RawExpr(userInput) - DO NOT DO THIS
 func RawExpr(sql string, args ...any) RawExpression {
 	// Filter out nil arguments to prevent issues
 	filteredArgs := make([]any, 0, len(args))

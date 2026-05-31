@@ -263,7 +263,8 @@ func TestOrderBy(t *testing.T) {
 func TestOrderBySQLGeneration(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Table("users")
-	q.OrderBy("name", "created_at")
+	q.OrderBy("name", "asc")
+	q.OrderBy("created_at", "desc")
 
 	wrapped := WrapQuery(q)
 	sql, _ := wrapped.BuildSelectSQL()

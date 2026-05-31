@@ -77,12 +77,34 @@ func (q *Query) OrWhereNull(column string) orm.Query {
 
 // WhereColumn adds a where column clause to the query.
 func (q *Query) WhereColumn(first, operator, second string) orm.Query {
+	// Validate column names
+	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
+		return q
+	}
+	// Validate operator against allowed whitelist
+	allowedOperators := map[string]bool{
+		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
+	}
+	if !allowedOperators[operator] {
+		return q
+	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})
 	return q
 }
 
 // OrWhereColumn adds an or where column clause to the query.
 func (q *Query) OrWhereColumn(first, operator, second string) orm.Query {
+	// Validate column names
+	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
+		return q
+	}
+	// Validate operator against allowed whitelist
+	allowedOperators := map[string]bool{
+		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
+	}
+	if !allowedOperators[operator] {
+		return q
+	}
 	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})
 	return q
 }
@@ -109,7 +131,10 @@ func (q *Query) WhereNot(query any, args ...any) orm.Query {
 		}
 		q.wheres = append(q.wheres, subQ.wheres...)
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%v)", query), args: args})
+		// For raw query strings, ensure proper parameterization
+		// The query string should use ? placeholders for parameters
+		queryStr := fmt.Sprintf("%v", query)
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%s)", queryStr), args: args})
 	}
 	return q
 }
@@ -128,7 +153,10 @@ func (q *Query) OrWhereNot(query any, args ...any) orm.Query {
 		}
 		q.wheres = append(q.wheres, subQ.wheres...)
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%v)", query), args: args})
+		// For raw query strings, ensure proper parameterization
+		// The query string should use ? placeholders for parameters
+		queryStr := fmt.Sprintf("%v", query)
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%s)", queryStr), args: args})
 	}
 	return q
 }

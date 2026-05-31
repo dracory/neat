@@ -109,6 +109,14 @@ func (c *DBConfig) GetInt(path string, defaultValue ...any) int {
 			return defaultValue[0].(int)
 		}
 		return 3600
+	case "database.pool.query_timeout":
+		if c.Pool.QueryTimeout > 0 {
+			return c.Pool.QueryTimeout
+		}
+		if len(defaultValue) > 0 {
+			return defaultValue[0].(int)
+		}
+		return 30 // Default 30 seconds
 	}
 
 	// Handle connection-specific port
@@ -379,12 +387,19 @@ type ConnectionConfig struct {
 	Write        []ReplicaConfig // write primaries; if non-empty, mutating queries go here
 }
 
+// String returns a string representation of ConnectionConfig with password masked.
+func (c ConnectionConfig) String() string {
+	return fmt.Sprintf("{Driver: %s, Host: %s, Port: %d, Database: %s, Username: %s, Password: ***}",
+		c.Driver, c.Host, c.Port, c.Database, c.Username)
+}
+
 // PoolConfig represents connection pool configuration.
 type PoolConfig struct {
 	MaxIdleConns    int
 	MaxOpenConns    int
 	ConnMaxLifetime int // seconds
 	ConnMaxIdleTime int // seconds
+	QueryTimeout    int // seconds (default: 30)
 }
 
 // DBConfig represents the database configuration.
