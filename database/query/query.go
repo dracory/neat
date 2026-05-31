@@ -417,7 +417,9 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 	}
 
 	// Postgres: use RETURNING id to get inserted ID
+	// SQL Server: uses OUTPUT clause (already added in BuildInsert)
 	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
+	isSQLServer := q.driver != nil && q.driver.Dialect() == "sqlserver"
 	if isPostgres {
 		insertSQL = insertSQL + " RETURNING id"
 	}
@@ -425,7 +427,8 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 	start := time.Now()
 	var lastID int64
 
-	if isPostgres {
+	if isPostgres || isSQLServer {
+		// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use QueryRow instead of Exec
 		var row *sql.Row
 		if q.tx != nil {
 			row = q.tx.QueryRowContext(q.ctx, insertSQL, args...)

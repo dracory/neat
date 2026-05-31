@@ -133,29 +133,29 @@ func createSQLServerTestTables(t *testing.T, db *database.Database) {
 			avatar     NVARCHAR(255) NOT NULL DEFAULT '',
 			bio        NVARCHAR(MAX),
 			votes      INT NOT NULL DEFAULT 0,
-			deleted_at DATETIME NULL,
-			created_at DATETIME NOT NULL DEFAULT GETDATE(),
-			updated_at DATETIME NOT NULL DEFAULT GETDATE()
+			deleted_at DATETIME2 NULL,
+			created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+			updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
 		)`,
 		`CREATE TABLE addresses (
 			id         BIGINT IDENTITY(1,1) PRIMARY KEY,
 			name       NVARCHAR(255) NOT NULL DEFAULT '',
 			user_id    BIGINT NULL,
-			created_at DATETIME NOT NULL DEFAULT GETDATE(),
-			updated_at DATETIME NOT NULL DEFAULT GETDATE()
+			created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+			updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
 		)`,
 		`CREATE TABLE books (
 			id         BIGINT IDENTITY(1,1) PRIMARY KEY,
 			name       NVARCHAR(255) NOT NULL DEFAULT '',
 			user_id    BIGINT NULL,
-			created_at DATETIME NOT NULL DEFAULT GETDATE(),
-			updated_at DATETIME NOT NULL DEFAULT GETDATE()
+			created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+			updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
 		)`,
 		`CREATE TABLE peoples (
 			id         BIGINT IDENTITY(1,1) PRIMARY KEY,
 			body       NVARCHAR(MAX) NOT NULL,
-			created_at DATETIME NOT NULL DEFAULT GETDATE(),
-			updated_at DATETIME NOT NULL DEFAULT GETDATE()
+			created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+			updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
 		)`,
 	}
 	for _, stmt := range stmts {

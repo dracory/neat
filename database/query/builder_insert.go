@@ -38,6 +38,10 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 				break
 			}
 		}
+		// If no common ID column found, default to "id" (may fail if table doesn't have it)
+		if idColumn == "" {
+			idColumn = b.quoteIdentifier("id")
+		}
 	}
 
 	if len(columns) > 0 {

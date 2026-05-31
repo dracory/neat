@@ -93,7 +93,7 @@ func SetupMySQLTest(t *testing.T) *database.Database {
 	dbName := common.GetEnv("MYSQL_DATABASE", "test")
 	username := common.GetEnv("MYSQL_USER", "root")
 	password := common.GetEnv("MYSQL_PASS", "root")
-	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local&multiStatements=true",
+	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local",
 		username, password, host, port, dbName)
 
 	db, err := neat.NewFromDSN(dsn)

@@ -248,35 +248,57 @@ func (b *Builder) BuildSelect() (string, []any) {
 		parts = append(parts, fmt.Sprintf("ORDER BY %s", strings.Join(orderParts, ", ")))
 	}
 
-	// LIMIT clause - skip for aggregate queries
-	if b.query.aggregate == "" && b.query.limit != nil {
-		// SQL Server uses TOP instead of LIMIT
+	// LIMIT and OFFSET clauses - skip for aggregate queries
+	if b.query.aggregate == "" {
+		// SQL Server uses TOP and OFFSET-FETCH instead of LIMIT-OFFSET
 		if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
-			// Insert TOP after SELECT (or SELECT DISTINCT)
-			for i, part := range parts {
-				if strings.HasPrefix(part, "SELECT") {
-					if strings.Contains(part, "SELECT DISTINCT") {
-						// SELECT DISTINCT TOP N
-						parts[i] = fmt.Sprintf("SELECT DISTINCT TOP %d%s", *b.query.limit, strings.TrimPrefix(part, "SELECT DISTINCT"))
-					} else {
-						// SELECT TOP N
-						parts[i] = fmt.Sprintf("SELECT TOP %d%s", *b.query.limit, strings.TrimPrefix(part, "SELECT"))
+			if b.query.limit != nil {
+				// Insert TOP after SELECT (or SELECT DISTINCT)
+				for i, part := range parts {
+					if strings.HasPrefix(part, "SELECT") {
+						if strings.Contains(part, "SELECT DISTINCT") {
+							// SELECT DISTINCT TOP N
+							parts[i] = fmt.Sprintf("SELECT DISTINCT TOP %d%s", *b.query.limit, strings.TrimPrefix(part, "SELECT DISTINCT"))
+						} else {
+							// SELECT TOP N
+							parts[i] = fmt.Sprintf("SELECT TOP %d%s", *b.query.limit, strings.TrimPrefix(part, "SELECT"))
+						}
+						break
 					}
-					break
 				}
 			}
+			// SQL Server requires ORDER BY for OFFSET-FETCH
+			if b.query.offset != nil {
+				// SQL Server requires ORDER BY when using OFFSET-FETCH
+				// If no ORDER BY is specified, add a default ORDER BY id (or first column)
+				if len(b.query.orders) == 0 {
+					// Try to use "id" as default ordering, otherwise use the first column
+					parts = append(parts, "ORDER BY id")
+				}
+				offsetValue := *b.query.offset
+				fetchValue := 0
+				if b.query.limit != nil {
+					fetchValue = *b.query.limit
+				} else {
+					// If no limit specified, use a large value to fetch all remaining rows
+					// SQL Server requires FETCH NEXT with OFFSET, cannot use OFFSET alone
+					fetchValue = 2147483647 // Max int32 value
+				}
+				parts = append(parts, fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offsetValue, fetchValue))
+			}
 		} else {
-			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+			// Other databases use LIMIT-OFFSET
+			if b.query.limit != nil {
+				parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+			}
+			if b.query.offset != nil {
+				// SQLite requires LIMIT when using OFFSET
+				if b.query.limit == nil && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+					parts = append(parts, "LIMIT -1")
+				}
+				parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
+			}
 		}
-	}
-
-	// OFFSET clause - skip for aggregate queries
-	if b.query.aggregate == "" && b.query.offset != nil {
-		// SQLite requires LIMIT when using OFFSET
-		if b.query.limit == nil && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
-			parts = append(parts, "LIMIT -1")
-		}
-		parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
 	}
 
 	// Locking clauses - skip for aggregate queries
