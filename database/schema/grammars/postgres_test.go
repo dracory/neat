@@ -64,6 +64,7 @@ func (c *stubColumn) GetPlaces() int {
 	return c.places
 }
 func (c *stubColumn) GetPrecision() int { return c.precision }
+func (c *stubColumn) GetSrid() int      { return 0 }
 func (c *stubColumn) GetTotal() int {
 	if c.total == 0 {
 		return 8
@@ -77,6 +78,7 @@ func (c *stubColumn) GetUseCurrentOnUpdate() bool                          { ret
 func (c *stubColumn) IsSetComment() bool                                   { return c.commentSet }
 func (c *stubColumn) Nullable() contractsschema.ColumnDefinition           { c.nullable = true; return c }
 func (c *stubColumn) OnUpdate(_ any) contractsschema.ColumnDefinition      { return c }
+func (c *stubColumn) Srid(_ int) contractsschema.ColumnDefinition          { return c }
 func (c *stubColumn) Places(v int) contractsschema.ColumnDefinition        { c.places = v; return c }
 func (c *stubColumn) Total(v int) contractsschema.ColumnDefinition         { c.total = v; return c }
 func (c *stubColumn) Unsigned() contractsschema.ColumnDefinition           { return c }
@@ -151,7 +153,11 @@ func (b *stubBlueprint) Float(col string, _ ...int) contractsschema.ColumnDefini
 }
 func (b *stubBlueprint) Foreign(_ ...string) contractsschema.ForeignKeyDefinition { return nil }
 func (b *stubBlueprint) FullText(_ ...string) contractsschema.IndexDefinition     { return nil }
-func (b *stubBlueprint) GetAddedColumns() []contractsschema.ColumnDefinition      { return b.columns }
+func (b *stubBlueprint) Geometry(col string) contractsschema.ColumnDefinition     { return b.col(col, "geometry") }
+func (b *stubBlueprint) GeometryCollection(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "geometryCollection")
+}
+func (b *stubBlueprint) GetAddedColumns() []contractsschema.ColumnDefinition { return b.columns }
 func (b *stubBlueprint) GetCommands() []*contractsschema.Command                  { return nil }
 func (b *stubBlueprint) GetTableName() string                                     { return b.table }
 func (b *stubBlueprint) HasCommand(_ string) bool                                 { return false }
@@ -172,6 +178,9 @@ func (b *stubBlueprint) Json(col string) contractsschema.ColumnDefinition { retu
 func (b *stubBlueprint) Jsonb(col string) contractsschema.ColumnDefinition {
 	return b.col(col, "jsonb")
 }
+func (b *stubBlueprint) LineString(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "lineString")
+}
 func (b *stubBlueprint) LongText(col string) contractsschema.ColumnDefinition {
 	return b.col(col, "longText")
 }
@@ -184,7 +193,18 @@ func (b *stubBlueprint) MediumInteger(col string) contractsschema.ColumnDefiniti
 func (b *stubBlueprint) MediumText(col string) contractsschema.ColumnDefinition {
 	return b.col(col, "mediumText")
 }
-func (b *stubBlueprint) Primary(_ ...string)      {}
+func (b *stubBlueprint) MultiLineString(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "multiLineString")
+}
+func (b *stubBlueprint) MultiPoint(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "multiPoint")
+}
+func (b *stubBlueprint) MultiPolygon(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "multiPolygon")
+}
+func (b *stubBlueprint) Point(col string) contractsschema.ColumnDefinition   { return b.col(col, "point") }
+func (b *stubBlueprint) Polygon(col string) contractsschema.ColumnDefinition { return b.col(col, "polygon") }
+func (b *stubBlueprint) Primary(_ ...string)                                 {}
 func (b *stubBlueprint) Rename(_ string)          {}
 func (b *stubBlueprint) RenameColumn(_, _ string) {}
 func (b *stubBlueprint) RenameIndex(_, _ string)  {}

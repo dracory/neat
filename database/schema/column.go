@@ -20,6 +20,7 @@ type ColumnDefinition struct {
 	onUpdate           any
 	places             *int
 	precision          *int
+	srid               *int
 	total              *int
 	ttype              *string
 	unsigned           *bool
@@ -169,6 +170,14 @@ func (r *ColumnDefinition) GetPrecision() int {
 	return 0
 }
 
+func (r *ColumnDefinition) GetSrid() int {
+	if r.srid != nil {
+		return *r.srid
+	}
+
+	return 0
+}
+
 func (r *ColumnDefinition) GetTotal() int {
 	if r.total != nil {
 		return *r.total
@@ -221,6 +230,12 @@ func (r *ColumnDefinition) Nullable() schema.ColumnDefinition {
 
 func (r *ColumnDefinition) OnUpdate(value any) schema.ColumnDefinition {
 	r.onUpdate = value
+
+	return r
+}
+
+func (r *ColumnDefinition) Srid(srid int) schema.ColumnDefinition {
+	r.srid = &srid
 
 	return r
 }

@@ -553,8 +553,20 @@ func (r *Mysql) TypeFloat(column schema.ColumnDefinition) string {
 	return "float"
 }
 
+func (r *Mysql) TypeGeometry(column schema.ColumnDefinition) string {
+	return r.addSrid("geometry", column)
+}
+
+func (r *Mysql) TypeGeometryCollection(column schema.ColumnDefinition) string {
+	return r.addSrid("geometrycollection", column)
+}
+
 func (r *Mysql) TypeInteger(_ schema.ColumnDefinition) string {
 	return "int"
+}
+
+func (r *Mysql) TypeLineString(column schema.ColumnDefinition) string {
+	return r.addSrid("linestring", column)
 }
 
 func (r *Mysql) TypeJson(_ schema.ColumnDefinition) string {
@@ -575,6 +587,34 @@ func (r *Mysql) TypeMediumInteger(_ schema.ColumnDefinition) string {
 
 func (r *Mysql) TypeMediumText(_ schema.ColumnDefinition) string {
 	return "mediumtext"
+}
+
+func (r *Mysql) TypeMultiLineString(column schema.ColumnDefinition) string {
+	return r.addSrid("multilinestring", column)
+}
+
+func (r *Mysql) TypeMultiPoint(column schema.ColumnDefinition) string {
+	return r.addSrid("multipoint", column)
+}
+
+func (r *Mysql) TypeMultiPolygon(column schema.ColumnDefinition) string {
+	return r.addSrid("multipolygon", column)
+}
+
+func (r *Mysql) TypePoint(column schema.ColumnDefinition) string {
+	return r.addSrid("point", column)
+}
+
+func (r *Mysql) TypePolygon(column schema.ColumnDefinition) string {
+	return r.addSrid("polygon", column)
+}
+
+func (r *Mysql) addSrid(ttype string, column schema.ColumnDefinition) string {
+	if column.GetSrid() > 0 {
+		return fmt.Sprintf("%s SRID %d", ttype, column.GetSrid())
+	}
+
+	return ttype
 }
 
 func (r *Mysql) TypeSmallInteger(_ schema.ColumnDefinition) string {

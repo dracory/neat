@@ -239,6 +239,14 @@ func (r *Blueprint) FullText(column ...string) schema.IndexDefinition {
 	return NewIndexDefinition(command)
 }
 
+func (r *Blueprint) Geometry(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("geometry", column)
+}
+
+func (r *Blueprint) GeometryCollection(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("geometryCollection", column)
+}
+
 func (r *Blueprint) GetAddedColumns() []schema.ColumnDefinition {
 	var columns []schema.ColumnDefinition
 	for _, column := range r.columns {
@@ -300,6 +308,10 @@ func (r *Blueprint) Jsonb(column string) schema.ColumnDefinition {
 	return r.createAndAddColumn("jsonb", column)
 }
 
+func (r *Blueprint) LineString(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("lineString", column)
+}
+
 func (r *Blueprint) LongText(column string) schema.ColumnDefinition {
 	return r.createAndAddColumn("longText", column)
 }
@@ -314,6 +326,26 @@ func (r *Blueprint) MediumInteger(column string) schema.ColumnDefinition {
 
 func (r *Blueprint) MediumText(column string) schema.ColumnDefinition {
 	return r.createAndAddColumn("mediumText", column)
+}
+
+func (r *Blueprint) MultiLineString(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("multiLineString", column)
+}
+
+func (r *Blueprint) MultiPoint(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("multiPoint", column)
+}
+
+func (r *Blueprint) MultiPolygon(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("multiPolygon", column)
+}
+
+func (r *Blueprint) Point(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("point", column)
+}
+
+func (r *Blueprint) Polygon(column string) schema.ColumnDefinition {
+	return r.createAndAddColumn("polygon", column)
 }
 
 func (r *Blueprint) Primary(column ...string) {
