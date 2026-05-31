@@ -43,6 +43,8 @@ type ColumnDefinition interface {
 	GetPlaces() int
 	// GetPrecision returns the precision value
 	GetPrecision() int
+	// GetSrid returns the SRID value
+	GetSrid() int
 	// GetTotal returns the total value
 	GetTotal() int
 	// GetType returns the type value
@@ -57,6 +59,8 @@ type ColumnDefinition interface {
 	IsSetComment() bool
 	// OnUpdate sets the column to use the value on update (Mysql only)
 	OnUpdate(value any) ColumnDefinition
+	// Srid set the SRID (Spatial only)
+	Srid(srid int) ColumnDefinition
 	// Places set the decimal places
 	Places(places int) ColumnDefinition
 	// Total set the decimal total

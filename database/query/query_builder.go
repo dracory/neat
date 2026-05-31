@@ -25,29 +25,68 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 	} else {
 		if slice, ok := query.([]string); ok {
 			queryStr = strings.Join(slice, ", ")
+		} else if raw, ok := query.(RawExpression); ok {
+			queryStr = raw.SQL
+			args = append(raw.Args, args...)
 		} else {
 			queryStr = fmt.Sprintf("%v", query)
 		}
 
-		processedArgs = make([]any, 0, len(args))
+		processedArgs = make([]any, 0)
+		searchIndex := 0
+
 		for _, arg := range args {
+			hasPlaceholder := false
+			foundIndex := strings.Index(queryStr[searchIndex:], "?")
+			if foundIndex != -1 {
+				hasPlaceholder = true
+				foundIndex += searchIndex
+			}
+
+			if raw, ok := arg.(RawExpression); ok {
+				if hasPlaceholder {
+					queryStr = queryStr[:foundIndex] + raw.SQL + queryStr[foundIndex+1:]
+					processedArgs = append(processedArgs, raw.Args...)
+					searchIndex = foundIndex + len(raw.SQL)
+				} else {
+					queryStr = fmt.Sprintf("%s, %s", queryStr, raw.SQL)
+					processedArgs = append(processedArgs, raw.Args...)
+					searchIndex = len(queryStr)
+				}
+				continue
+			}
+
 			if fn, ok := arg.(func(orm.Query) orm.Query); ok {
 				subQuery := fn(q.Clone().(*Query))
-				// Temporarily remove driver to build subquery with ? placeholders
 				originalDriver := subQuery.(*Query).driver
 				subQuery.(*Query).driver = nil
 				builder := NewBuilder(subQuery.(*Query))
 				subSQL, subArgs := builder.BuildSelect()
-				// Restore driver
 				subQuery.(*Query).driver = originalDriver
-				if strings.Contains(queryStr, "?") {
-					queryStr = strings.Replace(queryStr, "?", fmt.Sprintf("(%s)", subSQL), 1)
+
+				subSQLExpr := fmt.Sprintf("(%s)", subSQL)
+				if hasPlaceholder {
+					queryStr = queryStr[:foundIndex] + subSQLExpr + queryStr[foundIndex+1:]
+					searchIndex = foundIndex + len(subSQLExpr)
 				} else {
-					processedArgs = append(processedArgs, fmt.Sprintf("(%s)", subSQL))
+					queryStr = fmt.Sprintf("%s, %s", queryStr, subSQLExpr)
+					searchIndex = len(queryStr)
 				}
 				processedArgs = append(processedArgs, subArgs...)
-			} else {
+				continue
+			}
+
+			if hasPlaceholder {
+				// If the argument is a simple value (not RawExpression or subquery),
+				// and it corresponds to a ?, we keep the ? and add to processedArgs.
+				// However, if the user intended to replace ? with a literal value (like 1),
+				// our logic might be slightly different from what they expect if they mix styles.
+				// But standard behavior for Select("?", 1) is to keep ? and bind 1.
 				processedArgs = append(processedArgs, arg)
+				searchIndex = foundIndex + 1
+			} else {
+				queryStr = fmt.Sprintf("%s, %v", queryStr, arg)
+				searchIndex = len(queryStr)
 			}
 		}
 	}
