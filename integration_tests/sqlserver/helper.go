@@ -39,7 +39,20 @@ func GetSQLServerConfig() neat.DBConfig {
 	}
 }
 
-// SetupSQLServerTest creates a database connection and registers cleanup.
+// SetupSQLServerTest sets up a fully initialised SQL Server connection for integration tests.
+//
+// SQL Server containers (e.g. via Docker Compose) start with only the system databases
+// (master, model, msdb, tempdb) present. Unlike MySQL/Postgres, they do not automatically
+// create user databases from environment variables. This function therefore uses a two-step
+// connection strategy:
+//
+//  1. Connect to the "master" system database (which always exists) and create the test
+//     database if it does not already exist using an idempotent IF NOT EXISTS guard.
+//  2. Connect directly to the test database, create the required test tables, and
+//     truncate any pre-existing data so each test begins with a clean slate.
+//
+// The database connection is registered with t.Cleanup so it is closed automatically
+// when the test (or sub-test) finishes.
 func SetupSQLServerTest(t *testing.T) *database.Database {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -50,6 +63,28 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	db := common.GetEnv("SQLSERVER_DATABASE", "test")
 	username := common.GetEnv("SQLSERVER_USER", "sa")
 	password := common.GetEnv("SQLSERVER_PASS", "YourStrong@Passw0rd")
+
+	// First connect to master to create the test database if it doesn't exist
+	masterDSN := fmt.Sprintf("sqlserver://%s:%s@%s:%d/master?encrypt=disable",
+		username, password, host, port)
+	masterConn, err := neat.NewFromDSN(masterDSN)
+	if err != nil {
+		t.Fatalf("Failed to connect to SQL Server master: %v", err)
+	}
+	defer masterConn.Close()
+
+	sqlDB, err := masterConn.DB()
+	if err != nil {
+		t.Fatalf("Failed to get SQL DB from master connection: %v", err)
+	}
+
+	// Create the test database if it doesn't exist
+	_, err = sqlDB.Exec(fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE %s", db, db))
+	if err != nil {
+		t.Fatalf("Failed to create test database: %v", err)
+	}
+
+	// Now connect to the test database
 	dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d/%s?encrypt=disable",
 		username, password, host, port, db)
 
@@ -68,7 +103,13 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	return conn
 }
 
-// SetupSQLServerConnection creates a database connection without setting up tables
+// SetupSQLServerConnection returns a bare SQL Server connection without creating tables
+// or seeding data. It is intended for connection-level tests (e.g. pool settings,
+// connection switching) that need a live database but manage their own schema.
+//
+// Like SetupSQLServerTest it uses a two-step connection strategy: it first connects to
+// "master" to create the test database if absent, then returns a connection scoped to
+// that test database. The connection is closed automatically via t.Cleanup.
 func SetupSQLServerConnection(t *testing.T) *database.Database {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -79,6 +120,28 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	database := common.GetEnv("SQLSERVER_DATABASE", "test")
 	username := common.GetEnv("SQLSERVER_USER", "sa")
 	password := common.GetEnv("SQLSERVER_PASS", "YourStrong@Passw0rd")
+
+	// First connect to master to create the test database if it doesn't exist
+	masterDSN := fmt.Sprintf("sqlserver://%s:%s@%s:%d/master?encrypt=disable",
+		username, password, host, port)
+	masterConn, err := neat.NewFromDSN(masterDSN)
+	if err != nil {
+		t.Fatalf("Failed to connect to SQL Server master: %v", err)
+	}
+	defer masterConn.Close()
+
+	sqlDB, err := masterConn.DB()
+	if err != nil {
+		t.Fatalf("Failed to get SQL DB from master connection: %v", err)
+	}
+
+	// Create the test database if it doesn't exist
+	_, err = sqlDB.Exec(fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE %s", database, database))
+	if err != nil {
+		t.Fatalf("Failed to create test database: %v", err)
+	}
+
+	// Now connect to the test database
 	dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d/%s?encrypt=disable",
 		username, password, host, port, database)
 

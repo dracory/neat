@@ -81,7 +81,13 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 		// Already in a transaction, create a savepoint for nested transaction
 		q.savepointLevel++
 		savepointName := fmt.Sprintf("neat_sp_%d", q.savepointLevel)
-		_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("SAVEPOINT %s", savepointName))
+		var savepointSQL string
+		if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+			savepointSQL = fmt.Sprintf("SAVE TRANSACTION %s", savepointName)
+		} else {
+			savepointSQL = fmt.Sprintf("SAVEPOINT %s", savepointName)
+		}
+		_, err = q.tx.ExecContext(q.ctx, savepointSQL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create savepoint: %w", err)
 		}
@@ -116,13 +122,17 @@ func (q *Query) Commit() error {
 
 	// If this is a nested transaction (savepoint), release it
 	if q.savepointName != "" {
-		_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
-		if err != nil {
-			return fmt.Errorf("failed to release savepoint: %w", err)
+		// SQL Server has no RELEASE SAVEPOINT; the savepoint is implicitly committed
+		// when the outer transaction commits, so just clear state.
+		if q.driver == nil || q.driver.Dialect() != "sqlserver" {
+			_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
+			if err != nil {
+				return fmt.Errorf("failed to release savepoint: %w", err)
+			}
 		}
 		q.savepointName = ""
-		q.inTransaction = false // Nested transactions are also "transactions" in our model
-		return nil              // Success
+		q.inTransaction = false
+		return nil
 	}
 
 	err := q.doCommit()
@@ -139,14 +149,24 @@ func (q *Query) Rollback() error {
 
 	// If this is a nested transaction (savepoint), rollback to it
 	if q.savepointName != "" {
-		_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", q.savepointName))
+		var rollbackSQL string
+		if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+			// SQL Server: ROLLBACK TRANSACTION <name> rolls back to the savepoint
+			// and does NOT release it; no separate RELEASE step needed.
+			rollbackSQL = fmt.Sprintf("ROLLBACK TRANSACTION %s", q.savepointName)
+		} else {
+			rollbackSQL = fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", q.savepointName)
+		}
+		_, err := q.tx.ExecContext(q.ctx, rollbackSQL)
 		if err != nil {
 			return fmt.Errorf("failed to rollback to savepoint: %w", err)
 		}
-		// Release the savepoint after rollback
-		_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
-		if err != nil {
-			return fmt.Errorf("failed to release savepoint: %w", err)
+		// Release the savepoint for non-SQL Server dialects
+		if q.driver == nil || q.driver.Dialect() != "sqlserver" {
+			_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
+			if err != nil {
+				return fmt.Errorf("failed to release savepoint: %w", err)
+			}
 		}
 		q.savepointName = ""
 		q.inTransaction = false
@@ -166,7 +186,13 @@ func (q *Query) RollbackTo(level string) error {
 	}
 
 	// Execute savepoint rollback (dialect-specific)
-	_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", level))
+	var rollbackSQL string
+	if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+		rollbackSQL = fmt.Sprintf("ROLLBACK TRANSACTION %s", level)
+	} else {
+		rollbackSQL = fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", level)
+	}
+	_, err := q.tx.ExecContext(q.ctx, rollbackSQL)
 	if err != nil {
 		return fmt.Errorf("failed to rollback to savepoint: %w", err)
 	}
@@ -180,7 +206,13 @@ func (q *Query) SavePoint(name string) error {
 	}
 
 	// Execute savepoint creation (dialect-specific)
-	_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("SAVEPOINT %s", name))
+	var savepointSQL string
+	if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+		savepointSQL = fmt.Sprintf("SAVE TRANSACTION %s", name)
+	} else {
+		savepointSQL = fmt.Sprintf("SAVEPOINT %s", name)
+	}
+	_, err := q.tx.ExecContext(q.ctx, savepointSQL)
 	if err != nil {
 		return fmt.Errorf("failed to create savepoint: %w", err)
 	}

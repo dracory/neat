@@ -1,8 +1,10 @@
 package query
 
 import (
+	"database/sql"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // toCamelCase converts snake_case to CamelCase
@@ -106,9 +108,33 @@ func getColumnToIndexPath(t reflect.Type) map[string][]int {
 	return m
 }
 
+// nullableScanDest returns a nullable scan destination for a field type,
+// so that NULL values from LEFT JOINs don't cause "converting NULL to T" errors.
+// Returns nil if no nullable wrapper is needed (field is already a pointer or interface).
+func nullableScanDest(fieldType reflect.Type) any {
+	switch fieldType.Kind() {
+	case reflect.String:
+		return new(sql.NullString)
+	case reflect.Bool:
+		return new(sql.NullBool)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return new(sql.NullInt64)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return new(sql.NullInt64)
+	case reflect.Float32, reflect.Float64:
+		return new(sql.NullFloat64)
+	}
+	// time.Time
+	if fieldType == reflect.TypeOf(time.Time{}) {
+		return new(sql.NullTime)
+	}
+	return nil
+}
+
 // structScanDests builds a scan-destination slice aligned to columns.
 // Each element is either a pointer to the matching struct field or a *any placeholder.
-// Non-addressable fields get a *T temporary that copyScanResults will copy back.
+// Non-addressable fields and non-pointer value types use nullable wrappers so that
+// NULL values from LEFT JOINs don't cause scan errors.
 func structScanDests(v reflect.Value, columns []string) []any {
 	colToPath := getColumnToIndexPath(v.Type())
 
@@ -117,11 +143,20 @@ func structScanDests(v reflect.Value, columns []string) []any {
 		key := strings.ToLower(col)
 		if path, ok := colToPath[key]; ok {
 			field := v.FieldByIndex(path)
+			ft := field.Type()
+			// Use nullable wrappers for non-pointer value types so NULL doesn't
+			// cause "converting NULL to T is unsupported" scan errors.
+			if ft.Kind() != reflect.Ptr && ft.Kind() != reflect.Interface {
+				if nd := nullableScanDest(ft); nd != nil {
+					dests[i] = nd
+					continue
+				}
+			}
 			if field.CanAddr() {
 				dests[i] = field.Addr().Interface()
 			} else {
 				// allocate a temporary pointer of the field's type
-				ptr := reflect.New(field.Type())
+				ptr := reflect.New(ft)
 				dests[i] = ptr.Interface()
 			}
 		} else {
@@ -132,8 +167,8 @@ func structScanDests(v reflect.Value, columns []string) []any {
 	return dests
 }
 
-// copyScanResults copies values from non-addressable temporaries back into struct fields.
-// For addressable fields the scan wrote directly into them; this is a no-op for those.
+// copyScanResults copies values from nullable wrappers and non-addressable temporaries
+// back into struct fields after scanning.
 func copyScanResults(v reflect.Value, columns []string, dests []any) {
 	colToPath := getColumnToIndexPath(v.Type())
 	for i, col := range columns {
@@ -143,14 +178,55 @@ func copyScanResults(v reflect.Value, columns []string, dests []any) {
 			continue
 		}
 		field := v.FieldByIndex(path)
-		if field.CanAddr() {
-			continue // already written by Scan
+		if !field.CanSet() {
+			continue
 		}
+		dest := dests[i]
+
+		// Handle nullable wrappers produced by nullableScanDest
+		switch d := dest.(type) {
+		case *sql.NullString:
+			if d.Valid {
+				field.SetString(d.String)
+			}
+			continue
+		case *sql.NullBool:
+			if d.Valid {
+				field.SetBool(d.Bool)
+			}
+			continue
+		case *sql.NullInt64:
+			if d.Valid {
+				switch field.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					field.SetInt(d.Int64)
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					field.SetUint(uint64(d.Int64))
+				}
+			}
+			continue
+		case *sql.NullFloat64:
+			if d.Valid {
+				field.SetFloat(d.Float64)
+			}
+			continue
+		case *sql.NullTime:
+			if d.Valid {
+				field.Set(reflect.ValueOf(d.Time))
+			}
+			continue
+		}
+
+		// For addressable fields that were scanned directly, nothing to do.
+		if field.CanAddr() && reflect.ValueOf(dest) == reflect.ValueOf(field.Addr().Interface()) {
+			continue
+		}
+
 		// copy from the temporary pointer
-		ptrVal := reflect.ValueOf(dests[i])
+		ptrVal := reflect.ValueOf(dest)
 		if ptrVal.Kind() == reflect.Ptr && !ptrVal.IsNil() {
 			val := ptrVal.Elem()
-			if val.Type().AssignableTo(field.Type()) && field.CanSet() {
+			if val.Type().AssignableTo(field.Type()) {
 				field.Set(val)
 			}
 		}
