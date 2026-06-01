@@ -21,7 +21,7 @@ func TestSchemaBuilder_CreateTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(bp schema.Blueprint) {
 		bp.ID()
@@ -49,7 +49,7 @@ func TestSchemaBuilder_ModifyTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(bp schema.Blueprint) {
 		bp.ID()
@@ -82,7 +82,7 @@ func TestSchemaBuilder_DropTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(bp schema.Blueprint) {
 		bp.ID()
@@ -107,7 +107,7 @@ func TestSchemaBuilder_DropIfExists_NonExistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Must not return an error for a table that does not exist
 	err = db.Schema().DropIfExists("nonexistent_table")

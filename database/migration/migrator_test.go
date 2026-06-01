@@ -15,10 +15,10 @@ func TestMigrator_Create(t *testing.T) {
 	}
 
 	// Create directory before test
-	os.MkdirAll(testDir, 0755)
+	_ = os.MkdirAll(testDir, 0755)
 
 	// Cleanup after test
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	err := migrator.Create("test_migration")
 	if err != nil {
@@ -47,7 +47,7 @@ func TestMigrator_Create_WithSpaces(t *testing.T) {
 	_ = os.MkdirAll(testDir, 0755)
 
 	// Cleanup after test
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	err := migrator.Create("test migration with spaces")
 	if err != nil {

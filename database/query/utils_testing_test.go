@@ -16,7 +16,7 @@ func openSQLiteQuery(t *testing.T) *query.TestQuery {
 	if err != nil {
 		t.Fatalf("openSQLiteQuery: %v", err)
 	}
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	q := query.NewTestQuery(sqlDB, drv, query.MakeDBConfig(), nil)
 	return query.WrapQuery(q)
 }

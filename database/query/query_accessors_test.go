@@ -286,7 +286,7 @@ func newSentinelDB() *sql.DB {
 
 func TestReadConnFallsBackToPrimary(t *testing.T) {
 	primary := newSentinelDB()
-	defer primary.Close()
+	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	if got := w.ReadConn(); got != primary {
@@ -297,8 +297,8 @@ func TestReadConnFallsBackToPrimary(t *testing.T) {
 func TestReadConnUsesReplicaWhenSet(t *testing.T) {
 	primary := newSentinelDB()
 	replica := newSentinelDB()
-	defer primary.Close()
-	defer replica.Close()
+	defer func() { _ = primary.Close() }()
+	defer func() { _ = replica.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetReadDB(replica)
@@ -309,7 +309,7 @@ func TestReadConnUsesReplicaWhenSet(t *testing.T) {
 
 func TestWriteConnFallsBackToPrimary(t *testing.T) {
 	primary := newSentinelDB()
-	defer primary.Close()
+	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	if got := w.WriteConn(); got != primary {
@@ -320,8 +320,8 @@ func TestWriteConnFallsBackToPrimary(t *testing.T) {
 func TestWriteConnUsesWriteWhenSet(t *testing.T) {
 	primary := newSentinelDB()
 	write := newSentinelDB()
-	defer primary.Close()
-	defer write.Close()
+	defer func() { _ = primary.Close() }()
+	defer func() { _ = write.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetWriteDB(write)
@@ -333,8 +333,8 @@ func TestWriteConnUsesWriteWhenSet(t *testing.T) {
 func TestNewQueryWithReplicasSetsFields(t *testing.T) {
 	primary := newSentinelDB()
 	readReplica := newSentinelDB()
-	defer primary.Close()
-	defer readReplica.Close()
+	defer func() { _ = primary.Close() }()
+	defer func() { _ = readReplica.Close() }()
 
 	drv := driver.NewSQLite()
 	q := query.NewTestQueryWithReplicas(primary, readReplica, drv, query.MakeDBConfig())
@@ -355,9 +355,9 @@ func TestClonePropagatesReplicas(t *testing.T) {
 	primary := newSentinelDB()
 	readReplica := newSentinelDB()
 	write := newSentinelDB()
-	defer primary.Close()
-	defer readReplica.Close()
-	defer write.Close()
+	defer func() { _ = primary.Close() }()
+	defer func() { _ = readReplica.Close() }()
+	defer func() { _ = write.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetReadDB(readReplica)
@@ -376,7 +376,7 @@ func TestClonePropagatesReplicas(t *testing.T) {
 
 func TestDBErrorsDuringTransaction(t *testing.T) {
 	primary := newSentinelDB()
-	defer primary.Close()
+	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetTx(&sql.Tx{})
@@ -389,7 +389,7 @@ func TestDBErrorsDuringTransaction(t *testing.T) {
 
 func TestReadDBErrorsDuringTransaction(t *testing.T) {
 	primary := newSentinelDB()
-	defer primary.Close()
+	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetTx(&sql.Tx{})
@@ -403,8 +403,8 @@ func TestReadDBErrorsDuringTransaction(t *testing.T) {
 func TestDBReturnsWriteConn(t *testing.T) {
 	primary := newSentinelDB()
 	write := newSentinelDB()
-	defer primary.Close()
-	defer write.Close()
+	defer func() { _ = primary.Close() }()
+	defer func() { _ = write.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetWriteDB(write)
@@ -421,8 +421,8 @@ func TestDBReturnsWriteConn(t *testing.T) {
 func TestReadDBReturnsReadConn(t *testing.T) {
 	primary := newSentinelDB()
 	replica := newSentinelDB()
-	defer primary.Close()
-	defer replica.Close()
+	defer func() { _ = primary.Close() }()
+	defer func() { _ = replica.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetReadDB(replica)

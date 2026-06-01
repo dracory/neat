@@ -20,7 +20,7 @@ func TestRunExampleWithAssertions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunExampleForTest failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Verify final row counts: SeedOnce (3) + Seed (3) = 6 total
 	var users []map[string]any

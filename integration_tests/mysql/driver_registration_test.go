@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -18,7 +17,7 @@ func TestMySQLDriverRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to MySQL: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db == nil {
 		t.Fatal("Database is nil")

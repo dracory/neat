@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -14,9 +13,9 @@ func TestMySQLIntegrationWhereColumn(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data
-	db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
 	}()
 
 	// Create users with same/different created/updated at
@@ -88,9 +87,9 @@ func TestMySQLIntegrationOrWhereColumn(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data
-	db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -129,8 +128,8 @@ func TestMySQLIntegrationWhereExists(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name = ?", "exists_user").Delete(&models.User{})
-		db.Query().Model(&models.Address{}).Where("name = ?", "work").Delete(&models.Address{})
+		_, _ = db.Query().Model(&models.User{}).Where("name = ?", "exists_user").Delete(&models.User{})
+		_, _ = db.Query().Model(&models.Address{}).Where("name = ?", "work").Delete(&models.Address{})
 	}()
 
 	user := models.User{Name: "exists_user"}

@@ -49,7 +49,7 @@ func TestMySQLSchemaColumnMethodsHasColumn(t *testing.T) {
 		t.Error("Nonexistent column should not exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaColumnMethodsHasColumns(t *testing.T) {
@@ -74,7 +74,7 @@ func TestMySQLSchemaColumnMethodsHasColumns(t *testing.T) {
 		t.Error("Should fail if all columns don't exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaColumnMethodsDropColumn(t *testing.T) {
@@ -106,7 +106,7 @@ func TestMySQLSchemaColumnMethodsDropColumn(t *testing.T) {
 		t.Error("Column 'height' should still exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaColumnMethodsDropColumns(t *testing.T) {
@@ -130,7 +130,7 @@ func TestMySQLSchemaColumnMethodsDropColumns(t *testing.T) {
 		t.Error("Column 'height' should still exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaColumnMethodsHasColumnsAfterDrops(t *testing.T) {
@@ -154,7 +154,7 @@ func TestMySQLSchemaColumnMethodsHasColumnsAfterDrops(t *testing.T) {
 		t.Error("Remaining columns should exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaColumnMethodsSingleColumn(t *testing.T) {
@@ -194,7 +194,7 @@ func TestMySQLSchemaColumnMethodsSingleColumn(t *testing.T) {
 		t.Error("single_column should not exist in HasColumns after drop")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaColumnMethodsEmptyColumnList(t *testing.T) {
@@ -217,5 +217,5 @@ func TestMySQLSchemaColumnMethodsEmptyColumnList(t *testing.T) {
 		t.Error("HasColumns with empty list should return true")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }

@@ -13,7 +13,7 @@ func openTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	if _, err := db.Exec("CREATE TABLE t (id INTEGER, name TEXT)"); err != nil {
 		t.Fatalf("create table: %v", err)
 	}
@@ -45,14 +45,14 @@ func TestNewCursor(t *testing.T) {
 	if c.err != nil {
 		t.Error("new cursor should have nil err")
 	}
-	c.Close()
+	_ = c.Close()
 }
 
 func TestCursorColumns(t *testing.T) {
 	db := openTestDB(t)
 	rows := queryRows(t, db)
 	c := NewCursor(rows)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	cols, err := c.Columns()
 	if err != nil {
@@ -71,7 +71,7 @@ func TestCursorIteration(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := NewCursor(rows)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	var ids []int
 	for c.Next() {
@@ -109,7 +109,7 @@ func TestCursorNextAfterClose(t *testing.T) {
 	db := openTestDB(t)
 	rows := queryRows(t, db)
 	c := NewCursor(rows)
-	c.Close()
+	_ = c.Close()
 
 	if c.Next() {
 		t.Error("Next on closed cursor should return false")
@@ -120,7 +120,7 @@ func TestCursorScanAfterClose(t *testing.T) {
 	db := openTestDB(t)
 	rows := queryRows(t, db)
 	c := NewCursor(rows)
-	c.Close()
+	_ = c.Close()
 
 	var id int
 	err := c.Scan(&id)
@@ -133,7 +133,7 @@ func TestCursorColumnsAfterClose(t *testing.T) {
 	db := openTestDB(t)
 	rows := queryRows(t, db)
 	c := NewCursor(rows)
-	c.Close()
+	_ = c.Close()
 
 	_, err := c.Columns()
 	if err == nil {
@@ -145,7 +145,7 @@ func TestCursorErrWithPriorError(t *testing.T) {
 	db := openTestDB(t)
 	rows := queryRows(t, db)
 	c := NewCursor(rows)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	sentinel := sql.ErrNoRows
 	c.err = sentinel
@@ -168,7 +168,7 @@ func TestCursorEmptyTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := NewCursor(rows)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	if c.Next() {
 		t.Error("Next on empty result set should return false")

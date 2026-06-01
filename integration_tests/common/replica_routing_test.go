@@ -48,7 +48,7 @@ func TestReplicaRoutingIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database with replica config: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the underlying sql.DB to verify connection works
 	sqlDB, err := db.DB()
@@ -90,7 +90,7 @@ func TestReplicaRoutingFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the underlying sql.DB
 	sqlDB, err := db.DB()

@@ -13,7 +13,7 @@ func TestSavePoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.inTransaction = true
@@ -46,7 +46,7 @@ func TestRollbackTo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -109,7 +109,7 @@ func TestSavepointCreationAndRollback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -158,7 +158,7 @@ func TestNestedSavepointLevels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -209,7 +209,7 @@ func TestNestedSavepointLevels(t *testing.T) {
 		t.Errorf("Expected 1 row after rollback to sp1, got %d", count)
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestSavepointErrorHandling(t *testing.T) {
@@ -217,7 +217,7 @@ func TestSavepointErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.inTransaction = true
@@ -228,7 +228,7 @@ func TestSavepointErrorHandling(t *testing.T) {
 		t.Error("Expected error for invalid savepoint name")
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestRollbackToInvalidSavepoint(t *testing.T) {
@@ -236,7 +236,7 @@ func TestRollbackToInvalidSavepoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.inTransaction = true
@@ -247,7 +247,7 @@ func TestRollbackToInvalidSavepoint(t *testing.T) {
 		t.Error("Expected error for nonexistent savepoint")
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestBeginCreatesSavepointForNestedTransaction(t *testing.T) {
@@ -255,7 +255,7 @@ func TestBeginCreatesSavepointForNestedTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -281,7 +281,7 @@ func TestBeginCreatesSavepointForNestedTransaction(t *testing.T) {
 		t.Errorf("Expected savepoint level 1, got %d", nestedQuery.savepointLevel)
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestCommitReleasesSavepoint(t *testing.T) {
@@ -289,7 +289,7 @@ func TestCommitReleasesSavepoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -327,7 +327,7 @@ func TestRollbackReleasesSavepoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {

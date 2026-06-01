@@ -67,7 +67,7 @@ func TestNewPropagatesReplicaConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("neat.New failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db == nil {
 		t.Fatal("expected non-nil *Database from neat.New")
@@ -80,7 +80,7 @@ func TestNewFromDSNSQLite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromDSN failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db == nil {
 		t.Fatal("expected non-nil *Database")
@@ -100,5 +100,5 @@ func TestNewWithLoggerOption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("neat.New with WithLogger option failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 }

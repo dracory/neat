@@ -72,7 +72,7 @@ func TestMockDriverOpen(t *testing.T) {
 		},
 	}
 
-	mock.Open("test-dsn")
+	_, _ = mock.Open("test-dsn")
 	if !called {
 		t.Error("OpenFunc was not called")
 	}
@@ -87,7 +87,7 @@ func TestMockDriverClose(t *testing.T) {
 		},
 	}
 
-	mock.Close(nil)
+	_ = mock.Close(nil)
 	if !called {
 		t.Error("CloseFunc was not called")
 	}
@@ -102,7 +102,7 @@ func TestMockDriverPing(t *testing.T) {
 		},
 	}
 
-	mock.Ping(context.Background(), nil)
+	_ = mock.Ping(context.Background(), nil)
 	if !called {
 		t.Error("PingFunc was not called")
 	}

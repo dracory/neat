@@ -50,7 +50,7 @@ func setupJSONDB(t *testing.T) *neat.Database {
 
 func TestJSONQueries_WhereJsonContains_Color(t *testing.T) {
 	db := setupJSONDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var results []map[string]any
 	err := db.Query().Table("products").WhereJsonContains("attributes->color", "silver").Get(&results)
@@ -67,7 +67,7 @@ func TestJSONQueries_WhereJsonContains_Color(t *testing.T) {
 
 func TestJSONQueries_WhereJsonContains_Tag(t *testing.T) {
 	db := setupJSONDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// SQLite does not support JSON array containment via WhereJsonContains;
 	// the query executes without error but returns 0 results (consistent with RunExample output).
@@ -82,7 +82,7 @@ func TestJSONQueries_WhereJsonContains_Tag(t *testing.T) {
 
 func TestJSONQueries_WhereJsonContainsKey(t *testing.T) {
 	db := setupJSONDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Mouse and Keyboard have specs.wireless
 	var wireless []map[string]any
@@ -97,7 +97,7 @@ func TestJSONQueries_WhereJsonContainsKey(t *testing.T) {
 
 func TestJSONQueries_WhereJsonLength(t *testing.T) {
 	db := setupJSONDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// All 4 products have tags arrays with >= 2 elements
 	var results []map[string]any
@@ -112,7 +112,7 @@ func TestJSONQueries_WhereJsonLength(t *testing.T) {
 
 func TestJSONQueries_UpdateJSONField(t *testing.T) {
 	db := setupJSONDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err := db.Query().Table("products").Where("name = ?", "Laptop").Update("attributes->color", "gray")
 	if err != nil {

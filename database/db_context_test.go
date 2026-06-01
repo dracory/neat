@@ -29,7 +29,7 @@ func TestDatabase_WithContext_SetsContextCorrectly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Verify the context was set by checking if we can retrieve the value
 	if database.ctx.Value("test-key") != "test-value" {
@@ -53,7 +53,7 @@ func TestDatabase_WithContext_DefaultContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Should have default background context
 	if database.ctx == nil {
@@ -80,7 +80,7 @@ func TestDatabase_ContextPropagatesToQueries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Create a table and insert data
 	schema := database.Schema()
@@ -123,7 +123,7 @@ func TestDatabase_ContextCancellationStopsOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Create a table first (before cancellation)
 	schema := database.Schema()
@@ -172,7 +172,7 @@ func TestDatabase_NilContextHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database with nil context: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Database should still be functional with nil context
 	// It should use a default context internally
@@ -215,7 +215,7 @@ func TestDatabase_ContextWithTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Create a table
 	schema := database.Schema()
@@ -264,7 +264,7 @@ func TestDatabase_ContextInTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Create a table
 	schema := database.Schema()

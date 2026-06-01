@@ -21,7 +21,7 @@ func TestBasicORM_CreateAndQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(blueprint schema.Blueprint) {
 		blueprint.ID()
@@ -96,7 +96,7 @@ func TestBasicORM_AdvancedQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(blueprint schema.Blueprint) {
 		blueprint.ID()

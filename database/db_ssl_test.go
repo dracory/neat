@@ -211,7 +211,7 @@ func TestSSL_DSNParsing_SSLMode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewFromDSN() error = %v", err)
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 
 			// Verify the database was created successfully
 			if db == nil {

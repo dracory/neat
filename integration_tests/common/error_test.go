@@ -104,7 +104,7 @@ func TestErrorHandlingIntegrationConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to MySQL: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test getting non-existent connection
 	_, err = db.Connection("nonexistent")
@@ -124,7 +124,7 @@ func TestErrorHandlingIntegrationQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to SQLite: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	query := db.Query()
 	if query == nil {

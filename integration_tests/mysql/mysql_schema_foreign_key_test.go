@@ -72,7 +72,7 @@ func TestMySQLSchemaForeignKeyAddToExistingTable(t *testing.T) {
 	userTable := "fk_users_alter"
 	postTable := "fk_posts_alter"
 	db.Schema().DropIfExists(postTable)
-	db.Schema().DropIfExists(userTable)
+	_ = db.Schema().DropIfExists(userTable)
 
 	err := db.Schema().Create(userTable, func(table schema.Blueprint) {
 		table.ID()

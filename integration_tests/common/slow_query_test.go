@@ -84,7 +84,7 @@ func TestSlowQueryWarningIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the underlying sql.DB for table creation
 	sqlDB, err := db.DB()
@@ -142,7 +142,7 @@ func TestSlowQueryNoWarningBelowThreshold(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the underlying sql.DB for table creation
 	sqlDB, err := db.DB()
@@ -198,7 +198,7 @@ func TestSlowQueryDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the underlying sql.DB for table creation
 	sqlDB, err := db.DB()
@@ -255,7 +255,7 @@ func TestSlowQueryWithDifferentOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the underlying sql.DB for table creation
 	sqlDB, err := db.DB()

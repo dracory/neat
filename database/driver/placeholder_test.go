@@ -130,7 +130,7 @@ func TestSQLiteDriverOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer d.Close(db)
+	defer func() { _ = d.Close(db) }()
 
 	ctx := context.Background()
 	if err := d.Ping(ctx, db); err != nil {
@@ -165,7 +165,7 @@ func TestMySQLDriverOpenReturnsDB(t *testing.T) {
 	if db == nil {
 		t.Fatal("expected non-nil *sql.DB")
 	}
-	d.Close(db)
+	_ = d.Close(db)
 }
 
 func TestPostgreSQLDriverOpenReturnsDB(t *testing.T) {
@@ -177,7 +177,7 @@ func TestPostgreSQLDriverOpenReturnsDB(t *testing.T) {
 	if db == nil {
 		t.Fatal("expected non-nil *sql.DB")
 	}
-	d.Close(db)
+	_ = d.Close(db)
 }
 
 func TestSQLServerDriverOpenReturnsDB(t *testing.T) {
@@ -189,5 +189,5 @@ func TestSQLServerDriverOpenReturnsDB(t *testing.T) {
 	if db == nil {
 		t.Fatal("expected non-nil *sql.DB")
 	}
-	d.Close(db)
+	_ = d.Close(db)
 }

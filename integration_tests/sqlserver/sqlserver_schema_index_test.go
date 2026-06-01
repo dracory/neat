@@ -13,7 +13,7 @@ func TestSQLServerSchemaIndexCreateHasGetListing(t *testing.T) {
 
 	db := SetupSQLServerTest(t)
 	tableName := "test_index_table"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -51,7 +51,7 @@ func TestSQLServerSchemaIndexCreateHasGetListing(t *testing.T) {
 		t.Error("Index 'test_index_table_email_unique' should be in listing")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestSQLServerSchemaIndexMultiColumn(t *testing.T) {
@@ -61,7 +61,7 @@ func TestSQLServerSchemaIndexMultiColumn(t *testing.T) {
 
 	db := SetupSQLServerTest(t)
 	tableName := "test_multi_index"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -101,7 +101,7 @@ func TestSQLServerSchemaIndexMultiColumn(t *testing.T) {
 		t.Error("Index 'name_idx' not found")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestSQLServerSchemaIndexGetIndexesVerification(t *testing.T) {
@@ -111,7 +111,7 @@ func TestSQLServerSchemaIndexGetIndexesVerification(t *testing.T) {
 
 	db := SetupSQLServerTest(t)
 	tableName := "test_get_indexes"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.Integer("id")
@@ -175,7 +175,7 @@ func TestSQLServerSchemaIndexGetIndexesVerification(t *testing.T) {
 		t.Error("Normal index not found")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestSQLServerSchemaIndexDrop(t *testing.T) {
@@ -185,7 +185,7 @@ func TestSQLServerSchemaIndexDrop(t *testing.T) {
 
 	db := SetupSQLServerTest(t)
 	tableName := "test_drop_index"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -225,7 +225,7 @@ func TestSQLServerSchemaIndexDrop(t *testing.T) {
 		t.Error("Index 'email_idx' should not exist after drop by name")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestSQLServerSchemaIndexRename(t *testing.T) {
@@ -235,7 +235,7 @@ func TestSQLServerSchemaIndexRename(t *testing.T) {
 
 	db := SetupSQLServerTest(t)
 	tableName := "test_rename_index"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -263,5 +263,5 @@ func TestSQLServerSchemaIndexRename(t *testing.T) {
 		t.Error("Index 'new_idx' should exist after rename")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }

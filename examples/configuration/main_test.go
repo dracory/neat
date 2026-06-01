@@ -21,7 +21,7 @@ func TestConfiguration_DSN_Functional(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromDSN failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Verify the connection is actually usable
 	err = db.Schema().Create("ping", func(bp schema.Blueprint) {
@@ -57,7 +57,7 @@ func TestConfiguration_PoolConfig_Functional(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New with pool config failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Verify the connection is functional with pool settings applied
 	err = db.Schema().Create("items", func(bp schema.Blueprint) {
@@ -88,7 +88,7 @@ func TestConfiguration_DebugMode_Functional(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New with debug config failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Verify debug mode doesn't prevent normal operation
 	err = db.Schema().Create("logs", func(bp schema.Blueprint) {
