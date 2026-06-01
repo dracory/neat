@@ -218,7 +218,7 @@ func TestTursoDriver(t *testing.T) {
 	// Test Open (will fail without actual Turso database, but should not panic)
 	_, err := turso.Open("libsql://test.db")
 	if err != nil {
-		// This is expected to fail without a real database
+		// Expected to fail without a real database connection
 		// We're just testing that the method doesn't panic
 	}
 }

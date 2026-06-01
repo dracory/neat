@@ -41,7 +41,7 @@ func TestNilDatabaseConnection(t *testing.T) {
 	// Recover from panic since nil DB causes panic
 	defer func() {
 		if r := recover(); r != nil {
-			// Expected panic for nil database connection
+			// Expected panic for nil database connection - test passes if we recover
 		}
 	}()
 
@@ -159,7 +159,7 @@ func TestTransactionCommitError(t *testing.T) {
 	// Recover from panic since closed DB causes panic
 	defer func() {
 		if r := recover(); r != nil {
-			// Expected panic for closed connection
+			// Expected panic for closed connection - test passes if we recover
 		}
 	}()
 
@@ -196,7 +196,7 @@ func TestTransactionRollbackError(t *testing.T) {
 	// Recover from panic since closed DB causes panic
 	defer func() {
 		if r := recover(); r != nil {
-			// Expected panic for closed connection
+			// Expected panic for closed connection - test passes if we recover
 		}
 	}()
 
