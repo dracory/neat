@@ -49,7 +49,7 @@ func (q *Query) Create(value any) error {
 			if err != nil {
 				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
@@ -101,7 +101,7 @@ func (q *Query) Create(value any) error {
 			if err != nil {
 				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
@@ -148,7 +148,7 @@ func (q *Query) Create(value any) error {
 	q.logQuery(sqlStr, args, start)
 
 	// Populate last insert ID back into the model's primary key field (for non-PostgreSQL and non-SQLServer)
-	if !isPostgres && !isSQLServer {
+	if !isPostgres && !isSQLServer && result != nil {
 		if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)

@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -78,9 +77,7 @@ func TestPostgreSQLTransactionRollback(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("Expected error, got nil")
-	}
-
-	if err.Error() != "some error" {
+	} else if err.Error() != "some error" {
 		t.Errorf("Expected 'some error', got '%s'", err.Error())
 	}
 

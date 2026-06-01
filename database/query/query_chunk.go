@@ -17,7 +17,7 @@ func (q *Query) Chunk(size int, callback any) error {
 		if err != nil {
 			return fmt.Errorf("failed to execute CHUNK query: %w", err)
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 
 		return q.chunkRows(rows, size, callback)
 	}
@@ -31,7 +31,7 @@ func (q *Query) Chunk(size int, callback any) error {
 	if err != nil {
 		return fmt.Errorf("failed to execute CHUNK query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return q.chunkRows(rows, size, callback)
 }

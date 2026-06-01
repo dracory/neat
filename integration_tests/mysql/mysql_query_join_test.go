@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -64,11 +63,13 @@ func TestMySQLIntegrationJoinInner(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-	}
-	if results[0].AddressName != "address1" {
-		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	if len(results) >= 1 {
+		if results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+		}
+		if results[0].AddressName != "address1" {
+			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+		}
 	}
 }
 
@@ -153,17 +154,19 @@ func TestMySQLIntegrationJoinLeft(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-	}
-	if results[0].AddressName == nil {
-		t.Error("Expected address name to be set")
-	}
-	if results[1].UserName != "join_user2" {
-		t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
-	}
-	if results[1].AddressName != nil {
-		t.Error("Expected address name to be nil")
+	if len(results) >= 2 {
+		if results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+		}
+		if results[0].AddressName == nil {
+			t.Error("Expected address name to be set")
+		}
+		if results[1].UserName != "join_user2" {
+			t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
+		}
+		if results[1].AddressName != nil {
+			t.Error("Expected address name to be nil")
+		}
 	}
 }
 
@@ -194,11 +197,13 @@ func TestMySQLIntegrationJoinLeftWithConditions(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].AddressName != nil {
-		t.Error("Expected address name to be nil")
-	}
-	if results[1].AddressName != nil {
-		t.Error("Expected address name to be nil")
+	if len(results) >= 2 {
+		if results[0].AddressName != nil {
+			t.Error("Expected address name to be nil")
+		}
+		if results[1].AddressName != nil {
+			t.Error("Expected address name to be nil")
+		}
 	}
 }
 
@@ -255,14 +260,16 @@ func TestMySQLIntegrationJoinRight(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].UserName == nil {
-		t.Error("Expected user name to be set")
-	}
-	if *results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", *results[0].UserName)
-	}
-	if results[0].AddressName != "address1" {
-		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	if len(results) >= 1 {
+		if results[0].UserName == nil {
+			t.Error("Expected user name to be set")
+		}
+		if *results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", *results[0].UserName)
+		}
+		if results[0].AddressName != "address1" {
+			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+		}
 	}
 }
 

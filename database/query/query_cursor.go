@@ -21,7 +21,8 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	if q.tx != nil {
 		rows, err = q.tx.QueryContext(q.ctx, querySQL, args...)
 	} else {
-		databaseConn, err := q.ReadDB()
+		var databaseConn *sql.DB
+		databaseConn, err = q.ReadDB()
 		if err != nil {
 			return nil, err
 		}
@@ -36,7 +37,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	cursorChan := make(chan contractsorm.Cursor, 10)
 
 	go func() {
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		defer close(cursorChan)
 
 		for rows.Next() {

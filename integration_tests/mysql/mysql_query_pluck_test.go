@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -39,14 +38,16 @@ func TestMySQLIntegrationPluckSingleColumn(t *testing.T) {
 	if len(names) != 3 {
 		t.Errorf("Expected 3 names, got %d", len(names))
 	}
-	if names[0] != "pluck_user_1" {
-		t.Errorf("Expected 'pluck_user_1', got '%s'", names[0])
-	}
-	if names[1] != "pluck_user_2" {
-		t.Errorf("Expected 'pluck_user_2', got '%s'", names[1])
-	}
-	if names[2] != "pluck_user_3" {
-		t.Errorf("Expected 'pluck_user_3', got '%s'", names[2])
+	if len(names) >= 3 {
+		if names[0] != "pluck_user_1" {
+			t.Errorf("Expected 'pluck_user_1', got '%s'", names[0])
+		}
+		if names[1] != "pluck_user_2" {
+			t.Errorf("Expected 'pluck_user_2', got '%s'", names[1])
+		}
+		if names[2] != "pluck_user_3" {
+			t.Errorf("Expected 'pluck_user_3', got '%s'", names[2])
+		}
 	}
 }
 

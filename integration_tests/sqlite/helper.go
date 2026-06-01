@@ -20,7 +20,7 @@ func SetupSQLiteConnection(t *testing.T) *database.Database {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db

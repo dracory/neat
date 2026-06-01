@@ -24,7 +24,7 @@ func TestDatabaseName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db.Name() != "default" {
 		t.Errorf("Expected connection name 'default', got '%s'", db.Name())
@@ -50,7 +50,7 @@ func TestDatabaseName_MultipleConnections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	conn, err := db.Connection("secondary")
 	if err != nil {
@@ -77,7 +77,7 @@ func TestDatabaseName_EmptyStringUsesDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	conn, err := db.Connection("")
 	if err != nil {
@@ -104,7 +104,7 @@ func TestDatabaseName_DatabaseName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db.DatabaseName() != ":memory:" {
 		t.Errorf("Expected database name ':memory:', got '%s'", db.DatabaseName())
@@ -130,7 +130,7 @@ func TestDatabase_Connection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	t.Run("Get existing connection", func(t *testing.T) {
 		conn, err := db.Connection("secondary")
@@ -175,7 +175,7 @@ func TestDatabase_Query(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	query := db.Query()
 	if query == nil {
@@ -198,7 +198,7 @@ func TestDatabase_Schema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	schema := db.Schema()
 	if schema == nil {
@@ -221,7 +221,7 @@ func TestDatabase_DB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -269,7 +269,7 @@ func TestDatabase_QueryLog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test EnableQueryLog
 	db.EnableQueryLog()
@@ -306,7 +306,7 @@ func TestDatabase_Transaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test successful transaction
 	err = db.Transaction(func(tx orm.Query) error {
@@ -332,7 +332,7 @@ func TestNew_AutoDefaultConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db.Name() != "custom" {
 		t.Errorf("Expected auto-selected connection name 'custom', got '%s'", db.Name())
@@ -370,7 +370,7 @@ func TestNewFromDSN(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				defer db.Close()
+				defer func() { _ = db.Close() }()
 				if db == nil {
 					t.Error("Expected non-nil database")
 				}
@@ -447,7 +447,7 @@ func TestDatabase_Seed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	seeder1 := &mockSeeder{signature: "seeder_1"}
 	seeder2 := &mockSeeder{signature: "seeder_2"}
@@ -482,7 +482,7 @@ func TestDatabase_SeedOnce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	seeder1 := &mockSeeder{signature: "seeder_1"}
 	seeders := []seeder.Seeder{seeder1}
@@ -526,7 +526,7 @@ func TestDatabase_Seeder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	facade := db.Seeder()
 	if facade == nil {
@@ -543,6 +543,7 @@ func TestDatabase_Seeder(t *testing.T) {
 	retrieved := facade.GetSeeder("seeder_1")
 	if retrieved == nil {
 		t.Error("Expected seeder to be found")
+		return
 	}
 	if retrieved.Signature() != "seeder_1" {
 		t.Errorf("Expected signature 'seeder_1', got '%s'", retrieved.Signature())
@@ -570,7 +571,7 @@ func TestDatabase_Migrate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test Migrate with empty paths (should use default)
 	err = db.Migrate()
@@ -594,7 +595,7 @@ func TestDatabase_MigrationStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test MigrationStatus - should return empty slice when no migrations
 	status, err := db.MigrationStatus()

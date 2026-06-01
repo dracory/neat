@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -31,6 +30,10 @@ func TestPostgreSQLIntegrationUpdateByModel(t *testing.T) {
 	err = query.Model(&models.User{}).Where("name = ?", "update_by_model_name").Find(&createdUsers)
 	if err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
 	}
 
 	// Update using model
@@ -91,6 +94,10 @@ func TestPostgreSQLIntegrationUpdateByTable(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	// Update using table
 	res, err := query.Table("users").Where("name = ?", "update_by_table_name").Update("avatar", "updated_avatar")
 	if err != nil {
@@ -148,6 +155,10 @@ func TestPostgreSQLIntegrationUpdateWithWhere(t *testing.T) {
 	err = query.Model(&models.User{}).Where("name = ?", "update_where_name").Find(&createdUsers)
 	if err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
 	}
 
 	var otherUser models.User
@@ -211,6 +222,10 @@ func TestPostgreSQLIntegrationUpdateMultipleColumns(t *testing.T) {
 	err = query.Model(&models.User{}).Where("name = ?", "multi_col_name").Find(&createdUsers)
 	if err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
 	}
 
 	// Update multiple columns using map

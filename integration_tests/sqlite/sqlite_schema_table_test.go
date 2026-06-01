@@ -184,7 +184,7 @@ func TestSQLiteSchemaTableDropAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create DB: %v", err)
 	}
-	defer db2.Close()
+	defer func() { _ = db2.Close() }()
 
 	if err := db2.Schema().Create("table_a", func(table schema.Blueprint) { table.ID() }); err != nil {
 		t.Fatalf("Failed to create table_a: %v", err)
@@ -233,7 +233,7 @@ func TestSQLiteSchemaTablePrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create DB with prefix: %v", err)
 	}
-	defer db2.Close()
+	defer func() { _ = db2.Close() }()
 
 	tableName := "test"
 	err = db2.Schema().Create(tableName, func(table schema.Blueprint) {

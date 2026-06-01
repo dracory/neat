@@ -72,7 +72,7 @@ func TestMockDriverOpen(t *testing.T) {
 		},
 	}
 
-	mock.Open("test-dsn")
+	_, _ = mock.Open("test-dsn")
 	if !called {
 		t.Error("OpenFunc was not called")
 	}
@@ -87,7 +87,7 @@ func TestMockDriverClose(t *testing.T) {
 		},
 	}
 
-	mock.Close(nil)
+	_ = mock.Close(nil)
 	if !called {
 		t.Error("CloseFunc was not called")
 	}
@@ -102,7 +102,7 @@ func TestMockDriverPing(t *testing.T) {
 		},
 	}
 
-	mock.Ping(context.Background(), nil)
+	_ = mock.Ping(context.Background(), nil)
 	if !called {
 		t.Error("PingFunc was not called")
 	}
@@ -117,7 +117,7 @@ func TestMockDriverBeginTx(t *testing.T) {
 		},
 	}
 
-	mock.BeginTx(context.Background(), nil, nil)
+	_, _ = mock.BeginTx(context.Background(), nil, nil)
 	if !called {
 		t.Error("BeginTxFunc was not called")
 	}
@@ -217,8 +217,9 @@ func TestTursoDriver(t *testing.T) {
 
 	// Test Open (will fail without actual Turso database, but should not panic)
 	_, err := turso.Open("libsql://test.db")
-	if err != nil {
-		// This is expected to fail without a real database
+	if err != nil { //nolint:staticcheck
+		// Expected to fail without a real database connection
 		// We're just testing that the method doesn't panic
+		_ = err // Explicitly ignore expected error
 	}
 }

@@ -31,7 +31,7 @@ func TestFactory_RunExample_UserCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(blueprint schema.Blueprint) {
 		blueprint.ID()
@@ -94,7 +94,7 @@ func TestFactory_Make_NotPersisted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = db.Schema().Create("users", func(blueprint schema.Blueprint) {
 		blueprint.ID()
@@ -129,7 +129,7 @@ func TestFactory_BulkMake_Count(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tmpl := &User{Name: "Bulk", Email: "bulk@example.com", Age: 30}
 	result, err := db.Factory().Count(3).Make(tmpl)

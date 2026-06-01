@@ -409,9 +409,9 @@ func TestSQLiteIntegrationQueryPolymorphicAssociation(t *testing.T) {
 		t.Fatalf("Failed to create comments table: %v", err)
 	}
 	defer func() {
-		query.Exec("DROP TABLE IF EXISTS comments")
-		query.Exec("DROP TABLE IF EXISTS videos")
-		query.Exec("DROP TABLE IF EXISTS posts")
+		_, _ = query.Exec("DROP TABLE IF EXISTS comments")
+		_, _ = query.Exec("DROP TABLE IF EXISTS videos")
+		_, _ = query.Exec("DROP TABLE IF EXISTS posts")
 	}()
 
 	// Create a post

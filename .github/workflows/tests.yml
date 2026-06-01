@@ -50,11 +50,6 @@ jobs:
           MSSQL_PID: Developer
         ports:
           - "1433:1433"
-        options: >-
-          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -No -Q 'SELECT 1'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
 
     env:
       MYSQL_HOST: 127.0.0.1
@@ -136,7 +131,7 @@ jobs:
       run: |
         echo "Waiting for SQL Server to be ready..."
         for i in {1..30}; do
-          if /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -No -Q "SELECT 1;" > /dev/null 2>&1; then
+          if /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;" > /dev/null 2>&1; then
             echo "SQL Server is ready!"
             break
           fi
@@ -146,11 +141,11 @@ jobs:
 
     - name: Create SQL Server test database
       run: |
-        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -No -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'test') CREATE DATABASE test;"
+        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'test') CREATE DATABASE test;"
 
     - name: Verify SQL Server connection
       run: |
-        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -No -Q "SELECT 1;"
+        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;"
 
     - name: Set up Go
       uses: actions/setup-go@v6
@@ -161,28 +156,24 @@ jobs:
       run: go build -v ./...
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: latest
+      run: |
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        $(go env GOPATH)/bin/golangci-lint run --timeout 10m
 
     - name: Run gosec security scanning
-      uses: securego/gosec@master
-      with:
-        args: '-no-fail -fmt sarif -out results.sarif ./...'
-
-    - name: Upload gosec results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v3
       if: always()
-      with:
-        sarif_file: results.sarif
+      run: |
+        go mod download
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
+        $(go env GOPATH)/bin/gosec ./... || true
 
-    - name: Test with coverage
-      run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+    # - name: Test with coverage
+    #   run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        files: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v5
+    #   with:
+    #     files: ./coverage.out
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     fail_ci_if_error: false

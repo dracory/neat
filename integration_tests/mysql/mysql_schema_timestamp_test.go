@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -11,7 +10,7 @@ func TestMySQLSchemaTimestamps(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_timestamps"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -55,14 +54,14 @@ func TestMySQLSchemaTimestamps(t *testing.T) {
 		t.Error("updated_at column should exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaTimestampsTz(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableNameTz := "test_timestamps_tz"
-	db.Schema().DropIfExists(tableNameTz)
+	_ = db.Schema().DropIfExists(tableNameTz)
 
 	err := db.Schema().Create(tableNameTz, func(table schema.Blueprint) {
 		table.ID()
@@ -100,14 +99,14 @@ func TestMySQLSchemaTimestampsTz(t *testing.T) {
 		t.Error("updated_at column should exist")
 	}
 
-	db.Schema().Drop(tableNameTz)
+	_ = db.Schema().Drop(tableNameTz)
 }
 
 func TestMySQLSchemaSoftDeletes(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_soft_deletes"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -152,14 +151,14 @@ func TestMySQLSchemaSoftDeletes(t *testing.T) {
 		t.Error("deleted_at_tz column should exist")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaDropTimestamps(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_drop_timestamps"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -188,14 +187,14 @@ func TestMySQLSchemaDropTimestamps(t *testing.T) {
 		t.Error("deleted_at should not exist after drop")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaDropTimestampsTz(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableNameTz := "test_drop_timestamps_tz"
-	db.Schema().DropIfExists(tableNameTz)
+	_ = db.Schema().DropIfExists(tableNameTz)
 
 	err := db.Schema().Create(tableNameTz, func(table schema.Blueprint) {
 		table.ID()
@@ -224,14 +223,14 @@ func TestMySQLSchemaDropTimestampsTz(t *testing.T) {
 		t.Error("deleted_at_tz should not exist after drop")
 	}
 
-	db.Schema().Drop(tableNameTz)
+	_ = db.Schema().Drop(tableNameTz)
 }
 
 func TestMySQLSchemaTimestampPrecision(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_precision"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -255,5 +254,5 @@ func TestMySQLSchemaTimestampPrecision(t *testing.T) {
 		}
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }

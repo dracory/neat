@@ -31,6 +31,10 @@ func TestSQLServerIntegrationUpdateByModel(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
+	}
+
 	res, err := query.Model(&models.User{}).Where("name = ?", "update_by_model_name").Update("avatar", "updated_avatar")
 	if err != nil {
 		t.Fatalf("Failed to update users: %v", err)
@@ -75,6 +79,10 @@ func TestSQLServerIntegrationUpdateByTable(t *testing.T) {
 	err = query.Model(&models.User{}).Where("name = ?", "update_by_table_name").Find(&createdUsers)
 	if err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
 	}
 
 	res, err := query.Table("users").Where("name = ?", "update_by_table_name").Update("avatar", "updated_avatar")

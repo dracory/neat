@@ -106,7 +106,7 @@ func SetupMySQLTest(t *testing.T) *database.Database {
 	cleanupMySQLTestData(t, db)
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db
@@ -211,7 +211,7 @@ func SetupMySQLConnection(t *testing.T) *database.Database {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db

@@ -63,7 +63,7 @@ func TestPool_MaxOpenConns(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create database: %v", err)
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 
 			sqlDB, err := db.DB()
 			if err != nil {
@@ -123,7 +123,7 @@ func TestPool_MaxIdleConns(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create database: %v", err)
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 
 			sqlDB, err := db.DB()
 			if err != nil {
@@ -138,7 +138,7 @@ func TestPool_MaxIdleConns(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to get connection: %v", err)
 				}
-				conn.Close()
+				_ = conn.Close()
 
 				stats = sqlDB.Stats()
 				// After opening a connection, idle should be at most maxIdleConns
@@ -195,7 +195,7 @@ func TestPool_ConnMaxLifetime(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create database: %v", err)
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 
 			sqlDB, err := db.DB()
 			if err != nil {
@@ -207,7 +207,7 @@ func TestPool_ConnMaxLifetime(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to get connection: %v", err)
 			}
-			conn.Close()
+			_ = conn.Close()
 
 			// The configuration is set, but we can't easily test the actual lifetime behavior
 			// without waiting for the duration. We verify the configuration was accepted.
@@ -264,7 +264,7 @@ func TestPool_ConnMaxIdleTime(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create database: %v", err)
 			}
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 
 			sqlDB, err := db.DB()
 			if err != nil {
@@ -276,7 +276,7 @@ func TestPool_ConnMaxIdleTime(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to get connection: %v", err)
 			}
-			conn.Close()
+			_ = conn.Close()
 
 			// The configuration is set, but we can't easily test the actual idle time behavior
 			// without waiting for the duration. We verify the configuration was accepted.
@@ -312,7 +312,7 @@ func TestPool_WithPoolOption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -324,7 +324,7 @@ func TestPool_WithPoolOption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get connection: %v", err)
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	stats := sqlDB.Stats()
 	if stats.MaxOpenConnections != 15 {
@@ -350,7 +350,7 @@ func TestPool_DefaultConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -362,7 +362,7 @@ func TestPool_DefaultConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get connection: %v", err)
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	stats := sqlDB.Stats()
 	t.Logf("Pool stats with no config: MaxOpen=%d, Open=%d, InUse=%d, Idle=%d",
@@ -381,7 +381,7 @@ func TestPool_NewFromDSN_DefaultPool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database from DSN: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -409,7 +409,7 @@ func TestPool_NewFromDSN_CustomPool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database from DSN: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -447,7 +447,7 @@ func TestPool_ExhaustionBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -472,7 +472,7 @@ func TestPool_ExhaustionBehavior(t *testing.T) {
 				errors <- err
 				return
 			}
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 
 			// Hold the connection briefly
 			time.Sleep(100 * time.Millisecond)
@@ -525,7 +525,7 @@ func TestPool_Stats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -550,7 +550,7 @@ func TestPool_Stats(t *testing.T) {
 	}
 
 	// Close the connection
-	conn.Close()
+	_ = conn.Close()
 
 	// Check stats after closing
 	stats = sqlDB.Stats()
@@ -582,7 +582,7 @@ func TestPool_Ping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -619,7 +619,7 @@ func TestPool_SetMaxOpenConns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -658,7 +658,7 @@ func TestPool_SetMaxIdleConns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -673,7 +673,7 @@ func TestPool_SetMaxIdleConns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get connection: %v", err)
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	stats := sqlDB.Stats()
 	// Verify the setting was applied (idle should not exceed the new max)
@@ -705,7 +705,7 @@ func TestPool_SetConnMaxLifetime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -746,7 +746,7 @@ func TestPool_SetConnMaxIdleTime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {

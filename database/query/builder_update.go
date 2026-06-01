@@ -9,7 +9,7 @@ import (
 func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	var parts []string
 	var args []any
-	var setArgs []any // Store SET args separately to add them after WHERE args
+	var setArgs []any = []any{} // Store SET args separately to add them after WHERE args
 
 	// UPDATE clause
 	parts = append(parts, "UPDATE")

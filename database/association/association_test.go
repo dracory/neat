@@ -16,10 +16,6 @@ func TestAssociationStructCreation(t *testing.T) {
 		association: assocName,
 	}
 
-	if assoc == nil {
-		t.Fatal("Expected association to be created")
-	}
-
 	if assoc.Model() != model {
 		t.Error("Model not set correctly")
 	}
@@ -34,9 +30,8 @@ func TestAssociationStructCreation(t *testing.T) {
 		foreignKey:  "UserID",
 		otherKey:    "ID",
 	}
-
-	if belongsTo == nil {
-		t.Fatal("Expected BelongsTo to be created")
+	if belongsTo.foreignKey != "UserID" {
+		t.Error("BelongsTo foreign key not set correctly")
 	}
 
 	// Test HasMany struct
@@ -45,9 +40,8 @@ func TestAssociationStructCreation(t *testing.T) {
 		foreignKey:  "user_id",
 		localKey:    "ID",
 	}
-
-	if hasMany == nil {
-		t.Fatal("Expected HasMany to be created")
+	if hasMany.foreignKey != "user_id" {
+		t.Error("HasMany foreign key not set correctly")
 	}
 
 	// Test HasOne struct
@@ -56,9 +50,8 @@ func TestAssociationStructCreation(t *testing.T) {
 		foreignKey:  "user_id",
 		localKey:    "ID",
 	}
-
-	if hasOne == nil {
-		t.Fatal("Expected HasOne to be created")
+	if hasOne.foreignKey != "user_id" {
+		t.Error("HasOne foreign key not set correctly")
 	}
 }
 

@@ -10,9 +10,6 @@ func TestNewToSql(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	toSql := NewToSql(q)
 
-	if toSql == nil {
-		t.Error("Expected non-nil ToSql")
-	}
 	if toSql.query != q {
 		t.Error("Expected ToSql to have the provided query")
 	}

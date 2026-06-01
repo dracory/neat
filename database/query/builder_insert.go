@@ -9,7 +9,7 @@ import (
 // BuildInsert builds an INSERT query from the query state.
 func (b *Builder) BuildInsert(value any) (string, []any) {
 	var parts []string
-	var args []any
+	var args []any = []any{}
 
 	// INSERT clause
 	parts = append(parts, "INSERT")
@@ -23,7 +23,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 	// Extract columns and values from the value
 	columns, values, err := b.extractColumnsAndValues(value)
 	if err != nil {
-		return "", nil
+		return "", []any{}
 	}
 
 	// Check if this is SQL Server and we need OUTPUT clause for LastInsertId

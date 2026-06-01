@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -12,7 +11,7 @@ func TestMySQLSchemaTableCreateHasDrop(t *testing.T) {
 	db := SetupMySQLTest(t)
 	tableName := "test_table"
 
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 	if db.Schema().HasTable(tableName) {
 		t.Error("Table should not exist after DropIfExists")
 	}
@@ -48,8 +47,8 @@ func TestMySQLSchemaTableRename(t *testing.T) {
 	oldName := "old_table"
 	newName := "new_table"
 
-	db.Schema().DropIfExists(oldName)
-	db.Schema().DropIfExists(newName)
+	_ = db.Schema().DropIfExists(oldName)
+	_ = db.Schema().DropIfExists(newName)
 
 	err := db.Schema().Create(oldName, func(table schema.Blueprint) {
 		table.ID()
@@ -70,7 +69,7 @@ func TestMySQLSchemaTableRename(t *testing.T) {
 		t.Error("New table should exist after rename")
 	}
 
-	db.Schema().Drop(newName)
+	_ = db.Schema().Drop(newName)
 }
 
 func TestMySQLSchemaTableGetTables(t *testing.T) {
@@ -79,8 +78,8 @@ func TestMySQLSchemaTableGetTables(t *testing.T) {
 	table1 := "table1"
 	table2 := "table2"
 
-	db.Schema().DropIfExists(table1)
-	db.Schema().DropIfExists(table2)
+	_ = db.Schema().DropIfExists(table1)
+	_ = db.Schema().DropIfExists(table2)
 
 	if err := db.Schema().Create(table1, func(table schema.Blueprint) { table.ID() }); err != nil {
 		t.Fatalf("Failed to create table1: %v", err)
@@ -129,15 +128,15 @@ func TestMySQLSchemaTableGetTables(t *testing.T) {
 		t.Error("table2 should be in GetTables result")
 	}
 
-	db.Schema().Drop(table1)
-	db.Schema().Drop(table2)
+	_ = db.Schema().Drop(table1)
+	_ = db.Schema().Drop(table2)
 }
 
 func TestMySQLSchemaTableModify(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "modify_table"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	if err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -151,5 +150,5 @@ func TestMySQLSchemaTableModify(t *testing.T) {
 		t.Fatalf("Failed to modify table: %v", err)
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }

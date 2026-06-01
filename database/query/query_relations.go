@@ -143,7 +143,7 @@ func (q *Query) loadHasManyRelation(v reflect.Value, field reflect.Value, relati
 	if err != nil {
 		return fmt.Errorf("failed to query has-many relation %s: %w", relation, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Scan rows into slice
 	columns, err := rows.Columns()
@@ -226,7 +226,7 @@ func (q *Query) loadHasOneRelation(v reflect.Value, field reflect.Value, relatio
 	if err != nil {
 		return fmt.Errorf("failed to query has-one relation %s: %w", relation, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Scan directly into dest without using scanRows to avoid relation loading
 	columns, err := rows.Columns()

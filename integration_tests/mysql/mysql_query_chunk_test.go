@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -31,7 +30,7 @@ func TestMySQLIntegrationQueryChunkBasic(t *testing.T) {
 	if db == nil {
 		t.Skip("MySQL not available")
 	}
-	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
+	_, _ = db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 
@@ -75,7 +74,7 @@ func TestMySQLIntegrationQueryChunkCustomBatchSize(t *testing.T) {
 	if db == nil {
 		t.Skip("MySQL not available")
 	}
-	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
+	_, _ = db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 
@@ -120,7 +119,7 @@ func TestMySQLIntegrationQueryChunkErrorHandling(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-	if err.Error() != "stop chunking" {
+	if err != nil && err.Error() != "stop chunking" {
 		t.Errorf("Expected 'stop chunking' error, got '%s'", err.Error())
 	}
 	if totalCount != 6 {

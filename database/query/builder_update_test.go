@@ -412,7 +412,7 @@ func TestBuildUpdateWithRawExpression(t *testing.T) {
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg (name), got %d: %v", len(args), args)
 	}
-	if args[0] != "John" {
+	if len(args) > 0 && args[0] != "John" {
 		t.Errorf("Expected arg[0] to be 'John', got %v", args[0])
 	}
 }
@@ -439,14 +439,25 @@ func TestBuildUpdateWithRawExpressionAndArgs(t *testing.T) {
 	}
 
 	// Check that both the name and the raw expression arg are in args
+	// Note: map iteration order is not guaranteed, so we check that both values are present
 	if len(args) != 2 {
 		t.Errorf("Expected 2 args, got %d: %v", len(args), args)
 	}
-	if args[0] != "John" {
-		t.Errorf("Expected arg[0] to be 'John', got %v", args[0])
+	hasName := false
+	hasScore := false
+	for _, arg := range args {
+		if arg == "John" {
+			hasName = true
+		}
+		if arg == 5 {
+			hasScore = true
+		}
 	}
-	if args[1] != 5 {
-		t.Errorf("Expected arg[1] to be 5, got %v", args[1])
+	if !hasName {
+		t.Errorf("Expected args to contain 'John', got %v", args)
+	}
+	if !hasScore {
+		t.Errorf("Expected args to contain 5, got %v", args)
 	}
 }
 

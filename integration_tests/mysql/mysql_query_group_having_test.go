@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -38,7 +37,7 @@ func TestMySQLIntegrationGroupBySingleColumn(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").OrderBy("avatar", "asc").Scan(&results)
 	if err != nil {
@@ -73,7 +72,7 @@ func TestMySQLIntegrationHavingClause(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").Having("COUNT(*) > ?", 2).Scan(&results)
 	if err != nil {
@@ -102,7 +101,7 @@ func TestMySQLIntegrationMultipleHavingClauses(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").
 		Group("avatar").
@@ -135,7 +134,7 @@ func TestMySQLIntegrationHavingWithSubqueryCallback(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").
 		Group("avatar").
@@ -183,7 +182,7 @@ func TestMySQLIntegrationHavingWithSubqueryInArgs(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar2" {
+	if len(results) >= 1 && results[0].Avatar != "avatar2" {
 		t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
 	}
 }

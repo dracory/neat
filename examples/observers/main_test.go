@@ -99,7 +99,7 @@ func setupObserverDB(t *testing.T) *neat.Database {
 
 func TestObserver_Creating_Created_FiredOnCreate(t *testing.T) {
 	db := setupObserverDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	obs := &trackingObserver{}
 	db.Observe(&testUser{}, obs)
@@ -119,7 +119,7 @@ func TestObserver_Creating_Created_FiredOnCreate(t *testing.T) {
 
 func TestObserver_Updating_Updated_FiredOnUpdate(t *testing.T) {
 	db := setupObserverDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	obs := &trackingObserver{}
 	db.Observe(&testUser{}, obs)
@@ -144,7 +144,7 @@ func TestObserver_Updating_Updated_FiredOnUpdate(t *testing.T) {
 
 func TestObserver_Deleting_Deleted_FiredOnDelete(t *testing.T) {
 	db := setupObserverDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	obs := &trackingObserver{}
 	db.Observe(&testUser{}, obs)
@@ -168,7 +168,7 @@ func TestObserver_Deleting_Deleted_FiredOnDelete(t *testing.T) {
 
 func TestObserver_NotFiredWithWithoutEvents(t *testing.T) {
 	db := setupObserverDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	obs := &trackingObserver{}
 	db.Observe(&testUser{}, obs)
@@ -188,7 +188,7 @@ func TestObserver_NotFiredWithWithoutEvents(t *testing.T) {
 
 func TestObserver_MultipleObservers_BothFired(t *testing.T) {
 	db := setupObserverDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	obs1 := &trackingObserver{}
 	obs2 := &trackingObserver{}
@@ -210,7 +210,7 @@ func TestObserver_MultipleObservers_BothFired(t *testing.T) {
 
 func TestObserver_OnlyFiredForRegisteredModel(t *testing.T) {
 	db := setupObserverDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err := db.Schema().Create("posts", func(bp schema.Blueprint) {
 		bp.ID()

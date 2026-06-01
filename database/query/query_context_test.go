@@ -95,7 +95,8 @@ func TestContextWithValue(t *testing.T) {
 	execSQL(t, w, "CREATE TABLE ctx_value (id INTEGER)")
 	execSQL(t, w, "INSERT INTO ctx_value VALUES (1)")
 
-	key := "test-key"
+	type contextKey string
+	key := contextKey("test-key")
 	value := "test-value"
 	ctx := context.WithValue(context.Background(), key, value)
 

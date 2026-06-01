@@ -21,7 +21,7 @@ func RunExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables for the example
 	err = db.Schema().Create("users", func(blueprint schema.Blueprint) {

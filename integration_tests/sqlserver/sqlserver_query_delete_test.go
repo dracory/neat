@@ -30,7 +30,7 @@ func TestSQLServerIntegrationQueryDeleteByModel(t *testing.T) {
 	if err != nil {
 		t.Errorf("Delete by model failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res != nil && res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 }
@@ -54,7 +54,7 @@ func TestSQLServerIntegrationQueryDeleteByTable(t *testing.T) {
 	if err != nil {
 		t.Errorf("Delete by table failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res != nil && res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 }
@@ -82,7 +82,7 @@ func TestSQLServerIntegrationQueryDeleteByModelWithWhere(t *testing.T) {
 	if err != nil {
 		t.Errorf("Delete by model with where failed: %v", err)
 	}
-	if res.RowsAffected != 1 {
+	if res != nil && res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 

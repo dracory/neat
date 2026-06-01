@@ -22,7 +22,7 @@ func TestMySQLIntegrationConnectionSwitch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	conn1 := db
 	conn2, err := db.Connection("mysql2")
@@ -89,7 +89,7 @@ func TestMySQLIntegrationConnectionDefaultName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	conn, err := db.Connection("")
 	if err != nil {
@@ -112,7 +112,7 @@ func TestMySQLIntegrationConnectionNonExistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Connection("nonexistent")
 	if err == nil {
@@ -153,7 +153,7 @@ func TestMySQLIntegrationReadWriteSeparation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create DB with read/write config: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tableName := "rw_sep_test"
 	_ = db.Schema().Drop(tableName)
@@ -164,7 +164,7 @@ func TestMySQLIntegrationReadWriteSeparation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create table: %v", err)
 	}
-	defer db.Schema().Drop(tableName)
+	defer func() { _ = db.Schema().Drop(tableName) }()
 
 	err = db.Query().Table(tableName).Create(map[string]any{"name": "writer"})
 	if err != nil {
@@ -195,7 +195,7 @@ func TestMySQLIntegrationConnectionPoolSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database with pool settings: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {

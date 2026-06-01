@@ -30,6 +30,10 @@ func TestSQLServerIntegrationWhereIn(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	var foundUsers []models.User
 	ids := []any{createdUsers[0].ID, createdUsers[1].ID}
 	err := query.Model(&models.User{}).WhereIn("id", ids).Find(&foundUsers)
@@ -67,6 +71,10 @@ func TestSQLServerIntegrationOrWhereIn(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).Where("id = ?", -1).OrWhereIn("id", []any{createdUsers[0].ID, createdUsers[1].ID}).Find(&foundUsers)
 	if err != nil {
@@ -101,6 +109,10 @@ func TestSQLServerIntegrationWhereNotIn(t *testing.T) {
 	var createdUsers []models.User
 	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_not_in_user%").Find(&createdUsers); err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
 	}
 
 	var foundUsers []models.User

@@ -76,7 +76,7 @@ func setupModelsDB(t *testing.T) *neat.Database {
 
 func TestModels_Create_IDAssigned(t *testing.T) {
 	db := setupModelsDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	user := &localUser{Name: "John", Email: "john@example.com", Age: 30, Status: "active"}
 	err := db.Query().Model(&localUser{}).Create(user)
@@ -90,7 +90,7 @@ func TestModels_Create_IDAssigned(t *testing.T) {
 
 func TestModels_FindByID(t *testing.T) {
 	db := setupModelsDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	user := &localUser{Name: "Alice", Email: "alice@example.com", Age: 25, Status: "active"}
 	if err := db.Query().Model(&localUser{}).Create(user); err != nil {
@@ -112,7 +112,7 @@ func TestModels_FindByID(t *testing.T) {
 
 func TestModels_Update(t *testing.T) {
 	db := setupModelsDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	user := &localUser{Name: "Bob", Email: "bob@example.com", Age: 30, Status: "active"}
 	if err := db.Query().Model(&localUser{}).Create(user); err != nil {
@@ -140,7 +140,7 @@ func TestModels_Update(t *testing.T) {
 
 func TestModels_Post_ForeignKey(t *testing.T) {
 	db := setupModelsDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	user := &localUser{Name: "Carol", Email: "carol@example.com", Age: 28, Status: "active"}
 	if err := db.Query().Model(&localUser{}).Create(user); err != nil {

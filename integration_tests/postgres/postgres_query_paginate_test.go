@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -41,11 +40,13 @@ func TestPostgresIntegrationPaginateFirstPage(t *testing.T) {
 	if len(users) != 5 {
 		t.Errorf("Expected 5 users, got %d", len(users))
 	}
-	if users[0].Name != "paginate_user_A" {
-		t.Errorf("Expected 'paginate_user_A', got '%s'", users[0].Name)
-	}
-	if users[4].Name != "paginate_user_E" {
-		t.Errorf("Expected 'paginate_user_E', got '%s'", users[4].Name)
+	if len(users) >= 5 {
+		if users[0].Name != "paginate_user_A" {
+			t.Errorf("Expected 'paginate_user_A', got '%s'", users[0].Name)
+		}
+		if users[4].Name != "paginate_user_E" {
+			t.Errorf("Expected 'paginate_user_E', got '%s'", users[4].Name)
+		}
 	}
 }
 
@@ -69,11 +70,13 @@ func TestPostgresIntegrationPaginateSecondPage(t *testing.T) {
 	if len(users) != 5 {
 		t.Errorf("Expected 5 users, got %d", len(users))
 	}
-	if users[0].Name != "paginate_user_F" {
-		t.Errorf("Expected 'paginate_user_F', got '%s'", users[0].Name)
-	}
-	if users[4].Name != "paginate_user_J" {
-		t.Errorf("Expected 'paginate_user_J', got '%s'", users[4].Name)
+	if len(users) >= 5 {
+		if users[0].Name != "paginate_user_F" {
+			t.Errorf("Expected 'paginate_user_F', got '%s'", users[0].Name)
+		}
+		if users[4].Name != "paginate_user_J" {
+			t.Errorf("Expected 'paginate_user_J', got '%s'", users[4].Name)
+		}
 	}
 }
 

@@ -207,8 +207,9 @@ func (r *Repository) Log(migrationName string, batch int) error {
 }
 
 func (r *Repository) RepositoryExists() bool {
-	query := r.orm.Query()
-	if query == nil {
+	// Use the same DB connection for consistency
+	databaseConn, err := r.orm.DB()
+	if err != nil {
 		return false
 	}
 
@@ -219,12 +220,12 @@ func (r *Repository) RepositoryExists() bool {
 	driver := r.config.GetString(fmt.Sprintf("database.connections.%s.driver", r.orm.Name()))
 	if driver == "sqlite" || driver == "turso" {
 		countSQL := "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?"
-		err := query.Raw(countSQL, r.table).Scan(&count)
+		err := databaseConn.QueryRow(countSQL, r.table).Scan(&count)
 		return err == nil && count > 0
 	}
 
 	// For other databases, use information_schema
 	countSQL := "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?"
-	err := query.Raw(countSQL, r.table).Scan(&count)
+	err = databaseConn.QueryRow(countSQL, r.table).Scan(&count)
 	return err == nil && count > 0
 }

@@ -16,7 +16,7 @@ func NewMysql() Mysql {
 }
 
 func (r Mysql) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
-	var columns []schema.Column
+	columns := make([]schema.Column, 0)
 	for _, dbColumn := range dbColumns {
 		var nullable bool
 		if dbColumn.Nullable == "YES" {
@@ -54,7 +54,7 @@ func (r Mysql) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 }
 
 func (r Mysql) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []schema.ForeignKey {
-	var foreignKeys []schema.ForeignKey
+	foreignKeys := make([]schema.ForeignKey, 0)
 	for _, dbForeignKey := range dbForeignKeys {
 		foreignKeys = append(foreignKeys, schema.ForeignKey{
 			Name:           dbForeignKey.Name,
@@ -71,7 +71,7 @@ func (r Mysql) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []schema.
 }
 
 func (r Mysql) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
-	var indexes []schema.Index
+	indexes := make([]schema.Index, 0)
 	for _, dbIndex := range dbIndexes {
 		name := strings.ToLower(dbIndex.Name)
 		indexes = append(indexes, schema.Index{

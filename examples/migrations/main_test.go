@@ -29,7 +29,7 @@ func TestSchemaBuilder_TablesExist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err = db.Schema().Create("users", func(bp contractsschema.Blueprint) {
 		bp.ID()
@@ -83,7 +83,7 @@ func TestMigrationSystem_AllRan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err = db.Migrate(); err != nil {
 		t.Fatalf("Migrate failed: %v", err)
@@ -110,7 +110,7 @@ func TestMigrationSystem_Rollback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err = db.Migrate(); err != nil {
 		t.Fatalf("Migrate failed: %v", err)

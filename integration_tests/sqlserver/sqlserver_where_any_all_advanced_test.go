@@ -35,7 +35,7 @@ func TestSQLServerIntegrationWhereAnyAdvanced(t *testing.T) {
 	}
 	if len(foundUsers) != 1 {
 		t.Errorf("Expected 1 user for multiple WhereAny, got %d", len(foundUsers))
-	} else if foundUsers[0].Name != "test1" || foundUsers[0].Avatar != "test2" {
+	} else if len(foundUsers) >= 1 && (foundUsers[0].Name != "test1" || foundUsers[0].Avatar != "test2") {
 		t.Errorf("Expected user test1/test2, got %s/%s", foundUsers[0].Name, foundUsers[0].Avatar)
 	}
 
@@ -113,7 +113,10 @@ func TestSQLServerIntegrationWhereNone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WhereNone failed: %v", err)
 	}
-	if len(noneUsers) != 1 || noneUsers[0].Name != "none" {
+	if len(noneUsers) != 1 {
+		t.Errorf("Expected 1 user for WhereNone, got %d", len(noneUsers))
+	}
+	if len(noneUsers) >= 1 && noneUsers[0].Name != "none" {
 		t.Errorf("Expected 'none' user for WhereNone, got %v", noneUsers)
 	}
 
@@ -122,7 +125,10 @@ func TestSQLServerIntegrationWhereNone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WhereNone LIKE failed: %v", err)
 	}
-	if len(noneLikeUsers) != 1 || noneLikeUsers[0].Name != "none" {
+	if len(noneLikeUsers) != 1 {
+		t.Errorf("Expected 1 user for WhereNone LIKE, got %d", len(noneLikeUsers))
+	}
+	if len(noneLikeUsers) >= 1 && noneLikeUsers[0].Name != "none" {
 		t.Errorf("Expected 'none' user for WhereNone LIKE, got %v", noneLikeUsers)
 	}
 
@@ -131,7 +137,10 @@ func TestSQLServerIntegrationWhereNone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WhereNone combined with Where failed: %v", err)
 	}
-	if len(combinedUsers) != 1 || combinedUsers[0].Name != "none" {
+	if len(combinedUsers) != 1 {
+		t.Errorf("Expected 1 user for combined WhereNone, got %d", len(combinedUsers))
+	}
+	if len(combinedUsers) >= 1 && combinedUsers[0].Name != "none" {
 		t.Errorf("Expected 'none' user for combined WhereNone, got %v", combinedUsers)
 	}
 }
@@ -162,7 +171,10 @@ func TestSQLServerIntegrationWhereNoneAdvanced(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WhereNone advanced failed: %v", err)
 	}
-	if len(foundUsers) != 1 || foundUsers[0].Name != "none" {
+	if len(foundUsers) != 1 {
+		t.Errorf("Expected 1 user for multiple WhereNone, got %d", len(foundUsers))
+	}
+	if len(foundUsers) >= 1 && foundUsers[0].Name != "none" {
 		t.Errorf("Expected 'none' user for multiple WhereNone, got %v", foundUsers)
 	}
 }
@@ -199,7 +211,9 @@ func TestSQLServerIntegrationWhereAnyInvalidOperator(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAny([]string{"name"}, "INVALID", "test1").Find(&found)
@@ -216,7 +230,9 @@ func TestSQLServerIntegrationWhereAnyInvalidColumn(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAny([]string{"invalid column"}, "=", "test1").Find(&found)
@@ -243,7 +259,9 @@ func TestSQLServerIntegrationWhereAllInvalidOperator(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAll([]string{"name"}, "INVALID", "test1").Find(&found)
@@ -260,7 +278,9 @@ func TestSQLServerIntegrationWhereAllInvalidColumn(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAll([]string{"invalid column"}, "=", "test1").Find(&found)
@@ -287,7 +307,9 @@ func TestSQLServerIntegrationWhereNoneInvalidOperator(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereNone([]string{"name"}, "INVALID", "test1").Find(&found)
@@ -304,7 +326,9 @@ func TestSQLServerIntegrationWhereNoneInvalidColumn(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereNone([]string{"invalid column"}, "=", "test1").Find(&found)

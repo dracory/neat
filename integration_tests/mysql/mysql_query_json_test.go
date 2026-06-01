@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -193,7 +192,7 @@ func TestMySQLIntegrationQueryJsonUpdateWithPath(t *testing.T) {
 	if err != nil {
 		t.Errorf("Update with JSON path failed: %v", err)
 	}
-	if result.RowsAffected != 1 {
+	if result != nil && result.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", result.RowsAffected)
 	}
 

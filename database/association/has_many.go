@@ -214,8 +214,9 @@ func (h *HasMany) setForeignKeyValue(model any, value any) error {
 			for i, part := range parts {
 				if i == len(parts)-1 && part == "id" {
 					parts[i] = "ID"
-				} else {
-					parts[i] = strings.Title(part)
+				} else if len(part) > 0 {
+					// Capitalize first letter
+					parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
 				}
 			}
 			pascalCase = strings.Join(parts, "")

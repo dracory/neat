@@ -293,6 +293,7 @@ func TestScopeErrorHandling(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
 				// Expected panic
+				_ = r
 			}
 		}()
 

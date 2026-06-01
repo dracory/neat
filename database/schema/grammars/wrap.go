@@ -183,13 +183,13 @@ func (r *Wrap) isValidIdentifier(value string) bool {
 	// Additional check: if value contains dots, ensure each segment is valid
 	if strings.Contains(value, ".") {
 		segments := strings.Split(value, ".")
+		segmentRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 		for _, segment := range segments {
 			if segment == "" {
 				return false // Empty segment (e.g., "table.")
 			}
 			// Recursively validate each segment without dots
-			matched, _ := regexp.MatchString(`^[a-zA-Z0-9_]+$`, segment)
-			if !matched {
+			if !segmentRegex.MatchString(segment) { //nolint:staticcheck
 				return false
 			}
 		}

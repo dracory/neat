@@ -32,10 +32,10 @@ func (q *Query) First(dest any) error {
 		}
 		q.logQuery(sql, args, start)
 		if err := q.scanRows(rows, dest); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
-		rows.Close()
+		_ = rows.Close()
 
 		// Load relations after rows are closed to avoid SQLite deadlock
 		if len(q.withRelations) > 0 {
@@ -63,10 +63,10 @@ func (q *Query) First(dest any) error {
 	}
 	q.logQuery(sql, args, start)
 	if err := q.scanRows(rows, dest); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return err
 	}
-	rows.Close()
+	_ = rows.Close()
 
 	// Load relations after rows are closed to avoid SQLite deadlock
 	if len(q.withRelations) > 0 {

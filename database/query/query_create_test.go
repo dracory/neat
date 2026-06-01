@@ -347,7 +347,7 @@ func TestBulkInsertPerformance(t *testing.T) {
 			t.Logf("Inserted %d records in %v (%.2f records/sec)", size, duration, float64(size)/duration.Seconds())
 
 			// Clean up for next test
-			w.Q.Exec("DELETE FROM bulk_perf")
+			_, _ = w.Q.Exec("DELETE FROM bulk_perf")
 		})
 	}
 }
@@ -492,13 +492,13 @@ func TestBulkInsertWithReplicas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open write DB: %v", err)
 	}
-	defer writeDB.Close()
+	defer func() { _ = writeDB.Close() }()
 
 	readDB, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open read DB: %v", err)
 	}
-	defer readDB.Close()
+	defer func() { _ = readDB.Close() }()
 
 	// Setup schema on both DBs
 	_, err = writeDB.Exec("CREATE TABLE test_replicas (id INTEGER PRIMARY KEY, name TEXT)")
@@ -574,7 +574,7 @@ func TestBulkInsertSetsIDs(t *testing.T) {
 	}
 
 	// Verify by querying the database
-	var fetchedUsers []BulkUser
+	var fetchedUsers []BulkUser = []BulkUser{}
 	err = w.Q.Find(&fetchedUsers)
 	if err != nil {
 		t.Fatalf("Find failed: %v", err)

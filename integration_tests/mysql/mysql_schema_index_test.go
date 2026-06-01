@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -14,7 +13,7 @@ func TestMySQLSchemaIndexCreateHasGetListing(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_index_table"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -52,7 +51,7 @@ func TestMySQLSchemaIndexCreateHasGetListing(t *testing.T) {
 		t.Error("Index 'test_index_table_email_unique' should be in listing")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaIndexMultiColumn(t *testing.T) {
@@ -62,7 +61,7 @@ func TestMySQLSchemaIndexMultiColumn(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_multi_index"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -102,7 +101,7 @@ func TestMySQLSchemaIndexMultiColumn(t *testing.T) {
 		t.Error("Index 'name_idx' not found")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaIndexGetIndexesVerification(t *testing.T) {
@@ -112,7 +111,7 @@ func TestMySQLSchemaIndexGetIndexesVerification(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_get_indexes"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.Integer("id")
@@ -176,7 +175,7 @@ func TestMySQLSchemaIndexGetIndexesVerification(t *testing.T) {
 		t.Error("Normal index not found")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaIndexDrop(t *testing.T) {
@@ -186,7 +185,7 @@ func TestMySQLSchemaIndexDrop(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_drop_index"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -226,7 +225,7 @@ func TestMySQLSchemaIndexDrop(t *testing.T) {
 		t.Error("Index 'email_idx' should not exist after drop by name")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }
 
 func TestMySQLSchemaIndexRename(t *testing.T) {
@@ -236,7 +235,7 @@ func TestMySQLSchemaIndexRename(t *testing.T) {
 
 	db := SetupMySQLTest(t)
 	tableName := "test_rename_index"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -264,5 +263,5 @@ func TestMySQLSchemaIndexRename(t *testing.T) {
 		t.Error("Index 'new_idx' should exist after rename")
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }

@@ -14,7 +14,7 @@ func TestEagerLoadingWithSingleRelation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -76,7 +76,7 @@ func TestEagerLoadingWithMultipleRelations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -153,7 +153,7 @@ func TestEagerLoadingWithWhereClause(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, status TEXT)")
@@ -225,7 +225,7 @@ func TestEagerLoadingWithNoMatchingRelation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -280,7 +280,7 @@ func TestEagerLoadingWithFirst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -338,7 +338,7 @@ func TestWithCountIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -374,7 +374,7 @@ func TestWithCountIntegration(t *testing.T) {
 	q.table = "users"
 	q = q.WithCount("Posts").(*Query)
 
-	var users []User
+	var users []User = []User{}
 	err = q.Get(&users)
 	if err != nil {
 		t.Fatalf("Get with WithCount failed: %v", err)
@@ -394,7 +394,7 @@ func TestWithExistsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -430,7 +430,7 @@ func TestWithExistsIntegration(t *testing.T) {
 	q.table = "users"
 	q = q.WithExists("Posts").(*Query)
 
-	var users []User
+	var users []User = []User{}
 	err = q.Get(&users)
 	if err != nil {
 		t.Fatalf("Get with WithExists failed: %v", err)
@@ -454,7 +454,7 @@ func TestWithCountWithConstraintIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables
 	_, err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
@@ -492,7 +492,7 @@ func TestWithCountWithConstraintIntegration(t *testing.T) {
 		return q.Where("published = ?", 1)
 	}).(*Query)
 
-	var users []User
+	var users []User = []User{}
 	err = q.Get(&users)
 	if err != nil {
 		t.Fatalf("Get with WithCount and constraint failed: %v", err)

@@ -22,7 +22,7 @@ func RunExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create tables for the example
 	err = createTables(db)
@@ -103,7 +103,7 @@ func RunExampleForTest(dsn string) (*neat.Database, error) {
 	// Create tables for the example
 	err = createTables(db)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
@@ -113,14 +113,14 @@ func RunExampleForTest(dsn string) (*neat.Database, error) {
 	seeders1 := []contractsseeder.Seeder{roleSeeder1, userSeeder1}
 	err = db.SeedOnce(seeders1)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to run seeders once: %w", err)
 	}
 
 	// Call SeedOnce again to demonstrate it skips
 	err = db.SeedOnce(seeders1)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to run seeders once (second call): %w", err)
 	}
 
@@ -130,7 +130,7 @@ func RunExampleForTest(dsn string) (*neat.Database, error) {
 	seeders2 := []contractsseeder.Seeder{roleSeeder2, userSeeder2}
 	err = db.Seed(seeders2)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to run seeders: %w", err)
 	}
 

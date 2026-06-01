@@ -39,7 +39,7 @@ func NewTestQueryWithConfig(t interface {
 	if err != nil {
 		t.Fatalf("NewTestQueryWithConfig: open sqlite: %v", err)
 	}
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	return NewQuery(context.Background(), sqlDB, drv, "default", cfg, lg)
 }
 

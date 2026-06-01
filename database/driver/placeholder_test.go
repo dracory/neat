@@ -97,7 +97,10 @@ func TestPostgreSQLDriverDialectAndPlaceholder(t *testing.T) {
 	if d.Dialect() != "postgres" {
 		t.Errorf("Dialect = %q, want postgres", d.Dialect())
 	}
-	cases := []struct{ n int; want string }{{1, "$1"}, {3, "$3"}, {10, "$10"}}
+	cases := []struct {
+		n    int
+		want string
+	}{{1, "$1"}, {3, "$3"}, {10, "$10"}}
 	for _, c := range cases {
 		if got := d.Placeholder(c.n); got != c.want {
 			t.Errorf("Placeholder(%d) = %q, want %q", c.n, got, c.want)
@@ -110,7 +113,10 @@ func TestSQLServerDriverDialectAndPlaceholder(t *testing.T) {
 	if d.Dialect() != "sqlserver" {
 		t.Errorf("Dialect = %q, want sqlserver", d.Dialect())
 	}
-	cases := []struct{ n int; want string }{{1, "@p1"}, {2, "@p2"}, {10, "@p10"}}
+	cases := []struct {
+		n    int
+		want string
+	}{{1, "@p1"}, {2, "@p2"}, {10, "@p10"}}
 	for _, c := range cases {
 		if got := d.Placeholder(c.n); got != c.want {
 			t.Errorf("Placeholder(%d) = %q, want %q", c.n, got, c.want)
@@ -124,7 +130,7 @@ func TestSQLiteDriverOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer d.Close(db)
+	defer func() { _ = d.Close(db) }()
 
 	ctx := context.Background()
 	if err := d.Ping(ctx, db); err != nil {
@@ -135,7 +141,7 @@ func TestSQLiteDriverOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BeginTx: %v", err)
 	}
-	tx.Rollback()
+	_ = tx.Rollback()
 }
 
 func TestSQLiteDriverClose(t *testing.T) {
@@ -159,7 +165,7 @@ func TestMySQLDriverOpenReturnsDB(t *testing.T) {
 	if db == nil {
 		t.Fatal("expected non-nil *sql.DB")
 	}
-	d.Close(db)
+	_ = d.Close(db)
 }
 
 func TestPostgreSQLDriverOpenReturnsDB(t *testing.T) {
@@ -171,7 +177,7 @@ func TestPostgreSQLDriverOpenReturnsDB(t *testing.T) {
 	if db == nil {
 		t.Fatal("expected non-nil *sql.DB")
 	}
-	d.Close(db)
+	_ = d.Close(db)
 }
 
 func TestSQLServerDriverOpenReturnsDB(t *testing.T) {
@@ -183,5 +189,5 @@ func TestSQLServerDriverOpenReturnsDB(t *testing.T) {
 	if db == nil {
 		t.Fatal("expected non-nil *sql.DB")
 	}
-	d.Close(db)
+	_ = d.Close(db)
 }
