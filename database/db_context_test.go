@@ -24,7 +24,8 @@ func TestDatabase_WithContext_SetsContextCorrectly(t *testing.T) {
 		},
 	}
 
-	customCtx := context.WithValue(context.Background(), "test-key", "test-value")
+	type contextKey string
+	customCtx := context.WithValue(context.Background(), contextKey("test-key"), "test-value")
 	database, err := New(config, WithContext(customCtx), WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
@@ -32,7 +33,7 @@ func TestDatabase_WithContext_SetsContextCorrectly(t *testing.T) {
 	defer func() { _ = database.Close() }()
 
 	// Verify the context was set by checking if we can retrieve the value
-	if database.ctx.Value("test-key") != "test-value" {
+	if database.ctx.Value(contextKey("test-key")) != "test-value" {
 		t.Error("WithContext() did not set the context correctly")
 	}
 }
@@ -72,7 +73,8 @@ func TestDatabase_ContextPropagatesToQueries(t *testing.T) {
 		},
 	}
 
-	key := "query-key"
+	type contextKey string
+	key := contextKey("query-key")
 	value := "query-value"
 	customCtx := context.WithValue(context.Background(), key, value)
 
@@ -167,8 +169,8 @@ func TestDatabase_NilContextHandling(t *testing.T) {
 		},
 	}
 
-	// Pass nil context via WithContext
-	database, err := New(config, WithContext(nil), WithLogger(log.NewNoopLogger()))
+	// Pass context.TODO() via WithContext
+	database, err := New(config, WithContext(context.TODO()), WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		t.Fatalf("Failed to create database with nil context: %v", err)
 	}
