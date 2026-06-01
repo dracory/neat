@@ -21,7 +21,8 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	if q.tx != nil {
 		rows, err = q.tx.QueryContext(q.ctx, querySQL, args...)
 	} else {
-		databaseConn, err := q.ReadDB()
+		var databaseConn *sql.DB
+		databaseConn, err = q.ReadDB()
 		if err != nil {
 			return nil, err
 		}

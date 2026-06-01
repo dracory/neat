@@ -560,6 +560,7 @@ func TestRawErrorWithNilQuery(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			// Expected panic for nil query
+			_ = r
 		}
 	}()
 
