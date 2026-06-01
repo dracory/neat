@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -198,11 +197,12 @@ func TestPostgresIntegrationQueryAggregateGroupBy(t *testing.T) {
 	}
 
 	for _, res := range results {
-		if res.Avatar == "group1" {
+		switch res.Avatar {
+		case "group1":
 			if res.Total != 203 {
 				t.Errorf("Expected total 203 for group1, got %d", res.Total)
 			}
-		} else if res.Avatar == "group2" {
+		case "group2":
 			if res.Total != 207 {
 				t.Errorf("Expected total 207 for group2, got %d", res.Total)
 			}
@@ -326,11 +326,11 @@ func TestPostgresIntegrationQueryAggregateNonNumericColumn(t *testing.T) {
 		}
 	}
 
-	// PostgreSQL allows SUM on string columns (returns 0), so we skip the error check
+	// PostgreSQL does not allow SUM on string columns, so we expect an error
 	var sum float64
 	err := query.Table("users").Where("name LIKE ?", "aggregate_user_%").Sum("name", &sum)
-	if err != nil {
-		t.Errorf("Sum on string column failed: %v", err)
+	if err == nil {
+		t.Error("Expected error for SUM on string column, got nil")
 	}
 
 	var max string
