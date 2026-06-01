@@ -15,6 +15,7 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 - ✅ **Value Tests** - Created `value_helpers.go` with shared functions and refactored all 5 database-specific test files (SQLite and Turso-specific tests kept in their packages)
 - ✅ **Distinct Tests** - Created `distinct_helpers.go` with shared functions and refactored all 5 database-specific test files (SQLite and Turso-specific tests kept in their packages)
 - ✅ **Order/Limit/Offset Tests** - Created `order_limit_offset_helpers.go` with shared functions and refactored all 5 database-specific test files (PostgreSQL, SQLite, and Turso-specific tests kept in their packages)
+- ✅ **Find Tests** - Created `find_helpers.go` with shared functions and refactored MySQL, PostgreSQL, and SQL Server test files (SQLite and Turso-specific tests kept in their packages)
 
 ## Priority 1: High Duplication Tests
 
@@ -55,9 +56,10 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 **Note:** SQLite adds `if res == nil` checks that MySQL/PostgreSQL don't have. These can be harmonized or kept as-is.
 **Action:** ✅ Created `delete_helpers.go` with shared functions (harmonized nil checks)
 
-### 4. Find Tests
-**Files:** `*_find_test.go` (4 databases: mysql, postgres, sqlite, sqlserver)
-**Action:** Create `find_helpers.go` with shared test functions
+### 4. Find Tests ✅
+**Files:** `*_query_find_test.go` (5 databases)
+**Note:** MySQL, PostgreSQL, and SQL Server have identical test logic. SQLite and Turso have different test structures.
+**Action:** ✅ Created `find_helpers.go` with shared functions, kept SQLite and Turso-specific tests
 
 ## Priority 2: Medium Duplication Tests
 
@@ -66,10 +68,10 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 **Note:** MySQL uses `seedAggregateTestData` helper with time fields, PostgreSQL creates users inline with explicit IDs. Different seeding strategies.
 **Action:** ✅ Created `aggregate_helpers.go` with shared functions, kept database-specific tests
 
-### 6. Chunk Tests
+### 6. Chunk Tests ✅
 **Files:** `*_query_chunk_test.go` (5 databases)
-**Note:** MySQL uses `seedChunkTestData` helper and deletes existing data first, PostgreSQL creates users inline. Different approaches.
-**Action:** Review if seeding can be harmonized before creating helpers
+**Note:** MySQL and SQL Server use seed helper with cleanup, PostgreSQL creates users inline. Same test logic.
+**Action:** ✅ Created `chunk_helpers.go` with shared functions, kept SQLite and Turso-specific tests
 
 ### 7. Pluck Tests ✅
 **Files:** `*_query_pluck_test.go` (5 databases)
@@ -143,6 +145,7 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 3. **Delete Tests** ✅ - Identical logic, SQLite has extra nil checks (harmonized)
 4. **Join Tests** ✅ - Identical `seedJoinTestData` helper across MySQL/PostgreSQL
 5. **Group/Having Tests** ✅ - Identical `seedGroupHavingTestData` helper across MySQL/PostgreSQL
+6. **Find Tests** ✅ - Identical logic across MySQL, PostgreSQL, and SQL Server
 
 ### Secondary (Medium ROI - Needs Harmonization):
 6. **Pluck Tests** ✅ - Same data, different seeding approach (helper vs inline) - completed with shared helpers
@@ -150,14 +153,13 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 8. **Distinct Tests** ✅ - Same data, different seeding approach (helper vs inline with time fields) - completed with shared helpers
 9. **Order/Limit/Offset Tests** ✅ - Same data, different seeding approach (helper vs inline) - completed with shared helpers
 10. **Aggregate Tests** ✅ - Different seeding strategies (time fields vs explicit IDs) - completed with shared helpers
-11. **Chunk Tests** - Different seeding strategies (helper with cleanup vs inline)
+11. **Chunk Tests** ✅ - Different seeding strategies (helper with cleanup vs inline) - completed with shared helpers
 
 ### Review Needed:
 12. **JSON Tests** - Need to review for database-specific JSON syntax differences
 13. **Scopes Tests** - Need to review for duplication
 14. **Soft Delete Tests** - Need to review for duplication
 15. **Where Tests** - Need to review for duplication
-16. **Find Tests** - Need to review for duplication
 
 ## Estimated Impact
 - **Lines of Code Reduction:** ~1500-2500 lines (revised down due to seeding strategy differences)

@@ -4,18 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
-
-func seedChunkTestData(t *testing.T, db *database.Database) {
-	for i := 1; i <= 10; i++ {
-		user := models.User{Name: fmt.Sprintf("chunk_user_%d", i)}
-		if err := db.Query().Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user %d: %v", i, err)
-		}
-	}
-}
 
 func TestSQLiteIntegrationQueryChunkBasic(t *testing.T) {
 	if testing.Short() {
@@ -23,7 +14,7 @@ func TestSQLiteIntegrationQueryChunkBasic(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedChunkTestData(t, db)
+	common.SeedChunkTestData(t, db)
 
 	count := 0
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "chunk_user_%").
@@ -45,7 +36,7 @@ func TestSQLiteIntegrationQueryChunkCustomBatchSize(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedChunkTestData(t, db)
+	common.SeedChunkTestData(t, db)
 
 	batchSizes := []int{0, 0, 0, 0} // 3, 3, 3, 1
 	iteration := 0
@@ -73,7 +64,7 @@ func TestSQLiteIntegrationQueryChunkErrorHandling(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedChunkTestData(t, db)
+	common.SeedChunkTestData(t, db)
 
 	count := 0
 	expectedErr := fmt.Errorf("stop chunking")
@@ -119,7 +110,7 @@ func TestSQLiteIntegrationQueryChunkPointerSlice(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedChunkTestData(t, db)
+	common.SeedChunkTestData(t, db)
 
 	count := 0
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "chunk_user_%").
