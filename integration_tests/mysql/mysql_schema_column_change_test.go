@@ -139,7 +139,7 @@ func TestMySQLSchemaColumnChangeNullable(t *testing.T) {
 
 	// Clean up table if it exists from previous test run
 	if db.Schema().HasTable(tableName) {
-		db.Schema().Drop(tableName)
+		_ = db.Schema().Drop(tableName)
 	}
 
 	// Create table

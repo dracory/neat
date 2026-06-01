@@ -347,7 +347,7 @@ func TestBulkInsertPerformance(t *testing.T) {
 			t.Logf("Inserted %d records in %v (%.2f records/sec)", size, duration, float64(size)/duration.Seconds())
 
 			// Clean up for next test
-			w.Q.Exec("DELETE FROM bulk_perf")
+			_, _ = w.Q.Exec("DELETE FROM bulk_perf")
 		})
 	}
 }

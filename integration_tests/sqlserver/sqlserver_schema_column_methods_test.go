@@ -142,10 +142,10 @@ func TestSQLServerSchemaColumnMethodsHasColumnsAfterDrops(t *testing.T) {
 	tableName := "test_column_methods"
 	setupColumnMethodsTable(t, db, tableName)
 
-	db.Schema().Table(tableName, func(table schema.Blueprint) {
+	_ = db.Schema().Table(tableName, func(table schema.Blueprint) {
 		table.DropColumn("name", "age")
 	})
-	db.Schema().DropColumns(tableName, []string{"weight"})
+	_ = db.Schema().DropColumns(tableName, []string{"weight"})
 
 	if db.Schema().HasColumns(tableName, []string{"name", "age", "weight"}) {
 		t.Error("All dropped columns should not exist")

@@ -6,10 +6,6 @@ import (
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
-// ---- helpers ----
-
-func strPtr(s string) *string { return &s }
-
 // ---- utils / processIndexes ----
 
 func TestProcessIndexesEmpty(t *testing.T) {

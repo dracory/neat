@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -31,7 +30,7 @@ func TestMySQLIntegrationQueryChunkBasic(t *testing.T) {
 	if db == nil {
 		t.Skip("MySQL not available")
 	}
-	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
+	_, _ = db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 
@@ -75,7 +74,7 @@ func TestMySQLIntegrationQueryChunkCustomBatchSize(t *testing.T) {
 	if db == nil {
 		t.Skip("MySQL not available")
 	}
-	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
+	_, _ = db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 

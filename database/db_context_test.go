@@ -255,7 +255,8 @@ func TestDatabase_ContextInTransaction(t *testing.T) {
 		},
 	}
 
-	key := "tx-key"
+	type contextKey string
+	key := contextKey("tx-key")
 	value := "tx-value"
 	customCtx := context.WithValue(context.Background(), key, value)
 

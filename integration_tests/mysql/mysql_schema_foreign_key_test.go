@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -15,8 +14,8 @@ func TestMySQLSchemaForeignKeyCreateTable(t *testing.T) {
 	db := SetupMySQLTest(t)
 	userTable := "fk_users"
 	postTable := "fk_posts"
-	db.Schema().DropIfExists(postTable)
-	db.Schema().DropIfExists(userTable)
+	_ = db.Schema().DropIfExists(postTable)
+	_ = db.Schema().DropIfExists(userTable)
 
 	err := db.Schema().Create(userTable, func(table schema.Blueprint) {
 		table.ID()
@@ -124,8 +123,8 @@ func TestMySQLSchemaForeignKeyCustomNames(t *testing.T) {
 	db := SetupMySQLTest(t)
 	userTable := "fk_users_named"
 	postTable := "fk_posts_named"
-	db.Schema().DropIfExists(postTable)
-	db.Schema().DropIfExists(userTable)
+	_ = db.Schema().DropIfExists(postTable)
+	_ = db.Schema().DropIfExists(userTable)
 
 	err := db.Schema().Create(userTable, func(table schema.Blueprint) {
 		table.ID()
@@ -167,8 +166,8 @@ func TestMySQLSchemaForeignKeyDrop(t *testing.T) {
 	db := SetupMySQLTest(t)
 	userTable := "fk_users_drop"
 	postTable := "fk_posts_drop"
-	db.Schema().DropIfExists(postTable)
-	db.Schema().DropIfExists(userTable)
+	_ = db.Schema().DropIfExists(postTable)
+	_ = db.Schema().DropIfExists(userTable)
 
 	err := db.Schema().Create(userTable, func(table schema.Blueprint) {
 		table.ID()

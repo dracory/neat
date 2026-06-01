@@ -243,7 +243,7 @@ func TestBulkUpdatePerformance(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		records[i] = map[string]any{"value": i}
 	}
-	w.Q.Create(&records)
+	_ = w.Q.Create(&records)
 
 	start := time.Now()
 	result, err := w.Q.Update(map[string]any{"value": 999})

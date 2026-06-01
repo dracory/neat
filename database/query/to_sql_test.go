@@ -13,6 +13,7 @@ func TestNewToSql(t *testing.T) {
 	if toSql == nil {
 		t.Error("Expected non-nil ToSql")
 	}
+
 	if toSql.query != q {
 		t.Error("Expected ToSql to have the provided query")
 	}

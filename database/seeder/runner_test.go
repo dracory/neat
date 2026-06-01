@@ -189,7 +189,7 @@ func TestResetCallOnce(t *testing.T) {
 	runner.Register([]contractsseeder.Seeder{seeder1})
 
 	// First call
-	runner.CallOnce([]contractsseeder.Seeder{seeder1})
+	_ = runner.CallOnce([]contractsseeder.Seeder{seeder1})
 
 	// Reset
 	runner.ResetCallOnce()

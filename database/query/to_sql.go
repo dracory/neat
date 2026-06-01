@@ -10,7 +10,6 @@ import (
 // ToSql implements the ToSql interface for generating SQL without execution.
 type ToSql struct {
 	query     *Query
-	args      []any
 	useValues bool
 }
 

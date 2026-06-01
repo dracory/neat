@@ -102,9 +102,9 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sql, values...)
 	} else {
-		databaseConn, err := q.DB()
-		if err != nil {
-			return nil, err
+		databaseConn, dbErr := q.DB()
+		if dbErr != nil {
+			return nil, dbErr
 		}
 		result, err = databaseConn.ExecContext(q.ctx, sql, values...)
 	}
@@ -182,9 +182,9 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sql, args...)
 	} else {
-		dbConn, err := q.DB()
-		if err != nil {
-			return nil, err
+		dbConn, dbErr := q.DB()
+		if dbErr != nil {
+			return nil, dbErr
 		}
 		result, err = dbConn.ExecContext(q.ctx, sql, args...)
 	}
@@ -239,9 +239,9 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	if q.tx != nil {
 		result, err = q.tx.ExecContext(q.ctx, sql, args...)
 	} else {
-		dbConn, err := q.DB()
-		if err != nil {
-			return nil, err
+		dbConn, dbErr := q.DB()
+		if dbErr != nil {
+			return nil, dbErr
 		}
 		result, err = dbConn.ExecContext(q.ctx, sql, args...)
 	}

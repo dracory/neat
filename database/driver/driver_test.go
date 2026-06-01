@@ -117,7 +117,7 @@ func TestMockDriverBeginTx(t *testing.T) {
 		},
 	}
 
-	mock.BeginTx(context.Background(), nil, nil)
+	_, _ = mock.BeginTx(context.Background(), nil, nil)
 	if !called {
 		t.Error("BeginTxFunc was not called")
 	}

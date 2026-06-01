@@ -164,7 +164,7 @@ func TestMySQLIntegrationReadWriteSeparation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create table: %v", err)
 	}
-	defer db.Schema().Drop(tableName)
+	defer func() { _ = db.Schema().Drop(tableName) }()
 
 	err = db.Query().Table(tableName).Create(map[string]any{"name": "writer"})
 	if err != nil {

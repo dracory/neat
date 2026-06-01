@@ -24,7 +24,7 @@ func TestSavePoint(t *testing.T) {
 		t.Errorf("SavePoint failed: %v", err)
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestSavePointNotInTransaction(t *testing.T) {
@@ -87,7 +87,7 @@ func TestRollbackTo(t *testing.T) {
 		t.Errorf("Expected 0 rows after rollback, got %d", count)
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestRollbackToNotInTransaction(t *testing.T) {
@@ -150,7 +150,7 @@ func TestSavepointCreationAndRollback(t *testing.T) {
 		t.Errorf("Expected 1 row after rollback, got %d", count)
 	}
 
-	q.tx.Rollback()
+	_ = q.tx.Rollback()
 }
 
 func TestNestedSavepointLevels(t *testing.T) {

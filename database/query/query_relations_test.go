@@ -551,10 +551,6 @@ func TestBuildForeignKeyColumn(t *testing.T) {
 }
 
 func TestGetParentTypeName(t *testing.T) {
-	type User struct {
-		ID int
-	}
-
 	type Post struct {
 		ID     int
 		UserID int
