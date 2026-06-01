@@ -17,7 +17,7 @@ func TestPostgresDriverRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if db == nil {
 		t.Fatal("Database is nil")

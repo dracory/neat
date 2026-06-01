@@ -49,7 +49,7 @@ func TestSQLServerIntegrationConnectionSwitch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	conn1 := db
 	conn2, err := db.Connection("sqlserver2")
@@ -118,7 +118,7 @@ func TestSQLServerIntegrationConnectionDefaultName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	conn, err := db.Connection("")
 	if err != nil {
@@ -143,7 +143,7 @@ func TestSQLServerIntegrationConnectionNonExistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Connection("nonexistent")
 	if err == nil {
@@ -171,7 +171,7 @@ func TestSQLServerIntegrationConnectionPoolSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database with pool settings: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {

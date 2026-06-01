@@ -22,7 +22,7 @@ func TestPostgreSQLIntegrationConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	setupTable := func(conn *neat.Database, tableName string) {
 		_ = conn.Schema().Drop(tableName)
@@ -126,7 +126,7 @@ func TestPostgreSQLIntegrationReadWriteSeparation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create DB with read/write config: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tableName := "rw_sep_test"
 	_ = db.Schema().Drop(tableName)
@@ -137,7 +137,7 @@ func TestPostgreSQLIntegrationReadWriteSeparation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create table: %v", err)
 	}
-	defer db.Schema().Drop(tableName)
+	defer func() { _ = db.Schema().Drop(tableName) }()
 
 	err = db.Query().Table(tableName).Create(map[string]any{"name": "writer"})
 	if err != nil {
@@ -168,7 +168,7 @@ func TestPostgreSQLIntegrationConnectionPoolSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database with pool settings: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlDB, err := db.DB()
 	if err != nil {

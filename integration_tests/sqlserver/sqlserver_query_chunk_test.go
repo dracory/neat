@@ -30,7 +30,7 @@ func TestSQLServerIntegrationQueryChunkBasic(t *testing.T) {
 	if db == nil {
 		t.Skip("SQL Server not available")
 	}
-	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
+	_, _ = db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 
@@ -74,7 +74,7 @@ func TestSQLServerIntegrationQueryChunkCustomBatchSize(t *testing.T) {
 	if db == nil {
 		t.Skip("SQL Server not available")
 	}
-	db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
+	_, _ = db.Query().Table("users").Where("name LIKE ?", "chunk_user_%").Delete()
 	query := db.Query()
 	seedChunkTestData(t, db)
 

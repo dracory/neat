@@ -87,7 +87,7 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	if err != nil {
 		t.Fatalf("Failed to connect to SQL Server master: %v", err)
 	}
-	defer masterConn.Close()
+	defer func() { _ = masterConn.Close() }()
 
 	sqlDB, err := masterConn.DB()
 	if err != nil {
@@ -113,7 +113,7 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	cleanupSQLServerTestData(t, conn)
 
 	t.Cleanup(func() {
-		conn.Close()
+		_ = conn.Close()
 	})
 
 	return conn
@@ -144,7 +144,7 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	if err != nil {
 		t.Fatalf("Failed to connect to SQL Server master: %v", err)
 	}
-	defer masterConn.Close()
+	defer func() { _ = masterConn.Close() }()
 
 	sqlDB, err := masterConn.DB()
 	if err != nil {
@@ -167,7 +167,7 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db

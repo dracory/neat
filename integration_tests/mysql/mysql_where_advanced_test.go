@@ -163,9 +163,9 @@ func TestMySQLIntegrationWhereNot(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data
-	db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -207,11 +207,11 @@ func TestMySQLIntegrationOrWhereNot(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data - clean up all test users
-	db.Query().Model(&models.User{}).Where("name LIKE ?", "user%").Delete(&models.User{})
-	db.Query().Model(&models.User{}).Where("name LIKE ?", "where_%").Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name LIKE ?", "user%").Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name LIKE ?", "where_%").Delete(&models.User{})
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name LIKE ?", "user%").Delete(&models.User{})
-		db.Query().Model(&models.User{}).Where("name LIKE ?", "where_%").Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name LIKE ?", "user%").Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name LIKE ?", "where_%").Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -286,7 +286,7 @@ func TestMySQLIntegrationExists(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name = ?", "existent").Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name = ?", "existent").Delete(&models.User{})
 	}()
 
 	var exists bool

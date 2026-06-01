@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -31,7 +30,7 @@ func TestPostgresIntegrationSpatial(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create spatial table: %v", err)
 	}
-	defer db.Schema().Drop("spatial_models")
+	defer func() { _ = db.Schema().Drop("spatial_models") }()
 
 	// Insert data using ST_GeomFromText
 	queryBuilder := db.Query()

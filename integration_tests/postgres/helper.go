@@ -66,7 +66,7 @@ func SetupPostgresTest(t *testing.T) *database.Database {
 	cleanupPostgresTestData(t, conn)
 
 	t.Cleanup(func() {
-		conn.Close()
+		_ = conn.Close()
 	})
 
 	return conn
@@ -93,7 +93,7 @@ func SetupPostgresConnection(t *testing.T) *database.Database {
 	}
 
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db

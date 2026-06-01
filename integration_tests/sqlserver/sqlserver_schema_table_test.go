@@ -17,7 +17,7 @@ func TestSQLServerSchemaTableCreateHasDrop(t *testing.T) {
 	db := SetupSQLServerTest(t)
 	tableName := "test_table"
 
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 	if db.Schema().HasTable(tableName) {
 		t.Error("Table should not exist after DropIfExists")
 	}
@@ -80,7 +80,7 @@ func TestSQLServerSchemaTableRename(t *testing.T) {
 		t.Error("New table should exist after rename")
 	}
 
-	db.Schema().Drop(newName)
+	_ = db.Schema().Drop(newName)
 }
 
 // TestSQLServerSchemaTableGetTables verifies that GetTableListing() and
@@ -144,8 +144,8 @@ func TestSQLServerSchemaTableGetTables(t *testing.T) {
 		t.Error("table2 should be in GetTables result")
 	}
 
-	db.Schema().Drop(table1)
-	db.Schema().Drop(table2)
+	_ = db.Schema().Drop(table1)
+	_ = db.Schema().Drop(table2)
 }
 
 // TestSQLServerSchemaTableModify verifies that Table() can alter an existing
@@ -157,7 +157,7 @@ func TestSQLServerSchemaTableModify(t *testing.T) {
 
 	db := SetupSQLServerTest(t)
 	tableName := "modify_table"
-	db.Schema().DropIfExists(tableName)
+	_ = db.Schema().DropIfExists(tableName)
 
 	if err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
@@ -171,5 +171,5 @@ func TestSQLServerSchemaTableModify(t *testing.T) {
 		t.Fatalf("Failed to modify table: %v", err)
 	}
 
-	db.Schema().Drop(tableName)
+	_ = db.Schema().Drop(tableName)
 }

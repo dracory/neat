@@ -479,7 +479,7 @@ func isSQLiteVersionAtLeast(t *testing.T, db *neat.Database, major, minor, patch
 		t.Logf("failed to get sqlite version: %v", err)
 		return false
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var versionStr string
 	if rows.Next() {

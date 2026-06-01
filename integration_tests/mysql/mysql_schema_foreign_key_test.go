@@ -59,8 +59,8 @@ func TestMySQLSchemaForeignKeyCreateTable(t *testing.T) {
 		t.Errorf("Expected on_update 'restrict', got %s", foreignKeys[0].OnUpdate)
 	}
 
-	db.Schema().Drop(postTable)
-	db.Schema().Drop(userTable)
+	_ = db.Schema().Drop(postTable)
+	_ = db.Schema().Drop(userTable)
 }
 
 func TestMySQLSchemaForeignKeyAddToExistingTable(t *testing.T) {
@@ -71,7 +71,7 @@ func TestMySQLSchemaForeignKeyAddToExistingTable(t *testing.T) {
 	db := SetupMySQLTest(t)
 	userTable := "fk_users_alter"
 	postTable := "fk_posts_alter"
-	db.Schema().DropIfExists(postTable)
+	_ = db.Schema().DropIfExists(postTable)
 	_ = db.Schema().DropIfExists(userTable)
 
 	err := db.Schema().Create(userTable, func(table schema.Blueprint) {
@@ -111,8 +111,8 @@ func TestMySQLSchemaForeignKeyAddToExistingTable(t *testing.T) {
 		t.Errorf("Expected on_update 'cascade', got %s", foreignKeys[0].OnUpdate)
 	}
 
-	db.Schema().Drop(postTable)
-	db.Schema().Drop(userTable)
+	_ = db.Schema().Drop(postTable)
+	_ = db.Schema().Drop(userTable)
 }
 
 func TestMySQLSchemaForeignKeyCustomNames(t *testing.T) {
@@ -154,8 +154,8 @@ func TestMySQLSchemaForeignKeyCustomNames(t *testing.T) {
 		t.Errorf("Expected foreign key name 'custom_fk_name', got %s", foreignKeys[0].Name)
 	}
 
-	db.Schema().Drop(postTable)
-	db.Schema().Drop(userTable)
+	_ = db.Schema().Drop(postTable)
+	_ = db.Schema().Drop(userTable)
 }
 
 func TestMySQLSchemaForeignKeyDrop(t *testing.T) {
@@ -230,6 +230,6 @@ func TestMySQLSchemaForeignKeyDrop(t *testing.T) {
 		t.Errorf("Expected 0 foreign keys, got %d", len(foreignKeys))
 	}
 
-	db.Schema().Drop(postTable)
-	db.Schema().Drop(userTable)
+	_ = db.Schema().Drop(postTable)
+	_ = db.Schema().Drop(userTable)
 }
