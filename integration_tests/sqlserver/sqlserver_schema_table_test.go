@@ -58,8 +58,8 @@ func TestSQLServerSchemaTableRename(t *testing.T) {
 	oldName := "old_table"
 	newName := "new_table"
 
-	db.Schema().DropIfExists(oldName)
-	db.Schema().DropIfExists(newName)
+	_ = db.Schema().DropIfExists(oldName)
+	_ = db.Schema().DropIfExists(newName)
 
 	err := db.Schema().Create(oldName, func(table schema.Blueprint) {
 		table.ID()
@@ -94,8 +94,8 @@ func TestSQLServerSchemaTableGetTables(t *testing.T) {
 	table1 := "table1"
 	table2 := "table2"
 
-	db.Schema().DropIfExists(table1)
-	db.Schema().DropIfExists(table2)
+	_ = db.Schema().DropIfExists(table1)
+	_ = db.Schema().DropIfExists(table2)
 
 	if err := db.Schema().Create(table1, func(table schema.Blueprint) { table.ID() }); err != nil {
 		t.Fatalf("Failed to create table1: %v", err)

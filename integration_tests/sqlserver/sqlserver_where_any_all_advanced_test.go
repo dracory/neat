@@ -199,7 +199,9 @@ func TestSQLServerIntegrationWhereAnyInvalidOperator(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAny([]string{"name"}, "INVALID", "test1").Find(&found)
@@ -216,7 +218,9 @@ func TestSQLServerIntegrationWhereAnyInvalidColumn(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAny([]string{"invalid column"}, "=", "test1").Find(&found)
@@ -243,7 +247,9 @@ func TestSQLServerIntegrationWhereAllInvalidOperator(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAll([]string{"name"}, "INVALID", "test1").Find(&found)
@@ -260,7 +266,9 @@ func TestSQLServerIntegrationWhereAllInvalidColumn(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereAll([]string{"invalid column"}, "=", "test1").Find(&found)
@@ -287,7 +295,9 @@ func TestSQLServerIntegrationWhereNoneInvalidOperator(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereNone([]string{"name"}, "INVALID", "test1").Find(&found)
@@ -304,7 +314,9 @@ func TestSQLServerIntegrationWhereNoneInvalidColumn(t *testing.T) {
 	users := []models.User{
 		{Name: "test1", Avatar: "test1"},
 	}
-	query.Model(&models.User{}).Create(&users)
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
 
 	var found []models.User
 	err := query.Model(&models.User{}).WhereNone([]string{"invalid column"}, "=", "test1").Find(&found)

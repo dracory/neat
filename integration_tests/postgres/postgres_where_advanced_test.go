@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -18,7 +17,7 @@ func TestPostgreSQLIntegrationWhereColumn(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
 	}()
 
 	// Create users with same/different created/updated at
@@ -94,7 +93,7 @@ func TestPostgreSQLIntegrationOrWhereColumn(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -136,8 +135,8 @@ func TestPostgreSQLIntegrationWhereExists(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name = ?", "exists_user").Delete(&models.User{})
-		db.Query().Model(&models.Address{}).Where("name = ?", "work").Delete(&models.Address{})
+		_, _ = db.Query().Model(&models.User{}).Where("name = ?", "exists_user").Delete(&models.User{})
+		_, _ = db.Query().Model(&models.Address{}).Where("name = ?", "work").Delete(&models.Address{})
 	}()
 
 	user := models.User{Name: "exists_user"}
@@ -175,7 +174,7 @@ func TestPostgreSQLIntegrationWhereNot(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -221,7 +220,7 @@ func TestPostgreSQLIntegrationOrWhereNot(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "user3"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "user3"}).Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -294,7 +293,7 @@ func TestPostgreSQLIntegrationExists(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		db.Query().Model(&models.User{}).Where("name = ?", "existent").Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name = ?", "existent").Delete(&models.User{})
 	}()
 
 	var exists bool
