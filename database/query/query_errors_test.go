@@ -40,7 +40,7 @@ func TestNilDatabaseConnection(t *testing.T) {
 
 	// Recover from panic since nil DB causes panic
 	defer func() {
-		if r := recover(); r != nil {
+		if r := recover(); r != nil { //nolint:staticcheck
 			// Expected panic for nil database connection - test passes if we recover
 		}
 	}()

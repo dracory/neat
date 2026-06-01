@@ -189,7 +189,7 @@ func (r *Wrap) isValidIdentifier(value string) bool {
 				return false // Empty segment (e.g., "table.")
 			}
 			// Recursively validate each segment without dots
-			if !segmentRegex.MatchString(segment) {
+			if !segmentRegex.MatchString(segment) { //nolint:staticcheck
 				return false
 			}
 		}

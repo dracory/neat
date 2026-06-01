@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -104,7 +103,7 @@ func TestPostgreSQLIntegrationWithTrashed(t *testing.T) {
 		t.Errorf("Expected 1 active user, got %d", len(activeUsers))
 	}
 
-	if activeUsers[0].Name != "with_trashed_user2" {
+	if len(activeUsers) >= 1 && activeUsers[0].Name != "with_trashed_user2" {
 		t.Errorf("Expected 'with_trashed_user2', got '%s'", activeUsers[0].Name)
 	}
 

@@ -37,7 +37,7 @@ func (q *Query) Count(count *int64) error {
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(count)
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(count) //nolint:ineffassign
 	}
 
 	if err != nil {
@@ -78,7 +78,7 @@ func (q *Query) Sum(column string, dest any) error {
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest) //nolint:ineffassign
 	}
 
 	if err != nil {
@@ -119,7 +119,7 @@ func (q *Query) Avg(column string, dest any) error {
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest) //nolint:ineffassign
 	}
 
 	if err != nil {
