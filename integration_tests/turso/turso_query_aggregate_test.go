@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -187,5 +188,105 @@ func TestTursoIntegrationQueryAggregateGroupBy(t *testing.T) {
 				t.Errorf("Expected total %d for group2, got %d", data.group2Sum, res.Total)
 			}
 		}
+	}
+}
+
+func TestTursoIntegrationQueryAggregateInvalidColumn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupTursoTest(t)
+	common.TestAggregateInvalidColumn(t, db)
+}
+
+func TestTursoIntegrationQueryAggregateNilPointer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupTursoTest(t)
+	common.TestAggregateNilPointer(t, db)
+}
+
+func TestTursoIntegrationQueryAggregateEmptyResultSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupTursoTest(t)
+	common.TestAggregateEmptyResult(t, db)
+}
+
+func TestTursoIntegrationQueryAggregateNullValues(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupTursoTest(t)
+
+	u1 := models.User{Name: "null_test_1", Bio: nil}
+	bio2 := "some bio"
+	u2 := models.User{Name: "null_test_2", Bio: &bio2}
+
+	if err := db.Query().Model(&models.User{}).Create(&u1); err != nil {
+		t.Fatalf("Failed to create u1: %v", err)
+	}
+	if err := db.Query().Model(&models.User{}).Create(&u2); err != nil {
+		t.Fatalf("Failed to create u2: %v", err)
+	}
+
+	var count int64
+	err := db.Query().Table("users").Where("name LIKE ?", "null_test_%").WhereNotNull("bio").Count(&count)
+	if err != nil {
+		t.Errorf("Count with WhereNotNull failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("Expected count 1, got %d", count)
+	}
+
+	var nullUsers []models.User
+	if err := db.Query().Model(&models.User{}).Where("name LIKE ?", "null_test_%").Find(&nullUsers); err != nil {
+		t.Fatalf("Failed to query null test users: %v", err)
+	}
+	var expectedNullSum int64
+	for _, u := range nullUsers {
+		expectedNullSum += int64(u.ID)
+	}
+
+	var sum int64
+	err = db.Query().Table("users").Where("name LIKE ?", "null_test_%").Sum("id", &sum)
+	if err != nil {
+		t.Errorf("Sum with NULL values failed: %v", err)
+	}
+	if sum != expectedNullSum {
+		t.Errorf("Expected sum %d, got %d", expectedNullSum, sum)
+	}
+}
+
+func TestTursoIntegrationQueryAggregateNonNumericColumn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupTursoTest(t)
+	seedAggregateTestData(t, db)
+
+	var sum float64
+	err := db.Query().Table("users").Where("name LIKE ?", "aggregate_user_%").Sum("name", &sum)
+	if err != nil {
+		t.Errorf("Sum on string column failed: %v", err)
+	}
+	if sum != 0.0 {
+		t.Errorf("Expected sum 0.0 for string column, got %f", sum)
+	}
+
+	var max string
+	err = db.Query().Table("users").Where("name LIKE ?", "aggregate_user_%").Max("name", &max)
+	if err != nil {
+		t.Errorf("Max on string column failed: %v", err)
+	}
+	if max != "aggregate_user_4" {
+		t.Errorf("Expected 'aggregate_user_4', got '%s'", max)
 	}
 }
