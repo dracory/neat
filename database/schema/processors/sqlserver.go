@@ -17,7 +17,7 @@ func NewSqlserver() Sqlserver {
 }
 
 func (r Sqlserver) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
-	var columns []schema.Column
+	columns := make([]schema.Column, 0)
 	for _, dbColumn := range dbColumns {
 		var collation, comment string
 		if dbColumn.Collation != nil {
@@ -43,7 +43,7 @@ func (r Sqlserver) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 }
 
 func (r Sqlserver) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []schema.ForeignKey {
-	var foreignKeys []schema.ForeignKey
+	foreignKeys := make([]schema.ForeignKey, 0)
 	for _, dbForeignKey := range dbForeignKeys {
 		foreignKeys = append(foreignKeys, schema.ForeignKey{
 			Name:           dbForeignKey.Name,

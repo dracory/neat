@@ -220,5 +220,6 @@ func TestTursoDriver(t *testing.T) {
 	if err != nil { //nolint:staticcheck
 		// Expected to fail without a real database connection
 		// We're just testing that the method doesn't panic
+		_ = err // Explicitly ignore expected error
 	}
 }

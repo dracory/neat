@@ -17,7 +17,7 @@ func NewPostgres() Postgres {
 }
 
 func (r Postgres) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
-	var columns []schema.Column
+	columns := make([]schema.Column, 0)
 	for _, dbColumn := range dbColumns {
 		var autoincrement bool
 		if str.Of(cast.ToString(dbColumn.Default)).StartsWith("nextval(") {
@@ -48,7 +48,7 @@ func (r Postgres) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 }
 
 func (r Postgres) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []schema.ForeignKey {
-	var foreignKeys []schema.ForeignKey
+	foreignKeys := make([]schema.ForeignKey, 0)
 
 	short := map[string]string{
 		"a": "no action",

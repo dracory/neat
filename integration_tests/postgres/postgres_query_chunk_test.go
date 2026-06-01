@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -112,8 +111,7 @@ func TestPostgresIntegrationQueryChunkErrorHandling(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected error from chunk callback")
-	}
-	if err.Error() != "stop chunking" {
+	} else if err.Error() != "stop chunking" {
 		t.Errorf("Expected error 'stop chunking', got '%s'", err.Error())
 	}
 	if totalCount != 6 {

@@ -46,17 +46,19 @@ func TestPostgresIntegrationGroupBySingleColumn(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar1" {
-		t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
-	}
-	if results[0].Count != 2 {
-		t.Errorf("Expected count 2, got %d", results[0].Count)
-	}
-	if results[1].Avatar != "avatar2" {
-		t.Errorf("Expected 'avatar2', got '%s'", results[1].Avatar)
-	}
-	if results[1].Count != 3 {
-		t.Errorf("Expected count 3, got %d", results[1].Count)
+	if len(results) >= 2 {
+		if results[0].Avatar != "avatar1" {
+			t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
+		}
+		if results[0].Count != 2 {
+			t.Errorf("Expected count 2, got %d", results[0].Count)
+		}
+		if results[1].Avatar != "avatar2" {
+			t.Errorf("Expected 'avatar2', got '%s'", results[1].Avatar)
+		}
+		if results[1].Count != 3 {
+			t.Errorf("Expected count 3, got %d", results[1].Count)
+		}
 	}
 }
 
@@ -81,11 +83,13 @@ func TestPostgresIntegrationHavingClause(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar2" {
-		t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
-	}
-	if results[0].Count != 3 {
-		t.Errorf("Expected count 3, got %d", results[0].Count)
+	if len(results) >= 1 {
+		if results[0].Avatar != "avatar2" {
+			t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
+		}
+		if results[0].Count != 3 {
+			t.Errorf("Expected count 3, got %d", results[0].Count)
+		}
 	}
 }
 
@@ -114,11 +118,13 @@ func TestPostgresIntegrationMultipleHavingClauses(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar1" {
-		t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
-	}
-	if results[0].Count != 2 {
-		t.Errorf("Expected count 2, got %d", results[0].Count)
+	if len(results) >= 1 {
+		if results[0].Avatar != "avatar1" {
+			t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
+		}
+		if results[0].Count != 2 {
+			t.Errorf("Expected count 2, got %d", results[0].Count)
+		}
 	}
 }
 
@@ -183,7 +189,7 @@ func TestPostgresIntegrationHavingWithSubqueryInArgs(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar2" {
+	if len(results) >= 1 && results[0].Avatar != "avatar2" {
 		t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
 	}
 }

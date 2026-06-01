@@ -156,9 +156,9 @@ func (q *Query) Min(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.ReadDB()
-		if err != nil {
-			return err
+		databaseConn, readErr := q.ReadDB()
+		if readErr != nil {
+			return readErr
 		}
 		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	}
@@ -197,9 +197,9 @@ func (q *Query) Max(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.ReadDB()
-		if err != nil {
-			return err
+		databaseConn, readErr := q.ReadDB()
+		if readErr != nil {
+			return readErr
 		}
 		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	}
@@ -237,9 +237,9 @@ func (q *Query) Exists(exists *bool) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(&count)
 	} else {
-		databaseConn, err := q.ReadDB()
-		if err != nil {
-			return err
+		databaseConn, readErr := q.ReadDB()
+		if readErr != nil {
+			return readErr
 		}
 		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(&count)
 	}
@@ -318,9 +318,9 @@ func (q *Query) Value(column string, dest any) error {
 	if q.tx != nil {
 		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	} else {
-		databaseConn, err := q.ReadDB()
-		if err != nil {
-			return err
+		databaseConn, readErr := q.ReadDB()
+		if readErr != nil {
+			return readErr
 		}
 		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
 	}

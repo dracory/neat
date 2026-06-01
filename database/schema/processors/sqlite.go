@@ -18,6 +18,7 @@ func NewSqlite() Sqlite {
 
 func (r Sqlite) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 	var primaryKeyNum int
+	columns := make([]schema.Column, 0)
 	collect.Map(dbColumns, func(dbColumn schema.DBColumn, _ int) bool {
 		if dbColumn.Primary {
 			primaryKeyNum++
@@ -26,7 +27,6 @@ func (r Sqlite) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 		return true
 	})
 
-	var columns []schema.Column
 	for _, dbColumn := range dbColumns {
 		ttype := strings.ToLower(dbColumn.Type)
 		typeNameParts := strings.SplitN(ttype, "(", 2)
@@ -55,7 +55,7 @@ func (r Sqlite) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 }
 
 func (r Sqlite) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []schema.ForeignKey {
-	var foreignKeys []schema.ForeignKey
+	foreignKeys := make([]schema.ForeignKey, 0)
 	for _, dbForeignKey := range dbForeignKeys {
 		foreignKeys = append(foreignKeys, schema.ForeignKey{
 			Name:           dbForeignKey.Name,
@@ -72,7 +72,7 @@ func (r Sqlite) ProcessForeignKeys(dbForeignKeys []schema.DBForeignKey) []schema
 
 func (r Sqlite) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
 	var (
-		indexes      []schema.Index
+		indexes      = make([]schema.Index, 0)
 		primaryCount int
 	)
 	for _, dbIndex := range dbIndexes {

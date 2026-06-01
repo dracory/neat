@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -183,7 +182,7 @@ func TestMySQLIntegrationHavingWithSubqueryInArgs(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar2" {
+	if len(results) >= 1 && results[0].Avatar != "avatar2" {
 		t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
 	}
 }

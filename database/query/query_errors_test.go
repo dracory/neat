@@ -42,6 +42,7 @@ func TestNilDatabaseConnection(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil { //nolint:staticcheck
 			// Expected panic for nil database connection - test passes if we recover
+			_ = r // Explicitly ignore recovered value
 		}
 	}()
 
@@ -160,6 +161,7 @@ func TestTransactionCommitError(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			// Expected panic for closed connection - test passes if we recover
+			_ = r // Explicitly ignore recovered value
 		}
 	}()
 
@@ -197,6 +199,7 @@ func TestTransactionRollbackError(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			// Expected panic for closed connection - test passes if we recover
+			_ = r // Explicitly ignore recovered value
 		}
 	}()
 
@@ -758,6 +761,7 @@ func TestDialectErrorHandlingMySQL(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			// Expected panic for nil database connection
+			_ = r // Explicitly ignore recovered value
 		}
 	}()
 
@@ -778,6 +782,7 @@ func TestDialectErrorHandlingPostgreSQL(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			// Expected panic for nil database connection
+			_ = r // Explicitly ignore recovered value
 		}
 	}()
 
@@ -798,6 +803,7 @@ func TestDialectErrorHandlingSQLite(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			// Expected panic for nil database connection
+			_ = r // Explicitly ignore recovered value
 		}
 	}()
 

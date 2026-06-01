@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -39,11 +38,13 @@ func TestPostgresIntegrationDistinctSingleColumn(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].Avatar != "avatar1" {
-		t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
-	}
-	if results[1].Avatar != "avatar2" {
-		t.Errorf("Expected 'avatar2', got '%s'", results[1].Avatar)
+	if len(results) >= 2 {
+		if results[0].Avatar != "avatar1" {
+			t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
+		}
+		if results[1].Avatar != "avatar2" {
+			t.Errorf("Expected 'avatar2', got '%s'", results[1].Avatar)
+		}
 	}
 }
 

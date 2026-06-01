@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -34,14 +33,16 @@ func TestPostgresIntegrationOrderByAscending(t *testing.T) {
 	if len(results) != 5 {
 		t.Errorf("Expected 5 results, got %d", len(results))
 	}
-	if results[0].Name != "user_a" {
-		t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
-	}
-	if results[1].Name != "user_b" {
-		t.Errorf("Expected 'user_b', got '%s'", results[1].Name)
-	}
-	if results[2].Name != "user_c" {
-		t.Errorf("Expected 'user_c', got '%s'", results[2].Name)
+	if len(results) >= 3 {
+		if results[0].Name != "user_a" {
+			t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_b" {
+			t.Errorf("Expected 'user_b', got '%s'", results[1].Name)
+		}
+		if results[2].Name != "user_c" {
+			t.Errorf("Expected 'user_c', got '%s'", results[2].Name)
+		}
 	}
 }
 
@@ -72,14 +73,16 @@ func TestPostgresIntegrationOrderByDescending(t *testing.T) {
 	if len(results) != 5 {
 		t.Errorf("Expected 5 results, got %d", len(results))
 	}
-	if results[0].Name != "user_e" {
-		t.Errorf("Expected 'user_e', got '%s'", results[0].Name)
-	}
-	if results[1].Name != "user_d" {
-		t.Errorf("Expected 'user_d', got '%s'", results[1].Name)
-	}
-	if results[2].Name != "user_c" {
-		t.Errorf("Expected 'user_c', got '%s'", results[2].Name)
+	if len(results) >= 3 {
+		if results[0].Name != "user_e" {
+			t.Errorf("Expected 'user_e', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_d" {
+			t.Errorf("Expected 'user_d', got '%s'", results[1].Name)
+		}
+		if results[2].Name != "user_c" {
+			t.Errorf("Expected 'user_c', got '%s'", results[2].Name)
+		}
 	}
 }
 
@@ -110,7 +113,7 @@ func TestPostgresIntegrationOrderByDescMethod(t *testing.T) {
 	if len(results) != 5 {
 		t.Errorf("Expected 5 results, got %d", len(results))
 	}
-	if results[0].Name != "user_e" {
+	if len(results) >= 1 && results[0].Name != "user_e" {
 		t.Errorf("Expected 'user_e', got '%s'", results[0].Name)
 	}
 }
@@ -153,11 +156,13 @@ func TestPostgresIntegrationMultipleOrderByClauses(t *testing.T) {
 	if len(userAEntries) != 2 {
 		t.Errorf("Expected 2 user_a entries, got %d", len(userAEntries))
 	}
-	if userAEntries[0].Avatar != "avatar0" {
-		t.Errorf("Expected 'avatar0', got '%s'", userAEntries[0].Avatar)
-	}
-	if userAEntries[1].Avatar != "avatar1" {
-		t.Errorf("Expected 'avatar1', got '%s'", userAEntries[1].Avatar)
+	if len(userAEntries) >= 2 {
+		if userAEntries[0].Avatar != "avatar0" {
+			t.Errorf("Expected 'avatar0', got '%s'", userAEntries[0].Avatar)
+		}
+		if userAEntries[1].Avatar != "avatar1" {
+			t.Errorf("Expected 'avatar1', got '%s'", userAEntries[1].Avatar)
+		}
 	}
 }
 
@@ -250,11 +255,13 @@ func TestPostgresIntegrationLimitWithOrderBy(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].Name != "user_a" {
-		t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
-	}
-	if results[1].Name != "user_a" {
-		t.Errorf("Expected 'user_a', got '%s'", results[1].Name)
+	if len(results) >= 2 {
+		if results[0].Name != "user_a" {
+			t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_a" {
+			t.Errorf("Expected 'user_a', got '%s'", results[1].Name)
+		}
 	}
 }
 
@@ -359,11 +366,13 @@ func TestPostgresIntegrationOffsetWithLimit(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].Name != "user_b" {
-		t.Errorf("Expected 'user_b', got '%s'", results[0].Name)
-	}
-	if results[1].Name != "user_c" {
-		t.Errorf("Expected 'user_c', got '%s'", results[1].Name)
+	if len(results) >= 2 {
+		if results[0].Name != "user_b" {
+			t.Errorf("Expected 'user_b', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_c" {
+			t.Errorf("Expected 'user_c', got '%s'", results[1].Name)
+		}
 	}
 }
 

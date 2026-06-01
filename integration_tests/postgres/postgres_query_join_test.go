@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -61,11 +60,13 @@ func TestPostgresIntegrationInnerJoin(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-	}
-	if results[0].AddressName != "address1" {
-		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	if len(results) >= 1 {
+		if results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+		}
+		if results[0].AddressName != "address1" {
+			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+		}
 	}
 }
 
@@ -141,17 +142,19 @@ func TestPostgresIntegrationLeftJoin(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-	}
-	if results[0].AddressName == nil {
-		t.Error("Expected AddressName to be non-nil for join_user1")
-	}
-	if results[1].UserName != "join_user2" {
-		t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
-	}
-	if results[1].AddressName != nil {
-		t.Error("Expected AddressName to be nil for join_user2")
+	if len(results) >= 2 {
+		if results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+		}
+		if results[0].AddressName == nil {
+			t.Error("Expected AddressName to be non-nil for join_user1")
+		}
+		if results[1].UserName != "join_user2" {
+			t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
+		}
+		if results[1].AddressName != nil {
+			t.Error("Expected AddressName to be nil for join_user2")
+		}
 	}
 }
 
@@ -179,11 +182,13 @@ func TestPostgresIntegrationLeftJoinWithConditions(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
-	if results[0].AddressName != nil {
-		t.Error("Expected AddressName to be nil")
-	}
-	if results[1].AddressName != nil {
-		t.Error("Expected AddressName to be nil")
+	if len(results) >= 2 {
+		if results[0].AddressName != nil {
+			t.Error("Expected AddressName to be nil")
+		}
+		if results[1].AddressName != nil {
+			t.Error("Expected AddressName to be nil")
+		}
 	}
 }
 
@@ -234,11 +239,13 @@ func TestPostgresIntegrationRightJoin(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].UserName == nil || *results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%v'", results[0].UserName)
-	}
-	if results[0].AddressName != "address1" {
-		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	if len(results) >= 1 {
+		if results[0].UserName == nil || *results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%v'", results[0].UserName)
+		}
+		if results[0].AddressName != "address1" {
+			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+		}
 	}
 }
 
@@ -395,14 +402,16 @@ func TestPostgresIntegrationMultipleJoins(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-	}
-	if results[0].AddressName != "address1" {
-		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
-	}
-	if results[0].BookName != "book1" {
-		t.Errorf("Expected 'book1', got '%s'", results[0].BookName)
+	if len(results) >= 1 {
+		if results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+		}
+		if results[0].AddressName != "address1" {
+			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+		}
+		if results[0].BookName != "book1" {
+			t.Errorf("Expected 'book1', got '%s'", results[0].BookName)
+		}
 	}
 }
 
