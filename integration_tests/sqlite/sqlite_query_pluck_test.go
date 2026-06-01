@@ -3,25 +3,9 @@ package sqlite
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
-
-func seedPluckTestData(t *testing.T, db *database.Database) {
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "pluck_user_1", Avatar: "avatar1"},
-		{Name: "pluck_user_2", Avatar: "avatar2"},
-		{Name: "pluck_user_3", Avatar: "avatar1"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-}
 
 func TestSQLiteIntegrationPluckSingleColumn(t *testing.T) {
 	if testing.Short() {
@@ -29,7 +13,7 @@ func TestSQLiteIntegrationPluckSingleColumn(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedPluckTestData(t, db)
+	common.SeedPluckTestData(t, db)
 
 	names := make([]string, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").OrderBy("name", "asc").Pluck("name", &names)
@@ -56,7 +40,7 @@ func TestSQLiteIntegrationPluckWithWhere(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedPluckTestData(t, db)
+	common.SeedPluckTestData(t, db)
 
 	names := make([]string, 0)
 	err := db.Query().Model(&models.User{}).Where("avatar = ?", "avatar1").OrderBy("name", "asc").Pluck("name", &names)
@@ -80,7 +64,7 @@ func TestSQLiteIntegrationPluckIntoMaps(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedPluckTestData(t, db)
+	common.SeedPluckTestData(t, db)
 
 	var results []map[string]any
 	err := db.Query().Model(&models.User{}).Where("name = ?", "pluck_user_1").Select("name, avatar").Scan(&results)
@@ -101,7 +85,7 @@ func TestSQLiteIntegrationPluckDuplicates(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedPluckTestData(t, db)
+	common.SeedPluckTestData(t, db)
 
 	avatars := make([]string, 0)
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").OrderBy("avatar", "asc").Pluck("avatar", &avatars)
@@ -128,7 +112,7 @@ func TestSQLiteIntegrationPluckEmptyResults(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedPluckTestData(t, db)
+	common.SeedPluckTestData(t, db)
 
 	var names []string
 	err := db.Query().Model(&models.User{}).Where("name = ?", "non_existent").Pluck("name", &names)
@@ -146,27 +130,5 @@ func TestSQLiteIntegrationPluckDistinct(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedPluckTestData(t, db)
-
-	var avatars []string
-	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").Distinct("avatar").OrderBy("avatar", "asc").Pluck("avatar", &avatars)
-	if err != nil {
-		t.Errorf("Pluck with Distinct failed: %v", err)
-	}
-	if len(avatars) != 2 {
-		t.Errorf("Expected 2 avatars, got %d", len(avatars))
-	}
-	foundAvatar1 := false
-	foundAvatar2 := false
-	for _, avatar := range avatars {
-		if avatar == "avatar1" {
-			foundAvatar1 = true
-		}
-		if avatar == "avatar2" {
-			foundAvatar2 = true
-		}
-	}
-	if !foundAvatar1 || !foundAvatar2 {
-		t.Errorf("Expected to find both avatar1 and avatar2")
-	}
+	common.TestPluckWithDistinct(t, db)
 }

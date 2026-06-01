@@ -3,6 +3,7 @@ package postgres
 import (
 	"testing"
 
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -12,18 +13,7 @@ func TestPostgresIntegrationOrderByAscending(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Get(&results)
@@ -52,18 +42,7 @@ func TestPostgresIntegrationOrderByDescending(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).OrderBy("name", "desc").Get(&results)
@@ -92,18 +71,7 @@ func TestPostgresIntegrationOrderByDescMethod(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).OrderByDesc("name").Get(&results)
@@ -125,17 +93,7 @@ func TestPostgresIntegrationMultipleOrderByClauses(t *testing.T) {
 
 	db := SetupPostgresTest(t)
 	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
 		t.Fatalf("Failed to create additional user: %v", err)
@@ -172,18 +130,7 @@ func TestPostgresIntegrationOrderByWithExpressions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Order("LENGTH(name) DESC").OrderBy("name", "asc").Get(&results)
@@ -201,18 +148,7 @@ func TestPostgresIntegrationLimitClause(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Limit(2).Get(&results)
@@ -231,17 +167,7 @@ func TestPostgresIntegrationLimitWithOrderBy(t *testing.T) {
 
 	db := SetupPostgresTest(t)
 	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
 		t.Fatalf("Failed to create additional user: %v", err)
@@ -271,18 +197,7 @@ func TestPostgresIntegrationLimitEdgeCaseZero(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Limit(0).Get(&results)
@@ -309,17 +224,7 @@ func TestPostgresIntegrationOffsetClause(t *testing.T) {
 
 	db := SetupPostgresTest(t)
 	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
 		t.Fatalf("Failed to create additional user: %v", err)
@@ -342,17 +247,7 @@ func TestPostgresIntegrationOffsetWithLimit(t *testing.T) {
 
 	db := SetupPostgresTest(t)
 	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
 		t.Fatalf("Failed to create additional user: %v", err)
@@ -383,17 +278,7 @@ func TestPostgresIntegrationInRandomOrderMethod(t *testing.T) {
 
 	db := SetupPostgresTest(t)
 	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
 		t.Fatalf("Failed to create additional user: %v", err)
@@ -426,17 +311,7 @@ func TestPostgresIntegrationRandomOrderingWithLimit(t *testing.T) {
 
 	db := SetupPostgresTest(t)
 	query := db.Query()
-
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
 		t.Fatalf("Failed to create additional user: %v", err)

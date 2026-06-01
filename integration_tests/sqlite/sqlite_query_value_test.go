@@ -4,22 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
-
-func seedValueTestData(t *testing.T, db *database.Database) {
-	query := db.Query()
-	users := []models.User{
-		{Name: "value_user_1", Avatar: "avatar_1"},
-		{Name: "value_user_2", Avatar: "avatar_2"},
-	}
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-}
 
 func TestSQLiteIntegrationQueryValueBasic(t *testing.T) {
 	if testing.Short() {
@@ -27,7 +14,7 @@ func TestSQLiteIntegrationQueryValueBasic(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedValueTestData(t, db)
+	common.SeedValueTestData(t, db)
 
 	var name string
 	err := db.Query().Model(&models.User{}).OrderBy("id", "asc").Value("name", &name)
@@ -45,7 +32,7 @@ func TestSQLiteIntegrationQueryValueWithWhere(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedValueTestData(t, db)
+	common.SeedValueTestData(t, db)
 
 	var name string
 	err := db.Query().Model(&models.User{}).Where("avatar = ?", "avatar_2").Value("name", &name)
@@ -63,7 +50,7 @@ func TestSQLiteIntegrationQueryValueWithOrder(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedValueTestData(t, db)
+	common.SeedValueTestData(t, db)
 
 	var name string
 	err := db.Query().Model(&models.User{}).OrderBy("id", "desc").Value("name", &name)
@@ -81,7 +68,7 @@ func TestSQLiteIntegrationQueryValueNotFound(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedValueTestData(t, db)
+	common.SeedValueTestData(t, db)
 
 	var name string
 	err := db.Query().Model(&models.User{}).Where("name = ?", "non_existent").Value("name", &name)

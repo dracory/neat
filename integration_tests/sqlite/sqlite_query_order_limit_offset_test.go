@@ -3,23 +3,9 @@ package sqlite
 import (
 	"testing"
 
-	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
-
-func seedOrderLimitOffsetTestData(t *testing.T, db *database.Database) {
-	query := db.Query()
-	users := []models.User{
-		{Name: "user_b", Avatar: "avatar2"},
-		{Name: "user_a", Avatar: "avatar1"},
-		{Name: "user_c", Avatar: "avatar3"},
-		{Name: "user_d", Avatar: "avatar4"},
-		{Name: "user_e", Avatar: "avatar5"},
-	}
-	if err := query.Model(&models.User{}).Create(&users); err != nil {
-		t.Fatalf("Failed to create users: %v", err)
-	}
-}
 
 func TestSQLiteIntegrationOrderByAscending(t *testing.T) {
 	if testing.Short() {
@@ -27,7 +13,7 @@ func TestSQLiteIntegrationOrderByAscending(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Get(&results)
@@ -54,7 +40,7 @@ func TestSQLiteIntegrationOrderByDescending(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderBy("name", "desc").Get(&results)
@@ -81,7 +67,7 @@ func TestSQLiteIntegrationOrderByDescMethod(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	results := make([]models.User, 0)
 	err := db.Query().Model(&models.User{}).OrderByDesc("name").Get(&results)
@@ -102,7 +88,7 @@ func TestSQLiteIntegrationMultipleOrderByClauses(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 	query := db.Query()
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
@@ -138,7 +124,7 @@ func TestSQLiteIntegrationOrderByWithExpressions(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Order("LENGTH(name) DESC").OrderBy("name", "asc").Get(&results)
@@ -156,7 +142,7 @@ func TestSQLiteIntegrationLimitClause(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Limit(2).Get(&results)
@@ -174,7 +160,7 @@ func TestSQLiteIntegrationLimitWithOrderBy(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 	query := db.Query()
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
@@ -203,7 +189,7 @@ func TestSQLiteIntegrationLimitEdgeCaseZero(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Limit(0).Get(&results)
@@ -221,7 +207,7 @@ func TestSQLiteIntegrationLimitEdgeCaseNegative(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 
 	var results []models.User
 	err := db.Query().Model(&models.User{}).Limit(-1).Get(&results)
@@ -239,7 +225,7 @@ func TestSQLiteIntegrationOffsetClause(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 	query := db.Query()
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
@@ -262,7 +248,7 @@ func TestSQLiteIntegrationOffsetWithLimit(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 	query := db.Query()
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
@@ -291,7 +277,7 @@ func TestSQLiteIntegrationInRandomOrder(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 	query := db.Query()
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
@@ -324,7 +310,7 @@ func TestSQLiteIntegrationRandomOrderingWithLimit(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedOrderLimitOffsetTestData(t, db)
+	common.SeedOrderLimitOffsetTestData(t, db)
 	query := db.Query()
 
 	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {

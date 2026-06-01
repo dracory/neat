@@ -11,6 +11,10 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 - ✅ **Join Tests** - Created `join_helpers.go` with shared functions and refactored MySQL and PostgreSQL test files (PostgreSQL-specific tests kept in postgres package)
 - ✅ **Group/Having Tests** - Created `group_having_helpers.go` with shared functions and refactored all 5 database-specific test files (SQLite and Turso-specific tests kept in their packages)
 - ✅ **Aggregate Tests** - Created `aggregate_helpers.go` with shared functions and refactored all 5 database-specific test files (PostgreSQL, SQLite, and Turso-specific tests kept in their packages)
+- ✅ **Pluck Tests** - Created `pluck_helpers.go` with shared functions and refactored all 5 database-specific test files (SQLite and Turso-specific tests kept in their packages)
+- ✅ **Value Tests** - Created `value_helpers.go` with shared functions and refactored all 5 database-specific test files (SQLite and Turso-specific tests kept in their packages)
+- ✅ **Distinct Tests** - Created `distinct_helpers.go` with shared functions and refactored all 5 database-specific test files (SQLite and Turso-specific tests kept in their packages)
+- ✅ **Order/Limit/Offset Tests** - Created `order_limit_offset_helpers.go` with shared functions and refactored all 5 database-specific test files (PostgreSQL, SQLite, and Turso-specific tests kept in their packages)
 
 ## Priority 1: High Duplication Tests
 
@@ -67,20 +71,20 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 **Note:** MySQL uses `seedChunkTestData` helper and deletes existing data first, PostgreSQL creates users inline. Different approaches.
 **Action:** Review if seeding can be harmonized before creating helpers
 
-### 7. Pluck Tests
+### 7. Pluck Tests ✅
 **Files:** `*_query_pluck_test.go` (5 databases)
 **Note:** MySQL uses `seedPluckTestData` helper, PostgreSQL creates users inline. Same data structure, different seeding approach.
-**Action:** Can be deduplicated after harmonizing seeding strategy
+**Action:** ✅ Created `pluck_helpers.go` with shared functions, kept SQLite and Turso-specific tests
 
-### 8. Value Tests
+### 8. Value Tests ✅
 **Files:** `*_query_value_test.go` (5 databases)
 **Note:** MySQL uses `seedValueTestData` helper, PostgreSQL creates users inline. Same data structure, different seeding approach.
-**Action:** Can be deduplicated after harmonizing seeding strategy
+**Action:** ✅ Created `value_helpers.go` with shared functions, kept SQLite and Turso-specific tests
 
-### 9. Distinct Tests
+### 9. Distinct Tests ✅
 **Files:** `*_query_distinct_test.go` (4 databases: mysql, postgres, sqlite, sqlserver)
 **Note:** MySQL uses `seedDistinctTestData` helper with time fields, PostgreSQL creates users inline. Same data structure.
-**Action:** Can be deduplicated after harmonizing seeding strategy
+**Action:** ✅ Created `distinct_helpers.go` with shared functions, kept SQLite and Turso-specific tests
 
 ### 10. Join Tests ✅
 **Files:** `*_query_join_test.go` (5 databases)
@@ -92,10 +96,10 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 **Note:** Both MySQL and PostgreSQL use identical `seedGroupHavingTestData` helper. Good candidate for deduplication.
 **Action:** ✅ Created `group_having_helpers.go` with shared seed function and test functions
 
-### 12. Order/Limit/Offset Tests
+### 12. Order/Limit/Offset Tests ✅
 **Files:** `*_query_order_limit_offset_test.go` (5 databases)
 **Note:** MySQL uses `seedOrderLimitOffsetTestData` helper, PostgreSQL creates users inline. Same data structure.
-**Action:** Can be deduplicated after harmonizing seeding strategy
+**Action:** ✅ Created `order_limit_offset_helpers.go` with shared functions, kept PostgreSQL, SQLite, and Turso-specific tests
 
 ### 13. JSON Tests
 **Files:** `*_query_json_test.go` (5 databases)
@@ -141,10 +145,10 @@ Integration tests across MySQL, PostgreSQL, SQLite, SQL Server, and Turso have s
 5. **Group/Having Tests** ✅ - Identical `seedGroupHavingTestData` helper across MySQL/PostgreSQL
 
 ### Secondary (Medium ROI - Needs Harmonization):
-6. **Pluck Tests** - Same data, different seeding approach (helper vs inline)
-7. **Value Tests** - Same data, different seeding approach (helper vs inline)
-8. **Distinct Tests** - Same data, different seeding approach (helper vs inline with time fields)
-9. **Order/Limit/Offset Tests** - Same data, different seeding approach (helper vs inline)
+6. **Pluck Tests** ✅ - Same data, different seeding approach (helper vs inline) - completed with shared helpers
+7. **Value Tests** ✅ - Same data, different seeding approach (helper vs inline) - completed with shared helpers
+8. **Distinct Tests** ✅ - Same data, different seeding approach (helper vs inline with time fields) - completed with shared helpers
+9. **Order/Limit/Offset Tests** ✅ - Same data, different seeding approach (helper vs inline) - completed with shared helpers
 10. **Aggregate Tests** ✅ - Different seeding strategies (time fields vs explicit IDs) - completed with shared helpers
 11. **Chunk Tests** - Different seeding strategies (helper with cleanup vs inline)
 
