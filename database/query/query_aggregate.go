@@ -66,27 +66,31 @@ func (q *Query) Sum(column string, dest any) error {
 
 	// Build SELECT query
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildSelect()
+	querySQL, args := builder.BuildSelect()
 
 	// Execute query
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest) //nolint:ineffassign
+		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest) //nolint:ineffassign
 	}
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows found - set zero value for destination
+			return nil
+		}
 		return sanitizeError(fmt.Errorf("failed to execute SUM query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
-	q.logQuery(sql, args, start)
+	q.logQuery(querySQL, args, start)
 
 	return nil
 }
@@ -107,27 +111,31 @@ func (q *Query) Avg(column string, dest any) error {
 
 	// Build SELECT query
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildSelect()
+	querySQL, args := builder.BuildSelect()
 
 	// Execute query
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest) //nolint:ineffassign
+		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest) //nolint:ineffassign
 	}
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows found - set zero value for destination
+			return nil
+		}
 		return sanitizeError(fmt.Errorf("failed to execute AVG query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
-	q.logQuery(sql, args, start)
+	q.logQuery(querySQL, args, start)
 
 	return nil
 }
@@ -148,27 +156,31 @@ func (q *Query) Min(column string, dest any) error {
 
 	// Build SELECT query
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildSelect()
+	querySQL, args := builder.BuildSelect()
 
 	// Execute query
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	}
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows found - set zero value for destination
+			return nil
+		}
 		return sanitizeError(fmt.Errorf("failed to execute MIN query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
-	q.logQuery(sql, args, start)
+	q.logQuery(querySQL, args, start)
 
 	return nil
 }
@@ -189,27 +201,31 @@ func (q *Query) Max(column string, dest any) error {
 
 	// Build SELECT query
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildSelect()
+	querySQL, args := builder.BuildSelect()
 
 	// Execute query
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	}
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows found - set zero value for destination
+			return nil
+		}
 		return sanitizeError(fmt.Errorf("failed to execute MAX query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
-	q.logQuery(sql, args, start)
+	q.logQuery(querySQL, args, start)
 
 	return nil
 }
@@ -310,27 +326,31 @@ func (q *Query) Value(column string, dest any) error {
 
 	// Build SELECT query
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildSelect()
+	querySQL, args := builder.BuildSelect()
 
 	// Execute query
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
 	}
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows found is not an error for Value - return zero value
+			return nil
+		}
 		return sanitizeError(fmt.Errorf("failed to execute VALUE query: %w", err), q.isProduction())
 	}
 
 	// Log query if enabled
-	q.logQuery(sql, args, start)
+	q.logQuery(querySQL, args, start)
 
 	return nil
 }

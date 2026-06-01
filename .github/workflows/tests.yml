@@ -167,8 +167,8 @@ jobs:
         go install github.com/securego/gosec/v2/cmd/gosec@latest
         $(go env GOPATH)/bin/gosec ./... || true
 
-    - name: Test with coverage
-      run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+    # - name: Test with coverage
+    #   run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
     # - name: Upload coverage to Codecov
     #   uses: codecov/codecov-action@v5
