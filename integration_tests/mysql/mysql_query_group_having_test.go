@@ -37,7 +37,7 @@ func TestMySQLIntegrationGroupBySingleColumn(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").OrderBy("avatar", "asc").Scan(&results)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestMySQLIntegrationHavingClause(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").Group("avatar").Having("COUNT(*) > ?", 2).Scan(&results)
 	if err != nil {
@@ -101,7 +101,7 @@ func TestMySQLIntegrationMultipleHavingClauses(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").
 		Group("avatar").
@@ -134,7 +134,7 @@ func TestMySQLIntegrationHavingWithSubqueryCallback(t *testing.T) {
 		Avatar string
 		Count  int64
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").
 		Group("avatar").

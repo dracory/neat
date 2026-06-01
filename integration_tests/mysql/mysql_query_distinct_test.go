@@ -1,4 +1,3 @@
-
 package mysql
 
 import (
@@ -37,7 +36,7 @@ func TestMySQLIntegrationDistinctSingleColumn(t *testing.T) {
 	type Result struct {
 		Avatar string
 	}
-	var results []Result
+	var results []Result = []Result{}
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "distinct_user_%").
 		Select("avatar").Distinct().OrderBy("avatar", "asc").Scan(&results)
 	if err != nil {

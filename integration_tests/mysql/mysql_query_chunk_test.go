@@ -119,7 +119,7 @@ func TestMySQLIntegrationQueryChunkErrorHandling(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-	if err.Error() != "stop chunking" {
+	if err != nil && err.Error() != "stop chunking" {
 		t.Errorf("Expected 'stop chunking' error, got '%s'", err.Error())
 	}
 	if totalCount != 6 {

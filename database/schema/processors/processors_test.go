@@ -159,6 +159,9 @@ func TestPostgresProcessColumnsAutoincrement(t *testing.T) {
 	}
 	p := NewPostgres()
 	got := p.ProcessColumns(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessColumns returned empty slice")
+	}
 	if !got[0].Autoincrement {
 		t.Error("id column with nextval default should be autoincrement")
 	}
@@ -171,6 +174,9 @@ func TestPostgresProcessColumnsNilPointers(t *testing.T) {
 	input := []schema.DBColumn{{Name: "x", Type: "int"}}
 	p := NewPostgres()
 	got := p.ProcessColumns(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessColumns returned empty slice")
+	}
 	if got[0].Collation != "" || got[0].Comment != "" {
 		t.Errorf("nil pointers should yield empty strings: %+v", got[0])
 	}
@@ -184,6 +190,9 @@ func TestPostgresProcessForeignKeysShortCodes(t *testing.T) {
 	}
 	p := NewPostgres()
 	got := p.ProcessForeignKeys(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessForeignKeys returned empty slice")
+	}
 	if got[0].OnUpdate != "no action" || got[0].OnDelete != "cascade" {
 		t.Errorf("short codes a/c: %+v", got[0])
 	}
@@ -240,6 +249,9 @@ func TestSqliteProcessColumnsAutoincrement(t *testing.T) {
 	}
 	p := NewSqlite()
 	got := p.ProcessColumns(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessColumns returned empty slice")
+	}
 	if !got[0].Autoincrement {
 		t.Error("single INTEGER primary key should be autoincrement")
 	}
@@ -272,6 +284,9 @@ func TestSqliteProcessColumnsTypeNameParsing(t *testing.T) {
 	}
 	p := NewSqlite()
 	got := p.ProcessColumns(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessColumns returned empty slice")
+	}
 	if got[0].TypeName != "varchar" {
 		t.Errorf("TypeName from varchar(255) = %q, want varchar", got[0].TypeName)
 	}
@@ -375,6 +390,9 @@ func TestSqlserverProcessColumns(t *testing.T) {
 	}
 	p := NewSqlserver()
 	got := p.ProcessColumns(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessColumns returned empty slice")
+	}
 	if !got[0].Autoincrement {
 		t.Error("id should be autoincrement")
 	}
@@ -393,6 +411,9 @@ func TestSqlserverProcessColumnsNilPointers(t *testing.T) {
 	input := []schema.DBColumn{{Name: "x", TypeName: "int"}}
 	p := NewSqlserver()
 	got := p.ProcessColumns(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessColumns returned empty slice")
+	}
 	if got[0].Collation != "" || got[0].Comment != "" {
 		t.Errorf("nil pointers should yield empty strings: %+v", got[0])
 	}
@@ -404,6 +425,9 @@ func TestSqlserverProcessForeignKeys(t *testing.T) {
 	}
 	p := NewSqlserver()
 	got := p.ProcessForeignKeys(input)
+	if len(got) == 0 {
+		t.Fatal("ProcessForeignKeys returned empty slice")
+	}
 	if got[0].OnUpdate != "no action" || got[0].OnDelete != "set null" {
 		t.Errorf("underscores should be replaced and lower-cased: %+v", got[0])
 	}

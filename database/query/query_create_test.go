@@ -574,7 +574,7 @@ func TestBulkInsertSetsIDs(t *testing.T) {
 	}
 
 	// Verify by querying the database
-	var fetchedUsers []BulkUser
+	var fetchedUsers []BulkUser = []BulkUser{}
 	err = w.Q.Find(&fetchedUsers)
 	if err != nil {
 		t.Fatalf("Find failed: %v", err)

@@ -1,8 +1,8 @@
-
 package mysql
 
 import (
 	"testing"
+
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -84,6 +84,10 @@ func TestMySQLSchemaColumnModifiers(t *testing.T) {
 		t.Fatalf("Failed to get columns after adding first/after: %v", err)
 	}
 
+	if len(columns) == 0 {
+		t.Fatal("GetColumns returned empty slice")
+	}
+
 	// Verify order: first_col, id, after_col, ...
 	if columns[0].Name != "first_col" {
 		t.Errorf("Expected first column 'first_col', got '%s'", columns[0].Name)
@@ -141,7 +145,7 @@ func TestMySQLSchemaColumnModifiers(t *testing.T) {
 	if colMap["nullable_col"].Default != "new default" {
 		t.Errorf("Expected default 'new default', got '%s'", colMap["nullable_col"].Default)
 	}
-	if columns[0].Name != "after_col" {
+	if len(columns) > 0 && columns[0].Name != "after_col" {
 		t.Errorf("Expected first column 'after_col' after change, got '%s'", columns[0].Name)
 	}
 

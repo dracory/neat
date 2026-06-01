@@ -543,6 +543,7 @@ func TestDatabase_Seeder(t *testing.T) {
 	retrieved := facade.GetSeeder("seeder_1")
 	if retrieved == nil {
 		t.Error("Expected seeder to be found")
+		return
 	}
 	if retrieved.Signature() != "seeder_1" {
 		t.Errorf("Expected signature 'seeder_1', got '%s'", retrieved.Signature())

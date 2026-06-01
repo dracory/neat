@@ -151,7 +151,7 @@ func TestDatabase_ContextCancellationStopsOperations(t *testing.T) {
 	if err == nil {
 		t.Error("Expected query to fail with cancelled context")
 	}
-	if !errors.Is(err, context.Canceled) && !strings.Contains(err.Error(), "context canceled") {
+	if err != nil && !errors.Is(err, context.Canceled) && !strings.Contains(err.Error(), "context canceled") {
 		// Some drivers may not return context.Canceled directly
 		// but should still fail in some way
 		t.Logf("Query failed with error (may be driver-specific): %v", err)

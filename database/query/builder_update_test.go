@@ -412,7 +412,7 @@ func TestBuildUpdateWithRawExpression(t *testing.T) {
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg (name), got %d: %v", len(args), args)
 	}
-	if args[0] != "John" {
+	if len(args) > 0 && args[0] != "John" {
 		t.Errorf("Expected arg[0] to be 'John', got %v", args[0])
 	}
 }
