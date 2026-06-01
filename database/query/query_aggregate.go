@@ -276,7 +276,7 @@ func (q *Query) Pluck(column string, dest any) error {
 		if err != nil {
 			return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 
 		return q.pluckRows(rows, dest)
 	}
@@ -290,7 +290,7 @@ func (q *Query) Pluck(column string, dest any) error {
 	if err != nil {
 		return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	return q.pluckRows(rows, dest)
 }

@@ -90,7 +90,7 @@ func RunExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create the users table
 	err = db.Schema().Create("users", func(bp schema.Blueprint) {

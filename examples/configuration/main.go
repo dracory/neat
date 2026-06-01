@@ -23,7 +23,7 @@ func RunExample() error {
 	if err != nil {
 		return fmt.Errorf("error with DSN config: %w", err)
 	}
-	defer db1.Close()
+	defer func() { _ = db1.Close() }()
 	fmt.Println("Database connected via DSN")
 
 	// Example 2: Using configuration struct with connection pooling
@@ -48,7 +48,7 @@ func RunExample() error {
 	if err != nil {
 		return fmt.Errorf("error with pool config: %w", err)
 	}
-	defer db2.Close()
+	defer func() { _ = db2.Close() }()
 	fmt.Println("Database connected with pool configuration")
 
 	// Example 3: Multiple database connections
@@ -85,7 +85,7 @@ func RunExample() error {
 	if err != nil {
 		fmt.Printf("Multi-database config not fully available (skipped): %v\n", err)
 	} else {
-		defer db4.Close()
+		defer func() { _ = db4.Close() }()
 		fmt.Println("Multiple databases configured successfully")
 	}
 
@@ -110,7 +110,7 @@ func RunExample() error {
 	if err != nil {
 		fmt.Printf("MySQL not available (skipped): %v\n", err)
 	} else {
-		defer db5.Close()
+		defer func() { _ = db5.Close() }()
 		fmt.Println("MySQL configured successfully")
 	}
 
@@ -134,7 +134,7 @@ func RunExample() error {
 	if err != nil {
 		fmt.Printf("SQL Server not available (skipped): %v\n", err)
 	} else {
-		defer db6.Close()
+		defer func() { _ = db6.Close() }()
 		fmt.Println("SQL Server configured successfully")
 	}
 
@@ -155,7 +155,7 @@ func RunExample() error {
 	if err != nil {
 		return fmt.Errorf("error with debug config: %w", err)
 	}
-	defer db7.Close()
+	defer func() { _ = db7.Close() }()
 	fmt.Println("Database configured in debug mode")
 
 	return nil

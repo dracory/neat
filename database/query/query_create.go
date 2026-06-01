@@ -49,7 +49,7 @@ func (q *Query) Create(value any) error {
 			if err != nil {
 				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
@@ -101,7 +101,7 @@ func (q *Query) Create(value any) error {
 			if err != nil {
 				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)

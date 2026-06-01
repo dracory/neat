@@ -18,7 +18,7 @@ func TestDatabaseConnectionError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Try to execute a query - should fail
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
@@ -58,7 +58,7 @@ func TestQueryExecutionErrorInvalidTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.Table("nonexistent_table")
@@ -75,7 +75,7 @@ func TestQueryExecutionErrorInvalidSQL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -98,7 +98,7 @@ func TestQueryExecutionErrorWithWhere(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -123,7 +123,7 @@ func TestTransactionBeginError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	_, err = q.Begin()
@@ -137,7 +137,7 @@ func TestTransactionCommitError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -150,7 +150,7 @@ func TestTransactionCommitError(t *testing.T) {
 	}
 
 	// Close the database to simulate connection loss
-	db.Close()
+	_ = db.Close()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.tx = tx
@@ -174,7 +174,7 @@ func TestTransactionRollbackError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -187,7 +187,7 @@ func TestTransactionRollbackError(t *testing.T) {
 	}
 
 	// Close the database to simulate connection loss
-	db.Close()
+	_ = db.Close()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.tx = tx
@@ -211,7 +211,7 @@ func TestTransactionOperationNotInTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.Table("test")
@@ -236,7 +236,7 @@ func TestScanErrorMismatchedTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -269,7 +269,7 @@ func TestScanErrorNilDestination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -291,7 +291,7 @@ func TestScanErrorNonPointerDestination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -314,7 +314,7 @@ func TestScanErrorUnmatchedColumns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT, extra TEXT)")
 	if err != nil {
@@ -349,7 +349,7 @@ func TestQueryTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -378,7 +378,7 @@ func TestQueryCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -406,7 +406,7 @@ func TestConstraintViolationPrimaryKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -434,7 +434,7 @@ func TestConstraintViolationUnique(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, email TEXT UNIQUE)")
 	if err != nil {
@@ -462,7 +462,7 @@ func TestConstraintViolationNotNull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
 	if err != nil {
@@ -484,7 +484,7 @@ func TestConstraintViolationForeignKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Enable foreign keys
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
@@ -519,7 +519,7 @@ func TestExecErrorInvalidSQL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 
@@ -533,7 +533,7 @@ func TestExecErrorInvalidParameters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -570,7 +570,7 @@ func TestCountErrorInvalidTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.Table("nonexistent_table")
@@ -586,7 +586,7 @@ func TestPluckErrorInvalidColumn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {
@@ -610,7 +610,7 @@ func TestUpdateErrorInvalidTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.Table("nonexistent_table")
@@ -626,7 +626,7 @@ func TestDeleteErrorInvalidTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.Table("nonexistent_table")
@@ -644,7 +644,7 @@ func TestSavepointErrorNotInTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 
@@ -659,7 +659,7 @@ func TestRollbackToErrorNotInTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 
@@ -674,13 +674,13 @@ func TestSavepointErrorInvalidName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tx, err := db.Begin()
 	if err != nil {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.tx = tx
@@ -698,13 +698,13 @@ func TestRollbackToErrorNonexistentSavepoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tx, err := db.Begin()
 	if err != nil {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.tx = tx
@@ -724,7 +724,7 @@ func TestContextErrorPropagationInTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
 	if err != nil {

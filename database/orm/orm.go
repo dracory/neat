@@ -142,7 +142,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		// Ping to validate the connection and credentials (unless skipped)
 		if !skipPing {
 			if err := dbDriver.Ping(ctx, sqlDB); err != nil {
-				sqlDB.Close()
+				_ = sqlDB.Close()
 				return nil, fmt.Errorf("failed to ping database: %w", err)
 			}
 		}

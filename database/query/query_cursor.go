@@ -36,7 +36,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	cursorChan := make(chan contractsorm.Cursor, 10)
 
 	go func() {
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		defer close(cursorChan)
 
 		for rows.Next() {

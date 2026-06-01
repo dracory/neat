@@ -31,7 +31,7 @@ func RunSchemaBuilderExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Migration 1: Create users table
 	fmt.Println("=== Migration: Create Users Table ===")
@@ -210,7 +210,7 @@ func RunMigrationSystemExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Run all pending migrations
 	fmt.Println("=== Running Migrations ===")

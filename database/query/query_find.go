@@ -32,7 +32,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 		if err != nil {
 			return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		q.logQuery(sql, args, start)
 		return clone.scanRows(rows, dest)
 	}
@@ -46,7 +46,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 	if err != nil {
 		return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	q.logQuery(sql, args, start)
 	return clone.scanRows(rows, dest)
 }
