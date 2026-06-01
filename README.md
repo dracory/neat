@@ -1,5 +1,8 @@
 # Neat ORM
 
+[![Tests Status](https://github.com/dracory/neat/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/dracory/neat/actions/workflows/tests.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dracory/neat)](https://goreportcard.com/report/github.com/dracory/neat)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/dracory/neat)](https://pkg.go.dev/github.com/dracory/neat)
 [![codecov](https://codecov.io/gh/dracory/neat/branch/main/graph/badge.svg)](https://codecov.io/gh/dracory/neat)
 
 A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed to provide a clean and intuitive interface for database operations. Neat aims to feature parity with Laravel's Eloquent ORM while being built from scratch without GORM dependencies.
