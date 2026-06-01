@@ -160,6 +160,21 @@ func TestMySQLIntegrationQueryJsonWhereJsonLength(t *testing.T) {
 	}
 }
 
+func TestMySQLIntegrationQueryJsonWhereJsonLengthInvalidOperator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupMySQLTest(t)
+	query := db.Query()
+
+	var foundData []models.JsonData
+	err := query.Model(&models.JsonData{}).WhereJsonLength("data->tags", "INVALID", 2).Find(&foundData)
+	if err == nil {
+		t.Error("Expected error for invalid operator in WhereJsonLength, got nil")
+	}
+}
+
 func TestMySQLIntegrationQueryJsonArrayIndexing(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

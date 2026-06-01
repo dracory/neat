@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -158,6 +157,37 @@ func TestPostgresIntegrationQueryJsonWhereJsonLength(t *testing.T) {
 	}
 	if len(foundData) != 3 {
 		t.Errorf("Expected 3 results, got %d", len(foundData))
+	}
+}
+
+func TestPostgresIntegrationQueryJsonWhereJsonLengthInvalidOperator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupPostgresTest(t)
+	query := db.Query()
+
+	var foundData []models.JsonData
+	err := query.Model(&models.JsonData{}).WhereJsonLength("data->tags", "INVALID", 2).Find(&foundData)
+	if err == nil {
+		t.Error("Expected error for invalid operator in WhereJsonLength, got nil")
+	}
+}
+
+func TestPostgresIntegrationQueryJsonInvalidPathSegment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupPostgresTest(t)
+	query := db.Query()
+
+	var foundData []models.JsonData
+	// Test with an invalid path segment containing special characters
+	err := query.Model(&models.JsonData{}).WhereJsonContains("data->invalid'path", "value").Find(&foundData)
+	if err == nil {
+		t.Error("Expected error for invalid JSON path segment, got nil")
 	}
 }
 

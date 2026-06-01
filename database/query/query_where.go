@@ -189,6 +189,7 @@ func (q *Query) WhereAny(columns []string, operator string, value any) orm.Query
 	}
 	var parts []string
 	var args []any
+	builder := NewBuilder(q)
 	for _, col := range columns {
 		if !isSimpleIdentifier(col) {
 			if q.buildError == nil {
@@ -196,7 +197,8 @@ func (q *Query) WhereAny(columns []string, operator string, value any) orm.Query
 			}
 			return q
 		}
-		parts = append(parts, fmt.Sprintf("%s %s ?", col, normOp))
+		quotedCol := builder.quoteIdentifier(col)
+		parts = append(parts, fmt.Sprintf("%s %s ?", quotedCol, normOp))
 		args = append(args, value)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: "(" + strings.Join(parts, " OR ") + ")", args: args})
@@ -223,6 +225,7 @@ func (q *Query) WhereAll(columns []string, operator string, value any) orm.Query
 	}
 	var parts []string
 	var args []any
+	builder := NewBuilder(q)
 	for _, col := range columns {
 		if !isSimpleIdentifier(col) {
 			if q.buildError == nil {
@@ -230,7 +233,8 @@ func (q *Query) WhereAll(columns []string, operator string, value any) orm.Query
 			}
 			return q
 		}
-		parts = append(parts, fmt.Sprintf("%s %s ?", col, normOp))
+		quotedCol := builder.quoteIdentifier(col)
+		parts = append(parts, fmt.Sprintf("%s %s ?", quotedCol, normOp))
 		args = append(args, value)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: "(" + strings.Join(parts, " AND ") + ")", args: args})
@@ -257,6 +261,7 @@ func (q *Query) WhereNone(columns []string, operator string, value any) orm.Quer
 	}
 	var parts []string
 	var args []any
+	builder := NewBuilder(q)
 	for _, col := range columns {
 		if !isSimpleIdentifier(col) {
 			if q.buildError == nil {
@@ -264,7 +269,8 @@ func (q *Query) WhereNone(columns []string, operator string, value any) orm.Quer
 			}
 			return q
 		}
-		parts = append(parts, fmt.Sprintf("%s %s ?", col, normOp))
+		quotedCol := builder.quoteIdentifier(col)
+		parts = append(parts, fmt.Sprintf("%s %s ?", quotedCol, normOp))
 		args = append(args, value)
 	}
 	q.wheres = append(q.wheres, whereClause{_type: "and", query: "NOT (" + strings.Join(parts, " OR ") + ")", args: args})
@@ -330,9 +336,17 @@ func (q *Query) splitJsonColumnForPostgreSQL(column string) (string, string) {
 			pathBuilder.WriteString("->")
 			pathBuilder.WriteString(part)
 		} else {
-			// It's a string key, quote it
+			// It's a string key, validate it's a simple identifier before quoting
+			if !isSimpleIdentifier(part) {
+				if q.buildError == nil {
+					q.buildError = fmt.Errorf("invalid JSON path segment: %q", part)
+				}
+				return parts[0], ""
+			}
+			// Escape single quotes by doubling them (PostgreSQL style)
+			escapedPart := strings.ReplaceAll(part, "'", "''")
 			pathBuilder.WriteString("->'")
-			pathBuilder.WriteString(part)
+			pathBuilder.WriteString(escapedPart)
 			pathBuilder.WriteString("'")
 		}
 	}
@@ -638,18 +652,30 @@ func (q *Query) OrWhereJsonDoesntContainKey(column string) orm.Query {
 
 // WhereJsonLength adds a where json length clause to the query.
 func (q *Query) WhereJsonLength(column string, operator string, value any) orm.Query {
+	// Validate operator against allowed whitelist (case-insensitive)
+	allowedOperators := map[string]bool{
+		"=": true, "!=": true, "<>": true, ">": true, "<": true, ">=": true, "<=": true,
+	}
+	normOp := strings.ToUpper(strings.TrimSpace(operator))
+	if !allowedOperators[normOp] {
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid operator in WhereJsonLength: %s", operator)
+		}
+		return q
+	}
+
 	if q.driver != nil && q.driver.Dialect() == "sqlite" {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '$%s') %s ?", col, path, operator), args: []any{value}})
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '$%s') %s ?", col, path, normOp), args: []any{value}})
 	} else if q.driver != nil && q.driver.Dialect() == "mysql" {
 		col, path := q.splitJsonColumn(column)
 		if path != "" {
 			// MySQL: JSON_LENGTH(column, path)
 			jsonPath := "$" + path
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s, '%s') %s ?", col, jsonPath, operator), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s, '%s') %s ?", col, jsonPath, normOp), args: []any{value}})
 		} else {
 			// No path specified, get length of entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", col, operator), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", col, normOp), args: []any{value}})
 		}
 	} else if q.driver != nil && q.driver.Dialect() == "postgres" {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
@@ -657,13 +683,13 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) orm.Q
 		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// PostgreSQL: jsonb_array_length(column->path)
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s%s) %s ?", quotedCol, path, operator), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s%s) %s ?", quotedCol, path, normOp), args: []any{value}})
 		} else {
 			// No path specified, get length of entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s) %s ?", quotedCol, operator), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s) %s ?", quotedCol, normOp), args: []any{value}})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, operator), args: []any{value}})
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, normOp), args: []any{value}})
 	}
 	return q
 }
