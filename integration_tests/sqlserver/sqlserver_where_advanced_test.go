@@ -183,7 +183,10 @@ func TestSQLServerIntegrationWhereNot(t *testing.T) {
 		t.Fatalf("WhereNot failed: %v", err)
 	}
 
-	if len(foundUsers) != 1 || foundUsers[0].Name != "user2" {
+	if len(foundUsers) != 1 {
+		t.Errorf("Expected 1 user, got %d", len(foundUsers))
+	}
+	if len(foundUsers) >= 1 && foundUsers[0].Name != "user2" {
 		t.Errorf("Expected only user2, got %v", foundUsers)
 	}
 

@@ -65,11 +65,13 @@ func TestSQLServerIntegrationJoinInner(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	}
-	if results[0].UserName != "join_user1" {
-		t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-	}
-	if results[0].AddressName != "address1" {
-		t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+	if len(results) >= 1 {
+		if results[0].UserName != "join_user1" {
+			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
+		}
+		if results[0].AddressName != "address1" {
+			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
+		}
 	}
 }
 

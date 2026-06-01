@@ -74,7 +74,7 @@ func TestSQLServerIntegrationQueryScopesWithParameters(t *testing.T) {
 	if len(foundUsers) != 1 {
 		t.Errorf("Expected 1 user, got %d", len(foundUsers))
 	}
-	if foundUsers[0].Name != "scope_user_1" {
+	if len(foundUsers) >= 1 && foundUsers[0].Name != "scope_user_1" {
 		t.Errorf("Expected 'scope_user_1', got '%s'", foundUsers[0].Name)
 	}
 }
@@ -106,11 +106,13 @@ func TestSQLServerIntegrationQueryScopesMultipleChaining(t *testing.T) {
 	if len(foundUsers) != 1 {
 		t.Errorf("Expected 1 user, got %d", len(foundUsers))
 	}
-	if foundUsers[0].Name != "scope_user_1" {
-		t.Errorf("Expected 'scope_user_1', got '%s'", foundUsers[0].Name)
-	}
-	if foundUsers[0].Avatar != "active" {
-		t.Errorf("Expected avatar 'active', got '%s'", foundUsers[0].Avatar)
+	if len(foundUsers) >= 1 {
+		if foundUsers[0].Name != "scope_user_1" {
+			t.Errorf("Expected 'scope_user_1', got '%s'", foundUsers[0].Name)
+		}
+		if foundUsers[0].Avatar != "active" {
+			t.Errorf("Expected avatar 'active', got '%s'", foundUsers[0].Avatar)
+		}
 	}
 
 	foundUsers = nil

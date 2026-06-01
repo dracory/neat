@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -30,6 +29,10 @@ func TestPostgreSQLIntegrationWhereIn(t *testing.T) {
 	var createdUsers []models.User
 	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_in_user%").Find(&createdUsers); err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
 	}
 
 	// Test WhereIn with multiple IDs
@@ -70,6 +73,10 @@ func TestPostgreSQLIntegrationOrWhereIn(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	// Test OrWhereIn
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).Where("id = ?", -1).OrWhereIn("id", []any{createdUsers[0].ID, createdUsers[1].ID}).Find(&foundUsers)
@@ -107,6 +114,10 @@ func TestPostgreSQLIntegrationWhereNotIn(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 3 {
+		t.Fatalf("Expected at least 3 created users, got %d", len(createdUsers))
+	}
+
 	// Test WhereNotIn
 	var foundUser models.User
 	err := query.Model(&models.User{}).Where("id = ?", createdUsers[2].ID).WhereNotIn("id", []any{createdUsers[0].ID, createdUsers[1].ID}).First(&foundUser)
@@ -142,6 +153,10 @@ func TestPostgreSQLIntegrationOrWhereNotIn(t *testing.T) {
 	var createdUsers []models.User
 	if err := query.Model(&models.User{}).Where("name LIKE ?", "or_where_not_in_user%").Find(&createdUsers); err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
 	}
 
 	// Test OrWhereNotIn
@@ -189,6 +204,10 @@ func TestPostgreSQLIntegrationWhereBetween(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 3 {
+		t.Fatalf("Expected at least 3 created users, got %d", len(createdUsers))
+	}
+
 	// Test WhereBetween with IDs
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).WhereBetween("id", createdUsers[0].ID, createdUsers[2].ID).Find(&foundUsers)
@@ -224,6 +243,10 @@ func TestPostgreSQLIntegrationWhereNotBetween(t *testing.T) {
 	var createdUsers []models.User
 	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_not_between_user%").Find(&createdUsers); err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 3 {
+		t.Fatalf("Expected at least 3 created users, got %d", len(createdUsers))
 	}
 
 	// Test WhereNotBetween - exclude first two users
@@ -263,6 +286,10 @@ func TestPostgreSQLIntegrationOrWhereBetween(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	// Test OrWhereBetween
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).Where("name = ?", "or_where_between_user3").OrWhereBetween("id", createdUsers[0].ID, createdUsers[1].ID).Find(&foundUsers)
@@ -300,6 +327,10 @@ func TestPostgreSQLIntegrationOrWhereNotBetween(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	// Test OrWhereNotBetween
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).Where("name = ?", "or_where_not_between_user3").OrWhereNotBetween("id", createdUsers[0].ID, createdUsers[1].ID).Find(&foundUsers)
@@ -312,7 +343,7 @@ func TestPostgreSQLIntegrationOrWhereNotBetween(t *testing.T) {
 		t.Errorf("Expected 1 user, got %d", len(foundUsers))
 	}
 
-	if foundUsers[0].ID != createdUsers[2].ID {
+	if len(foundUsers) >= 1 && foundUsers[0].ID != createdUsers[2].ID {
 		t.Errorf("Expected user[2], got %d", foundUsers[0].ID)
 	}
 }
@@ -342,6 +373,10 @@ func TestPostgreSQLIntegrationWhereNull(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	// Test WhereNull
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).Where("name = ?", "where_null_user2").WhereNull("bio").Find(&foundUsers)
@@ -353,7 +388,7 @@ func TestPostgreSQLIntegrationWhereNull(t *testing.T) {
 		t.Errorf("Expected 1 user, got %d", len(foundUsers))
 	}
 
-	if foundUsers[0].ID != createdUsers[1].ID {
+	if len(foundUsers) >= 1 && foundUsers[0].ID != createdUsers[1].ID {
 		t.Errorf("Expected user[1], got %d", foundUsers[0].ID)
 	}
 }
@@ -383,6 +418,10 @@ func TestPostgreSQLIntegrationWhereNotNull(t *testing.T) {
 		t.Fatalf("Failed to get created users: %v", err)
 	}
 
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
 	// Test WhereNotNull
 	var foundUsers []models.User
 	err := query.Model(&models.User{}).Where("name = ?", "where_not_null_user1").WhereNotNull("bio").Find(&foundUsers)
@@ -394,7 +433,7 @@ func TestPostgreSQLIntegrationWhereNotNull(t *testing.T) {
 		t.Errorf("Expected 1 user, got %d", len(foundUsers))
 	}
 
-	if foundUsers[0].ID != createdUsers[0].ID {
+	if len(foundUsers) >= 1 && foundUsers[0].ID != createdUsers[0].ID {
 		t.Errorf("Expected user[0], got %d", foundUsers[0].ID)
 	}
 }
@@ -483,6 +522,10 @@ func TestPostgreSQLIntegrationWhereColumnOperator(t *testing.T) {
 	var createdUsers []models.User
 	if err := query.Model(&models.User{}).Where("name LIKE ?", "column_op_user%").Find(&createdUsers); err != nil {
 		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
 	}
 
 	// Test where with different operators
