@@ -4,37 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
-
-func seedJoinTestData(t *testing.T, db *database.Database) (uint, uint) {
-	now := time.Now()
-
-	user1 := models.User{Name: "join_user1", CreatedAt: now, UpdatedAt: now}
-	user2 := models.User{Name: "join_user2", CreatedAt: now, UpdatedAt: now}
-	if err := db.Query().Model(&models.User{}).Create(&user1); err != nil {
-		t.Fatalf("Failed to create user1: %v", err)
-	}
-	if err := db.Query().Model(&models.User{}).Create(&user2); err != nil {
-		t.Fatalf("Failed to create user2: %v", err)
-	}
-
-	var createdUser1, createdUser2 models.User
-	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user1").First(&createdUser1); err != nil {
-		t.Fatalf("Failed to get created user1: %v", err)
-	}
-	if err := db.Query().Model(&models.User{}).Where("name = ?", "join_user2").First(&createdUser2); err != nil {
-		t.Fatalf("Failed to get created user2: %v", err)
-	}
-
-	address1 := models.Address{Name: "address1", UserID: createdUser1.ID, CreatedAt: now, UpdatedAt: now}
-	if err := db.Query().Model(&models.Address{}).Create(&address1); err != nil {
-		t.Fatalf("Failed to create address1: %v", err)
-	}
-
-	return createdUser1.ID, createdUser2.ID
-}
 
 func TestPostgresIntegrationInnerJoin(t *testing.T) {
 	if testing.Short() {
@@ -42,32 +14,7 @@ func TestPostgresIntegrationInnerJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	userID1, _ := seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName    string `db:"column:name"`
-		AddressName string `db:"column:address_name"`
-	}
-	err := db.Query().Table("users").
-		Join("addresses ON addresses.user_id = users.id").
-		Select("users.name, addresses.name as address_name").
-		Where("users.id = ?", userID1).
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Inner Join failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
-	if len(results) >= 1 {
-		if results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-		}
-		if results[0].AddressName != "address1" {
-			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
-		}
-	}
+	common.TestJoinInner(t, db)
 }
 
 func TestPostgresIntegrationInnerJoinWithConditions(t *testing.T) {
@@ -76,22 +23,7 @@ func TestPostgresIntegrationInnerJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName string `db:"column:name"`
-	}
-	err := db.Query().Table("users").
-		Join("addresses ON addresses.user_id = users.id AND addresses.name = ?", "address1").
-		Select("users.name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Inner Join with conditions failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
+	common.TestJoinInnerWithConditions(t, db)
 }
 
 func TestPostgresIntegrationInnerJoinWithAliases(t *testing.T) {
@@ -100,22 +32,7 @@ func TestPostgresIntegrationInnerJoinWithAliases(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName string `db:"column:name"`
-	}
-	err := db.Query().Table("users as u").
-		Join("addresses as a ON a.user_id = u.id").
-		Select("u.name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Inner Join with aliases failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
+	common.TestJoinInnerWithAliases(t, db)
 }
 
 func TestPostgresIntegrationLeftJoin(t *testing.T) {
@@ -124,38 +41,7 @@ func TestPostgresIntegrationLeftJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName    string  `db:"column:name"`
-		AddressName *string `db:"column:address_name"`
-	}
-	err := db.Query().Table("users").
-		LeftJoin("addresses ON addresses.user_id = users.id").
-		Select("users.name, addresses.name as address_name").
-		OrderBy("users.name", "asc").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Left Join failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
-	if len(results) >= 2 {
-		if results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%s'", results[0].UserName)
-		}
-		if results[0].AddressName == nil {
-			t.Error("Expected AddressName to be non-nil for join_user1")
-		}
-		if results[1].UserName != "join_user2" {
-			t.Errorf("Expected 'join_user2', got '%s'", results[1].UserName)
-		}
-		if results[1].AddressName != nil {
-			t.Error("Expected AddressName to be nil for join_user2")
-		}
-	}
+	common.TestJoinLeft(t, db)
 }
 
 func TestPostgresIntegrationLeftJoinWithConditions(t *testing.T) {
@@ -164,32 +50,7 @@ func TestPostgresIntegrationLeftJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName    string  `db:"column:name"`
-		AddressName *string `db:"column:address_name"`
-	}
-	err := db.Query().Table("users").
-		LeftJoin("addresses ON addresses.user_id = users.id AND addresses.name = ?", "non-existent").
-		Select("users.name, addresses.name as address_name").
-		OrderBy("users.name", "asc").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Left Join with conditions failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
-	if len(results) >= 2 {
-		if results[0].AddressName != nil {
-			t.Error("Expected AddressName to be nil")
-		}
-		if results[1].AddressName != nil {
-			t.Error("Expected AddressName to be nil")
-		}
-	}
+	common.TestJoinLeftWithConditions(t, db)
 }
 
 func TestPostgresIntegrationLeftJoinWithAliases(t *testing.T) {
@@ -198,22 +59,7 @@ func TestPostgresIntegrationLeftJoinWithAliases(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName string `db:"column:name"`
-	}
-	err := db.Query().Table("users as u").
-		LeftJoin("addresses as a ON a.user_id = u.id").
-		Select("u.name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Left Join with aliases failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
+	common.TestJoinLeftWithAliases(t, db)
 }
 
 func TestPostgresIntegrationRightJoin(t *testing.T) {
@@ -222,31 +68,7 @@ func TestPostgresIntegrationRightJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName    *string `db:"column:name"`
-		AddressName string  `db:"column:address_name"`
-	}
-	err := db.Query().Table("users").
-		RightJoin("addresses ON addresses.user_id = users.id").
-		Select("users.name, addresses.name as address_name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Right Join failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
-	if len(results) >= 1 {
-		if results[0].UserName == nil || *results[0].UserName != "join_user1" {
-			t.Errorf("Expected 'join_user1', got '%v'", results[0].UserName)
-		}
-		if results[0].AddressName != "address1" {
-			t.Errorf("Expected 'address1', got '%s'", results[0].AddressName)
-		}
-	}
+	common.TestJoinRight(t, db)
 }
 
 func TestPostgresIntegrationRightJoinWithConditions(t *testing.T) {
@@ -255,22 +77,7 @@ func TestPostgresIntegrationRightJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		AddressName string `db:"column:address_name"`
-	}
-	err := db.Query().Table("users").
-		RightJoin("addresses ON addresses.user_id = users.id AND users.name = ?", "non-existent").
-		Select("addresses.name as address_name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Right Join with conditions failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
+	common.TestJoinRightWithConditions(t, db)
 }
 
 func TestPostgresIntegrationRightJoinWithAliases(t *testing.T) {
@@ -279,22 +86,7 @@ func TestPostgresIntegrationRightJoinWithAliases(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		AddressName string `db:"column:address_name"`
-	}
-	err := db.Query().Table("users as u").
-		RightJoin("addresses as a ON a.user_id = u.id").
-		Select("a.name as address_name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Right Join with aliases failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
+	common.TestJoinRightWithAliases(t, db)
 }
 
 func TestPostgresIntegrationCrossJoin(t *testing.T) {
@@ -303,23 +95,7 @@ func TestPostgresIntegrationCrossJoin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName    string `db:"column:user_name"`
-		AddressName string `db:"column:address_name"`
-	}
-	err := db.Query().Table("users").
-		CrossJoin("addresses").
-		Select("users.name as user_name, addresses.name as address_name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Cross Join failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
+	common.TestJoinCross(t, db)
 }
 
 func TestPostgresIntegrationCrossJoinWithConditions(t *testing.T) {
@@ -328,23 +104,7 @@ func TestPostgresIntegrationCrossJoinWithConditions(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName string `db:"column:user_name"`
-	}
-	err := db.Query().Table("users").
-		CrossJoin("addresses").
-		Where("addresses.user_id = users.id").
-		Select("users.name as user_name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Cross Join with conditions failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
+	common.TestJoinCrossWithConditions(t, db)
 }
 
 func TestPostgresIntegrationCrossJoinWithSelect(t *testing.T) {
@@ -353,22 +113,7 @@ func TestPostgresIntegrationCrossJoinWithSelect(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
-
-	var results []struct {
-		UserName string `db:"column:name"`
-	}
-	err := db.Query().Table("users").
-		CrossJoin("addresses").
-		Select("users.name").
-		Scan(&results)
-
-	if err != nil {
-		t.Errorf("Cross Join with Select failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
+	common.TestJoinCrossWithSelect(t, db)
 }
 
 func TestPostgresIntegrationMultipleJoins(t *testing.T) {
@@ -377,7 +122,7 @@ func TestPostgresIntegrationMultipleJoins(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	userID1, _ := seedJoinTestData(t, db)
+	userID1, _ := common.SeedJoinTestData(t, db)
 
 	now := time.Now()
 	book1 := models.Book{Name: "book1", UserID: userID1, CreatedAt: now, UpdatedAt: now}
@@ -421,7 +166,7 @@ func TestPostgresIntegrationJoinChaining(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
+	common.SeedJoinTestData(t, db)
 
 	var results []struct {
 		UserName string `db:"column:name"`
@@ -446,7 +191,7 @@ func TestPostgresIntegrationComplexJoinScenarios(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	seedJoinTestData(t, db)
+	common.SeedJoinTestData(t, db)
 
 	var results []struct {
 		UserName string `db:"column:name"`
