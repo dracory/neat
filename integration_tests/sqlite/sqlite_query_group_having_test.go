@@ -4,26 +4,9 @@ import (
 	"testing"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
-	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
-
-func seedGroupHavingTestData(t *testing.T, db *database.Database) {
-	query := db.Query()
-	users := []models.User{
-		{Name: "group_user_1", Avatar: "avatar1"},
-		{Name: "group_user_2", Avatar: "avatar1"},
-		{Name: "group_user_3", Avatar: "avatar2"},
-		{Name: "group_user_4", Avatar: "avatar2"},
-		{Name: "group_user_5", Avatar: "avatar2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-}
 
 func TestSQLiteIntegrationGroupBySingleColumn(t *testing.T) {
 	if testing.Short() {
@@ -31,33 +14,7 @@ func TestSQLiteIntegrationGroupBySingleColumn(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
-
-	type Result struct {
-		Avatar string
-		Count  int64
-	}
-	results := make([]Result, 0)
-	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
-		Select("avatar, COUNT(*) as count").Group("avatar").OrderBy("avatar", "asc").Scan(&results)
-	if err != nil {
-		t.Errorf("GroupBy single column failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
-	if results[0].Avatar != "avatar1" {
-		t.Errorf("Expected 'avatar1', got '%s'", results[0].Avatar)
-	}
-	if results[0].Count != 2 {
-		t.Errorf("Expected count 2, got %d", results[0].Count)
-	}
-	if results[1].Avatar != "avatar2" {
-		t.Errorf("Expected 'avatar2', got '%s'", results[1].Avatar)
-	}
-	if results[1].Count != 3 {
-		t.Errorf("Expected count 3, got %d", results[1].Count)
-	}
+	common.TestGroupBySingleColumn(t, db)
 }
 
 func TestSQLiteIntegrationGroupByMultipleColumns(t *testing.T) {
@@ -66,7 +23,7 @@ func TestSQLiteIntegrationGroupByMultipleColumns(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
+	common.SeedGroupHavingTestData(t, db)
 
 	type Result struct {
 		Name   string
@@ -90,27 +47,7 @@ func TestSQLiteIntegrationHavingClause(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
-
-	type Result struct {
-		Avatar string
-		Count  int64
-	}
-	results := make([]Result, 0)
-	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
-		Select("avatar, COUNT(*) as count").Group("avatar").Having("COUNT(*) > ?", 2).Scan(&results)
-	if err != nil {
-		t.Errorf("Having clause failed: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
-	}
-	if results[0].Avatar != "avatar2" {
-		t.Errorf("Expected 'avatar2', got '%s'", results[0].Avatar)
-	}
-	if results[0].Count != 3 {
-		t.Errorf("Expected count 3, got %d", results[0].Count)
-	}
+	common.TestHavingClause(t, db)
 }
 
 func TestSQLiteIntegrationHavingWithAggregateFunctions(t *testing.T) {
@@ -119,7 +56,7 @@ func TestSQLiteIntegrationHavingWithAggregateFunctions(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
+	common.SeedGroupHavingTestData(t, db)
 
 	type Result struct {
 		Avatar string
@@ -142,7 +79,7 @@ func TestSQLiteIntegrationGroupByWithHavingAndWhere(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
+	common.SeedGroupHavingTestData(t, db)
 
 	type Result struct {
 		Avatar string
@@ -176,7 +113,7 @@ func TestSQLiteIntegrationMultipleHavingClauses(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
+	common.SeedGroupHavingTestData(t, db)
 
 	type Result struct {
 		Avatar string
@@ -200,7 +137,7 @@ func TestSQLiteIntegrationHavingWithSubqueryCallback(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
+	common.SeedGroupHavingTestData(t, db)
 
 	type Result struct {
 		Avatar string
@@ -235,7 +172,7 @@ func TestSQLiteIntegrationHavingWithSubqueryInArgs(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-	seedGroupHavingTestData(t, db)
+	common.SeedGroupHavingTestData(t, db)
 	query := db.Query()
 
 	type Result struct {

@@ -3,6 +3,7 @@ package postgres
 import (
 	"testing"
 
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -12,29 +13,7 @@ func TestPostgresIntegrationQueryAggregateSum(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "aggregate_user_1", ID: 101, Avatar: "group1"},
-		{Name: "aggregate_user_2", ID: 102, Avatar: "group1"},
-		{Name: "aggregate_user_3", ID: 103, Avatar: "group2"},
-		{Name: "aggregate_user_4", ID: 104, Avatar: "group2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-
-	var sum int64
-	err := query.Table("users").Where("name LIKE ?", "aggregate_user_%").Sum("id", &sum)
-	if err != nil {
-		t.Errorf("Sum failed: %v", err)
-	}
-	if sum != 410 {
-		t.Errorf("Expected sum 410, got %d", sum)
-	}
+	common.TestAggregateSum(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateSumWithWhere(t *testing.T) {
@@ -43,29 +22,7 @@ func TestPostgresIntegrationQueryAggregateSumWithWhere(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "aggregate_user_1", ID: 101, Avatar: "group1"},
-		{Name: "aggregate_user_2", ID: 102, Avatar: "group1"},
-		{Name: "aggregate_user_3", ID: 103, Avatar: "group2"},
-		{Name: "aggregate_user_4", ID: 104, Avatar: "group2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-
-	var sum int64
-	err := query.Table("users").Where("avatar = ?", "group1").Sum("id", &sum)
-	if err != nil {
-		t.Errorf("Sum with where failed: %v", err)
-	}
-	if sum != 203 {
-		t.Errorf("Expected sum 203, got %d", sum)
-	}
+	common.TestAggregateSumWithWhere(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateAvg(t *testing.T) {
@@ -74,29 +31,7 @@ func TestPostgresIntegrationQueryAggregateAvg(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "aggregate_user_1", ID: 101, Avatar: "group1"},
-		{Name: "aggregate_user_2", ID: 102, Avatar: "group1"},
-		{Name: "aggregate_user_3", ID: 103, Avatar: "group2"},
-		{Name: "aggregate_user_4", ID: 104, Avatar: "group2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-
-	var avg float64
-	err := query.Table("users").Where("name LIKE ?", "aggregate_user_%").Avg("id", &avg)
-	if err != nil {
-		t.Errorf("Avg failed: %v", err)
-	}
-	if avg != 102.5 {
-		t.Errorf("Expected avg 102.5, got %f", avg)
-	}
+	common.TestAggregateAvg(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateMax(t *testing.T) {
@@ -105,29 +40,7 @@ func TestPostgresIntegrationQueryAggregateMax(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "aggregate_user_1", ID: 101, Avatar: "group1"},
-		{Name: "aggregate_user_2", ID: 102, Avatar: "group1"},
-		{Name: "aggregate_user_3", ID: 103, Avatar: "group2"},
-		{Name: "aggregate_user_4", ID: 104, Avatar: "group2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-
-	var max int64
-	err := query.Table("users").Where("name LIKE ?", "aggregate_user_%").Max("id", &max)
-	if err != nil {
-		t.Errorf("Max failed: %v", err)
-	}
-	if max != 104 {
-		t.Errorf("Expected max 104, got %d", max)
-	}
+	common.TestAggregateMax(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateMin(t *testing.T) {
@@ -136,29 +49,7 @@ func TestPostgresIntegrationQueryAggregateMin(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "aggregate_user_1", ID: 101, Avatar: "group1"},
-		{Name: "aggregate_user_2", ID: 102, Avatar: "group1"},
-		{Name: "aggregate_user_3", ID: 103, Avatar: "group2"},
-		{Name: "aggregate_user_4", ID: 104, Avatar: "group2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-
-	var min int64
-	err := query.Table("users").Where("name LIKE ?", "aggregate_user_%").Min("id", &min)
-	if err != nil {
-		t.Errorf("Min failed: %v", err)
-	}
-	if min != 101 {
-		t.Errorf("Expected min 101, got %d", min)
-	}
+	common.TestAggregateMin(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateGroupBy(t *testing.T) {
@@ -167,47 +58,7 @@ func TestPostgresIntegrationQueryAggregateGroupBy(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	users := []models.User{
-		{Name: "aggregate_user_1", ID: 101, Avatar: "group1"},
-		{Name: "aggregate_user_2", ID: 102, Avatar: "group1"},
-		{Name: "aggregate_user_3", ID: 103, Avatar: "group2"},
-		{Name: "aggregate_user_4", ID: 104, Avatar: "group2"},
-	}
-
-	for _, user := range users {
-		if err := query.Model(&models.User{}).Create(&user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-	}
-
-	type Result struct {
-		Avatar string
-		Total  int64
-	}
-	var results []Result
-	err := query.Table("users").Where("name LIKE ?", "aggregate_user_%").
-		Select("avatar, SUM(id) as total").Group("avatar").Scan(&results)
-	if err != nil {
-		t.Errorf("Aggregate with GroupBy failed: %v", err)
-	}
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
-	}
-
-	for _, res := range results {
-		switch res.Avatar {
-		case "group1":
-			if res.Total != 203 {
-				t.Errorf("Expected total 203 for group1, got %d", res.Total)
-			}
-		case "group2":
-			if res.Total != 207 {
-				t.Errorf("Expected total 207 for group2, got %d", res.Total)
-			}
-		}
-	}
+	common.TestAggregateGroupBy(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateInvalidColumn(t *testing.T) {
@@ -216,13 +67,7 @@ func TestPostgresIntegrationQueryAggregateInvalidColumn(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	var sum int64
-	err := query.Table("users").Sum("invalid; column", &sum)
-	if err == nil {
-		t.Error("Expected error for invalid column, got nil")
-	}
+	common.TestAggregateInvalidColumn(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateNilPointer(t *testing.T) {
@@ -231,12 +76,7 @@ func TestPostgresIntegrationQueryAggregateNilPointer(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	err := query.Table("users").Sum("id", nil)
-	if err == nil {
-		t.Error("Expected error for nil pointer, got nil")
-	}
+	common.TestAggregateNilPointer(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateEmptyResult(t *testing.T) {
@@ -245,25 +85,7 @@ func TestPostgresIntegrationQueryAggregateEmptyResult(t *testing.T) {
 	}
 
 	db := SetupPostgresTest(t)
-	query := db.Query()
-
-	var sum *int64
-	err := query.Table("users").Where("name = ?", "non_existent").Sum("id", &sum)
-	if err != nil {
-		t.Errorf("Sum with empty result failed: %v", err)
-	}
-	if sum != nil {
-		t.Error("Expected nil for empty result set")
-	}
-
-	var avg *float64
-	err = query.Table("users").Where("name = ?", "non_existent").Avg("id", &avg)
-	if err != nil {
-		t.Errorf("Avg with empty result failed: %v", err)
-	}
-	if avg != nil {
-		t.Error("Expected nil for empty result set")
-	}
+	common.TestAggregateEmptyResult(t, db)
 }
 
 func TestPostgresIntegrationQueryAggregateNullValues(t *testing.T) {

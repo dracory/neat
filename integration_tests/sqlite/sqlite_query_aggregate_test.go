@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -196,12 +197,7 @@ func TestSQLiteIntegrationQueryAggregateInvalidColumn(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-
-	var sum int64
-	err := db.Query().Table("users").Sum("invalid; column", &sum)
-	if err == nil {
-		t.Error("Expected error for invalid column")
-	}
+	common.TestAggregateInvalidColumn(t, db)
 }
 
 func TestSQLiteIntegrationQueryAggregateSQLInjectionComment(t *testing.T) {
@@ -238,11 +234,7 @@ func TestSQLiteIntegrationQueryAggregateNilPointer(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-
-	err := db.Query().Table("users").Sum("id", nil)
-	if err == nil {
-		t.Error("Expected error for nil destination")
-	}
+	common.TestAggregateNilPointer(t, db)
 }
 
 func TestSQLiteIntegrationQueryAggregateEmptyResultSet(t *testing.T) {
@@ -251,24 +243,7 @@ func TestSQLiteIntegrationQueryAggregateEmptyResultSet(t *testing.T) {
 	}
 
 	db := SetupSQLiteTest(t)
-
-	var sum *int64
-	err := db.Query().Table("users").Where("name = ?", "non_existent").Sum("id", &sum)
-	if err != nil {
-		t.Errorf("Sum with empty result failed: %v", err)
-	}
-	if sum != nil {
-		t.Error("Expected nil for empty result set")
-	}
-
-	var avg *float64
-	err = db.Query().Table("users").Where("name = ?", "non_existent").Avg("id", &avg)
-	if err != nil {
-		t.Errorf("Avg with empty result failed: %v", err)
-	}
-	if avg != nil {
-		t.Error("Expected nil for empty result set")
-	}
+	common.TestAggregateEmptyResult(t, db)
 }
 
 func TestSQLiteIntegrationQueryAggregateNullValues(t *testing.T) {
