@@ -27,14 +27,14 @@ func (b *Builder) BuildDelete() (string, []any) {
 	// PostgreSQL supports LIMIT directly in DELETE
 	// SQL Server uses TOP instead of LIMIT
 	if b.query.limit != nil {
-		if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+		if b.query.isMySQL() {
 			// Add WHERE clause if it exists
 			if whereParts != "" {
 				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 				args = append(args, whereArgs...)
 			}
 			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
-		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+		} else if b.query.isSQLite() {
 			// SQLite workaround: wrap in subquery with rowid
 			if whereParts == "" {
 				whereParts = "1=1"
@@ -51,14 +51,14 @@ func (b *Builder) BuildDelete() (string, []any) {
 			// Add WHERE clause with rowid subquery including ORDER BY
 			parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
 			args = append(args, whereArgs...)
-		} else if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+		} else if b.query.isPostgres() {
 			// PostgreSQL supports LIMIT directly in DELETE
 			if whereParts != "" {
 				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 				args = append(args, whereArgs...)
 			}
 			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
-		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
+		} else if b.query.isSQLServer() {
 			// SQL Server uses TOP instead of LIMIT
 			// Insert TOP after DELETE
 			for i, part := range parts {

@@ -205,6 +205,31 @@ func (q *Query) writeConn() *sql.DB {
 	return q.db
 }
 
+// isPostgres returns true if the driver dialect is PostgreSQL.
+func (q *Query) isPostgres() bool {
+	return q.driver != nil && q.driver.Dialect() == "postgres"
+}
+
+// isSQLServer returns true if the driver dialect is SQL Server.
+func (q *Query) isSQLServer() bool {
+	return q.driver != nil && q.driver.Dialect() == "sqlserver"
+}
+
+// isMySQL returns true if the driver dialect is MySQL.
+func (q *Query) isMySQL() bool {
+	return q.driver != nil && q.driver.Dialect() == "mysql"
+}
+
+// isSQLite returns true if the driver dialect is SQLite.
+func (q *Query) isSQLite() bool {
+	return q.driver != nil && q.driver.Dialect() == "sqlite"
+}
+
+// isOracle returns true if the driver dialect is Oracle.
+func (q *Query) isOracle() bool {
+	return q.driver != nil && q.driver.Dialect() == "oracle"
+}
+
 // Clone returns a new Query with shared connection state but empty query-builder state.
 func (q *Query) Clone() contractsorm.Query {
 	clone := q.newQuery()
@@ -435,16 +460,14 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 
 	// Postgres: use RETURNING id to get inserted ID
 	// SQL Server: uses OUTPUT clause (already added in BuildInsert)
-	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
-	isSQLServer := q.driver != nil && q.driver.Dialect() == "sqlserver"
-	if isPostgres {
+	if q.isPostgres() {
 		insertSQL = insertSQL + " RETURNING id"
 	}
 
 	start := time.Now()
 	var lastID int64
 
-	if isPostgres || isSQLServer {
+	if q.isPostgres() || q.isSQLServer() {
 		// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use QueryRow instead of Exec
 		var row *sql.Row
 		if q.tx != nil {

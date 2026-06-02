@@ -92,13 +92,29 @@ func SetupOracleTest(t *testing.T) *database.Database {
 	dbName := common.GetEnv("ORACLE_DATABASE", "XE")
 	username := common.GetEnv("ORACLE_USER", "system")
 	password := common.GetEnv("ORACLE_PASS", "oracle")
-	dsn := fmt.Sprintf("oracle://%s:%s@%s:%d/%s",
-		username, password, host, port, dbName)
 
-	db, err := neat.NewFromDSN(dsn)
+	config := neat.DBConfig{
+		Default: "oracle",
+		Debug:   true, // Enable debug mode to see actual SQL errors
+		Connections: map[string]neat.ConnectionConfig{
+			"oracle": {
+				Driver:   "oracle",
+				Host:     host,
+				Port:     port,
+				Database: dbName,
+				Username: username,
+				Password: password,
+			},
+		},
+	}
+
+	db, err := neat.New(config)
 	if err != nil {
 		t.Fatalf("Failed to connect to Oracle: %v", err)
 	}
+
+	// Enable query logging
+	db.EnableQueryLog()
 
 	createOracleTestTables(t, db)
 	// Clean up any existing data before each test
@@ -119,11 +135,11 @@ func cleanupOracleTestData(t *testing.T, db *database.Database) {
 		t.Fatalf("cleanupOracleTestData: DB(): %v", err)
 	}
 	stmts := []string{
-		`DELETE FROM users`,
-		`DELETE FROM addresses`,
-		`DELETE FROM books`,
-		`DELETE FROM peoples`,
-		`DELETE FROM json_datas`,
+		`BEGIN EXECUTE IMMEDIATE 'TRUNCATE TABLE users CASCADE'; EXCEPTION WHEN OTHERS THEN NULL; END;`,
+		`BEGIN EXECUTE IMMEDIATE 'TRUNCATE TABLE addresses CASCADE'; EXCEPTION WHEN OTHERS THEN NULL; END;`,
+		`BEGIN EXECUTE IMMEDIATE 'TRUNCATE TABLE books CASCADE'; EXCEPTION WHEN OTHERS THEN NULL; END;`,
+		`BEGIN EXECUTE IMMEDIATE 'TRUNCATE TABLE peoples CASCADE'; EXCEPTION WHEN OTHERS THEN NULL; END;`,
+		`BEGIN EXECUTE IMMEDIATE 'TRUNCATE TABLE json_datas CASCADE'; EXCEPTION WHEN OTHERS THEN NULL; END;`,
 	}
 	for _, stmt := range stmts {
 		if _, err := sqlDB.Exec(stmt); err != nil {

@@ -26,14 +26,27 @@ func (q *Query) Create(value any) error {
 	builder := NewBuilder(q)
 	sqlStr, args := builder.BuildInsert(value)
 	if sqlStr == "" {
+		// For Oracle bulk inserts, BuildInsert returns empty to signal we should handle it differently
+		// Fall back to iterating and inserting one by one
+		v := reflect.ValueOf(value)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+			for i := 0; i < v.Len(); i++ {
+				elem := v.Index(i).Interface()
+				if err := q.Create(elem); err != nil {
+					return fmt.Errorf("failed to create element %d: %w", i, err)
+				}
+			}
+			return nil
+		}
 		return fmt.Errorf("failed to build INSERT query")
 	}
 
 	// Postgres: use RETURNING id to get inserted ID
 	// SQL Server: uses OUTPUT clause (already added in BuildInsert)
-	isPostgres := q.driver != nil && q.driver.Dialect() == "postgres"
-	isSQLServer := q.driver != nil && q.driver.Dialect() == "sqlserver"
-	if isPostgres {
+	if q.isPostgres() {
 		sqlStr = sqlStr + " RETURNING id"
 	}
 
@@ -42,7 +55,7 @@ func (q *Query) Create(value any) error {
 	var err error
 	start := time.Now()
 	if q.tx != nil {
-		if isPostgres || isSQLServer {
+		if q.isPostgres() || q.isSQLServer() {
 			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
 			rows, err = q.tx.QueryContext(q.ctx, sqlStr, args...)
@@ -94,7 +107,7 @@ func (q *Query) Create(value any) error {
 		if err != nil {
 			return err
 		}
-		if isPostgres || isSQLServer {
+		if q.isPostgres() || q.isSQLServer() {
 			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
 			rows, err = dbConn.QueryContext(q.ctx, sqlStr, args...)
@@ -148,7 +161,7 @@ func (q *Query) Create(value any) error {
 	q.logQuery(sqlStr, args, start)
 
 	// Populate last insert ID back into the model's primary key field (for non-PostgreSQL and non-SQLServer)
-	if !isPostgres && !isSQLServer && result != nil {
+	if !q.isPostgres() && !q.isSQLServer() && result != nil {
 		if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
@@ -159,7 +172,7 @@ func (q *Query) Create(value any) error {
 				// Different databases return different values from LastInsertId() for bulk inserts:
 				// - SQLite: returns the LAST auto-increment value
 				// - MySQL: returns the FIRST auto-increment value
-				isMySQL := q.driver != nil && q.driver.Dialect() == "mysql"
+				isMySQL := q.isMySQL()
 				for i := 0; i < v.Len(); i++ {
 					elem := v.Index(i)
 					if elem.Kind() == reflect.Ptr {

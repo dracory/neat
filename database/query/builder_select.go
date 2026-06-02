@@ -251,7 +251,8 @@ func (b *Builder) BuildSelect() (string, []any) {
 	// LIMIT and OFFSET clauses - skip for aggregate queries
 	if b.query.aggregate == "" {
 		// SQL Server uses TOP and OFFSET-FETCH instead of LIMIT-OFFSET
-		if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
+		// Oracle uses FETCH FIRST/OFFSET instead of LIMIT-OFFSET
+		if b.query.isSQLServer() {
 			if b.query.limit != nil {
 				// Insert TOP after SELECT (or SELECT DISTINCT)
 				for i, part := range parts {
@@ -286,6 +287,28 @@ func (b *Builder) BuildSelect() (string, []any) {
 				}
 				parts = append(parts, fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offsetValue, fetchValue))
 			}
+		} else if b.query.isOracle() {
+			// Oracle uses FETCH FIRST/OFFSET syntax
+			if b.query.limit != nil || b.query.offset != nil {
+				// Oracle requires ORDER BY for OFFSET-FETCH
+				if len(b.query.orders) == 0 {
+					// Try to use "id" as default ordering
+					parts = append(parts, "ORDER BY id")
+				}
+				if b.query.offset != nil {
+					offsetValue := *b.query.offset
+					fetchValue := 0
+					if b.query.limit != nil {
+						fetchValue = *b.query.limit
+					} else {
+						// If no limit specified, use a large value to fetch all remaining rows
+						fetchValue = 2147483647 // Max int32 value
+					}
+					parts = append(parts, fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offsetValue, fetchValue))
+				} else if b.query.limit != nil {
+					parts = append(parts, fmt.Sprintf("FETCH FIRST %d ROWS ONLY", *b.query.limit))
+				}
+			}
 		} else {
 			// Other databases use LIMIT-OFFSET
 			if b.query.limit != nil {
@@ -293,7 +316,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 			}
 			if b.query.offset != nil {
 				// SQLite requires LIMIT when using OFFSET
-				if b.query.limit == nil && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+				if b.query.limit == nil && b.query.isSQLite() {
 					parts = append(parts, "LIMIT -1")
 				}
 				parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
@@ -303,11 +326,11 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// Locking clauses - skip for aggregate queries
 	// Skip lock clauses for SQLite as it doesn't support them
-	if b.query.aggregate == "" && (b.query.driver == nil || b.query.driver.Dialect() != "sqlite") {
+	if b.query.aggregate == "" && !b.query.isSQLite() {
 		if b.query.lockForUpdate {
 			parts = append(parts, "FOR UPDATE")
 		} else if b.query.sharedLock {
-			if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+			if b.query.isPostgres() {
 				parts = append(parts, "FOR SHARE")
 			} else {
 				parts = append(parts, "LOCK IN SHARE MODE")

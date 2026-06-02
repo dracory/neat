@@ -86,7 +86,7 @@ func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
 			return nil, fmt.Errorf("invalid savepoint name")
 		}
 		var savepointSQL string
-		if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+		if q.isSQLServer() {
 			savepointSQL = fmt.Sprintf("SAVE TRANSACTION %s", savepointName)
 		} else {
 			savepointSQL = fmt.Sprintf("SAVEPOINT %s", savepointName)
@@ -128,7 +128,7 @@ func (q *Query) Commit() error {
 	if q.savepointName != "" {
 		// SQL Server has no RELEASE SAVEPOINT; the savepoint is implicitly committed
 		// when the outer transaction commits, so just clear state.
-		if q.driver == nil || q.driver.Dialect() != "sqlserver" {
+		if !q.isSQLServer() {
 			_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
 			if err != nil {
 				return fmt.Errorf("failed to release savepoint: %w", err)
@@ -154,7 +154,7 @@ func (q *Query) Rollback() error {
 	// If this is a nested transaction (savepoint), rollback to it
 	if q.savepointName != "" {
 		var rollbackSQL string
-		if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+		if q.isSQLServer() {
 			// SQL Server: ROLLBACK TRANSACTION <name> rolls back to the savepoint
 			// and does NOT release it; no separate RELEASE step needed.
 			rollbackSQL = fmt.Sprintf("ROLLBACK TRANSACTION %s", q.savepointName)
@@ -166,7 +166,7 @@ func (q *Query) Rollback() error {
 			return fmt.Errorf("failed to rollback to savepoint: %w", err)
 		}
 		// Release the savepoint for non-SQL Server dialects
-		if q.driver == nil || q.driver.Dialect() != "sqlserver" {
+		if !q.isSQLServer() {
 			_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
 			if err != nil {
 				return fmt.Errorf("failed to release savepoint: %w", err)
@@ -196,7 +196,7 @@ func (q *Query) RollbackTo(level string) error {
 
 	// Execute savepoint rollback (dialect-specific)
 	var rollbackSQL string
-	if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+	if q.isSQLServer() {
 		rollbackSQL = fmt.Sprintf("ROLLBACK TRANSACTION %s", level)
 	} else {
 		rollbackSQL = fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", level)
@@ -221,7 +221,7 @@ func (q *Query) SavePoint(name string) error {
 
 	// Execute savepoint creation (dialect-specific)
 	var savepointSQL string
-	if q.driver != nil && q.driver.Dialect() == "sqlserver" {
+	if q.isSQLServer() {
 		savepointSQL = fmt.Sprintf("SAVE TRANSACTION %s", name)
 	} else {
 		savepointSQL = fmt.Sprintf("SAVEPOINT %s", name)

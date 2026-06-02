@@ -58,7 +58,7 @@ func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, e
 // InRandomOrder orders the query results randomly.
 func (q *Query) InRandomOrder() contractsorm.Query {
 	var order string
-	if q.driver != nil && q.driver.Dialect() == "mysql" {
+	if q.isMySQL() {
 		order = "RAND()"
 	} else {
 		order = "RANDOM()"
