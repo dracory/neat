@@ -9,6 +9,7 @@ import (
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // TestModel is a simple model for integration testing
