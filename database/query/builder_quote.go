@@ -19,6 +19,8 @@ func (b *Builder) quoteIdentifier(name string) string {
 
 	// Oracle: use uppercase without quotes to match default behavior
 	// Oracle stores unquoted identifiers in uppercase
+	// Note: If tables were created with quoted identifiers (case-sensitive),
+	// this will not work. Users should use standard uppercase identifiers.
 	if dialect == "oracle" {
 		return strings.ToUpper(name)
 	}

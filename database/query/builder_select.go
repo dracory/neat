@@ -271,9 +271,10 @@ func (b *Builder) BuildSelect() (string, []any) {
 			// SQL Server requires ORDER BY for OFFSET-FETCH
 			if b.query.offset != nil {
 				// SQL Server requires ORDER BY when using OFFSET-FETCH
-				// If no ORDER BY is specified, add a default ORDER BY id (or first column)
+				// If no ORDER BY is specified, add a default ORDER BY
+				// Note: This assumes the table has an 'id' column. If not, the query will fail
+				// and the user should explicitly specify ORDER BY.
 				if len(b.query.orders) == 0 {
-					// Try to use "id" as default ordering, otherwise use the first column
 					parts = append(parts, "ORDER BY id")
 				}
 				offsetValue := *b.query.offset
@@ -291,8 +292,9 @@ func (b *Builder) BuildSelect() (string, []any) {
 			// Oracle uses FETCH FIRST/OFFSET syntax
 			if b.query.limit != nil || b.query.offset != nil {
 				// Oracle requires ORDER BY for OFFSET-FETCH
+				// Note: This assumes the table has an 'id' column. If not, the query will fail
+				// and the user should explicitly specify ORDER BY.
 				if len(b.query.orders) == 0 {
-					// Try to use "id" as default ordering
 					parts = append(parts, "ORDER BY id")
 				}
 				if b.query.offset != nil {

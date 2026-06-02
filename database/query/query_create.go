@@ -33,6 +33,11 @@ func (q *Query) Create(value any) error {
 			v = v.Elem()
 		}
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+			// Disable events for recursive calls to avoid duplicate Creating events
+			originalWithoutEvents := q.withoutEvents
+			q.withoutEvents = true
+			defer func() { q.withoutEvents = originalWithoutEvents }()
+
 			for i := 0; i < v.Len(); i++ {
 				elem := v.Index(i).Interface()
 				if err := q.Create(elem); err != nil {
