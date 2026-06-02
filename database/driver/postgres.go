@@ -3,8 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	_ "github.com/lib/pq"
 )
 
 // PostgreSQL implements the Driver interface for PostgreSQL databases.

@@ -3,8 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	_ "github.com/microsoft/go-mssqldb"
 )
 
 // SQLServer implements the Driver interface for SQL Server databases.

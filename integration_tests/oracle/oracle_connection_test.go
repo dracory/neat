@@ -17,12 +17,15 @@ func TestOracleIntegrationConnectionSwitch(t *testing.T) {
 
 	config := GetOracleConfig()
 	config.Connections["oracle2"] = config.Connections["oracle"]
+	config.Debug = true
 
-	db, err := neat.New(config, database.WithLogger(log.NewNoopLogger()))
+	db, err := neat.New(config)
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
 	defer func() { _ = db.Close() }()
+
+	db.EnableQueryLog()
 
 	conn1 := db
 	conn2, err := db.Connection("oracle2")
@@ -129,6 +132,7 @@ func TestOracleIntegrationReadWriteSeparation(t *testing.T) {
 
 	config := neat.DBConfig{
 		Default: "rw",
+		Debug:   true,
 		Connections: map[string]neat.ConnectionConfig{
 			"rw": {
 				Driver:   baseConn.Driver,
@@ -147,11 +151,13 @@ func TestOracleIntegrationReadWriteSeparation(t *testing.T) {
 		},
 	}
 
-	db, err := neat.New(config, database.WithLogger(log.NewNoopLogger()))
+	db, err := neat.New(config)
 	if err != nil {
 		t.Fatalf("Failed to create DB with read/write config: %v", err)
 	}
 	defer func() { _ = db.Close() }()
+
+	db.EnableQueryLog()
 
 	tableName := "rw_sep_test"
 	_ = db.Schema().Drop(tableName)

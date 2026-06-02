@@ -6,6 +6,8 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 // SetupTursoConnection creates a database connection without setting up tables

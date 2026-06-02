@@ -44,7 +44,7 @@ func (b *Builder) BuildDelete() (string, []any) {
 			if len(b.query.orders) > 0 {
 				var orderParts []string
 				for _, order := range b.query.orders {
-					orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
+					orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
 				}
 				orderClause = fmt.Sprintf(" ORDER BY %s", strings.Join(orderParts, ", "))
 			}

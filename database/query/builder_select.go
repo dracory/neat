@@ -105,7 +105,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 						}
 					}
 					if !omitted {
-						filteredCols = append(filteredCols, col)
+						filteredCols = append(filteredCols, b.quoteIdentifier(col))
 					}
 				}
 				if len(filteredCols) > 0 {
@@ -210,7 +210,11 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// GROUP BY clauses
 	if len(b.query.groups) > 0 {
-		parts = append(parts, fmt.Sprintf("GROUP BY %s", strings.Join(b.query.groups, ", ")))
+		var quotedGroups []string
+		for _, group := range b.query.groups {
+			quotedGroups = append(quotedGroups, b.quoteIdentifier(group))
+		}
+		parts = append(parts, fmt.Sprintf("GROUP BY %s", strings.Join(quotedGroups, ", ")))
 	}
 
 	// HAVING clauses
@@ -243,7 +247,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 	if b.query.aggregate == "" && len(b.query.orders) > 0 {
 		var orderParts []string
 		for _, order := range b.query.orders {
-			orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
+			orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
 		}
 		parts = append(parts, fmt.Sprintf("ORDER BY %s", strings.Join(orderParts, ", ")))
 	}
@@ -275,7 +279,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 				// Note: This assumes the table has an 'id' column. If not, the query will fail
 				// and the user should explicitly specify ORDER BY.
 				if len(b.query.orders) == 0 {
-					parts = append(parts, "ORDER BY id")
+					parts = append(parts, "ORDER BY "+b.quoteIdentifier("id"))
 				}
 				offsetValue := *b.query.offset
 				fetchValue := 0
@@ -295,7 +299,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 				// Note: This assumes the table has an 'id' column. If not, the query will fail
 				// and the user should explicitly specify ORDER BY.
 				if len(b.query.orders) == 0 {
-					parts = append(parts, "ORDER BY id")
+					parts = append(parts, "ORDER BY "+b.quoteIdentifier("id"))
 				}
 				if b.query.offset != nil {
 					offsetValue := *b.query.offset

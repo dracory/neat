@@ -1,9 +1,10 @@
-package common
+package common_test
 
 import (
 	"testing"
 
 	"github.com/dracory/neat"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // TestErrorHandlingIntegration tests error handling scenarios across databases

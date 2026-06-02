@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-
-	_ "github.com/sijms/go-ora/v2"
 )
 
 // Oracle implements the Driver interface for Oracle databases.

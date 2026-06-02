@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	_ "modernc.org/sqlite"
 )
 
 func TestBuildInsert(t *testing.T) {

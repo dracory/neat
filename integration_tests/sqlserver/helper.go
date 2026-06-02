@@ -1,4 +1,4 @@
-package sqlserver
+package sqlserver_test
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
+	_ "github.com/microsoft/go-mssqldb"
 )
 
 var (

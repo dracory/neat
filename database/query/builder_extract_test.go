@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 func TestExtractColumnsAndValuesStruct(t *testing.T) {
