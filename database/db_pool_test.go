@@ -9,6 +9,7 @@ import (
 
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	_ "modernc.org/sqlite"
 )
 
 // createTempDB creates a temporary SQLite database file and returns its path

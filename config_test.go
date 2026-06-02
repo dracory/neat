@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/database"
+	_ "modernc.org/sqlite"
 )
 
 // TestDatabaseTypeAlias verifies that neat.Database is an alias for database.Database,

@@ -5,6 +5,7 @@ import (
 
 	"github.com/dracory/neat"
 	_ "github.com/go-sql-driver/mysql"
+	_ "modernc.org/sqlite"
 )
 
 // TestErrorHandlingIntegration tests error handling scenarios across databases

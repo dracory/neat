@@ -5,6 +5,7 @@ import (
 
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	_ "github.com/lib/pq"
 )
 
 func TestSSL_PostgreSQL_SSLModeConfiguration(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	_ "modernc.org/sqlite"
 )
 
 func TestDatabaseName(t *testing.T) {

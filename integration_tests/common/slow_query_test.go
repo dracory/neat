@@ -9,6 +9,7 @@ import (
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database"
+	_ "modernc.org/sqlite"
 )
 
 // capturingLogger captures warning messages for testing
