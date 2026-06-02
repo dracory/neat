@@ -31,6 +31,11 @@ tasks:
     cmds:
       - go test ./integration_tests/sqlite/... -v
 
+  test-integration-oracle:
+    desc: Run Oracle integration tests
+    cmds:
+      - go test ./integration_tests/oracle/... -v
+
   build:
     desc: Build the project
     cmds:

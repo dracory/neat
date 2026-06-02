@@ -67,6 +67,11 @@ jobs:
       SQLSERVER_DATABASE: test
       SQLSERVER_USER: sa
       SQLSERVER_PASS: YourStrong@Passw0rd
+      ORACLE_HOST: 127.0.0.1
+      ORACLE_PORT: 1521
+      ORACLE_DATABASE: XE
+      ORACLE_USER: system
+      ORACLE_PASS: oracle
       GITHUB_ACTIONS: true
 
     steps:
@@ -146,6 +151,22 @@ jobs:
     - name: Verify SQL Server connection
       run: |
         /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;"
+
+    - name: Wait for Oracle service
+      run: |
+        echo "Waiting for Oracle to be ready..."
+        for i in {1..60}; do
+          if docker exec ${{ job.services.oracle.id }} sqlplus -L sys/oracle@//localhost:1521/XE as sysdba <<< 'SELECT 1 FROM DUAL;' > /dev/null 2>&1; then
+            echo "Oracle is ready!"
+            break
+          fi
+          echo "Attempt $i: Oracle not ready, waiting..."
+          sleep 5
+        done
+
+    - name: Verify Oracle connection
+      run: |
+        docker exec ${{ job.services.oracle.id }} sqlplus -L sys/oracle@//localhost:1521/XE as sysdba <<< 'SELECT 1 FROM DUAL;'
 
     - name: Set up Go
       uses: actions/setup-go@v6

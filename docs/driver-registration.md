@@ -6,11 +6,21 @@ This document describes how to register and use database drivers in Neat ORM.
 
 Neat ORM supports the following database drivers:
 
-- MySQL
+- MySQL (also supports MariaDB)
 - PostgreSQL
 - SQLite
 - SQL Server
+- Oracle
 - Turso (SQLite edge)
+
+## Compatible Databases
+
+The following databases are compatible with existing drivers and should work out of the box:
+
+- **MariaDB** with MySQL driver - nearly 100% compatible, same protocol
+- **TiDB** with MySQL driver - very high MySQL compatibility
+- **CockroachDB** with PostgreSQL driver - high PostgreSQL compatibility
+- **YugabyteDB** with PostgreSQL driver - high PostgreSQL compatibility
 
 ## Driver Configuration
 

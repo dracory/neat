@@ -43,3 +43,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: neat-oracle-test
+    environment:
+      ORACLE_PASSWORD: oracle
+    ports:
+      - "1521:1521"
+    healthcheck:
+      test: ["CMD", "sqlplus", "-L", "sys/oracle@//localhost:1521/XE as sysdba", "SELECT 1 FROM DUAL;"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
