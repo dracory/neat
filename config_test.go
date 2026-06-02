@@ -32,9 +32,8 @@ func TestReplicaConfigFields(t *testing.T) {
 // Read and Write []ReplicaConfig slices.
 func TestConnectionConfigHasReadWriteFields(t *testing.T) {
 	cfg := ConnectionConfig{
-		Driver: "sqlite",
-		Read:   []ReplicaConfig{{Host: "r1"}},
-		Write:  []ReplicaConfig{{Host: "w1"}},
+		Read:  []ReplicaConfig{{Host: "r1"}},
+		Write: []ReplicaConfig{{Host: "w1"}},
 	}
 	if len(cfg.Read) != 1 || cfg.Read[0].Host != "r1" {
 		t.Errorf("Read field not preserved: %+v", cfg.Read)
