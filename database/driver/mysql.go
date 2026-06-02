@@ -3,8 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 // MySQL implements the Driver interface for MySQL databases.

@@ -1,4 +1,4 @@
-package oracle
+package oracle_test
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/integration_tests/common"
 )
 
@@ -56,7 +57,7 @@ func SetupOracleConnection(t *testing.T) *sql.DB {
 		username, password, host, port, dbName)
 
 	// Use the local Oracle driver directly
-	oracleDriver := NewOracle()
+	oracleDriver := driver.NewOracle()
 	sqlDB, err := oracleDriver.Open(dsn)
 	if err != nil {
 		t.Fatalf("Failed to connect to Oracle: %v", err)

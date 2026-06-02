@@ -1,8 +1,10 @@
-package oracle
+package oracle_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/dracory/neat/database/driver"
 )
 
 func TestOracleIntegrationConnection(t *testing.T) {
@@ -16,19 +18,19 @@ func TestOracleIntegrationConnection(t *testing.T) {
 	}
 
 	// Test ping
-	driver := NewOracle()
-	err := driver.Ping(context.Background(), db)
+	oracleDriver := driver.NewOracle()
+	err := oracleDriver.Ping(context.Background(), db)
 	if err != nil {
 		t.Fatalf("Failed to ping Oracle: %v", err)
 	}
 
 	// Test dialect
-	if driver.Dialect() != "oracle" {
-		t.Errorf("Expected dialect 'oracle', got '%s'", driver.Dialect())
+	if oracleDriver.Dialect() != "oracle" {
+		t.Errorf("Expected dialect 'oracle', got '%s'", oracleDriver.Dialect())
 	}
 
 	// Test placeholder
-	if driver.Placeholder(1) != ":1" {
-		t.Errorf("Expected placeholder ':1', got '%s'", driver.Placeholder(1))
+	if oracleDriver.Placeholder(1) != ":1" {
+		t.Errorf("Expected placeholder ':1', got '%s'", oracleDriver.Placeholder(1))
 	}
 }
