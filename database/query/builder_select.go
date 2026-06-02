@@ -247,7 +247,12 @@ func (b *Builder) BuildSelect() (string, []any) {
 	if b.query.aggregate == "" && len(b.query.orders) > 0 {
 		var orderParts []string
 		for _, order := range b.query.orders {
-			orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
+			// Don't quote function calls (e.g., RANDOM(), RAND())
+			column := order.column
+			if !strings.Contains(column, "(") {
+				column = b.quoteIdentifier(column)
+			}
+			orderParts = append(orderParts, fmt.Sprintf("%s %s", column, order.direction))
 		}
 		parts = append(parts, fmt.Sprintf("ORDER BY %s", strings.Join(orderParts, ", ")))
 	}

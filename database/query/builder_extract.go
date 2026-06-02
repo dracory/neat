@@ -175,8 +175,9 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Ptr && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For Oracle, also skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
+			// For SQL Server, also skip zero time.Time values to use DEFAULT GETDATE()
 			// For other dialects, include zero time.Time values
-			if b.query.isMySQL() || b.query.isOracle() {
+			if b.query.isMySQL() || b.query.isOracle() || b.query.isSQLServer() {
 				if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
 					continue
 				}

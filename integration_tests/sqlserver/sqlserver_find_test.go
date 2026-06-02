@@ -90,8 +90,7 @@ func TestSQLServerIntegrationCreate(t *testing.T) {
 
 	// Test Create single record
 	user := models.User{Name: "create_user", Avatar: "avatar"}
-	var err error
-	err = query.Model(&models.User{}).Create(&user)
+	err := query.Model(&models.User{}).Create(&user)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}

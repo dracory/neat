@@ -36,6 +36,11 @@ tasks:
     cmds:
       - go test ./integration_tests/oracle/... -v
 
+  test-integration-sqlserver:
+    desc: Run SQL Server integration tests
+    cmds:
+      - go test ./integration_tests/sqlserver/... -v
+
   build:
     desc: Build the project
     cmds:

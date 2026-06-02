@@ -31,7 +31,7 @@ var (
 func GetSQLServerConfig() neat.DBConfig {
 	host := common.GetEnv("SQLSERVER_HOST", "127.0.0.1")
 	port := common.GetEnvInt("SQLSERVER_PORT", 1433)
-	database := common.GetEnv("SQLSERVER_DATABASE", "test")
+	dbName := common.GetEnv("SQLSERVER_DATABASE", "test")
 	username := common.GetEnv("SQLSERVER_USER", "sa")
 	password := common.GetEnv("SQLSERVER_PASS", "YourStrong@Passw0rd")
 
@@ -42,7 +42,7 @@ func GetSQLServerConfig() neat.DBConfig {
 				Driver:   "sqlserver",
 				Host:     host,
 				Port:     port,
-				Database: database,
+				Database: dbName,
 				Username: username,
 				Password: password,
 			},
@@ -53,6 +53,7 @@ func GetSQLServerConfig() neat.DBConfig {
 			ConnMaxLifetime: time.Hour,
 			ConnMaxIdleTime: time.Hour,
 		},
+		Debug: true, // Enable debug mode to see actual SQL errors
 	}
 }
 
@@ -84,7 +85,7 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	// First connect to master to create the test database if it doesn't exist
 	masterDSN := fmt.Sprintf("sqlserver://%s:%s@%s:%d/master?encrypt=disable",
 		username, password, host, port)
-	masterConn, err := neat.NewFromDSN(masterDSN)
+	masterConn, err := neat.NewFromDSN(masterDSN, database.WithDebug())
 	if err != nil {
 		t.Fatalf("Failed to connect to SQL Server master: %v", err)
 	}
@@ -105,7 +106,7 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d/%s?encrypt=disable",
 		username, password, host, port, db)
 
-	conn, err := neat.NewFromDSN(dsn)
+	conn, err := neat.NewFromDSN(dsn, database.WithDebug())
 	if err != nil {
 		t.Fatalf("Failed to connect to SQL Server: %v", err)
 	}
@@ -134,14 +135,14 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 
 	host := common.GetEnv("SQLSERVER_HOST", "127.0.0.1")
 	port := common.GetEnvInt("SQLSERVER_PORT", 1433)
-	database := common.GetEnv("SQLSERVER_DATABASE", "test")
+	dbName := common.GetEnv("SQLSERVER_DATABASE", "test")
 	username := common.GetEnv("SQLSERVER_USER", "sa")
 	password := common.GetEnv("SQLSERVER_PASS", "YourStrong@Passw0rd")
 
 	// First connect to master to create the test database if it doesn't exist
 	masterDSN := fmt.Sprintf("sqlserver://%s:%s@%s:%d/master?encrypt=disable",
 		username, password, host, port)
-	masterConn, err := neat.NewFromDSN(masterDSN)
+	masterConn, err := neat.NewFromDSN(masterDSN, database.WithDebug())
 	if err != nil {
 		t.Fatalf("Failed to connect to SQL Server master: %v", err)
 	}
@@ -153,16 +154,16 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	}
 
 	// Create the test database if it doesn't exist
-	_, err = sqlDB.Exec(fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE %s", database, database))
+	_, err = sqlDB.Exec(fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE %s", dbName, dbName))
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
 
 	// Now connect to the test database
 	dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d/%s?encrypt=disable",
-		username, password, host, port, database)
+		username, password, host, port, dbName)
 
-	db, err := neat.NewFromDSN(dsn)
+	db, err := neat.NewFromDSN(dsn, database.WithDebug())
 	if err != nil {
 		t.Fatalf("Failed to connect to SQL Server: %v", err)
 	}

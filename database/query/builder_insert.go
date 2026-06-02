@@ -56,7 +56,10 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 			quotedColumns[i] = b.quoteIdentifier(col)
 		}
 
-		// Add OUTPUT clause for SQL Server if we have an ID column
+		// Add column list
+		parts = append(parts, fmt.Sprintf("(%s)", strings.Join(quotedColumns, ", ")))
+
+		// Add OUTPUT clause for SQL Server if we have an ID column (must come after column list)
 		if isSQLServer && idColumn != "" {
 			parts = append(parts, fmt.Sprintf("OUTPUT INSERTED.%s", idColumn))
 		}
@@ -85,7 +88,6 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 				return "", []any{}
 			} else {
 				// Standard multi-row INSERT
-				parts = append(parts, fmt.Sprintf("(%s)", strings.Join(quotedColumns, ", ")))
 				parts = append(parts, "VALUES")
 				rowPlaceholders := make([]string, v.Len())
 				placeholderIndex := 1
@@ -121,7 +123,6 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 			}
 		} else {
 			// Single insert
-			parts = append(parts, fmt.Sprintf("(%s)", strings.Join(quotedColumns, ", ")))
 			parts = append(parts, "VALUES")
 			placeholders := make([]string, len(columns))
 			placeholderIndex := 1
