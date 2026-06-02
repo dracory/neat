@@ -1,4 +1,4 @@
-package postgres
+package postgres_test
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
+	_ "github.com/lib/pq"
 )
 
 // GetPostgresConfig returns a PostgreSQL connection config from environment variables
