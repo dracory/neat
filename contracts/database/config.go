@@ -6,6 +6,7 @@ const (
 	DriverSqlite    Driver = "sqlite"
 	DriverSqlserver Driver = "sqlserver"
 	DriverTurso     Driver = "turso"
+	DriverOracle    Driver = "oracle"
 )
 
 type Driver string

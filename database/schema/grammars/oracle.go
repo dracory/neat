@@ -1,0 +1,632 @@
+package grammars
+
+import (
+	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/spf13/cast"
+
+	contractsdatabase "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database/schema"
+)
+
+type Oracle struct {
+	attributeCommands []string
+	modifiers         []func(schema.Blueprint, schema.ColumnDefinition) string
+	serials           []string
+	wrap              *Wrap
+}
+
+func NewOracle(tablePrefix string) *Oracle {
+	oracle := &Oracle{
+		attributeCommands: []string{},
+		serials:           []string{"bigInteger", "integer", "mediumInteger", "smallInteger", "tinyInteger"},
+		wrap:              NewWrap(contractsdatabase.DriverOracle, tablePrefix),
+	}
+	oracle.modifiers = []func(schema.Blueprint, schema.ColumnDefinition) string{
+		// The sort should not be changed, it effects the SQL output
+		oracle.ModifyIncrement,
+		oracle.ModifyNullable,
+		oracle.ModifyDefault,
+		oracle.ModifyComment,
+		oracle.ModifyUnsigned,
+	}
+
+	return oracle
+}
+
+func (r *Oracle) CompileAdd(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	column, err := r.getColumn(blueprint, command.Column)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("alter table %s add %s", table, column), nil
+}
+
+func (r *Oracle) CompileChange(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	column, err := r.getColumn(blueprint, command.Column)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("alter table %s modify %s", table, column), nil
+}
+
+func (r *Oracle) CompileColumns(schema, table string) string {
+	return fmt.Sprintf(
+		"select column_name as name, data_type as type_name, "+
+			"char_length as length, nullable as nullable, "+
+			"data_default as default_value, comments as comment "+
+			"from all_tab_columns where owner = upper(%s) and table_name = upper(%s) "+
+			"order by column_id asc", r.wrap.Quote(schema), r.wrap.Quote(table))
+}
+
+func (r *Oracle) CompileComment(_ schema.Blueprint, _ *schema.Command) (string, error) {
+	return "", nil
+}
+
+func (r *Oracle) CompileCreate(blueprint schema.Blueprint) (string, error) {
+	columns, err := r.getColumns(blueprint)
+	if err != nil {
+		return "", err
+	}
+	primaryCommand := getCommandByName(blueprint.GetCommands(), "primary")
+	if primaryCommand != nil {
+		columnized, err := r.wrap.Columnize(primaryCommand.Columns)
+		if err != nil {
+			return "", err
+		}
+		columns = append(columns, fmt.Sprintf("primary key (%s)", columnized))
+		primaryCommand.ShouldBeSkipped = true
+	}
+
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("create table %s (%s)", table, strings.Join(columns, ", ")), nil
+}
+
+func (r *Oracle) CompileDisableForeignKeyConstraints() string {
+	return ""
+}
+
+func (r *Oracle) CompileDrop(blueprint schema.Blueprint) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop table %s cascade constraints", table), nil
+}
+
+func (r *Oracle) CompileDropAllDomains(_ []string) (string, error) {
+	return "", nil
+}
+
+func (r *Oracle) CompileDropAllTables(tables []string) (string, error) {
+	var statements []string
+	for _, table := range tables {
+		quotedTable, err := r.wrap.Table(table)
+		if err != nil {
+			return "", err
+		}
+		statements = append(statements, fmt.Sprintf("drop table %s cascade constraints", quotedTable))
+	}
+	return strings.Join(statements, "; "), nil
+}
+
+func (r *Oracle) CompileDropAllTypes(_ []string) (string, error) {
+	return "", nil
+}
+
+func (r *Oracle) CompileDropAllViews(views []string) (string, error) {
+	var statements []string
+	for _, view := range views {
+		quotedView, err := r.wrap.Table(view)
+		if err != nil {
+			return "", err
+		}
+		statements = append(statements, fmt.Sprintf("drop view %s", quotedView))
+	}
+	return strings.Join(statements, "; "), nil
+}
+
+func (r *Oracle) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
+	columns, err := r.wrap.Columns(command.Columns)
+	if err != nil {
+		return nil, err
+	}
+
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return nil, err
+	}
+
+	var statements []string
+	for _, column := range columns {
+		statements = append(statements, fmt.Sprintf("alter table %s drop column %s", table, column))
+	}
+
+	return statements, nil
+}
+
+func (r *Oracle) CompileDropForeign(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	column, err := r.wrap.Column(command.Index)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("alter table %s drop constraint %s", table, column), nil
+}
+
+func (r *Oracle) CompileDropFullText(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	return r.CompileDropIndex(blueprint, command)
+}
+
+func (r *Oracle) CompileDropIfExists(blueprint schema.Blueprint) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("begin execute immediate 'drop table %s cascade constraints'; exception when others then null; end;", table), nil
+}
+
+func (r *Oracle) CompileDropIndex(_ schema.Blueprint, command *schema.Command) (string, error) {
+	column, err := r.wrap.Column(command.Index)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop index %s", column), nil
+}
+
+func (r *Oracle) CompileDropPrimary(blueprint schema.Blueprint, _ *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("alter table %s drop primary key cascade", table), nil
+}
+
+func (r *Oracle) CompileDropUnique(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	return r.CompileDropIndex(blueprint, command)
+}
+
+func (r *Oracle) CompileEnableForeignKeyConstraints() string {
+	return ""
+}
+
+func (r *Oracle) CompileForeign(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	index, err := r.wrap.Column(command.Index)
+	if err != nil {
+		return "", err
+	}
+	columns, err := r.wrap.Columnize(command.Columns)
+	if err != nil {
+		return "", err
+	}
+	on, err := r.wrap.Table(command.On)
+	if err != nil {
+		return "", err
+	}
+	references, err := r.wrap.Columnize(command.References)
+	if err != nil {
+		return "", err
+	}
+
+	sql := fmt.Sprintf("alter table %s add constraint %s foreign key (%s) references %s (%s)",
+		table, index, columns, on, references)
+	if command.OnDelete != "" && r.wrap.IsValidAction(command.OnDelete) {
+		sql += " on delete " + command.OnDelete
+	}
+	if command.OnUpdate != "" && r.wrap.IsValidAction(command.OnUpdate) {
+		sql += " on update " + command.OnUpdate
+	}
+
+	return sql, nil
+}
+
+func (r *Oracle) CompileForeignKeys(schema, table string) string {
+	return fmt.Sprintf(
+		`SELECT 
+			c.constraint_name AS name, 
+			LISTAGG(c.column_name, ',') WITHIN GROUP (ORDER BY c.position) AS columns, 
+			c.owner AS foreign_schema, 
+			r.table_name AS foreign_table, 
+			LISTAGG(r.column_name, ',') WITHIN GROUP (ORDER BY r.position) AS foreign_columns, 
+			d.delete_rule AS on_delete, 
+			d.update_rule AS on_update 
+		FROM all_cons_columns c
+		JOIN all_constraints con ON c.constraint_name = con.constraint_name
+		JOIN all_cons_columns r ON con.r_constraint_name = r.constraint_name
+		JOIN all_constraints d ON r.constraint_name = d.constraint_name
+		WHERE c.owner = upper(%s) 
+			AND c.table_name = upper(%s) 
+			AND con.constraint_type = 'R'
+		GROUP BY c.constraint_name, c.owner, r.table_name, d.delete_rule, d.update_rule`,
+		r.wrap.Quote(schema),
+		r.wrap.Quote(table),
+	)
+}
+
+func (r *Oracle) CompileFullText(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	return r.compileKey(blueprint, command, "index")
+}
+
+func (r *Oracle) CompileIndex(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	index, err := r.wrap.Column(command.Index)
+	if err != nil {
+		return "", err
+	}
+	columns, err := r.wrap.Columnize(command.Columns)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("create index %s on %s(%s)", index, table, columns), nil
+}
+
+func (r *Oracle) CompileIndexes(schema, table string) string {
+	return fmt.Sprintf(
+		"select index_name as name, listagg(column_name, ',') within group (order by column_position) as columns, "+
+			"uniqueness as type from all_ind_columns where table_owner = upper(%s) and table_name = upper(%s) "+
+			"group by index_name, uniqueness",
+		r.wrap.Quote(schema),
+		r.wrap.Quote(table),
+	)
+}
+
+func (r *Oracle) CompilePrimary(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	columns, err := r.wrap.Columnize(command.Columns)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("alter table %s add primary key (%s)", table, columns), nil
+}
+
+func (r *Oracle) CompileRename(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	to, err := r.wrap.Table(command.To)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("alter table %s rename to %s", table, to), nil
+}
+
+func (r *Oracle) CompileRenameColumn(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	from, err := r.wrap.Column(command.From)
+	if err != nil {
+		return "", err
+	}
+	to, err := r.wrap.Column(command.To)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("alter table %s rename column %s to %s", table, from, to), nil
+}
+
+func (r *Oracle) CompileRenameIndex(_ schema.Schema, _ schema.Blueprint, command *schema.Command) ([]string, error) {
+	from, err := r.wrap.Column(command.From)
+	if err != nil {
+		return nil, err
+	}
+	to, err := r.wrap.Column(command.To)
+	if err != nil {
+		return nil, err
+	}
+	return []string{
+		fmt.Sprintf("alter index %s rename to %s", from, to),
+	}, nil
+}
+
+func (r *Oracle) CompileTables(database string) string {
+	return fmt.Sprintf("select table_name as name from all_tables where owner = upper(%s) order by table_name", r.wrap.Quote(database))
+}
+
+func (r *Oracle) CompileTypes() string {
+	return ""
+}
+
+func (r *Oracle) CompileUnique(blueprint schema.Blueprint, command *schema.Command) (string, error) {
+	return r.compileKey(blueprint, command, "unique")
+}
+
+func (r *Oracle) CompileViews(database string) string {
+	return fmt.Sprintf("select view_name as name, text as definition from all_views where owner = upper(%s) order by view_name", r.wrap.Quote(database))
+}
+
+func (r *Oracle) GetAttributeCommands() []string {
+	return r.attributeCommands
+}
+
+func (r *Oracle) ModifyNullable(_ schema.Blueprint, column schema.ColumnDefinition) string {
+	if column.GetNullable() {
+		return " null"
+	} else {
+		return " not null"
+	}
+}
+
+func (r *Oracle) ModifyComment(_ schema.Blueprint, _ schema.ColumnDefinition) string {
+	// Oracle doesn't support inline comments in CREATE TABLE statements
+	// Comments are added separately using COMMENT ON COLUMN syntax
+	return ""
+}
+
+func (r *Oracle) ModifyDefault(_ schema.Blueprint, column schema.ColumnDefinition) string {
+	if column.GetDefault() != nil {
+		return fmt.Sprintf(" default %s", getDefaultValue(column.GetDefault()))
+	}
+
+	return ""
+}
+
+func (r *Oracle) ModifyIncrement(_ schema.Blueprint, column schema.ColumnDefinition) string {
+	if slices.Contains(r.serials, column.GetType()) && column.GetAutoIncrement() {
+		return " generated by default as identity"
+	}
+
+	return ""
+}
+
+func (r *Oracle) ModifyUnsigned(_ schema.Blueprint, _ schema.ColumnDefinition) string {
+	// Oracle doesn't support unsigned integers, so this is a no-op
+	return ""
+}
+
+func (r *Oracle) TypeBigInteger(_ schema.ColumnDefinition) string {
+	return "number(20)"
+}
+
+func (r *Oracle) TypeBoolean(_ schema.ColumnDefinition) string {
+	return "number(1)"
+}
+
+func (r *Oracle) TypeChar(column schema.ColumnDefinition) string {
+	return fmt.Sprintf("char(%d)", column.GetLength())
+}
+
+func (r *Oracle) TypeDate(_ schema.ColumnDefinition) string {
+	return "date"
+}
+
+func (r *Oracle) TypeDateTime(column schema.ColumnDefinition) string {
+	current := "CURRENT_TIMESTAMP"
+	precision := column.GetPrecision()
+	if precision > 0 {
+		current = fmt.Sprintf("CURRENT_TIMESTAMP(%d)", precision)
+	}
+	if column.GetUseCurrent() {
+		column.Default(Expression(current))
+	}
+	if column.GetUseCurrentOnUpdate() {
+		column.OnUpdate(Expression(current))
+	}
+
+	if precision > 0 {
+		return fmt.Sprintf("timestamp(%d)", precision)
+	} else {
+		return "timestamp"
+	}
+}
+
+func (r *Oracle) TypeDateTimeTz(column schema.ColumnDefinition) string {
+	return r.TypeDateTime(column)
+}
+
+func (r *Oracle) TypeDecimal(column schema.ColumnDefinition) string {
+	return fmt.Sprintf("number(%d, %d)", column.GetTotal(), column.GetPlaces())
+}
+
+func (r *Oracle) TypeDouble(_ schema.ColumnDefinition) string {
+	return "binary_double"
+}
+
+func (r *Oracle) TypeEnum(column schema.ColumnDefinition) string {
+	return fmt.Sprintf(`varchar2(20) check (%s in (%s))`, column.GetName(), strings.Join(r.wrap.Quotes(cast.ToStringSlice(column.GetAllowed())), ", "))
+}
+
+func (r *Oracle) TypeFloat(column schema.ColumnDefinition) string {
+	precision := column.GetPrecision()
+	if precision > 0 {
+		return fmt.Sprintf("binary_float(%d)", precision)
+	}
+
+	return "binary_float"
+}
+
+func (r *Oracle) TypeGeometry(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypeGeometryCollection(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypeInteger(_ schema.ColumnDefinition) string {
+	return "number(10)"
+}
+
+func (r *Oracle) TypeLineString(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypeJson(_ schema.ColumnDefinition) string {
+	return "clob"
+}
+
+func (r *Oracle) TypeJsonb(_ schema.ColumnDefinition) string {
+	return "clob"
+}
+
+func (r *Oracle) TypeLongText(_ schema.ColumnDefinition) string {
+	return "clob"
+}
+
+func (r *Oracle) TypeMediumInteger(_ schema.ColumnDefinition) string {
+	return "number(7)"
+}
+
+func (r *Oracle) TypeMediumText(_ schema.ColumnDefinition) string {
+	return "clob"
+}
+
+func (r *Oracle) TypeMultiLineString(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypeMultiPoint(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypeMultiPolygon(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypePoint(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypePolygon(column schema.ColumnDefinition) string {
+	return "sdo_geometry"
+}
+
+func (r *Oracle) TypeSmallInteger(_ schema.ColumnDefinition) string {
+	return "number(5)"
+}
+
+func (r *Oracle) TypeString(column schema.ColumnDefinition) string {
+	length := column.GetLength()
+	if length > 0 {
+		return fmt.Sprintf("varchar2(%d)", length)
+	}
+
+	return "varchar2(255)"
+}
+
+func (r *Oracle) TypeText(_ schema.ColumnDefinition) string {
+	return "clob"
+}
+
+func (r *Oracle) TypeTime(column schema.ColumnDefinition) string {
+	if column.GetPrecision() > 0 {
+		return fmt.Sprintf("timestamp(%d)", column.GetPrecision())
+	} else {
+		return "timestamp"
+	}
+}
+
+func (r *Oracle) TypeTimeTz(column schema.ColumnDefinition) string {
+	return r.TypeTime(column)
+}
+
+func (r *Oracle) TypeTimestamp(column schema.ColumnDefinition) string {
+	current := "CURRENT_TIMESTAMP"
+	precision := column.GetPrecision()
+	if precision > 0 {
+		current = fmt.Sprintf("CURRENT_TIMESTAMP(%d)", precision)
+	}
+	if column.GetUseCurrent() {
+		column.Default(Expression(current))
+	}
+	if column.GetUseCurrentOnUpdate() {
+		column.OnUpdate(Expression(current))
+	}
+
+	if precision > 0 {
+		return fmt.Sprintf("timestamp(%d)", precision)
+	} else {
+		return "timestamp"
+	}
+}
+
+func (r *Oracle) TypeTimestampTz(column schema.ColumnDefinition) string {
+	return r.TypeTimestamp(column)
+}
+
+func (r *Oracle) TypeTinyInteger(_ schema.ColumnDefinition) string {
+	return "number(3)"
+}
+
+func (r *Oracle) TypeTinyText(_ schema.ColumnDefinition) string {
+	return "varchar2(4000)"
+}
+
+func (r *Oracle) compileKey(blueprint schema.Blueprint, command *schema.Command, ttype string) (string, error) {
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	index, err := r.wrap.Column(command.Index)
+	if err != nil {
+		return "", err
+	}
+	columns, err := r.wrap.Columnize(command.Columns)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("create %s index %s on %s(%s)",
+		ttype,
+		index,
+		table,
+		columns), nil
+}
+
+func (r *Oracle) getColumns(blueprint schema.Blueprint) ([]string, error) {
+	var columns []string
+	for _, column := range blueprint.GetAddedColumns() {
+		col, err := r.getColumn(blueprint, column)
+		if err != nil {
+			return nil, err
+		}
+		columns = append(columns, col)
+	}
+
+	return columns, nil
+}
+
+func (r *Oracle) getColumn(blueprint schema.Blueprint, column schema.ColumnDefinition) (string, error) {
+	col, err := r.wrap.Column(column.GetName())
+	if err != nil {
+		return "", err
+	}
+	sql := fmt.Sprintf("%s %s", col, getType(r, column))
+
+	for _, modifier := range r.modifiers {
+		sql += modifier(blueprint, column)
+	}
+
+	return sql, nil
+}

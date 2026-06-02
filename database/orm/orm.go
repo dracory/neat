@@ -222,6 +222,8 @@ func createDriver(driverName string) driver.Driver {
 		return driver.NewSQLServer()
 	case "turso":
 		return driver.NewTurso()
+	case "oracle":
+		return driver.NewOracle()
 	default:
 		return driver.NewMySQL() // Default to MySQL
 	}
