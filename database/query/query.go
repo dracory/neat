@@ -348,6 +348,8 @@ func newDriverForDialect(dialect string) driver.Driver {
 		return driver.NewSQLServer()
 	case "turso":
 		return driver.NewTurso()
+	case "oracle":
+		return driver.NewOracle()
 	default:
 		return driver.NewSQLite()
 	}
@@ -500,7 +502,7 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 				if _, err := fmt.Sscanf(string(v), "%d", &num); err == nil {
 					lastID = num
 				} else {
-					return 0, fmt.Errorf("failed to convert Oracle ID bytes to int64: %w", err)
+					return 0, fmt.Errorf("failed to convert Oracle ID bytes '%s' to int64: %w", string(v), err)
 				}
 			default:
 				return 0, fmt.Errorf("unsupported Oracle ID type: %T", idInterface)

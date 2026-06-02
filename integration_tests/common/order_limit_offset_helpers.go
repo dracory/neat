@@ -11,7 +11,9 @@ import (
 func SeedOrderLimitOffsetTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
 	// Clean up existing test data first
-	_, _ = query.Model(&models.User{}).Where("name LIKE ?", "user_%").Delete()
+	if _, err := query.Model(&models.User{}).Where("name LIKE ?", "user_%").Delete(); err != nil {
+		t.Logf("Warning: failed to cleanup test data: %v", err)
+	}
 
 	users := []models.User{
 		{Name: "user_b", Avatar: "avatar2"},

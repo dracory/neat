@@ -11,7 +11,9 @@ import (
 func SeedPluckTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
 	// Clean up existing test data first
-	_, _ = query.Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").Delete()
+	if _, err := query.Model(&models.User{}).Where("name LIKE ?", "pluck_user_%").Delete(); err != nil {
+		t.Logf("Warning: failed to cleanup test data: %v", err)
+	}
 
 	users := []models.User{
 		{Name: "pluck_user_1", Avatar: "avatar1"},

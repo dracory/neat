@@ -17,16 +17,17 @@ func (b *Builder) quoteIdentifier(name string) string {
 		quoteChar = "`"
 	}
 
+	// For Oracle, uppercase identifiers to match default behavior
+	// Oracle stores unquoted identifiers in uppercase
+	// Do this BEFORE the quoted check to ensure even explicitly quoted identifiers are uppercased
+	if dialect == "oracle" {
+		name = strings.ToUpper(name)
+	}
+
 	// If already quoted, return as is
 	if (strings.HasPrefix(name, "\"") && strings.HasSuffix(name, "\"")) ||
 		(strings.HasPrefix(name, "`") && strings.HasSuffix(name, "`")) {
 		return name
-	}
-
-	// For Oracle, uppercase identifiers to match default behavior
-	// Oracle stores unquoted identifiers in uppercase
-	if dialect == "oracle" {
-		name = strings.ToUpper(name)
 	}
 
 	// Handle dotted names (e.g., table.column)

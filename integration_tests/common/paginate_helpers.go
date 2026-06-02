@@ -11,7 +11,9 @@ import (
 func SeedPaginateTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
 	// Clean up existing test data first
-	_, _ = query.Model(&models.User{}).Where("name LIKE ?", "paginate_user_%").Delete()
+	if _, err := query.Model(&models.User{}).Where("name LIKE ?", "paginate_user_%").Delete(); err != nil {
+		t.Logf("Warning: failed to cleanup test data: %v", err)
+	}
 
 	for i := 1; i <= 15; i++ {
 		user := models.User{
