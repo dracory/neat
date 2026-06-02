@@ -460,14 +460,15 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 
 	// Postgres: use RETURNING id to get inserted ID
 	// SQL Server: uses OUTPUT clause (already added in BuildInsert)
-	if q.isPostgres() {
+	// Oracle: use RETURNING id for identity columns
+	if q.isPostgres() || q.isOracle() {
 		insertSQL = insertSQL + " RETURNING id"
 	}
 
 	start := time.Now()
 	var lastID int64
 
-	if q.isPostgres() || q.isSQLServer() {
+	if q.isPostgres() || q.isSQLServer() || q.isOracle() {
 		// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use QueryRow instead of Exec
 		var row *sql.Row
 		if q.tx != nil {
@@ -479,8 +480,35 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 			}
 			row = dbConn.QueryRowContext(q.ctx, insertSQL, args...)
 		}
-		if err := row.Scan(&lastID); err != nil {
-			return 0, fmt.Errorf("failed to get inserted ID: %w", err)
+		if q.isOracle() {
+			// Oracle may return different types, try scanning into interface{} first
+			var idInterface any
+			if err := row.Scan(&idInterface); err != nil {
+				return 0, fmt.Errorf("failed to get inserted ID: %w", err)
+			}
+			// Convert to int64
+			switch v := idInterface.(type) {
+			case int64:
+				lastID = v
+			case int:
+				lastID = int64(v)
+			case float64:
+				lastID = int64(v)
+			case []byte:
+				// Oracle may return as bytes
+				var num int64
+				if _, err := fmt.Sscanf(string(v), "%d", &num); err == nil {
+					lastID = num
+				} else {
+					return 0, fmt.Errorf("failed to convert Oracle ID bytes to int64: %w", err)
+				}
+			default:
+				return 0, fmt.Errorf("unsupported Oracle ID type: %T", idInterface)
+			}
+		} else {
+			if err := row.Scan(&lastID); err != nil {
+				return 0, fmt.Errorf("failed to get inserted ID: %w", err)
+			}
 		}
 	} else {
 		var err error

@@ -138,6 +138,12 @@ func (r *Wrap) Value(value string) (string, error) {
 		return "`" + strings.ReplaceAll(value, "`", "``") + "`", nil
 	}
 
+	// For Oracle, uppercase identifiers to match default behavior
+	// Oracle stores unquoted identifiers in uppercase
+	if r.driver == contractsdatabase.DriverOracle {
+		value = strings.ToUpper(value)
+	}
+
 	return `"` + strings.ReplaceAll(value, `"`, `""`) + `"`, nil
 }
 

@@ -11,6 +11,9 @@ import (
 // SeedGroupHavingTestData creates test data for group/having tests
 func SeedGroupHavingTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
+	// Clean up existing test data first
+	_, _ = query.Model(&models.User{}).Where("name LIKE ?", "group_user_%").Delete()
+
 	users := []models.User{
 		{Name: "group_user_1", Avatar: "avatar1"},
 		{Name: "group_user_2", Avatar: "avatar1"},

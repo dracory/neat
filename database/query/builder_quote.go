@@ -23,6 +23,12 @@ func (b *Builder) quoteIdentifier(name string) string {
 		return name
 	}
 
+	// For Oracle, uppercase identifiers to match default behavior
+	// Oracle stores unquoted identifiers in uppercase
+	if dialect == "oracle" {
+		name = strings.ToUpper(name)
+	}
+
 	// Handle dotted names (e.g., table.column)
 	if strings.Contains(name, ".") {
 		parts := strings.Split(name, ".")

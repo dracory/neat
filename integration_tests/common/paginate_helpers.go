@@ -10,6 +10,9 @@ import (
 // SeedPaginateTestData creates 15 test users for pagination tests
 func SeedPaginateTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
+	// Clean up existing test data first
+	_, _ = query.Model(&models.User{}).Where("name LIKE ?", "paginate_user_%").Delete()
+
 	for i := 1; i <= 15; i++ {
 		user := models.User{
 			Name:   "paginate_user_" + string(rune(64+i)),
