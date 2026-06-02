@@ -1,5 +1,4 @@
-
-package mysql
+package mysql_test
 
 import (
 	"sync"

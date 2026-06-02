@@ -1,8 +1,10 @@
-package driver
+package mysql_test
 
 import (
 	"context"
 	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // MySQL implements the Driver interface for MySQL databases.
@@ -33,7 +35,7 @@ func (m *MySQL) BeginTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions) (*
 	return db.BeginTx(ctx, opts)
 }
 
-// Placeholder returns MySQL-style placeholders (?).
+// Placeholder returns MySQL-style placeholders (?, ?, ?).
 func (m *MySQL) Placeholder(n int) string {
 	return mysqlPlaceholder(n)
 }
@@ -41,4 +43,9 @@ func (m *MySQL) Placeholder(n int) string {
 // Dialect returns the dialect name.
 func (m *MySQL) Dialect() string {
 	return "mysql"
+}
+
+// mysqlPlaceholder returns MySQL-style placeholders (?, ?, ?).
+func mysqlPlaceholder(n int) string {
+	return "?"
 }
