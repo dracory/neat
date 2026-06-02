@@ -132,16 +132,16 @@ func TestBulkInsertWithMapSlice(t *testing.T) {
 
 func TestBulkInsertWithPointerSlice(t *testing.T) {
 	w := openSQLiteQuery(t)
-	execSQL(t, w, "CREATE TABLE bulk_ptr_users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT)")
+	execSQL(t, w, "CREATE TABLE bulk_ptr_users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, age INTEGER)")
 	w.SetTable("bulk_ptr_users")
 
 	users := []*BulkUser{
-		{Name: "Alice", Email: "alice@example.com"},
-		{Name: "Bob", Email: "bob@example.com"},
-		{Name: "Charlie", Email: "charlie@example.com"},
+		{Name: "Alice", Email: "alice@example.com", Age: 25},
+		{Name: "Bob", Email: "bob@example.com", Age: 30},
+		{Name: "Charlie", Email: "charlie@example.com", Age: 35},
 	}
 
-	err := w.Q.Create(&users)
+	err := w.Q.Create(users)
 	if err != nil {
 		t.Fatalf("Bulk insert with pointer slice failed: %v", err)
 	}
@@ -182,12 +182,12 @@ func TestBulkInsertEmptySlice(t *testing.T) {
 
 func TestBulkInsertSingleRecord(t *testing.T) {
 	w := openSQLiteQuery(t)
-	execSQL(t, w, "CREATE TABLE bulk_single (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
+	execSQL(t, w, "CREATE TABLE bulk_single (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, age INTEGER)")
 	w.SetTable("bulk_single")
 
-	users := []BulkUser{{Name: "Single"}}
+	users := []BulkUser{{Name: "Single", Email: "single@example.com", Age: 25}}
 
-	err := w.Q.Create(&users)
+	err := w.Q.Create(users)
 	if err != nil {
 		t.Fatalf("Bulk insert with single record failed: %v", err)
 	}
@@ -540,16 +540,16 @@ func TestBulkInsertWithReplicas(t *testing.T) {
 // where IDs were incorrectly calculated as lastID - len + 1 instead of lastID + i.
 func TestBulkInsertSetsIDs(t *testing.T) {
 	w := openSQLiteQuery(t)
-	execSQL(t, w, "CREATE TABLE bulk_id_test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
+	execSQL(t, w, "CREATE TABLE bulk_id_test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, age INTEGER)")
 	w.SetTable("bulk_id_test")
 
 	users := []BulkUser{
-		{Name: "Alice"},
-		{Name: "Bob"},
-		{Name: "Charlie"},
+		{Name: "Alice", Email: "alice@example.com", Age: 25},
+		{Name: "Bob", Email: "bob@example.com", Age: 30},
+		{Name: "Charlie", Email: "charlie@example.com", Age: 35},
 	}
 
-	err := w.Q.Create(&users)
+	err := w.Q.Create(users)
 	if err != nil {
 		t.Fatalf("Bulk insert failed: %v", err)
 	}

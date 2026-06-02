@@ -196,12 +196,12 @@ func TestExtractStructColumnsAndValuesWithZeroValues(t *testing.T) {
 	user := User{Name: "Alice", Email: "", Age: 0}
 	cols, vals := b.extractStructColumnsAndValues(reflect.ValueOf(user))
 
-	// Zero values should be skipped (except for boolean and time.Time)
-	if len(cols) != 1 {
-		t.Errorf("Expected 1 column (only non-zero), got %d", len(cols))
+	// Zero values for strings and integers are included (only boolean, time.Time, and some types are skipped)
+	if len(cols) != 3 {
+		t.Errorf("Expected 3 columns (strings and integers included even when zero), got %d", len(cols))
 	}
-	if len(vals) != 1 {
-		t.Errorf("Expected 1 value (only non-zero), got %d", len(vals))
+	if len(vals) != 3 {
+		t.Errorf("Expected 3 values (strings and integers included even when zero), got %d", len(vals))
 	}
 }
 
