@@ -26,10 +26,11 @@ func NewOracle(tablePrefix string) *Oracle {
 	}
 	oracle.modifiers = []func(schema.Blueprint, schema.ColumnDefinition) string{
 		// The sort should not be changed, it effects the SQL output
+		// Oracle requires DEFAULT before NULL/NOT NULL
 		oracle.ModifyUnsigned,
 		oracle.ModifyCollation,
-		oracle.ModifyNullable,
 		oracle.ModifyDefault,
+		oracle.ModifyNullable,
 		oracle.ModifyOnUpdate,
 		oracle.ModifyIncrement,
 		oracle.ModifyComment,
@@ -70,7 +71,7 @@ func (r *Oracle) CompileColumns(schema, table string) string {
 	// Note: comments are not in user_tab_columns, they're in user_col_comments
 	// Join with user_tab_identity_cols to detect identity columns
 	return fmt.Sprintf(
-		"SELECT c.column_name AS name, c.data_type AS type_name, c.char_length AS length, c.nullable, c.data_default AS default_value, "+
+		"SELECT c.column_name AS name, c.data_type AS type_name, c.char_length AS length, c.nullable, c.data_default AS \"default\", "+
 			"CASE WHEN i.column_name IS NOT NULL THEN 1 ELSE 0 END AS autoincrement "+
 			"FROM user_tab_columns c LEFT JOIN user_tab_identity_cols i ON c.table_name = i.table_name AND c.column_name = i.column_name "+
 			"WHERE c.table_name = '%s'",
@@ -263,35 +264,33 @@ func (r *Oracle) CompileForeign(blueprint schema.Blueprint, command *schema.Comm
 
 	sql := fmt.Sprintf("alter table %s add constraint %s foreign key (%s) references %s (%s)",
 		table, index, columns, on, references)
+	// Oracle doesn't support ON UPDATE for foreign keys, only ON DELETE
 	if command.OnDelete != "" && r.wrap.IsValidAction(command.OnDelete) {
 		sql += " on delete " + command.OnDelete
-	}
-	if command.OnUpdate != "" && r.wrap.IsValidAction(command.OnUpdate) {
-		sql += " on update " + command.OnUpdate
 	}
 
 	return sql, nil
 }
 
 func (r *Oracle) CompileForeignKeys(schema, table string) string {
+	// Use user_cons_columns instead of all_cons_columns to avoid needing owner parameter
+	// user_cons_columns automatically uses the current user's schema
+	// Oracle doesn't support ON UPDATE for foreign keys, so we only query delete_rule
 	return fmt.Sprintf(
 		`SELECT 
 			c.constraint_name AS name, 
 			LISTAGG(c.column_name, ',') WITHIN GROUP (ORDER BY c.position) AS columns, 
-			c.owner AS foreign_schema, 
+			'' AS foreign_schema, 
 			r.table_name AS foreign_table, 
 			LISTAGG(r.column_name, ',') WITHIN GROUP (ORDER BY r.position) AS foreign_columns, 
-			d.delete_rule AS on_delete, 
-			d.update_rule AS on_update 
-		FROM all_cons_columns c
-		JOIN all_constraints con ON c.constraint_name = con.constraint_name
-		JOIN all_cons_columns r ON con.r_constraint_name = r.constraint_name
-		JOIN all_constraints d ON r.constraint_name = d.constraint_name
-		WHERE c.owner = upper('%s') 
-			AND c.table_name = upper('%s') 
+			con.delete_rule AS on_delete, 
+			'' AS on_update 
+		FROM user_cons_columns c
+		JOIN user_constraints con ON c.constraint_name = con.constraint_name
+		JOIN user_cons_columns r ON con.r_constraint_name = r.constraint_name
+		WHERE c.table_name = upper('%s') 
 			AND con.constraint_type = 'R'
-		GROUP BY c.constraint_name, c.owner, r.table_name, d.delete_rule, d.update_rule`,
-		schema,
+		GROUP BY c.constraint_name, r.table_name, con.delete_rule`,
 		table,
 	)
 }
@@ -430,7 +429,19 @@ func (r *Oracle) ModifyComment(_ schema.Blueprint, _ schema.ColumnDefinition) st
 
 func (r *Oracle) ModifyDefault(_ schema.Blueprint, column schema.ColumnDefinition) string {
 	if column.GetDefault() != nil {
-		return fmt.Sprintf(" default %s", getDefaultValue(column.GetDefault()))
+		def := column.GetDefault()
+		// Oracle doesn't allow quoted numbers or booleans as defaults
+		// Only quote strings and expressions
+		switch value := def.(type) {
+		case bool:
+			return fmt.Sprintf(" default %d", cast.ToInt(value))
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+			return fmt.Sprintf(" default %v", value)
+		case Expression:
+			return fmt.Sprintf(" default %s", string(value))
+		default:
+			return fmt.Sprintf(" default %s", getDefaultValue(def))
+		}
 	}
 
 	return ""

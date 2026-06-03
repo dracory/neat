@@ -1,6 +1,7 @@
 package oracle_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -90,17 +91,21 @@ func TestOracleConcurrentAccess(t *testing.T) {
 		<-start
 
 		err := db.Transaction(func(tx contractsorm.Query) error {
-			var result models.User
-			err := tx.Model(&models.User{}).LockForUpdate().Where("id = ?", userID).First(&result)
+			var result []models.User
+			// Use WithTrashed to bypass soft delete filter so FOR UPDATE works on Oracle
+			// Use Get() instead of First() to avoid LIMIT which Oracle doesn't support with FOR UPDATE
+			err := tx.Model(&models.User{}).WithTrashed().LockForUpdate().Where("id = ?", userID).Get(&result)
 			if err != nil {
 				return err
+			}
+			if len(result) == 0 {
+				return fmt.Errorf("no user found with id %d", userID)
 			}
 
 			// Hold the lock for a short duration
 			time.Sleep(200 * time.Millisecond)
 
-			result.Name = "updated_by_tx1"
-			_, err = tx.Model(&models.User{}).Where("id = ?", userID).Update("name", "updated_by_tx1")
+			_, err = tx.Model(&models.User{}).WithTrashed().Where("id = ?", userID).Update("name", "updated_by_tx1")
 			return err
 		})
 		if err != nil {
@@ -117,17 +122,21 @@ func TestOracleConcurrentAccess(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 
 		err := db.Transaction(func(tx contractsorm.Query) error {
-			var result models.User
+			var result []models.User
 			// This should block until Goroutine 1 commits
-			err := tx.Model(&models.User{}).LockForUpdate().Where("id = ?", userID).First(&result)
+			// Use WithTrashed to bypass soft delete filter so FOR UPDATE works on Oracle
+			// Use Get() instead of First() to avoid LIMIT which Oracle doesn't support with FOR UPDATE
+			err := tx.Model(&models.User{}).WithTrashed().LockForUpdate().Where("id = ?", userID).Get(&result)
 			if err != nil {
 				return err
 			}
-
-			if result.Name != "updated_by_tx1" {
-				t.Errorf("Expected 'updated_by_tx1', got '%s'", result.Name)
+			if len(result) == 0 {
+				return fmt.Errorf("no user found with id %d", userID)
 			}
-			_, err = tx.Model(&models.User{}).Where("id = ?", userID).Update("name", "updated_by_tx2")
+			if result[0].Name != "updated_by_tx1" {
+				t.Errorf("Expected 'updated_by_tx1', got '%s'", result[0].Name)
+			}
+			_, err = tx.Model(&models.User{}).WithTrashed().Where("id = ?", userID).Update("name", "updated_by_tx2")
 			return err
 		})
 		if err != nil {

@@ -3,8 +3,6 @@ package processors
 import (
 	"strings"
 
-	"github.com/spf13/cast"
-
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -41,7 +39,16 @@ func (r Oracle) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 		}
 
 		// If Default is a pointer, dereference it safely
-		defaultStr := cast.ToString(dbColumn.Default)
+		var defaultStr string
+		if dbColumn.Default != nil {
+			defaultStr = *dbColumn.Default
+			// Oracle returns default values with quotes, strip them
+			// e.g., "'hello'" becomes "hello"
+			defaultStr = strings.TrimSpace(defaultStr)
+			if len(defaultStr) >= 2 && strings.HasPrefix(defaultStr, "'") && strings.HasSuffix(defaultStr, "'") {
+				defaultStr = defaultStr[1 : len(defaultStr)-1]
+			}
+		}
 		columns = append(columns, schema.Column{
 			Autoincrement: autoIncrement,
 			Collation:     collation,

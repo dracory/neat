@@ -197,6 +197,16 @@ func TestTursoIntegrationRestore(t *testing.T) {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
+	// Fetch users from database to get actual IDs
+	var fetchedUsers []models.User
+	if err := db.Query().Model(&models.User{}).Where("name LIKE ?", "restore_user%").Find(&fetchedUsers); err != nil {
+		t.Fatalf("Failed to fetch users: %v", err)
+	}
+	if len(fetchedUsers) != 4 {
+		t.Fatalf("Expected 4 users, got %d", len(fetchedUsers))
+	}
+	users = fetchedUsers
+
 	// Soft delete all users
 	res, err := db.Query().Model(&models.User{}).Where("avatar = ?", "avatar1").OrWhere("avatar = ?", "avatar2").OrWhere("avatar = ?", "avatar3").OrWhere("avatar = ?", "avatar4").Delete(&models.User{})
 	if err != nil {
