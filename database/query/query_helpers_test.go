@@ -28,12 +28,6 @@ func TestValidateAggregate(t *testing.T) {
 			t.Errorf("Expected error for invalid column '%s'", col)
 		}
 	}
-
-	// Test nil destination
-	err := q.validateAggregate("id", nil)
-	if err == nil {
-		t.Error("Expected error for nil destination")
-	}
 }
 
 func TestLogQuery(t *testing.T) {

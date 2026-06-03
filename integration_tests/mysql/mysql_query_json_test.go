@@ -18,7 +18,13 @@ func seedJsonTestData(t *testing.T, db *database.Database) []models.JsonData {
 	if err != nil {
 		t.Fatalf("Failed to create JSON data: %v", err)
 	}
-	return data
+	// Fetch the data from database to get actual IDs
+	var fetchedData []models.JsonData
+	err = query.Model(&models.JsonData{}).Find(&fetchedData)
+	if err != nil {
+		t.Fatalf("Failed to fetch JSON data: %v", err)
+	}
+	return fetchedData
 }
 
 func TestMySQLIntegrationQueryJsonWhereJsonContains(t *testing.T) {

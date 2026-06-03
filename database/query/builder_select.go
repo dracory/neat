@@ -351,10 +351,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 	// Locking clauses - skip for aggregate queries
 	// Skip lock clauses for SQLite as it doesn't support them
 	// Skip lock clauses for Oracle when DISTINCT or GROUP BY is present (ORA-02014)
+	// Skip SharedLock for Oracle as it doesn't support LOCK IN SHARE MODE
 	if b.query.aggregate == "" && !b.query.isSQLite() {
 		// Oracle doesn't support FOR UPDATE with DISTINCT or GROUP BY
 		if b.query.isOracle() && (b.query.distinct || len(b.query.groups) > 0) {
 			// Skip locking clause for Oracle with DISTINCT/GROUP BY
+		} else if b.query.isOracle() && b.query.sharedLock {
+			// Oracle doesn't support LOCK IN SHARE MODE, skip it
 		} else if b.query.lockForUpdate {
 			parts = append(parts, "FOR UPDATE")
 		} else if b.query.sharedLock {

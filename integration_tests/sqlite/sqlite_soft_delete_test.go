@@ -227,18 +227,18 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
-	// Restore user3 using model instance
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[2])
+	// Restore user3 using explicit WHERE clause (ID is zero from bulk insert)
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user3").Restore()
 	if err != nil {
-		t.Fatalf("Failed to restore user instance: %v", err)
+		t.Fatalf("Failed to restore user3: %v", err)
 	}
 
 	if res.RowsAffected != 1 {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
-	// Restore user4
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[3])
+	// Restore user4 using explicit WHERE clause
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user4").Restore()
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}

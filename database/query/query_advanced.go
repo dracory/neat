@@ -102,6 +102,14 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	if q.driver != nil && q.driver.Dialect() == "oracle" {
 		sql = strings.TrimRight(sql, ";")
 		sql = strings.TrimSpace(sql)
+		// Replace ? placeholders with Oracle-style :1, :2, etc.
+		placeholderFunc := q.driver.Placeholder
+		placeholderCount := strings.Count(sql, "?")
+		replacedSQL := sql
+		for i := 0; i < placeholderCount; i++ {
+			replacedSQL = strings.Replace(replacedSQL, "?", placeholderFunc(i+1), 1)
+		}
+		sql = replacedSQL
 	}
 
 	// Execute raw SQL
@@ -160,6 +168,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	clone.withTrashed = true
 
 	// If a model instance is provided, extract its ID and add WHERE clause
+	// Clear existing WHERE clauses if model has a non-zero ID to use ID-based restore
 	if len(model) > 0 && model[0] != nil {
 		v := reflect.ValueOf(model[0])
 		if v.Kind() == reflect.Ptr {
@@ -168,12 +177,23 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 		if v.Kind() == reflect.Struct {
 			// Try to get ID field
 			idField := v.FieldByName("ID")
-			if idField.IsValid() {
-				idValue := idField.Uint()
-				if idValue > 0 {
-					clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{idValue}})
+			if idField.IsValid() && !idField.IsZero() {
+				var idValue any
+				switch idField.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					idValue = idField.Int()
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					idValue = idField.Uint()
+				default:
+					idValue = idField.Interface()
+				}
+				// Add WHERE clause if ID is non-zero
+				if idValue != nil {
+					// Clear existing WHERE clauses and use ID-based WHERE
+					clone.wheres = []whereClause{{_type: "and", query: "id = ?", args: []any{idValue}}}
 				}
 			}
+			// If ID is zero, use existing WHERE clauses (caller should provide explicit conditions)
 		}
 	}
 

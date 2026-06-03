@@ -12,6 +12,9 @@ func (q *Query) Count(count *int64) error {
 	if q.buildError != nil {
 		return q.buildError
 	}
+	if count == nil {
+		return fmt.Errorf("destination cannot be nil")
+	}
 	if err := q.validateAggregate("*", count); err != nil {
 		return err
 	}
@@ -54,6 +57,9 @@ func (q *Query) Count(count *int64) error {
 func (q *Query) Sum(column string, dest any) error {
 	if q.buildError != nil {
 		return q.buildError
+	}
+	if dest == nil {
+		return fmt.Errorf("destination cannot be nil")
 	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
@@ -100,6 +106,9 @@ func (q *Query) Avg(column string, dest any) error {
 	if q.buildError != nil {
 		return q.buildError
 	}
+	if dest == nil {
+		return fmt.Errorf("destination cannot be nil")
+	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
 	}
@@ -145,6 +154,9 @@ func (q *Query) Min(column string, dest any) error {
 	if q.buildError != nil {
 		return q.buildError
 	}
+	if dest == nil {
+		return fmt.Errorf("destination cannot be nil")
+	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err
 	}
@@ -189,6 +201,9 @@ func (q *Query) Min(column string, dest any) error {
 func (q *Query) Max(column string, dest any) error {
 	if q.buildError != nil {
 		return q.buildError
+	}
+	if dest == nil {
+		return fmt.Errorf("destination cannot be nil")
 	}
 	if err := q.validateAggregate(column, dest); err != nil {
 		return err

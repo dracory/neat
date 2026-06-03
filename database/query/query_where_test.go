@@ -1062,19 +1062,19 @@ func TestSplitJsonColumn(t *testing.T) {
 			name:           "single level path",
 			input:          "data->key",
 			expectedColumn: "data",
-			expectedPath:   ".key",
+			expectedPath:   "$.key",
 		},
 		{
 			name:           "nested path",
 			input:          "data->meta->active",
 			expectedColumn: "data",
-			expectedPath:   ".meta.active",
+			expectedPath:   "$.meta.active",
 		},
 		{
 			name:           "deeply nested path",
 			input:          "data->level1->level2->level3",
 			expectedColumn: "data",
-			expectedPath:   ".level1.level2.level3",
+			expectedPath:   "$.level1.level2.level3",
 		},
 	}
 

@@ -128,7 +128,8 @@ func (q *Query) Commit() error {
 	if q.savepointName != "" {
 		// SQL Server has no RELEASE SAVEPOINT; the savepoint is implicitly committed
 		// when the outer transaction commits, so just clear state.
-		if !q.isSQLServer() {
+		// Oracle also doesn't support RELEASE SAVEPOINT syntax
+		if !q.isSQLServer() && !q.isOracle() {
 			_, err := q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
 			if err != nil {
 				return fmt.Errorf("failed to release savepoint: %w", err)
@@ -165,8 +166,8 @@ func (q *Query) Rollback() error {
 		if err != nil {
 			return fmt.Errorf("failed to rollback to savepoint: %w", err)
 		}
-		// Release the savepoint for non-SQL Server dialects
-		if !q.isSQLServer() {
+		// Release the savepoint for non-SQL Server and non-Oracle dialects
+		if !q.isSQLServer() && !q.isOracle() {
 			_, err = q.tx.ExecContext(q.ctx, fmt.Sprintf("RELEASE SAVEPOINT %s", q.savepointName))
 			if err != nil {
 				return fmt.Errorf("failed to release savepoint: %w", err)

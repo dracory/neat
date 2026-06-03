@@ -261,7 +261,6 @@ func (q *Query) Create(value any) error {
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 				// Skip bulk insert ID population for MySQL and SQLite
 				// The calculation assumes consecutive IDs, which fails with triggers, custom sequences, or ID gaps
-				// Only populate IDs for single inserts where LastInsertId is reliable
 				// Users should use InsertGetId() for bulk inserts if they need IDs
 			} else {
 				setModelPrimaryKey(value, lastID)

@@ -27,10 +27,6 @@ func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 }
 
 func (q *Query) validateAggregate(column string, dest any) error {
-	if dest == nil {
-		return fmt.Errorf("destination cannot be nil")
-	}
-
 	// Validate column name: alphanumeric, underscores, dots or *
 	for _, r := range column {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '.' || r == '*') {
@@ -44,6 +40,11 @@ func (q *Query) validateAggregate(column string, dest any) error {
 func (q *Query) UpdateOrInsert(attributes any, values any) error {
 	// Build WHERE conditions from attributes
 	clone := q.Clone().(*Query)
+
+	// Handle nil attributes - just create with values
+	if attributes == nil {
+		return q.Create(values)
+	}
 
 	// Handle map[string]any for attributes
 	if attrs, ok := attributes.(map[string]any); ok {
