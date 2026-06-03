@@ -23,7 +23,6 @@ Oracle database integration has core infrastructure implemented. Schema introspe
 - `oracle_schema_column_types_test.go` (default value test) - "skipped - Oracle default value handling needs investigation (ORA-00907)"
 - `oracle_schema_timestamp_test.go` - "skipped - Oracle-specific timestamp test not yet implemented"
 - `oracle_schema_table_test.go` - "skipped - Oracle-specific table test not yet implemented"
-- `oracle_schema_rename_column_test.go` - "skipped - Oracle-specific rename column test not yet implemented"
 
 ### Resolved Issues
 
