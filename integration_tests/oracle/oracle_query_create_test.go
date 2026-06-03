@@ -29,7 +29,8 @@ func TestOracleIntegrationQueryInsertGetIdByStruct(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle InsertGetId failing - incorrect array type error")
+	db := SetupOracleTest(t)
+	common.TestQueryInsertGetIdByStruct(t, db)
 }
 
 func TestOracleIntegrationQueryInsertGetIdByMap(t *testing.T) {
@@ -37,5 +38,6 @@ func TestOracleIntegrationQueryInsertGetIdByMap(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle InsertGetId failing - incorrect array type error")
+	db := SetupOracleTest(t)
+	common.TestQueryInsertGetIdByMap(t, db)
 }

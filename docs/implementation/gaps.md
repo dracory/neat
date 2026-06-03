@@ -39,7 +39,6 @@ Oracle database integration has core infrastructure implemented but most integra
 - `oracle_soft_delete_test.go` - "to be implemented"
 - `oracle_query_join_test.go` - "SQL syntax differs for join aliases - ORA-00933 error"
 - `oracle_query_lock_test.go` - "ORA-02014 - cannot select FOR UPDATE from view with DISTINCT, GROUP BY, etc."
-- `oracle_query_create_test.go` - "InsertGetId failing - incorrect array type error"
 - `oracle_query_update_or_insert_test.go` - "UpdateOrInsert test failing - record not found after update"
 - `oracle_query_to_sql_test.go` - "uses :1 placeholder syntax instead of interpolated values in ToRawSql"
 - `oracle_raw_test.go` - "raw update with concatenation failing - ORA-00911 invalid character", "database functions test failing - ORA-00911"
