@@ -170,9 +170,18 @@ func (b *Builder) BuildSelect() (string, []any) {
 				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
 				placeholderIndex++
 			}
+			// Oracle doesn't support AS keyword for table aliases in subqueries
+			if b.query.isOracle() {
+				replacedQuery = b.stripTableAliasAS(replacedQuery)
+			}
 			parts = append(parts, fmt.Sprintf("FROM %s", replacedQuery))
 		} else {
-			parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
+			tableName := b.query.table
+			// Oracle doesn't support AS keyword for table aliases
+			if b.query.isOracle() {
+				tableName = b.stripTableAliasAS(tableName)
+			}
+			parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(tableName)))
 		}
 		args = append(args, b.query.tableArgs...)
 	}
@@ -195,6 +204,10 @@ func (b *Builder) BuildSelect() (string, []any) {
 			for i := 0; i < placeholderCount; i++ {
 				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
 				placeholderIndex++
+			}
+			// Oracle doesn't support AS keyword for table aliases in JOINs
+			if b.query.isOracle() {
+				replacedQuery = b.stripTableAliasAS(replacedQuery)
 			}
 			parts = append(parts, fmt.Sprintf("%s %s", join._type, replacedQuery))
 			args = append(args, join.args...)

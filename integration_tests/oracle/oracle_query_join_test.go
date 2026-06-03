@@ -35,7 +35,11 @@ func TestOracleIntegrationJoinInnerWithAliases(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle SQL syntax differs for join aliases - ORA-00933 error")
+	db := SetupOracleTest(t)
+	if db == nil {
+		t.Skip("Oracle not available")
+	}
+	common.TestJoinInnerWithAliases(t, db)
 }
 
 func TestOracleIntegrationJoinLeft(t *testing.T) {
@@ -67,7 +71,11 @@ func TestOracleIntegrationJoinLeftWithAliases(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle SQL syntax differs for join aliases - ORA-00933 error")
+	db := SetupOracleTest(t)
+	if db == nil {
+		t.Skip("Oracle not available")
+	}
+	common.TestJoinLeftWithAliases(t, db)
 }
 
 func TestOracleIntegrationJoinRight(t *testing.T) {
@@ -99,7 +107,11 @@ func TestOracleIntegrationJoinRightWithAliases(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle SQL syntax differs for join aliases - ORA-00933 error")
+	db := SetupOracleTest(t)
+	if db == nil {
+		t.Skip("Oracle not available")
+	}
+	common.TestJoinRightWithAliases(t, db)
 }
 
 func TestOracleIntegrationJoinCross(t *testing.T) {
