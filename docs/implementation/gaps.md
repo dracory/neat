@@ -38,24 +38,16 @@ Oracle database integration has core infrastructure implemented but most integra
 - `oracle_transaction_test.go` - "to be implemented"
 - `oracle_soft_delete_test.go` - "to be implemented"
 - `oracle_query_update_or_insert_test.go` - "UpdateOrInsert test failing - record not found after update"
-- `oracle_raw_test.go` - "raw update with concatenation failing - ORA-00911 invalid character", "database functions test failing - ORA-00911"
-- `oracle_query_paginate_test.go` - "data cleanup issues with Oracle"
-- `oracle_query_belongs_to_test.go` - "With() method has known issues loading associations"
 
 ### Required Tasks
 
-#### 1. Fix Other Query Builder Issues
-- Fix raw query concatenation (ORA-00911) (`oracle_raw_test.go`)
-- Fix With() method association loading (`oracle_query_belongs_to_test.go`)
-- Fix paginate data cleanup (`oracle_query_paginate_test.go`)
-
-#### 3. Fix Schema Case Sensitivity Issues
+#### 1. Fix Schema Case Sensitivity Issues
 - Fix `GetColumns` to handle Oracle's uppercase table/column names
 - Fix `HasTable` and table listing methods
 - Fix identity column with primary key syntax
 - Files: All `oracle_schema_*.go` test files
 
-#### 4. Implement Missing Features
+#### 2. Implement Missing Features
 - Implement update tests (`oracle_update_test.go`)
 - Implement transaction tests (`oracle_transaction_test.go`)
 - Implement soft delete tests (`oracle_soft_delete_test.go`)
@@ -64,6 +56,6 @@ Oracle database integration has core infrastructure implemented but most integra
 - Implement JSON query tests (`oracle_query_json_test.go`)
 - Implement spatial query tests (`oracle_query_spatial_test.go`)
 
-#### 5. CI/CD Configuration
+#### 3. CI/CD Configuration
 - Add Oracle integration test execution to `.github/workflows/tests.yml` (after tests are working)
 - Update `integration_tests/README.md` with Oracle documentation (after tests are working)

@@ -12,7 +12,44 @@ func TestOracleIntegrationRawUpdate(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle raw update with concatenation failing - ORA-00911 invalid character")
+	databaseConn := SetupOracleTest(t)
+	query := databaseConn.Query()
+
+	// Cleanup test data
+	t.Cleanup(func() {
+		sqlDB, err := databaseConn.DB()
+		if err == nil {
+			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'raw_update_user'`)
+		}
+	})
+
+	// Create a user
+	user := models.User{Name: "raw_update_user", Avatar: "original"}
+	if err := query.Model(&models.User{}).Create(&user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	// Get the created user to get its ID
+	var createdUser models.User
+	if err := query.Model(&models.User{}).Where("name = ?", "raw_update_user").First(&createdUser); err != nil {
+		t.Fatalf("Failed to get created user: %v", err)
+	}
+
+	// Update using raw expression (concat)
+	// Use Exec with raw SQL for raw expression updates
+	_, err := query.Exec("UPDATE users SET avatar = avatar || '_updated' WHERE id = ?", createdUser.ID)
+	if err != nil {
+		t.Fatalf("Failed to update with raw SQL: %v", err)
+	}
+
+	var updatedUser models.User
+	if err := query.Model(&models.User{}).Where("id = ?", createdUser.ID).First(&updatedUser); err != nil {
+		t.Fatalf("Failed to get updated user: %v", err)
+	}
+
+	if updatedUser.Avatar != "original_updated" {
+		t.Errorf("Expected avatar to be 'original_updated', got '%s'", updatedUser.Avatar)
+	}
 }
 
 // TestOracleIntegrationRawWhere tests raw SQL expressions in Where clauses
@@ -23,6 +60,14 @@ func TestOracleIntegrationRawWhere(t *testing.T) {
 
 	databaseConn := SetupOracleTest(t)
 	query := databaseConn.Query()
+
+	// Cleanup test data
+	t.Cleanup(func() {
+		sqlDB, err := databaseConn.DB()
+		if err == nil {
+			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'raw_where_user%' OR NAME = 'other_user'`)
+		}
+	})
 
 	// Create users
 	users := []models.User{
@@ -52,5 +97,41 @@ func TestOracleIntegrationDatabaseFunctions(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle database functions test failing - ORA-00911 invalid character")
+	databaseConn := SetupOracleTest(t)
+	query := databaseConn.Query()
+
+	// Cleanup test data
+	t.Cleanup(func() {
+		sqlDB, err := databaseConn.DB()
+		if err == nil {
+			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'db_functions_user'`)
+		}
+	})
+
+	// Create a user
+	user := models.User{Name: "db_functions_user", Avatar: "avatar"}
+	if err := query.Model(&models.User{}).Create(&user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	// Get the created user to get its ID
+	var createdUser models.User
+	if err := query.Model(&models.User{}).Where("name = ?", "db_functions_user").First(&createdUser); err != nil {
+		t.Fatalf("Failed to get created user: %v", err)
+	}
+
+	// Update using Oracle-specific function (UPPER)
+	_, err := query.Exec("UPDATE users SET avatar = UPPER(avatar) WHERE id = ?", createdUser.ID)
+	if err != nil {
+		t.Fatalf("Failed to update with Oracle function: %v", err)
+	}
+
+	var updatedUser models.User
+	if err := query.Model(&models.User{}).Where("id = ?", createdUser.ID).First(&updatedUser); err != nil {
+		t.Fatalf("Failed to get updated user: %v", err)
+	}
+
+	if updatedUser.Avatar != "AVATAR" {
+		t.Errorf("Expected avatar to be 'AVATAR', got '%s'", updatedUser.Avatar)
+	}
 }

@@ -11,7 +11,8 @@ func TestOracleIntegrationPaginateFirstPage(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Paginate tests have data cleanup issues with Oracle")
+	db := SetupOracleTest(t)
+	common.TestPaginateFirstPage(t, db)
 }
 
 func TestOracleIntegrationPaginateSecondPage(t *testing.T) {
@@ -19,7 +20,8 @@ func TestOracleIntegrationPaginateSecondPage(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Paginate tests have data cleanup issues with Oracle")
+	db := SetupOracleTest(t)
+	common.TestPaginateSecondPage(t, db)
 }
 
 func TestOracleIntegrationPaginateWithConditions(t *testing.T) {

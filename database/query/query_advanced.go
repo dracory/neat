@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
@@ -96,6 +97,13 @@ func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
 
 // Exec executes a raw SQL query.
 func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
+	// Strip trailing semicolon for Oracle (ORA-00911 error)
+	// Oracle doesn't accept semicolons in prepared statement execution
+	if q.driver != nil && q.driver.Dialect() == "oracle" {
+		sql = strings.TrimRight(sql, ";")
+		sql = strings.TrimSpace(sql)
+	}
+
 	// Execute raw SQL
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
