@@ -44,7 +44,7 @@ func (r Oracle) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			Collation:     collation,
 			Comment:       comment,
 			Default:       defaultStr,
-			Name:          dbColumn.Name,
+			Name:          strings.ToLower(dbColumn.Name),
 			Nullable:      nullable,
 			Type:          dbColumn.Type,
 			TypeName:      dbColumn.TypeName,
@@ -93,5 +93,8 @@ func (r Oracle) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
 }
 
 func (r Oracle) ProcessTables(dbTables []schema.Table) []schema.Table {
+	for i := range dbTables {
+		dbTables[i].Name = strings.ToLower(dbTables[i].Name)
+	}
 	return dbTables
 }

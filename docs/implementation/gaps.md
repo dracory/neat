@@ -41,13 +41,7 @@ Oracle database integration has core infrastructure implemented but most integra
 
 ### Required Tasks
 
-#### 1. Fix Schema Case Sensitivity Issues
-- Fix `GetColumns` to handle Oracle's uppercase table/column names
-- Fix `HasTable` and table listing methods
-- Fix identity column with primary key syntax
-- Files: All `oracle_schema_*.go` test files
-
-#### 2. Implement Missing Features
+#### 1. Implement Missing Features
 - Implement update tests (`oracle_update_test.go`)
 - Implement transaction tests (`oracle_transaction_test.go`)
 - Implement soft delete tests (`oracle_soft_delete_test.go`)
