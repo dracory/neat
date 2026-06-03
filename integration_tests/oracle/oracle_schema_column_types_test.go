@@ -199,7 +199,6 @@ func TestOracleSchemaColumnTypeDefault(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	t.Skip("Oracle default value handling needs investigation - ORA-00907 error")
 	db := SetupOracleTest(t)
 	testColumnType(t, db, "default_col", func(t schema.Blueprint) { t.String("col").Default("test") }, "VARCHAR2", false, false, "test")
 }

@@ -20,7 +20,7 @@ Oracle database integration has core infrastructure implemented. Schema introspe
 ### Remaining Issues
 
 **Schema Tests (unrelated Oracle grammar issues):**
-- `oracle_schema_column_types_test.go` (default value test) - "skipped - Oracle default value handling needs investigation (ORA-00907)"
+None
 
 ### Resolved Issues
 
