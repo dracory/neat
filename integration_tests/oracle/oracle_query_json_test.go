@@ -9,5 +9,5 @@ func TestOracleIntegrationQueryJson(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle JSON query tests - to be implemented")
+	t.Skip("Oracle JSON query methods not yet implemented - Oracle uses JSON_VALUE, JSON_EXISTS, JSON_TABLE functions instead of -> operator syntax")
 }

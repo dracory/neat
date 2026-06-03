@@ -9,5 +9,5 @@ func TestOracleIntegrationQuerySpatial(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle spatial query tests - to be implemented")
+	t.Skip("Oracle spatial query methods not yet implemented - Oracle uses SDO_GEOMETRY instead of standard spatial types")
 }
