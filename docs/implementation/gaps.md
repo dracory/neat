@@ -50,6 +50,6 @@ Oracle database integration has core infrastructure implemented but most integra
 - Implement JSON query tests (`oracle_query_json_test.go`)
 - Implement spatial query tests (`oracle_query_spatial_test.go`)
 
-#### 3. CI/CD Configuration
+#### 2. CI/CD Configuration
 - Add Oracle integration test execution to `.github/workflows/tests.yml` (after tests are working)
 - Update `integration_tests/README.md` with Oracle documentation (after tests are working)
