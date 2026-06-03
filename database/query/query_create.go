@@ -35,13 +35,12 @@ func (q *Query) Create(value any) error {
 		}
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 			// Disable events for recursive calls to avoid duplicate Creating events
-			originalWithoutEvents := q.withoutEvents
-			q.withoutEvents = true
-			defer func() { q.withoutEvents = originalWithoutEvents }()
+			// Clone the query to avoid race condition with shared query instance
+			clonedQuery := q.WithoutEvents().(*Query)
 
 			for i := 0; i < v.Len(); i++ {
 				elem := v.Index(i).Interface()
-				if err := q.Create(elem); err != nil {
+				if err := clonedQuery.Create(elem); err != nil {
 					return fmt.Errorf("failed to create element %d: %w", i, err)
 				}
 			}
@@ -96,6 +95,9 @@ func (q *Query) Create(value any) error {
 					}
 					i++
 				}
+				if err := rows.Err(); err != nil {
+					return fmt.Errorf("error during rows iteration: %w", err)
+				}
 			} else {
 				// Single insert: scan one ID
 				if rows.Next() {
@@ -104,6 +106,9 @@ func (q *Query) Create(value any) error {
 						return fmt.Errorf("failed to scan returned ID: %w", err)
 					}
 					setModelPrimaryKey(value, lastID)
+				}
+				if err := rows.Err(); err != nil {
+					return fmt.Errorf("error during rows iteration: %w", err)
 				}
 			}
 		} else {
@@ -148,6 +153,9 @@ func (q *Query) Create(value any) error {
 					}
 					i++
 				}
+				if err := rows.Err(); err != nil {
+					return fmt.Errorf("error during rows iteration: %w", err)
+				}
 			} else {
 				// Single insert: scan one ID
 				if rows.Next() {
@@ -156,6 +164,9 @@ func (q *Query) Create(value any) error {
 						return fmt.Errorf("failed to scan returned ID: %w", err)
 					}
 					setModelPrimaryKey(value, lastID)
+				}
+				if err := rows.Err(); err != nil {
+					return fmt.Errorf("error during rows iteration: %w", err)
 				}
 			}
 		} else {
@@ -188,23 +199,35 @@ func (q *Query) Create(value any) error {
 		}
 
 		if tableName != "" {
-			// Try to get the sequence name (Oracle convention: TABLENAME_SEQ)
-			sequenceName := strings.ToUpper(tableName) + "_SEQ"
-			sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
+			// Try multiple sequence naming conventions
+			// Common patterns: TABLENAME_SEQ, SEQ_TABLENAME, TABLENAME_ID_SEQ
+			sequencePatterns := []string{
+				strings.ToUpper(tableName) + "_SEQ",
+				"SEQ_" + strings.ToUpper(tableName),
+				strings.ToUpper(tableName) + "_ID_SEQ",
+			}
 
 			var seqErr error
-			if q.tx != nil {
-				seqErr = q.tx.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
-			} else {
-				var dbConn *sql.DB
-				dbConn, seqErr = q.DB()
-				if seqErr == nil {
-					seqErr = dbConn.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+			for _, sequenceName := range sequencePatterns {
+				sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
+
+				if q.tx != nil {
+					seqErr = q.tx.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+				} else {
+					var dbConn *sql.DB
+					dbConn, seqErr = q.DB()
+					if seqErr == nil {
+						seqErr = dbConn.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+					}
+				}
+
+				if seqErr == nil && lastID > 0 {
+					break // Successfully retrieved ID from sequence
 				}
 			}
 
-			if seqErr != nil {
-				// If sequence doesn't exist or CURRVAL fails, fall back to MAX(id)
+			if seqErr != nil || lastID == 0 {
+				// If all sequence patterns fail, fall back to MAX(id)
 				// This is less safe but works as a last resort
 				maxIDQuery := fmt.Sprintf("SELECT MAX(id) FROM %s", tableName)
 				if q.tx != nil {
@@ -236,27 +259,10 @@ func (q *Query) Create(value any) error {
 				v = v.Elem()
 			}
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
-				// Different databases return different values from LastInsertId() for bulk inserts:
-				// - SQLite: returns the LAST auto-increment value
-				// - MySQL: returns the FIRST auto-increment value
-				isMySQL := q.isMySQL()
-				for i := 0; i < v.Len(); i++ {
-					elem := v.Index(i)
-					if elem.Kind() == reflect.Ptr {
-						elem = elem.Elem()
-					}
-					if elem.CanAddr() {
-						var id int64
-						if isMySQL {
-							// MySQL returns first ID, so add offset
-							id = lastID + int64(i)
-						} else {
-							// SQLite returns last ID, so subtract to get first then add offset
-							id = lastID - int64(v.Len()) + 1 + int64(i)
-						}
-						setModelPrimaryKey(elem.Addr().Interface(), id)
-					}
-				}
+				// Skip bulk insert ID population for MySQL and SQLite
+				// The calculation assumes consecutive IDs, which fails with triggers, custom sequences, or ID gaps
+				// Only populate IDs for single inserts where LastInsertId is reliable
+				// Users should use InsertGetId() for bulk inserts if they need IDs
 			} else {
 				setModelPrimaryKey(value, lastID)
 			}

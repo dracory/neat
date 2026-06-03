@@ -2,6 +2,7 @@ package association
 
 import (
 	"fmt"
+	"regexp"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
@@ -67,4 +68,14 @@ func (a *Association) Model() any {
 // AssociationName returns the association name.
 func (a *Association) AssociationName() string {
 	return a.association
+}
+
+// isValidIdentifier validates that a string is a valid SQL identifier.
+// This prevents SQL injection when concatenating identifiers into SQL queries.
+func isValidIdentifier(s string) bool {
+	// SQL identifiers must start with a letter or underscore, followed by letters, digits, or underscores
+	// This regex matches common SQL identifier patterns
+	// Use pre-compiled regex for efficiency and to avoid error handling
+	var identifierRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	return identifierRegex.MatchString(s)
 }

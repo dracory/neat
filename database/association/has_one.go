@@ -117,6 +117,10 @@ func (h *HasOne) Delete(values ...any) error {
 	// Directly update the foreign key to NULL in the database
 	// Also ensure the model belongs to this association by checking the foreign key
 	// Note: h.foreignKey is from model definition, not user input, so concatenation is safe
+	// Validate foreignKey is a valid SQL identifier to prevent SQL injection
+	if !isValidIdentifier(h.foreignKey) {
+		return fmt.Errorf("invalid foreign key identifier: %s", h.foreignKey)
+	}
 	query := h.Query().Table(h.associationName()).Where("id = ? AND "+h.foreignKey+" = ?", modelID, localKeyValue)
 	_, err = query.Update(h.foreignKey, nil)
 	if err != nil {
@@ -135,6 +139,10 @@ func (h *HasOne) Clear() error {
 	}
 
 	// Update the related model to set foreign key to null
+	// Validate foreignKey is a valid SQL identifier to prevent SQL injection
+	if !isValidIdentifier(h.foreignKey) {
+		return fmt.Errorf("invalid foreign key identifier: %s", h.foreignKey)
+	}
 	query := h.Query().Table(h.associationName()).Where(h.foreignKey+" = ?", localKeyValue)
 	_, err = query.Update(h.foreignKey, nil)
 	if err != nil {
