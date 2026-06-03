@@ -49,7 +49,6 @@ Oracle database integration has core infrastructure implemented but most integra
 ### Required Tasks
 
 #### 1. Fix Critical CRUD Operations (Highest Priority)
-- Fix InsertGetId array type error (`oracle_query_create_test.go`)
 - Fix UpdateOrInsert record not found issue (`oracle_query_update_or_insert_test.go`)
 - Fix Delete method WHERE clause (`oracle_query_association_test.go`)
 
