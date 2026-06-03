@@ -32,17 +32,12 @@ Oracle database integration has core infrastructure implemented but most integra
 **Query Tests (various Oracle-specific issues):**
 - `oracle_query_json_test.go` - "to be implemented"
 - `oracle_query_spatial_test.go` - "to be implemented"
-- `oracle_where_advanced_test.go` - "to be implemented"
-- `oracle_where_any_all_advanced_test.go` - "to be implemented"
-- `oracle_transaction_test.go` - ✅ implemented
 - `oracle_query_update_or_insert_test.go` - "UpdateOrInsert test failing - record not found after update"
 
 ### Required Tasks
 
 #### 1. Implement Missing Features
-- Implement transaction tests (`oracle_transaction_test.go`)
-- Implement where advanced tests (`oracle_where_advanced_test.go`)
-- Implement where any/all advanced tests (`oracle_where_any_all_advanced_test.go`)
+- ~~Implement where any/all advanced tests (`oracle_where_any_all_advanced_test.go`)~~ ✅ completed
 - Implement JSON query tests (`oracle_query_json_test.go`)
 - Implement spatial query tests (`oracle_query_spatial_test.go`)
 
