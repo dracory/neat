@@ -21,7 +21,7 @@ func TestOracleIntegrationQueryBelongsToWith(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'belongs_to_%'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'belongs_to_%'`)
 		}
 	})
 
@@ -75,7 +75,7 @@ func TestOracleIntegrationQueryBelongsToWithout(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'belongs_to_without_%'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'belongs_to_without_%'`)
 		}
 	})
 
@@ -123,7 +123,7 @@ func TestOracleIntegrationQueryBelongsToWithConstraints(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'constrained_%'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'constrained_%'`)
 		}
 	})
 
@@ -188,7 +188,7 @@ func TestOracleIntegrationQueryMultipleBelongsTo(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'multi_belongs_%'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'multi_belongs_%'`)
 		}
 	})
 
