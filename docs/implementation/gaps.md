@@ -35,14 +35,12 @@ Oracle database integration has core infrastructure implemented but most integra
 - `oracle_where_advanced_test.go` - "to be implemented"
 - `oracle_where_any_all_advanced_test.go` - "to be implemented"
 - `oracle_transaction_test.go` - "to be implemented"
-- `oracle_soft_delete_test.go` - "to be implemented"
 - `oracle_query_update_or_insert_test.go` - "UpdateOrInsert test failing - record not found after update"
 
 ### Required Tasks
 
 #### 1. Implement Missing Features
 - Implement transaction tests (`oracle_transaction_test.go`)
-- Implement soft delete tests (`oracle_soft_delete_test.go`)
 - Implement where advanced tests (`oracle_where_advanced_test.go`)
 - Implement where any/all advanced tests (`oracle_where_any_all_advanced_test.go`)
 - Implement JSON query tests (`oracle_query_json_test.go`)
