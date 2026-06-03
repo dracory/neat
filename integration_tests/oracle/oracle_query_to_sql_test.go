@@ -29,7 +29,19 @@ func TestOracleIntegrationQueryToRawSql(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Skip("TODO: Oracle uses :1 placeholder syntax instead of interpolated values in ToRawSql")
+	db := SetupOracleTest(t)
+	query := db.Query()
+
+	sql := strings.ToUpper(query.Table("users").Where("id = ?", 1).ToRawSql().Get(&models.User{}))
+	if !strings.Contains(sql, "SELECT") || !strings.Contains(sql, "USERS") {
+		t.Errorf("SQL should contain SELECT ... USERS, got: %s", sql)
+	}
+	if !strings.Contains(sql, "WHERE") || !strings.Contains(sql, "ID") {
+		t.Errorf("SQL should contain WHERE ... ID, got: %s", sql)
+	}
+	if !strings.Contains(sql, "1") {
+		t.Errorf("SQL should contain interpolated value 1, got: %s", sql)
+	}
 }
 
 func TestOracleIntegrationQueryToSqlCount(t *testing.T) {
