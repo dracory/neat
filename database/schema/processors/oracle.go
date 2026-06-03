@@ -75,11 +75,16 @@ func (r Oracle) ProcessIndexes(dbIndexes []schema.DBIndex) []schema.Index {
 	indexes := make([]schema.Index, 0)
 	for _, dbIndex := range dbIndexes {
 		name := strings.ToLower(dbIndex.Name)
+		columns := strings.Split(dbIndex.Columns, ",")
+		// Convert column names to lowercase
+		for i, col := range columns {
+			columns[i] = strings.ToLower(strings.TrimSpace(col))
+		}
 		indexes = append(indexes, schema.Index{
-			Columns: strings.Split(dbIndex.Columns, ","),
+			Columns: columns,
 			Name:    name,
 			Type:    strings.ToLower(dbIndex.Type),
-			Primary: name == "primary",
+			Primary: dbIndex.Primary,
 			Unique:  dbIndex.Type == "UNIQUE",
 		})
 	}

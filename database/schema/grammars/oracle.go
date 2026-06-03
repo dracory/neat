@@ -289,11 +289,17 @@ func (r *Oracle) CompileIndex(blueprint schema.Blueprint, command *schema.Comman
 }
 
 func (r *Oracle) CompileIndexes(schema, table string) string {
+	// Use user_ind_columns instead of all_ind_columns to avoid needing table_owner
+	// Join with user_constraints to identify primary key indexes
 	return fmt.Sprintf(
-		"select index_name as name, listagg(column_name, ',') within group (order by column_position) as columns, "+
-			"uniqueness as type from all_ind_columns where table_owner = upper(%s) and table_name = upper(%s) "+
-			"group by index_name, uniqueness",
-		r.wrap.Quote(schema),
+		"select ic.index_name as name, listagg(ic.column_name, ',') within group (order by ic.column_position) as columns, "+
+			"i.uniqueness as type, "+
+			"case when c.constraint_type = 'P' then 1 else 0 end as primary "+
+			"from user_ind_columns ic "+
+			"join user_indexes i on ic.index_name = i.index_name "+
+			"left join user_constraints c on ic.index_name = c.index_name and c.constraint_type = 'P' "+
+			"where ic.table_name = upper(%s) "+
+			"group by ic.index_name, i.uniqueness, c.constraint_type",
 		r.wrap.Quote(table),
 	)
 }
