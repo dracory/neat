@@ -25,9 +25,6 @@ Oracle database integration has core infrastructure implemented. Schema introspe
 - Updated column mapping to handle Oracle's uppercase column names and nullable values ('Y'/'N')
 - Fixed `TypeFloat` to not use precision parameter (Oracle BINARY_FLOAT doesn't support it)
 
-**Passing Tests:**
-- `oracle_schema_column_types_test.go` - ✅ All column type tests now pass (except default value which has separate issue)
-
 ### Remaining Issues
 
 **Schema Tests (unrelated Oracle grammar issues):**

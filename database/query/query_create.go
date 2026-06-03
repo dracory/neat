@@ -242,6 +242,7 @@ func (q *Query) Create(value any) error {
 				if seqErr != nil {
 					// If both approaches fail, silently continue (ID won't be populated)
 					// This matches the behavior of other databases when LastInsertId fails
+					_ = seqErr // Explicitly ignore error
 				}
 			}
 
