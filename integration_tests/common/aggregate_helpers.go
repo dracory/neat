@@ -47,7 +47,9 @@ func TestAggregateSum(t *testing.T, db *database.Database) {
 
 	expectedSum := int64(0)
 	for _, user := range createdUsers {
-		expectedSum += int64(user.ID)
+		if uint64(user.ID) <= uint64(1<<63-1) {
+			expectedSum += int64(user.ID)
+		}
 	}
 	if sum != expectedSum {
 		t.Errorf("Expected sum %d, got %d", expectedSum, sum)
@@ -68,7 +70,9 @@ func TestAggregateSumWithWhere(t *testing.T, db *database.Database) {
 	expectedSum := int64(0)
 	for _, user := range createdUsers {
 		if user.Avatar == "group1" {
-			expectedSum += int64(user.ID)
+			if uint64(user.ID) <= uint64(1<<63-1) {
+				expectedSum += int64(user.ID)
+			}
 		}
 	}
 	if sum != expectedSum {

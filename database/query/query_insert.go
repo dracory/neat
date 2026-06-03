@@ -75,8 +75,15 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 		}
 
 		if tableName != "" {
+			// Validate table name is a simple identifier to prevent SQL injection
+			if !isSimpleIdentifier(tableName) {
+				return 0, fmt.Errorf("invalid table name: %s", tableName)
+			}
 			// Try to get the sequence name (Oracle convention: TABLENAME_SEQ)
 			sequenceName := strings.ToUpper(tableName) + "_SEQ"
+			if !isSimpleIdentifier(sequenceName) {
+				return 0, fmt.Errorf("invalid sequence name: %s", sequenceName)
+			}
 			sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
 
 			if q.tx != nil {
@@ -135,5 +142,8 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 	// Write the ID back to the struct if it's a pointer-to-struct
 	setModelPrimaryKey(values, lastID)
 
+	if lastID < 0 {
+		return 0, fmt.Errorf("negative ID cannot be converted to uint")
+	}
 	return uint(lastID), nil
 }

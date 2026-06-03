@@ -199,6 +199,10 @@ func (q *Query) Create(value any) error {
 		}
 
 		if tableName != "" {
+			// Validate table name is a simple identifier to prevent SQL injection
+			if !isSimpleIdentifier(tableName) {
+				return fmt.Errorf("invalid table name: %s", tableName)
+			}
 			// Try multiple sequence naming conventions
 			// Common patterns: TABLENAME_SEQ, SEQ_TABLENAME, TABLENAME_ID_SEQ
 			sequencePatterns := []string{
@@ -209,6 +213,9 @@ func (q *Query) Create(value any) error {
 
 			var seqErr error
 			for _, sequenceName := range sequencePatterns {
+				if !isSimpleIdentifier(sequenceName) {
+					return fmt.Errorf("invalid sequence name: %s", sequenceName)
+				}
 				sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
 
 				if q.tx != nil {

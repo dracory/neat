@@ -37,7 +37,11 @@ func getPrimaryKeyValue(value any) int64 {
 		}
 		switch field.Kind() {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return int64(field.Uint())
+			u := field.Uint()
+			if u > uint64(1<<63-1) {
+				return 0 // Overflow, return 0
+			}
+			return int64(u)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return field.Int()
 		}
@@ -201,7 +205,9 @@ func copyScanResults(v reflect.Value, columns []string, dests []any) {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					field.SetInt(d.Int64)
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					field.SetUint(uint64(d.Int64))
+					if d.Int64 >= 0 {
+						field.SetUint(uint64(d.Int64))
+					}
 				}
 			}
 			continue
@@ -250,7 +256,9 @@ func setModelPrimaryKey(value any, id int64) {
 		}
 		switch field.Kind() {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			field.SetUint(uint64(id))
+			if id >= 0 {
+				field.SetUint(uint64(id))
+			}
 			return
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			field.SetInt(id)
@@ -275,7 +283,11 @@ func getModelPrimaryKey(value any) int64 {
 		}
 		switch field.Kind() {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return int64(field.Uint())
+			u := field.Uint()
+			if u > uint64(1<<63-1) {
+				return 0 // Overflow, return 0
+			}
+			return int64(u)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			return field.Int()
 		}

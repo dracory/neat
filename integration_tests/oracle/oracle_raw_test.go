@@ -19,7 +19,7 @@ func TestOracleIntegrationRawUpdate(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := databaseConn.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'raw_update_user'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'raw_update_user'`)
 		}
 	})
 
@@ -65,7 +65,7 @@ func TestOracleIntegrationRawWhere(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := databaseConn.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'raw_where_user%' OR NAME = 'other_user'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'raw_where_user%' OR NAME = 'other_user'`)
 		}
 	})
 
@@ -104,7 +104,7 @@ func TestOracleIntegrationDatabaseFunctions(t *testing.T) {
 	t.Cleanup(func() {
 		sqlDB, err := databaseConn.DB()
 		if err == nil {
-			sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'db_functions_user'`)
+			_, _ = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'db_functions_user'`)
 		}
 	})
 
