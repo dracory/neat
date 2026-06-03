@@ -89,7 +89,8 @@ func (r *OracleSchema) GetColumns(table string) ([]contractsschema.Column, error
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
-	if err := query.Raw(r.grammar.CompileColumns(r.orm.DatabaseName(), table)).Scan(&dbColumns); err != nil {
+	// Use user_tab_columns which automatically uses current user's schema
+	if err := query.Raw(r.grammar.CompileColumns("", table)).Scan(&dbColumns); err != nil {
 		return nil, err
 	}
 

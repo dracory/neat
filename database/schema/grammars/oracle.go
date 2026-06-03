@@ -65,12 +65,16 @@ func (r *Oracle) CompileChange(blueprint schema.Blueprint, command *schema.Comma
 }
 
 func (r *Oracle) CompileColumns(schema, table string) string {
+	// Use user_tab_columns instead of all_tab_columns to avoid needing owner parameter
+	// user_tab_columns automatically uses the current user's schema
+	// Note: comments are not in user_tab_columns, they're in user_col_comments
+	// Join with user_tab_identity_cols to detect identity columns
 	return fmt.Sprintf(
-		"select column_name as name, data_type as type_name, "+
-			"char_length as length, nullable as nullable, "+
-			"data_default as default_value, comments as comment "+
-			"from all_tab_columns where owner = upper(%s) and table_name = upper(%s) "+
-			"order by column_id asc", r.wrap.Quote(schema), r.wrap.Quote(table))
+		"SELECT c.column_name AS name, c.data_type AS type_name, c.char_length AS length, c.nullable, c.data_default AS default_value, "+
+			"CASE WHEN i.column_name IS NOT NULL THEN 1 ELSE 0 END AS autoincrement "+
+			"FROM user_tab_columns c LEFT JOIN user_tab_identity_cols i ON c.table_name = i.table_name AND c.column_name = i.column_name "+
+			"WHERE c.table_name = '%s'",
+		strings.ToUpper(table))
 }
 
 func (r *Oracle) CompileComment(_ schema.Blueprint, _ *schema.Command) (string, error) {
@@ -283,12 +287,12 @@ func (r *Oracle) CompileForeignKeys(schema, table string) string {
 		JOIN all_constraints con ON c.constraint_name = con.constraint_name
 		JOIN all_cons_columns r ON con.r_constraint_name = r.constraint_name
 		JOIN all_constraints d ON r.constraint_name = d.constraint_name
-		WHERE c.owner = upper(%s) 
-			AND c.table_name = upper(%s) 
+		WHERE c.owner = upper('%s') 
+			AND c.table_name = upper('%s') 
 			AND con.constraint_type = 'R'
 		GROUP BY c.constraint_name, c.owner, r.table_name, d.delete_rule, d.update_rule`,
-		r.wrap.Quote(schema),
-		r.wrap.Quote(table),
+		schema,
+		table,
 	)
 }
 
@@ -323,9 +327,9 @@ func (r *Oracle) CompileIndexes(schema, table string) string {
 			"from user_ind_columns ic "+
 			"join user_indexes i on ic.index_name = i.index_name "+
 			"left join user_constraints c on ic.index_name = c.index_name and c.constraint_type = 'P' "+
-			"where ic.table_name = upper(%s) "+
+			"where ic.table_name = upper('%s') "+
 			"group by ic.index_name, i.uniqueness, c.constraint_type",
-		r.wrap.Quote(table),
+		table,
 	)
 }
 
@@ -386,7 +390,7 @@ func (r *Oracle) CompileRenameIndex(_ schema.Schema, _ schema.Blueprint, command
 }
 
 func (r *Oracle) CompileTables(database string) string {
-	return fmt.Sprintf("select table_name as name from all_tables where owner = upper(%s) order by table_name", r.wrap.Quote(database))
+	return fmt.Sprintf("select table_name as name from all_tables where owner = upper('%s') order by table_name", database)
 }
 
 func (r *Oracle) CompileTypes() string {
@@ -521,11 +525,7 @@ func (r *Oracle) TypeEnum(column schema.ColumnDefinition) string {
 }
 
 func (r *Oracle) TypeFloat(column schema.ColumnDefinition) string {
-	precision := column.GetPrecision()
-	if precision > 0 {
-		return fmt.Sprintf("binary_float(%d)", precision)
-	}
-
+	// Oracle BINARY_FLOAT doesn't support precision parameter
 	return "binary_float"
 }
 
