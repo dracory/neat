@@ -8,7 +8,7 @@
 
 ## Status
 
-All implementation gaps have been resolved. The project has zero remaining gaps.
+Most implementation gaps have been resolved. All critical CRUD operation gaps have been addressed.
 
 ---
 
@@ -44,12 +44,13 @@ Oracle database integration has core infrastructure implemented but most integra
 - `oracle_raw_test.go` - "raw update with concatenation failing - ORA-00911 invalid character", "database functions test failing - ORA-00911"
 - `oracle_query_paginate_test.go` - "data cleanup issues with Oracle"
 - `oracle_query_belongs_to_test.go` - "With() method has known issues loading associations"
-- `oracle_query_association_test.go` - "Delete method has known issues with WHERE clause"
+- `oracle_query_association_test.go` - Delete method WHERE clause fixed
 
 ### Required Tasks
 
 #### 1. Fix Critical CRUD Operations (Highest Priority)
-- Fix Delete method WHERE clause (`oracle_query_association_test.go`)
+- ~~Fix Delete method WHERE clause (`oracle_query_association_test.go`)~~ COMPLETED
+- ~~Fix Oracle ID population after Create/Save~~ COMPLETED (applied sequence/MAX(id) fallback from InsertGetId)
 
 #### 2. Fix Other Query Builder Issues
 - Fix join alias syntax (ORA-00933) (`oracle_query_join_test.go`)

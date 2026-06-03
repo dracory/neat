@@ -99,6 +99,12 @@ func (h *HasMany) Delete(values ...any) error {
 		return fmt.Errorf("no values provided to delete")
 	}
 
+	// Get the local key value to ensure we only delete records that belong to this association
+	localKeyValue, err := h.getLocalKeyValue()
+	if err != nil {
+		return fmt.Errorf("failed to get local key value: %w", err)
+	}
+
 	// Set the foreign key to null for each related model using direct SQL update
 	for _, value := range values {
 		// Get the ID of the model to update
@@ -113,7 +119,9 @@ func (h *HasMany) Delete(values ...any) error {
 		modelID := idField.Interface()
 
 		// Directly update the foreign key to NULL in the database
-		query := h.Query().Table(h.associationName()).Where("id = ?", modelID)
+		// Also ensure the model belongs to this association by checking the foreign key
+		// Note: h.foreignKey is from model definition, not user input, so concatenation is safe
+		query := h.Query().Table(h.associationName()).Where("id = ? AND "+h.foreignKey+" = ?", modelID, localKeyValue)
 		_, err := query.Update(h.foreignKey, nil)
 		if err != nil {
 			return fmt.Errorf("failed to clear foreign key on model: %w", err)

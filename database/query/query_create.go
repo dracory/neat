@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/dracory/neat/database/observer"
@@ -51,6 +52,8 @@ func (q *Query) Create(value any) error {
 
 	// Postgres: use RETURNING id to get inserted ID
 	// SQL Server: uses OUTPUT clause (already added in BuildInsert)
+	// Oracle: go-ora driver has issues with RETURNING clause and LastInsertId
+	// For Oracle, we'll use a separate SELECT query after INSERT
 	if q.isPostgres() {
 		sqlStr = sqlStr + " RETURNING id"
 	}
@@ -165,8 +168,67 @@ func (q *Query) Create(value any) error {
 	}
 	q.logQuery(sqlStr, args, start)
 
-	// Populate last insert ID back into the model's primary key field (for non-PostgreSQL and non-SQLServer)
-	if !q.isPostgres() && !q.isSQLServer() && result != nil {
+	// Populate last insert ID back into the model's primary key field
+	if q.isOracle() {
+		// Oracle: go-ora driver has issues with RETURNING clause and LastInsertId
+		// Use sequence-based approach or MAX(id) fallback instead
+		var lastID int64
+
+		// Get table name and query the sequence current value
+		tableName := q.table
+		if tableName == "" {
+			// Try to extract table name from the INSERT SQL
+			parts := strings.Fields(sqlStr)
+			for i, part := range parts {
+				if strings.ToUpper(part) == "INTO" && i+1 < len(parts) {
+					tableName = strings.Trim(parts[i+1], `"`)
+					break
+				}
+			}
+		}
+
+		if tableName != "" {
+			// Try to get the sequence name (Oracle convention: TABLENAME_SEQ)
+			sequenceName := strings.ToUpper(tableName) + "_SEQ"
+			sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
+
+			var seqErr error
+			if q.tx != nil {
+				seqErr = q.tx.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+			} else {
+				var dbConn *sql.DB
+				dbConn, seqErr = q.DB()
+				if seqErr == nil {
+					seqErr = dbConn.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+				}
+			}
+
+			if seqErr != nil {
+				// If sequence doesn't exist or CURRVAL fails, fall back to MAX(id)
+				// This is less safe but works as a last resort
+				maxIDQuery := fmt.Sprintf("SELECT MAX(id) FROM %s", tableName)
+				if q.tx != nil {
+					seqErr = q.tx.QueryRowContext(q.ctx, maxIDQuery).Scan(&lastID)
+				} else {
+					var dbConn *sql.DB
+					dbConn, seqErr = q.DB()
+					if seqErr == nil {
+						seqErr = dbConn.QueryRowContext(q.ctx, maxIDQuery).Scan(&lastID)
+					}
+				}
+				if seqErr != nil {
+					// If both approaches fail, silently continue (ID won't be populated)
+					// This matches the behavior of other databases when LastInsertId fails
+				}
+			}
+
+			// Set the ID if we successfully retrieved it
+			if lastID > 0 {
+				setModelPrimaryKey(value, lastID)
+			}
+		}
+	} else if !q.isPostgres() && !q.isSQLServer() && result != nil {
+		// For other databases, use LastInsertId
 		if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)

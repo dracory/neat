@@ -287,21 +287,19 @@ func TestOracleIntegrationQueryAssociationDelete(t *testing.T) {
 	}
 
 	// Delete one book
-	// TODO: Fix Delete method - currently has WHERE clause issues (same as MySQL)
-	// if err := assoc.Delete(&book1); err != nil {
-	// 	t.Fatalf("Failed to delete book: %v", err)
-	// }
+	if err := assoc.Delete(&book1); err != nil {
+		t.Fatalf("Failed to delete book: %v", err)
+	}
 
 	// Verify only one book remains
-	// var books []models.Book
-	// if err := assoc.Find(&books); err != nil {
-	// 	t.Fatalf("Failed to find associated books: %v", err)
-	// }
+	var books []models.Book
+	if err := assoc.Find(&books); err != nil {
+		t.Fatalf("Failed to find associated books: %v", err)
+	}
 
-	// if len(books) != 1 {
-	// 	t.Errorf("Expected 1 book after delete, got %d", len(books))
-	// }
-	t.Skip("TODO: Delete method has known issues with WHERE clause")
+	if len(books) != 1 {
+		t.Errorf("Expected 1 book after delete, got %d", len(books))
+	}
 }
 
 func TestOracleIntegrationQueryAssociationClear(t *testing.T) {
