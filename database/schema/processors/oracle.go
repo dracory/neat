@@ -28,8 +28,11 @@ func (r Oracle) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			autoIncrement = true
 		}
 
-		// Handle NULL comment - Oracle returns NULL for non-text columns
-		var comment string
+		// Handle NULL collation and comment - Oracle returns NULL for non-text columns
+		var collation, comment string
+		if dbColumn.Collation != nil {
+			collation = *dbColumn.Collation
+		}
 		if dbColumn.Comment != nil {
 			comment = *dbColumn.Comment
 		}
@@ -38,6 +41,7 @@ func (r Oracle) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 		defaultStr := cast.ToString(dbColumn.Default)
 		columns = append(columns, schema.Column{
 			Autoincrement: autoIncrement,
+			Collation:     collation,
 			Comment:       comment,
 			Default:       defaultStr,
 			Name:          dbColumn.Name,

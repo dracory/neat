@@ -38,18 +38,20 @@ func (r *OracleSchema) DropAllTables() error {
 		return nil
 	}
 
-	var dropTables []string
-	for _, table := range tables {
-		dropTables = append(dropTables, table.Name)
-	}
+	return r.orm.Transaction(func(tx orm.Query) error {
+		// Oracle doesn't support foreign key constraint toggling like MySQL
+		// Skip the disable/enable foreign key constraints steps
 
-	query := r.orm.Query()
-	if query == nil {
-		return fmt.Errorf("query not initialized")
-	}
+		var dropTables []string
+		for _, table := range tables {
+			dropTables = append(dropTables, table.Name)
+		}
+		if _, execErr := tx.Exec(r.grammar.CompileDropAllTables(dropTables)); execErr != nil {
+			return execErr
+		}
 
-	_, err = query.Exec(r.grammar.CompileDropAllTables(dropTables))
-	return err
+		return nil
+	})
 }
 
 func (r *OracleSchema) DropAllTypes() error {

@@ -8,6 +8,7 @@ type PlaceholderFunc func(n int) string
 // PlaceholderFuncs contains placeholder functions for different dialects.
 var PlaceholderFuncs = map[string]PlaceholderFunc{
 	"mysql":     mysqlPlaceholder,
+	"oracle":    oraclePlaceholder,
 	"postgres":  postgresPlaceholder,
 	"sqlite":    sqlitePlaceholder,
 	"sqlserver": sqlserverPlaceholder,
@@ -17,6 +18,11 @@ var PlaceholderFuncs = map[string]PlaceholderFunc{
 // mysqlPlaceholder returns MySQL-style placeholders (?).
 func mysqlPlaceholder(n int) string {
 	return "?"
+}
+
+// oraclePlaceholder returns Oracle-style placeholders (:1, :2, :3).
+func oraclePlaceholder(n int) string {
+	return fmt.Sprintf(":%d", n)
 }
 
 // postgresPlaceholder returns PostgreSQL-style placeholders ($1, $2, $3).
