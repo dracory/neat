@@ -12,8 +12,9 @@ func TestOracleSchemaForeignKeyCreateTable(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupOracleTest(t)
 	t.Skip("skipped - Oracle foreign key handling needs investigation (ORA-01735)")
+
+	db := SetupOracleTest(t)
 
 	userTable := "fk_users"
 	postTable := "fk_posts"

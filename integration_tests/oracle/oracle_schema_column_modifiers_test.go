@@ -11,9 +11,9 @@ func TestOracleSchemaColumnModifiers(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	db := SetupOracleTest(t)
-
 	t.Skip("skipped - Oracle default value handling needs investigation (ORA-00907)")
+
+	db := SetupOracleTest(t)
 
 	tableName := "test_column_modifiers"
 	_ = db.Schema().Drop(tableName)
