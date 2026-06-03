@@ -25,7 +25,6 @@ Oracle database integration has core infrastructure implemented. Schema introspe
 - `oracle_schema_table_test.go` - "skipped - Oracle-specific table test not yet implemented"
 - `oracle_schema_rename_column_test.go` - "skipped - Oracle-specific rename column test not yet implemented"
 - `oracle_schema_column_methods_test.go` - "skipped - Oracle-specific column methods test not yet implemented"
-- `oracle_schema_column_change_test.go` - "skipped - Oracle-specific column change test not yet implemented"
 
 ### Resolved Issues
 
