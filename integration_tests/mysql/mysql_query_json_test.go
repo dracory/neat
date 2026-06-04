@@ -19,7 +19,7 @@ func seedJsonTestData(t *testing.T, db *database.Database) []models.JsonData {
 		t.Fatalf("Failed to create JSON data: %v", err)
 	}
 	// Fetch the data from database to get actual IDs
-	var fetchedData []models.JsonData
+	fetchedData := []models.JsonData{}
 	err = query.Model(&models.JsonData{}).Find(&fetchedData)
 	if err != nil {
 		t.Fatalf("Failed to fetch JSON data: %v", err)
