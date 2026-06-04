@@ -22,7 +22,7 @@ func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 	// Slow-query warning
 	if q.dbConfig != nil && q.dbConfig.SlowThreshold > 0 && elapsed >= float64(q.dbConfig.SlowThreshold) {
 		if q.log != nil {
-			q.log.Warningf("[slow query %.1fms] %s %v", elapsed, sql, bindings)
+			q.log.Warningf("[slow query %.1fms] %s [%d bindings redacted]", elapsed, sql, len(bindings))
 		}
 	}
 }

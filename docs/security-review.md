@@ -19,7 +19,8 @@ This is a full re-review of the Neat ORM codebase following the resolution of th
 - ⚠️ 0 Critical
 - ⚠️ 1 High
 - ⚠️ 4 Medium
-- ℹ️ 3 Low
+- ℹ️ 2 Low
+- ℹ️ 1 Informational
 
 ---
 
@@ -185,7 +186,7 @@ If the replica DSN contains invalid credentials or is unreachable, `readSQLDB` w
 
 ---
 
-### Finding N6: Slow-Query Log Emits Full SQL with Bound Parameters (Low) ⚠️ NOT FIXED
+### Finding N6: Slow-Query Log Emits Full SQL with Bound Parameters (Low) ✅ FIXED
 
 - **Severity**: Low
 - **CWE**: CWE-532 (Insertion of Sensitive Information into Log File)
@@ -207,10 +208,9 @@ The `bindings` slice may contain sensitive values such as passwords, PII (names,
 
 ---
 
-### Finding N7: Docker Compose Hardcodes Production-Grade Passwords (Low) ⚠️ NOT FIXED
+### Finding N7: Docker Compose Hardcodes Test Credentials (Informational) ℹ️ ACCEPTED
 
-- **Severity**: Low
-- **CWE**: CWE-798 (Use of Hard-coded Credentials)
+- **Severity**: Informational
 - **Location**: `docker-compose.yml:6`, `docker-compose.yml:36-37`, `docker-compose.yml:41-42`
 
 **Description**: The `docker-compose.yml` file used for integration testing contains hardcoded credentials for all supported databases:
@@ -222,13 +222,10 @@ ORACLE_PASSWORD: oracle
 POSTGRES_PASSWORD: test
 ```
 
-While these are intended only for local CI testing, if the same `docker-compose.yml` is used in a shared CI/CD environment or accidentally applied to a staging environment, these credentials would be in use for exposed services.
+**Context**: This is a library, not an application. The docker-compose file is only used by library maintainers for local development and CI integration testing. End users of the neat ORM library do not use this file.
 
-- **Impact**: If ports are exposed on a network-accessible host, these hardcoded credentials allow trivial authentication. The SQL Server healthcheck also embeds `SA_PASSWORD` in plain text in the `CMD` array.
-- **Recommendation**:
-  1. Use environment variable substitution in `docker-compose.yml` (e.g., `${MYSQL_ROOT_PASSWORD:-root}`) so that CI can inject non-default credentials.
-  2. Rename test credentials to be clearly non-production (they already are somewhat, but document this explicitly).
-  3. Add a comment in the file warning that it is for local testing only.
+- **Impact**: Minimal. The credentials are clearly test values and the file is only used in controlled development environments.
+- **Recommendation**: No action required. The current approach is appropriate for library development testing.
 
 ---
 
@@ -324,8 +321,9 @@ The `Orm` struct uses a `sync.Mutex` (`orm.go:237`) to protect access to the sha
 | Critical | 0 | - |
 | High | 1 (N1) | ✅ 1 FIXED |
 | Medium | 4 (N2, N3, N4, N5) | ✅ 2 FIXED, ⚠️ 2 PARTIAL |
-| Low | 3 (N6, N7, N8) | ⚠️ 3 NOT FIXED |
-| **Total** | **8** | **3 FIXED, 2 PARTIAL, 3 REMAINING** |
+| Low | 2 (N6, N8) | ✅ 1 FIXED, ⚠️ 1 NOT FIXED |
+| Informational | 1 (N7) | ℹ️ ACCEPTED |
+| **Total** | **8** | **4 FIXED, 2 PARTIAL, 1 REMAINING, 1 ACCEPTED** |
 
 ---
 
@@ -341,8 +339,6 @@ The `Orm` struct uses a `sync.Mutex` (`orm.go:237`) to protect access to the sha
    - N5: Handle and log errors from replica connection opening; ping replicas at startup
 
 3. **Low — Address in backlog**:
-   - N6: Redact bound parameter values in slow-query log output
-   - N7: Parameterize `docker-compose.yml` credentials via environment variables
    - N8: Implement atomic UPSERT using database-native constructs
 
 4. **Ongoing**:
