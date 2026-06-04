@@ -3,8 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	_ "modernc.org/sqlite"
 )
 
 // SQLite implements the Driver interface for SQLite databases.

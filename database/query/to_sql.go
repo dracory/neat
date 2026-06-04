@@ -243,8 +243,26 @@ func (t *ToSql) replacePlaceholders(sql string, _ []any) string {
 
 // replacePlaceholdersWithValues replaces ? placeholders with actual values for display.
 func (t *ToSql) replacePlaceholdersWithValues(sql string, args []any) string {
+	// Determine the placeholder pattern based on the dialect
+	var placeholderPattern string
+	if t.query.driver != nil {
+		dialect := t.query.driver.Dialect()
+		switch dialect {
+		case "oracle":
+			placeholderPattern = ":%d"
+		case "postgres":
+			placeholderPattern = "$%d"
+		case "sqlserver":
+			placeholderPattern = "@p%d"
+		default:
+			placeholderPattern = "?"
+		}
+	} else {
+		placeholderPattern = "?"
+	}
+
 	// Replace placeholders with actual values
-	for _, arg := range args {
+	for i, arg := range args {
 		var val string
 		switch v := arg.(type) {
 		case string:
@@ -258,7 +276,13 @@ func (t *ToSql) replacePlaceholdersWithValues(sql string, args []any) string {
 		default:
 			val = fmt.Sprintf("'%v'", v)
 		}
-		sql = strings.Replace(sql, "?", val, 1)
+
+		if placeholderPattern == "?" {
+			sql = strings.Replace(sql, "?", val, 1)
+		} else {
+			placeholder := fmt.Sprintf(placeholderPattern, i+1)
+			sql = strings.Replace(sql, placeholder, val, 1)
+		}
 	}
 	return sql
 }

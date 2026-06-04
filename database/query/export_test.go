@@ -92,7 +92,7 @@ func StructFieldColumnName(f reflect.StructField) string {
 
 // IsPostgres returns true when the query's driver dialect is "postgres".
 func (w *TestQuery) IsPostgres() bool {
-	return w.Q.driver != nil && w.Q.driver.Dialect() == "postgres"
+	return w.Q.isPostgres()
 }
 
 // LogQuery calls the unexported logQuery method.

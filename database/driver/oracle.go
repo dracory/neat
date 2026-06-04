@@ -3,9 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-	"fmt"
-
-	_ "github.com/sijms/go-ora/v2"
 )
 
 // Oracle implements the Driver interface for Oracle databases.
@@ -44,9 +41,4 @@ func (o *Oracle) Placeholder(n int) string {
 // Dialect returns the dialect name.
 func (o *Oracle) Dialect() string {
 	return "oracle"
-}
-
-// oraclePlaceholder returns Oracle-style placeholders (:1, :2, :3).
-func oraclePlaceholder(n int) string {
-	return fmt.Sprintf(":%d", n)
 }

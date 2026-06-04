@@ -7,6 +7,7 @@ import (
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
 	mainpkg "github.com/dracory/neat/examples/configuration"
+	_ "modernc.org/sqlite"
 )
 
 func TestRunExample(t *testing.T) {

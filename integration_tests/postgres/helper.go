@@ -58,7 +58,7 @@ func SetupPostgresTest(t *testing.T) *database.Database {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		username, password, host, port, db, sslmode)
 
-	conn, err := neat.NewFromDSN(dsn)
+	conn, err := neat.NewFromDSN(dsn, database.WithDebug())
 	if err != nil {
 		t.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}

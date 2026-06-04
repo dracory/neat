@@ -6,6 +6,7 @@ import (
 
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	_ "modernc.org/sqlite"
 )
 
 func TestNewOrm(t *testing.T) {

@@ -3,8 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 // Turso implements the Driver interface for Turso databases.

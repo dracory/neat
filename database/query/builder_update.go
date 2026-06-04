@@ -77,12 +77,12 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 					// Build JSON path: $.name for "data->name", $.meta.active for "data->meta->active"
 					jsonPath := "$." + strings.Join(parts[1:], ".")
 
-					if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+					if b.query.isMySQL() {
 						// MySQL: JSON_SET(column, '$.path', value)
 						setParts = append(setParts, fmt.Sprintf("%s = JSON_SET(%s, '%s', %s)", jsonColumn, jsonColumn, jsonPath, placeholderFunc(placeholderIndex)))
 						placeholderIndex++
 						setArgs = append(setArgs, values[0])
-					} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+					} else if b.query.isSQLite() {
 						// SQLite: json_set(column, '$.path', value)
 						setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', %s)", jsonColumn, jsonColumn, jsonPath, placeholderFunc(placeholderIndex)))
 						placeholderIndex++
@@ -172,14 +172,14 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	// PostgreSQL supports LIMIT directly in UPDATE
 	// SQL Server uses TOP instead of LIMIT
 	if b.query.limit != nil {
-		if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+		if b.query.isMySQL() {
 			// Add WHERE clause if it exists
 			if whereParts != "" {
 				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 				args = append(args, whereArgs...)
 			}
 			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
-		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+		} else if b.query.isSQLite() {
 			// SQLite workaround: wrap in subquery with rowid
 			if whereParts == "" {
 				whereParts = "1=1"
@@ -189,21 +189,21 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 			if len(b.query.orders) > 0 {
 				var orderParts []string
 				for _, order := range b.query.orders {
-					orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
+					orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
 				}
 				orderClause = fmt.Sprintf(" ORDER BY %s", strings.Join(orderParts, ", "))
 			}
 			// Add WHERE clause with rowid subquery including ORDER BY
 			parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
 			args = append(args, whereArgs...)
-		} else if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+		} else if b.query.isPostgres() {
 			// PostgreSQL supports LIMIT directly in UPDATE
 			if whereParts != "" {
 				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
 				args = append(args, whereArgs...)
 			}
 			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
-		} else if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
+		} else if b.query.isSQLServer() {
 			// SQL Server uses TOP instead of LIMIT
 			// Insert TOP after UPDATE
 			for i, part := range parts {

@@ -3,6 +3,7 @@ package common
 import (
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
@@ -10,6 +11,23 @@ import (
 // SeedPaginateTestData creates 15 test users for pagination tests
 func SeedPaginateTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
+	// Clean up existing test data first
+	// Oracle has issues with Delete() method when using WHERE clauses, so use raw SQL for Oracle
+	if query.Driver() == contractsdb.DriverOracle {
+		sqlDB, err := db.DB()
+		if err != nil {
+			t.Fatalf("Failed to get DB connection: %v", err)
+		}
+		_, err = sqlDB.Exec(`DELETE FROM USERS WHERE NAME LIKE 'paginate_user_%'`)
+		if err != nil {
+			t.Logf("Warning: failed to cleanup test data with raw SQL: %v", err)
+		}
+	} else {
+		if _, err := query.Model(&models.User{}).Where("name LIKE ?", "paginate_user_%").Delete(); err != nil {
+			t.Logf("Warning: failed to cleanup test data: %v", err)
+		}
+	}
+
 	for i := 1; i <= 15; i++ {
 		user := models.User{
 			Name:   "paginate_user_" + string(rune(64+i)),

@@ -5,6 +5,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database"
+	_ "modernc.org/sqlite"
 )
 
 // SetupSQLiteConnection creates a database connection without setting up tables

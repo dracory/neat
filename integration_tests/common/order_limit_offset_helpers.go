@@ -10,6 +10,11 @@ import (
 // SeedOrderLimitOffsetTestData creates test data for order/limit/offset tests
 func SeedOrderLimitOffsetTestData(t *testing.T, db *database.Database) {
 	query := db.Query()
+	// Clean up existing test data first
+	if _, err := query.Model(&models.User{}).Where("name LIKE ?", "user_%").Delete(); err != nil {
+		t.Logf("Warning: failed to cleanup test data: %v", err)
+	}
+
 	users := []models.User{
 		{Name: "user_b", Avatar: "avatar2"},
 		{Name: "user_a", Avatar: "avatar1"},

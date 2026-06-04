@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	_ "modernc.org/sqlite"
 )
 
 func TestBuildInsert(t *testing.T) {
@@ -76,10 +78,13 @@ func TestBuildInsertEmptySlice(t *testing.T) {
 	}
 	sql, args := b.BuildInsert(users)
 
-	if sql == "" {
-		t.Error("Expected non-empty SQL")
+	// Empty slice should return empty SQL (cannot insert nothing)
+	if sql != "" {
+		t.Errorf("Expected empty SQL for empty slice, got: %s", sql)
 	}
-	_ = args // Just ensure it doesn't panic
+	if len(args) != 0 {
+		t.Errorf("Expected no args for empty slice, got: %v", args)
+	}
 }
 
 func TestBuildInsertWithPostgreSQLPlaceholders(t *testing.T) {

@@ -71,7 +71,7 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 		for _, key := range sortedKeys {
 			value := v.MapIndex(key).Interface()
 			// Skip zero time.Time values for MySQL to allow database DEFAULT CURRENT_TIMESTAMP
-			if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+			if b.query.isMySQL() {
 				if t, ok := value.(time.Time); ok && t.IsZero() {
 					continue
 				}
@@ -125,6 +125,11 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
+		// Skip ID field if it's zero (auto-increment)
+		if columnName == "id" && fieldValue.IsZero() {
+			continue
+		}
+
 		// Skip slice/struct fields that are not handled as basic types
 		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Ptr) &&
 			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
@@ -162,18 +167,22 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
-		// Skip zero values except for boolean and pointers (which should be NULL)
+		// Skip zero values except for boolean, strings, and pointers (which should be NULL)
 		// For deleted_at (nil pointer), we want to include it as NULL in INSERT
 		// For other nil pointers (like Bio), also include as NULL
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Ptr {
+		// For strings, include empty strings as they are valid values
+		// For integers, include zero values as they are valid
+		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Ptr && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
+			// For Oracle, also skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
+			// For SQL Server, also skip zero time.Time values to use DEFAULT GETDATE()
 			// For other dialects, include zero time.Time values
-			if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+			if b.query.isMySQL() || b.query.isOracle() || b.query.isSQLServer() {
 				if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
 					continue
 				}
 			}
-			// Skip other zero values (int, string, etc.)
+			// Skip other zero values (float, etc.)
 			if fieldValue.Type() != reflect.TypeOf(time.Time{}) {
 				continue
 			}

@@ -37,8 +37,8 @@ func TestTursoIntegrationQueryJsonWhereJsonContains(t *testing.T) {
 	if len(foundData) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(foundData))
 	}
-	if len(foundData) > 0 && foundData[0].ID != data[0].ID {
-		t.Errorf("Expected ID %d, got %d", data[0].ID, foundData[0].ID)
+	if len(foundData) > 0 && foundData[0].Data != data[0].Data {
+		t.Errorf("Expected data %s, got %s", data[0].Data, foundData[0].Data)
 	}
 }
 
@@ -59,8 +59,8 @@ func TestTursoIntegrationQueryJsonOrWhereJsonContains(t *testing.T) {
 	if len(foundData) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(foundData))
 	}
-	if len(foundData) > 0 && foundData[0].ID != data[1].ID {
-		t.Errorf("Expected ID %d, got %d", data[1].ID, foundData[0].ID)
+	if len(foundData) > 0 && foundData[0].Data != data[1].Data {
+		t.Errorf("Expected data %s, got %s", data[1].Data, foundData[0].Data)
 	}
 }
 

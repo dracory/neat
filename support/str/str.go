@@ -963,8 +963,9 @@ func Random(length int) string {
 		return ""
 	}
 	letters := "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lettersLen := byte(len(letters))
 	for i, v := range b {
-		b[i] = letters[v%byte(len(letters))]
+		b[i] = letters[v%lettersLen]
 	}
 
 	return string(b)
@@ -1034,16 +1035,16 @@ func (b *Buffer) Append(i any) *Buffer {
 	case string:
 		b.append(val)
 	case []byte:
-		b.Write(val)
+		_, _ = b.Write(val) // bytes.Buffer.Write error is ignored as it rarely fails
 	case rune:
-		b.WriteRune(val)
+		_, _ = b.WriteRune(val) // bytes.Buffer.WriteRune error is ignored as it rarely fails
 	}
 	return b
 }
 
 // append is a helper method to append a string to the buffer.
 func (b *Buffer) append(s string) *Buffer {
-	b.WriteString(s)
+	_, _ = b.WriteString(s) // bytes.Buffer.WriteString error is ignored as it rarely fails
 
 	return b
 }

@@ -1,4 +1,4 @@
-package sqlserver
+package sqlserver_test
 
 import (
 	"testing"

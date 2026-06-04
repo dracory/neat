@@ -11,6 +11,7 @@ import (
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	_ "modernc.org/sqlite"
 )
 
 func TestDatabase_WithContext_SetsContextCorrectly(t *testing.T) {

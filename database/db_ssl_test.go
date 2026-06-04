@@ -5,6 +5,7 @@ import (
 
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	_ "github.com/lib/pq"
 )
 
 func TestSSL_PostgreSQL_SSLModeConfiguration(t *testing.T) {
@@ -48,7 +49,6 @@ func TestSSL_PostgreSQL_SSLModeConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := db.DBConfig{
-				Default: "default",
 				Connections: map[string]db.ConnectionConfig{
 					"default": {
 						Driver:   "postgres",

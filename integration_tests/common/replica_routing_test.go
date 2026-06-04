@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
+	_ "modernc.org/sqlite"
 )
 
 // TestReplicaRoutingIntegration tests that replica configuration is properly accepted

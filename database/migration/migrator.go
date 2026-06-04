@@ -70,7 +70,7 @@ func Down(schema contractsschema.Schema) error {
 }
 `
 
-	return os.WriteFile(filePath, []byte(content), 0644)
+	return os.WriteFile(filePath, []byte(content), 0600)
 }
 
 func (m *Migrator) Fresh() error {

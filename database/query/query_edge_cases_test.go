@@ -352,11 +352,11 @@ func TestEmptySliceInCreate(t *testing.T) {
 		Name string `db:"name"`
 	}
 
-	// Try to create with empty slice
+	// Try to create with empty slice - should succeed (nothing to insert)
 	var models []Model
 	err = q.Create(&models)
-	if err == nil {
-		t.Error("Expected error when creating with empty slice")
+	if err != nil {
+		t.Errorf("Expected no error when creating with empty slice, got: %v", err)
 	}
 }
 

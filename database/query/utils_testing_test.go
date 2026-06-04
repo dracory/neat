@@ -6,6 +6,7 @@ import (
 
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/query"
+	_ "modernc.org/sqlite"
 )
 
 // openSQLiteQuery returns a TestQuery wrapper backed by a real in-memory SQLite DB.

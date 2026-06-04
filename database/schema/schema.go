@@ -71,6 +71,11 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migratio
 		driverSchema = NewSqliteSchema(sqliteGrammar, orm, prefix)
 		grammar = sqliteGrammar
 		processor = processors.NewSqlite()
+	case contractsdatabase.DriverOracle:
+		oracleGrammar := grammars.NewOracle(prefix)
+		driverSchema = NewOracleSchema(oracleGrammar, orm, prefix)
+		grammar = oracleGrammar
+		processor = processors.NewOracle()
 	default:
 		return nil, errors.SchemaDriverNotSupported.Args(driver)
 	}

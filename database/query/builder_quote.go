@@ -17,6 +17,13 @@ func (b *Builder) quoteIdentifier(name string) string {
 		quoteChar = "`"
 	}
 
+	// For Oracle, uppercase identifiers to match default behavior
+	// Oracle stores unquoted identifiers in uppercase
+	// Do this BEFORE the quoted check to ensure even explicitly quoted identifiers are uppercased
+	if dialect == "oracle" {
+		name = strings.ToUpper(name)
+	}
+
 	// If already quoted, return as is
 	if (strings.HasPrefix(name, "\"") && strings.HasSuffix(name, "\"")) ||
 		(strings.HasPrefix(name, "`") && strings.HasSuffix(name, "`")) {
@@ -142,4 +149,42 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 	}
 
 	return result
+}
+
+// stripTableAliasAS removes the AS keyword from table aliases for Oracle.
+// Oracle doesn't support the AS keyword for table aliases (e.g., "users AS u" should be "users u").
+// This function only strips AS from table aliases, not from column aliases in ON conditions or SELECT clauses.
+func (b *Builder) stripTableAliasAS(name string) string {
+	upperName := strings.ToUpper(name)
+
+	// SQL keywords that indicate we've moved past the table alias part
+	// If AS appears after these keywords, it's a column alias, not a table alias
+	afterTableKeywords := []string{" ON ", " WHERE ", " JOIN ", " LEFT JOIN ", " RIGHT JOIN ", " CROSS JOIN ", " INNER JOIN "}
+
+	// Find the first occurrence of AS
+	asIdx := strings.Index(upperName, " AS ")
+	if asIdx == -1 {
+		return name
+	}
+
+	// Check if this AS appears after any of the keywords that indicate column alias context
+	for _, keyword := range afterTableKeywords {
+		keywordIdx := strings.Index(upperName, keyword)
+		if keywordIdx != -1 && keywordIdx < asIdx {
+			// AS appears after a keyword like ON, so it's a column alias - don't strip
+			return name
+		}
+	}
+
+	// Check if the identifier part is quoted (e.g., "my AS table" AS alias)
+	// If quoted, don't strip to avoid breaking unusual table names
+	identifier := strings.TrimSpace(name[:asIdx])
+	if (strings.HasPrefix(identifier, "\"") && strings.HasSuffix(identifier, "\"")) ||
+		(strings.HasPrefix(identifier, "`") && strings.HasSuffix(identifier, "`")) {
+		return name
+	}
+
+	// This is a table alias, strip the AS keyword
+	alias := strings.TrimSpace(name[asIdx+4:])
+	return fmt.Sprintf("%s %s", identifier, alias)
 }

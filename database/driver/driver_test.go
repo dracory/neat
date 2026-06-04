@@ -1,9 +1,11 @@
-package driver
+package driver_test
 
 import (
 	"context"
 	"database/sql"
 	"testing"
+
+	"github.com/dracory/neat/database/driver"
 )
 
 // MockDriver is a mock implementation of the Driver interface for testing.
@@ -60,7 +62,7 @@ func (m *MockDriver) Dialect() string {
 
 func TestDriverInterface(t *testing.T) {
 	// Test that MockDriver implements the Driver interface
-	var _ Driver = (*MockDriver)(nil)
+	var _ driver.Driver = (*MockDriver)(nil)
 }
 
 func TestMockDriverOpen(t *testing.T) {
@@ -192,9 +194,9 @@ func TestMockDriverDefaultBehavior(t *testing.T) {
 
 func TestTursoDriver(t *testing.T) {
 	// Test that Turso implements the Driver interface
-	var _ Driver = (*Turso)(nil)
+	var _ driver.Driver = (*driver.Turso)(nil)
 
-	turso := NewTurso()
+	turso := driver.NewTurso()
 
 	// Test Dialect
 	if turso.Dialect() != "turso" {
@@ -213,13 +215,5 @@ func TestTursoDriver(t *testing.T) {
 	placeholder = turso.Placeholder(3)
 	if placeholder != "?" {
 		t.Errorf("Expected ?, got %s", placeholder)
-	}
-
-	// Test Open (will fail without actual Turso database, but should not panic)
-	_, err := turso.Open("libsql://test.db")
-	if err != nil { //nolint:staticcheck
-		// Expected to fail without a real database connection
-		// We're just testing that the method doesn't panic
-		_ = err // Explicitly ignore expected error
 	}
 }

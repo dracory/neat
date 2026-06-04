@@ -40,6 +40,7 @@ type options struct {
 	eventBus *databaseorm.EventBus
 	pool     *db.PoolConfig
 	skipPing bool
+	debug    bool
 }
 
 // WithContext sets the context for the database.
@@ -74,6 +75,13 @@ func WithPool(pool db.PoolConfig) Option {
 func SkipPing() Option {
 	return func(o *options) {
 		o.skipPing = true
+	}
+}
+
+// WithDebug enables debug mode for the database.
+func WithDebug() Option {
+	return func(o *options) {
+		o.debug = true
 	}
 }
 
@@ -174,7 +182,7 @@ func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 			"default": config,
 		},
 		Pool:  poolConfig,
-		Debug: false,
+		Debug: o.debug,
 	}
 
 	return New(cfg, opts...)

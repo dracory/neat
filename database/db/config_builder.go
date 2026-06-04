@@ -267,6 +267,8 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 		return b.buildSQLServerDSN()
 	case "turso":
 		return b.buildTursoDSN()
+	case "oracle":
+		return b.buildOracleDSN()
 	default:
 		return "", fmt.Errorf("unsupported driver: %s", b.config.Driver)
 	}
@@ -354,6 +356,18 @@ func (b *ConfigBuilder) buildTursoDSN() (string, error) {
 	}
 
 	return fmt.Sprintf("libsql://%s", b.config.Database), nil
+}
+
+// buildOracleDSN builds an Oracle DSN string.
+func (b *ConfigBuilder) buildOracleDSN() (string, error) {
+	// Oracle connection string format: oracle://user:pass@host:port/service
+	return fmt.Sprintf("oracle://%s:%s@%s:%d/%s",
+		b.config.Username,
+		b.config.Password,
+		b.config.Host,
+		b.config.Port,
+		b.config.Database,
+	), nil
 }
 
 // ReplicaConfig holds host/port/credentials for a single read or write replica.

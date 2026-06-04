@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	mainpkg "github.com/dracory/neat/examples/seeders"
+	_ "modernc.org/sqlite"
 )
 
 func TestRunExample(t *testing.T) {

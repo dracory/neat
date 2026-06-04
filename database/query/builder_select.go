@@ -105,7 +105,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 						}
 					}
 					if !omitted {
-						filteredCols = append(filteredCols, col)
+						filteredCols = append(filteredCols, b.quoteIdentifier(col))
 					}
 				}
 				if len(filteredCols) > 0 {
@@ -170,9 +170,18 @@ func (b *Builder) BuildSelect() (string, []any) {
 				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
 				placeholderIndex++
 			}
+			// Oracle doesn't support AS keyword for table aliases in subqueries
+			if b.query.isOracle() {
+				replacedQuery = b.stripTableAliasAS(replacedQuery)
+			}
 			parts = append(parts, fmt.Sprintf("FROM %s", replacedQuery))
 		} else {
-			parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(b.query.table)))
+			tableName := b.query.table
+			// Oracle doesn't support AS keyword for table aliases
+			if b.query.isOracle() {
+				tableName = b.stripTableAliasAS(tableName)
+			}
+			parts = append(parts, fmt.Sprintf("FROM %s", b.quoteIdentifier(tableName)))
 		}
 		args = append(args, b.query.tableArgs...)
 	}
@@ -196,6 +205,10 @@ func (b *Builder) BuildSelect() (string, []any) {
 				replacedQuery = strings.Replace(replacedQuery, "?", placeholderFunc(placeholderIndex), 1)
 				placeholderIndex++
 			}
+			// Oracle doesn't support AS keyword for table aliases in JOINs
+			if b.query.isOracle() {
+				replacedQuery = b.stripTableAliasAS(replacedQuery)
+			}
 			parts = append(parts, fmt.Sprintf("%s %s", join._type, replacedQuery))
 			args = append(args, join.args...)
 		}
@@ -210,7 +223,11 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// GROUP BY clauses
 	if len(b.query.groups) > 0 {
-		parts = append(parts, fmt.Sprintf("GROUP BY %s", strings.Join(b.query.groups, ", ")))
+		var quotedGroups []string
+		for _, group := range b.query.groups {
+			quotedGroups = append(quotedGroups, b.quoteIdentifier(group))
+		}
+		parts = append(parts, fmt.Sprintf("GROUP BY %s", strings.Join(quotedGroups, ", ")))
 	}
 
 	// HAVING clauses
@@ -243,7 +260,12 @@ func (b *Builder) BuildSelect() (string, []any) {
 	if b.query.aggregate == "" && len(b.query.orders) > 0 {
 		var orderParts []string
 		for _, order := range b.query.orders {
-			orderParts = append(orderParts, fmt.Sprintf("%s %s", order.column, order.direction))
+			// Don't quote function calls (e.g., RANDOM(), RAND())
+			column := order.column
+			if !strings.Contains(column, "(") {
+				column = b.quoteIdentifier(column)
+			}
+			orderParts = append(orderParts, fmt.Sprintf("%s %s", column, order.direction))
 		}
 		parts = append(parts, fmt.Sprintf("ORDER BY %s", strings.Join(orderParts, ", ")))
 	}
@@ -251,7 +273,8 @@ func (b *Builder) BuildSelect() (string, []any) {
 	// LIMIT and OFFSET clauses - skip for aggregate queries
 	if b.query.aggregate == "" {
 		// SQL Server uses TOP and OFFSET-FETCH instead of LIMIT-OFFSET
-		if b.query.driver != nil && b.query.driver.Dialect() == "sqlserver" {
+		// Oracle uses FETCH FIRST/OFFSET instead of LIMIT-OFFSET
+		if b.query.isSQLServer() {
 			if b.query.limit != nil {
 				// Insert TOP after SELECT (or SELECT DISTINCT)
 				for i, part := range parts {
@@ -270,10 +293,11 @@ func (b *Builder) BuildSelect() (string, []any) {
 			// SQL Server requires ORDER BY for OFFSET-FETCH
 			if b.query.offset != nil {
 				// SQL Server requires ORDER BY when using OFFSET-FETCH
-				// If no ORDER BY is specified, add a default ORDER BY id (or first column)
+				// If no ORDER BY is specified, add a default ORDER BY
+				// Note: This assumes the table has an 'id' column. If not, the query will fail
+				// and the user should explicitly specify ORDER BY.
 				if len(b.query.orders) == 0 {
-					// Try to use "id" as default ordering, otherwise use the first column
-					parts = append(parts, "ORDER BY id")
+					parts = append(parts, "ORDER BY "+b.quoteIdentifier("id"))
 				}
 				offsetValue := *b.query.offset
 				fetchValue := 0
@@ -286,6 +310,29 @@ func (b *Builder) BuildSelect() (string, []any) {
 				}
 				parts = append(parts, fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offsetValue, fetchValue))
 			}
+		} else if b.query.isOracle() {
+			// Oracle uses FETCH FIRST/OFFSET syntax
+			if b.query.limit != nil || b.query.offset != nil {
+				// Oracle requires ORDER BY for OFFSET-FETCH
+				// Note: This assumes the table has an 'id' column. If not, the query will fail
+				// and the user should explicitly specify ORDER BY.
+				if len(b.query.orders) == 0 {
+					parts = append(parts, "ORDER BY "+b.quoteIdentifier("id"))
+				}
+				if b.query.offset != nil {
+					offsetValue := *b.query.offset
+					fetchValue := 0
+					if b.query.limit != nil {
+						fetchValue = *b.query.limit
+					} else {
+						// If no limit specified, use a large value to fetch all remaining rows
+						fetchValue = 2147483647 // Max int32 value
+					}
+					parts = append(parts, fmt.Sprintf("OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", offsetValue, fetchValue))
+				} else if b.query.limit != nil {
+					parts = append(parts, fmt.Sprintf("FETCH FIRST %d ROWS ONLY", *b.query.limit))
+				}
+			}
 		} else {
 			// Other databases use LIMIT-OFFSET
 			if b.query.limit != nil {
@@ -293,7 +340,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 			}
 			if b.query.offset != nil {
 				// SQLite requires LIMIT when using OFFSET
-				if b.query.limit == nil && b.query.driver != nil && b.query.driver.Dialect() == "sqlite" {
+				if b.query.limit == nil && b.query.isSQLite() {
 					parts = append(parts, "LIMIT -1")
 				}
 				parts = append(parts, fmt.Sprintf("OFFSET %d", *b.query.offset))
@@ -303,11 +350,22 @@ func (b *Builder) BuildSelect() (string, []any) {
 
 	// Locking clauses - skip for aggregate queries
 	// Skip lock clauses for SQLite as it doesn't support them
-	if b.query.aggregate == "" && (b.query.driver == nil || b.query.driver.Dialect() != "sqlite") {
-		if b.query.lockForUpdate {
+	// Skip lock clauses for Oracle when DISTINCT or GROUP BY is present (ORA-02014)
+	// Skip lock clauses for Oracle when soft delete filter is present (ORA-02014)
+	// Skip lock clauses for Oracle when LIMIT is present (ORA-02014)
+	// Skip SharedLock for Oracle as it doesn't support LOCK IN SHARE MODE
+	if b.query.aggregate == "" && !b.query.isSQLite() {
+		// Oracle doesn't support FOR UPDATE with DISTINCT, GROUP BY, soft delete filters, or LIMIT
+		hasSoftDeleteFilter := hasSoftDeleteCapability(b.query.model) && !b.query.withTrashed && !b.query.onlyTrashed
+		hasLimit := b.query.limit != nil
+		if b.query.isOracle() && (b.query.distinct || len(b.query.groups) > 0 || hasSoftDeleteFilter || hasLimit) {
+			// Skip locking clause for Oracle with DISTINCT/GROUP BY/soft delete filter/LIMIT
+		} else if b.query.isOracle() && b.query.sharedLock {
+			// Oracle doesn't support LOCK IN SHARE MODE, skip it
+		} else if b.query.lockForUpdate {
 			parts = append(parts, "FOR UPDATE")
 		} else if b.query.sharedLock {
-			if b.query.driver != nil && b.query.driver.Dialect() == "postgres" {
+			if b.query.isPostgres() {
 				parts = append(parts, "FOR SHARE")
 			} else {
 				parts = append(parts, "LOCK IN SHARE MODE")

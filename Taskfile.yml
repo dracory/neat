@@ -4,7 +4,7 @@ tasks:
   test:
     desc: Run all tests
     cmds:
-      - go test ./... -v -count=1
+      - go test ./... -v
 
   test-short:
     desc: Run short tests only
@@ -35,6 +35,11 @@ tasks:
     desc: Run Oracle integration tests
     cmds:
       - go test ./integration_tests/oracle/... -v
+
+  test-integration-sqlserver:
+    desc: Run SQL Server integration tests
+    cmds:
+      - go test ./integration_tests/sqlserver/... -v
 
   build:
     desc: Build the project
