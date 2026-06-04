@@ -68,7 +68,25 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 }
 
 // UpdateOrCreate updates a record if it exists, or creates it if it doesn't.
+// The operation is performed atomically within a transaction to prevent race conditions.
 func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
+	// If already in a transaction, proceed without nesting
+	if q.inTransaction {
+		return q.updateOrCreateInTransaction(dest, attributes, values)
+	}
+
+	// Wrap the entire operation in a transaction for atomicity
+	return q.Transaction(func(tx contractsorm.Query) error {
+		txQ, ok := tx.(*Query)
+		if !ok {
+			return fmt.Errorf("unexpected transaction type: %T", tx)
+		}
+		return txQ.updateOrCreateInTransaction(dest, attributes, values)
+	})
+}
+
+// updateOrCreateInTransaction performs the actual UpdateOrCreate logic within a transaction.
+func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any) error {
 	// Use a clone to avoid mutating the original query
 	clone := q.Clone().(*Query)
 

@@ -229,7 +229,7 @@ POSTGRES_PASSWORD: test
 
 ---
 
-### Finding N8: `UpdateOrCreate` Performs Non-Atomic Check-Then-Act (Low) ⚠️ NOT FIXED
+### Finding N8: `UpdateOrCreate` Performs Non-Atomic Check-Then-Act (Low) ✅ FIXED
 
 - **Severity**: Low
 - **CWE**: CWE-362 (Race Condition / TOCTOU)
@@ -321,9 +321,9 @@ The `Orm` struct uses a `sync.Mutex` (`orm.go:237`) to protect access to the sha
 | Critical | 0 | - |
 | High | 1 (N1) | ✅ 1 FIXED |
 | Medium | 4 (N2, N3, N4, N5) | ✅ 2 FIXED, ⚠️ 2 PARTIAL |
-| Low | 2 (N6, N8) | ✅ 1 FIXED, ⚠️ 1 NOT FIXED |
+| Low | 2 (N6, N8) | ✅ 2 FIXED |
 | Informational | 1 (N7) | ℹ️ ACCEPTED |
-| **Total** | **8** | **4 FIXED, 2 PARTIAL, 1 REMAINING, 1 ACCEPTED** |
+| **Total** | **8** | **5 FIXED, 2 PARTIAL, 0 REMAINING, 1 ACCEPTED** |
 
 ---
 
@@ -339,7 +339,7 @@ The `Orm` struct uses a `sync.Mutex` (`orm.go:237`) to protect access to the sha
    - N5: Handle and log errors from replica connection opening; ping replicas at startup
 
 3. **Low — Address in backlog**:
-   - N8: Implement atomic UPSERT using database-native constructs
+   - (None remaining)
 
 4. **Ongoing**:
    - Add `govulncheck` to CI pipeline

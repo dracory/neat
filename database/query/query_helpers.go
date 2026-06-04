@@ -52,7 +52,26 @@ func (q *Query) timeoutContext() (context.Context, context.CancelFunc) {
 	return base, func() {}
 }
 
+// UpdateOrInsert updates a record if it exists, or creates it if it doesn't.
+// The operation is performed atomically within a transaction to prevent race conditions.
 func (q *Query) UpdateOrInsert(attributes any, values any) error {
+	// If already in a transaction, proceed without nesting
+	if q.inTransaction {
+		return q.updateOrInsertInTransaction(attributes, values)
+	}
+
+	// Wrap the entire operation in a transaction for atomicity
+	return q.Transaction(func(tx contractsorm.Query) error {
+		txQ, ok := tx.(*Query)
+		if !ok {
+			return fmt.Errorf("unexpected transaction type: %T", tx)
+		}
+		return txQ.updateOrInsertInTransaction(attributes, values)
+	})
+}
+
+// updateOrInsertInTransaction performs the actual UpdateOrInsert logic within a transaction.
+func (q *Query) updateOrInsertInTransaction(attributes any, values any) error {
 	// Build WHERE conditions from attributes
 	clone := q.Clone().(*Query)
 
