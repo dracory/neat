@@ -11,6 +11,8 @@ import (
 )
 
 // Create inserts a new record into the database.
+// For Oracle databases, if you need the primary key populated after Create,
+// wrap the call in a transaction to reduce the race window in ID retrieval.
 func (q *Query) Create(value any) error {
 	if q.buildError != nil {
 		return q.buildError

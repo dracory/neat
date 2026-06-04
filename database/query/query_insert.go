@@ -8,6 +8,7 @@ import (
 )
 
 // InsertGetId inserts a record and returns the ID.
+// For Oracle databases, wrap the call in a transaction to reduce the race window in ID retrieval.
 func (q *Query) InsertGetId(values any) (uint, error) {
 	// Build INSERT query
 	builder := NewBuilder(q)
