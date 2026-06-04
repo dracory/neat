@@ -49,6 +49,16 @@ func (r Oracle) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 				defaultStr = defaultStr[1 : len(defaultStr)-1]
 			}
 		}
+
+		// Normalize type names - Oracle returns TIMESTAMP(6) but we want just "timestamp"
+		typeName := strings.ToLower(dbColumn.TypeName)
+		if strings.HasPrefix(typeName, "timestamp") {
+			// Remove precision suffix like (6) or (3)
+			if idx := strings.Index(typeName, "("); idx != -1 {
+				typeName = typeName[:idx]
+			}
+		}
+
 		columns = append(columns, schema.Column{
 			Autoincrement: autoIncrement,
 			Collation:     collation,
@@ -57,7 +67,7 @@ func (r Oracle) ProcessColumns(dbColumns []schema.DBColumn) []schema.Column {
 			Name:          strings.ToLower(dbColumn.Name),
 			Nullable:      nullable,
 			Type:          dbColumn.Type,
-			TypeName:      dbColumn.TypeName,
+			TypeName:      typeName,
 		})
 	}
 

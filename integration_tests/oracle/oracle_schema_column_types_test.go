@@ -62,7 +62,7 @@ func TestOracleSchemaColumnTypeBigIncrements(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "big_increments_col", func(t schema.Blueprint) { t.BigIncrements("col") }, "NUMBER", false, true, "")
+	testColumnType(t, db, "big_increments_col", func(t schema.Blueprint) { t.BigIncrements("col") }, "number", false, true, "")
 }
 
 func TestOracleSchemaColumnTypeBigInteger(t *testing.T) {
@@ -70,7 +70,7 @@ func TestOracleSchemaColumnTypeBigInteger(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "big_integer_col", func(t schema.Blueprint) { t.BigInteger("col") }, "NUMBER", false, false, "")
+	testColumnType(t, db, "big_integer_col", func(t schema.Blueprint) { t.BigInteger("col") }, "number", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeBoolean(t *testing.T) {
@@ -78,7 +78,7 @@ func TestOracleSchemaColumnTypeBoolean(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "boolean_col", func(t schema.Blueprint) { t.Boolean("col") }, "NUMBER", false, false, "")
+	testColumnType(t, db, "boolean_col", func(t schema.Blueprint) { t.Boolean("col") }, "number", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeChar(t *testing.T) {
@@ -86,7 +86,7 @@ func TestOracleSchemaColumnTypeChar(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "char_col", func(t schema.Blueprint) { t.Char("col", 10) }, "CHAR", false, false, "")
+	testColumnType(t, db, "char_col", func(t schema.Blueprint) { t.Char("col", 10) }, "char", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeDate(t *testing.T) {
@@ -94,7 +94,7 @@ func TestOracleSchemaColumnTypeDate(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "date_col", func(t schema.Blueprint) { t.Date("col") }, "DATE", false, false, "")
+	testColumnType(t, db, "date_col", func(t schema.Blueprint) { t.Date("col") }, "date", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeDateTime(t *testing.T) {
@@ -102,8 +102,8 @@ func TestOracleSchemaColumnTypeDateTime(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	// Oracle returns TIMESTAMP(6) by default for TIMESTAMP columns
-	testColumnType(t, db, "datetime_col", func(t schema.Blueprint) { t.DateTime("col") }, "TIMESTAMP(6)", false, false, "")
+	// Oracle returns TIMESTAMP(6) by default for TIMESTAMP columns, but we normalize to "timestamp"
+	testColumnType(t, db, "datetime_col", func(t schema.Blueprint) { t.DateTime("col") }, "timestamp", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeDecimal(t *testing.T) {
@@ -111,7 +111,7 @@ func TestOracleSchemaColumnTypeDecimal(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "decimal_col", func(t schema.Blueprint) { t.Decimal("col") }, "NUMBER", false, false, "")
+	testColumnType(t, db, "decimal_col", func(t schema.Blueprint) { t.Decimal("col") }, "number", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeDouble(t *testing.T) {
@@ -119,7 +119,7 @@ func TestOracleSchemaColumnTypeDouble(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "double_col", func(t schema.Blueprint) { t.Double("col") }, "BINARY_DOUBLE", false, false, "")
+	testColumnType(t, db, "double_col", func(t schema.Blueprint) { t.Double("col") }, "binary_double", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeFloat(t *testing.T) {
@@ -127,7 +127,7 @@ func TestOracleSchemaColumnTypeFloat(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "float_col", func(t schema.Blueprint) { t.Float("col") }, "BINARY_FLOAT", false, false, "")
+	testColumnType(t, db, "float_col", func(t schema.Blueprint) { t.Float("col") }, "binary_float", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeID(t *testing.T) {
@@ -135,7 +135,7 @@ func TestOracleSchemaColumnTypeID(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "id_col", func(t schema.Blueprint) { t.ID("col") }, "NUMBER", false, true, "")
+	testColumnType(t, db, "id_col", func(t schema.Blueprint) { t.ID("col") }, "number", false, true, "")
 }
 
 func TestOracleSchemaColumnTypeIncrements(t *testing.T) {
@@ -143,7 +143,7 @@ func TestOracleSchemaColumnTypeIncrements(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "increments_col", func(t schema.Blueprint) { t.Increments("col") }, "NUMBER", false, true, "")
+	testColumnType(t, db, "increments_col", func(t schema.Blueprint) { t.Increments("col") }, "number", false, true, "")
 }
 
 func TestOracleSchemaColumnTypeInteger(t *testing.T) {
@@ -151,7 +151,7 @@ func TestOracleSchemaColumnTypeInteger(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "integer_col", func(t schema.Blueprint) { t.Integer("col") }, "NUMBER", false, false, "")
+	testColumnType(t, db, "integer_col", func(t schema.Blueprint) { t.Integer("col") }, "number", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeIntegerIncrements(t *testing.T) {
@@ -159,7 +159,7 @@ func TestOracleSchemaColumnTypeIntegerIncrements(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "integer_increments_col", func(t schema.Blueprint) { t.IntegerIncrements("col") }, "NUMBER", false, true, "")
+	testColumnType(t, db, "integer_increments_col", func(t schema.Blueprint) { t.IntegerIncrements("col") }, "number", false, true, "")
 }
 
 func TestOracleSchemaColumnTypeString(t *testing.T) {
@@ -167,7 +167,7 @@ func TestOracleSchemaColumnTypeString(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "string_col", func(t schema.Blueprint) { t.String("col", 255) }, "VARCHAR2", false, false, "")
+	testColumnType(t, db, "string_col", func(t schema.Blueprint) { t.String("col", 255) }, "varchar2", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeText(t *testing.T) {
@@ -175,7 +175,7 @@ func TestOracleSchemaColumnTypeText(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "text_col", func(t schema.Blueprint) { t.Text("col") }, "CLOB", false, false, "")
+	testColumnType(t, db, "text_col", func(t schema.Blueprint) { t.Text("col") }, "clob", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeTimestamp(t *testing.T) {
@@ -183,8 +183,8 @@ func TestOracleSchemaColumnTypeTimestamp(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	// Oracle returns TIMESTAMP(6) by default for TIMESTAMP columns
-	testColumnType(t, db, "timestamp_col", func(t schema.Blueprint) { t.Timestamp("col") }, "TIMESTAMP(6)", false, false, "")
+	// Oracle returns TIMESTAMP(6) by default for TIMESTAMP columns, but we normalize to "timestamp"
+	testColumnType(t, db, "timestamp_col", func(t schema.Blueprint) { t.Timestamp("col") }, "timestamp", false, false, "")
 }
 
 func TestOracleSchemaColumnTypeNullable(t *testing.T) {
@@ -192,7 +192,7 @@ func TestOracleSchemaColumnTypeNullable(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "nullable_col", func(t schema.Blueprint) { t.String("col").Nullable() }, "VARCHAR2", true, false, "")
+	testColumnType(t, db, "nullable_col", func(t schema.Blueprint) { t.String("col").Nullable() }, "varchar2", true, false, "")
 }
 
 func TestOracleSchemaColumnTypeDefault(t *testing.T) {
@@ -200,5 +200,5 @@ func TestOracleSchemaColumnTypeDefault(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	db := SetupOracleTest(t)
-	testColumnType(t, db, "default_col", func(t schema.Blueprint) { t.String("col").Default("test") }, "VARCHAR2", false, false, "test")
+	testColumnType(t, db, "default_col", func(t schema.Blueprint) { t.String("col").Default("test") }, "varchar2", false, false, "test")
 }

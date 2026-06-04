@@ -1,6 +1,8 @@
 package oracle_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/schema"
@@ -8,7 +10,14 @@ import (
 )
 
 func setupColumnMethodsTable(t *testing.T, db *database.Database, tableName string) {
-	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
+	// Clean up table if it exists from previous test run
+	_ = db.Schema().DropIfExists(tableName)
+	sqlDB, err := db.DB()
+	if err == nil {
+		_, _ = sqlDB.Exec(fmt.Sprintf("BEGIN EXECUTE IMMEDIATE 'DROP TABLE %s CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;", strings.ToUpper(tableName)))
+	}
+
+	err = db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
 		table.String("name")
 		table.String("age")

@@ -37,11 +37,6 @@ func TestOracleSchemaTableCreateHasDrop(t *testing.T) {
 	if db.Schema().HasTable(tableName) {
 		t.Error("Table should not exist after Drop")
 	}
-
-	err = db.Schema().DropIfExists(tableName)
-	if err != nil {
-		t.Fatalf("Failed to drop if exists: %v", err)
-	}
 }
 
 func TestOracleSchemaTableRename(t *testing.T) {

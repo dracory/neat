@@ -1,6 +1,8 @@
 package oracle_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/schema"
@@ -250,7 +252,13 @@ func TestOracleSchemaTimestampPrecision(t *testing.T) {
 	tableName := "test_precision"
 	_ = db.Schema().DropIfExists(tableName)
 
-	err := db.Schema().Create(tableName, func(table schema.Blueprint) {
+	// Additional cleanup to handle Oracle case sensitivity
+	sqlDB, err := db.DB()
+	if err == nil {
+		_, _ = sqlDB.Exec(fmt.Sprintf("BEGIN EXECUTE IMMEDIATE 'DROP TABLE %s CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;", strings.ToUpper(tableName)))
+	}
+
+	err = db.Schema().Create(tableName, func(table schema.Blueprint) {
 		table.ID()
 		table.Timestamps(3)
 		table.Timestamp("deleted_at", 3).Nullable()
