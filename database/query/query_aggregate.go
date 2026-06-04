@@ -31,16 +31,18 @@ func (q *Query) Count(count *int64) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(count)
+		err = q.tx.QueryRowContext(ctx, sql, args...).Scan(count)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(count) //nolint:ineffassign
+		err = databaseConn.QueryRowContext(ctx, sql, args...).Scan(count) //nolint:ineffassign
 	}
 
 	if err != nil {
@@ -75,16 +77,18 @@ func (q *Query) Sum(column string, dest any) error {
 	querySQL, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = q.tx.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest) //nolint:ineffassign
+		err = databaseConn.QueryRowContext(ctx, querySQL, args...).Scan(dest) //nolint:ineffassign
 	}
 
 	if err != nil {
@@ -123,16 +127,18 @@ func (q *Query) Avg(column string, dest any) error {
 	querySQL, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = q.tx.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest) //nolint:ineffassign
+		err = databaseConn.QueryRowContext(ctx, querySQL, args...).Scan(dest) //nolint:ineffassign
 	}
 
 	if err != nil {
@@ -171,16 +177,18 @@ func (q *Query) Min(column string, dest any) error {
 	querySQL, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = q.tx.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	}
 
 	if err != nil {
@@ -219,16 +227,18 @@ func (q *Query) Max(column string, dest any) error {
 	querySQL, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = q.tx.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	}
 
 	if err != nil {
@@ -262,17 +272,19 @@ func (q *Query) Exists(exists *bool) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var count int64
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, sql, args...).Scan(&count)
+		err = q.tx.QueryRowContext(ctx, sql, args...).Scan(&count)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, sql, args...).Scan(&count)
+		err = databaseConn.QueryRowContext(ctx, sql, args...).Scan(&count)
 	}
 
 	if err != nil {
@@ -301,9 +313,11 @@ func (q *Query) Pluck(column string, dest any) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var err error
 	if q.tx != nil {
-		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		rows, err := q.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
 			return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
 		}
@@ -317,7 +331,7 @@ func (q *Query) Pluck(column string, dest any) error {
 		return err
 	}
 
-	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
+	rows, err := databaseConn.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
 	}
@@ -344,16 +358,18 @@ func (q *Query) Value(column string, dest any) error {
 	querySQL, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var err error
 	if q.tx != nil {
-		err = q.tx.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = q.tx.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	} else {
 		databaseConn, readErr := q.ReadDB()
 		if readErr != nil {
 			return readErr
 		}
-		err = databaseConn.QueryRowContext(q.ctx, querySQL, args...).Scan(dest)
+		err = databaseConn.QueryRowContext(ctx, querySQL, args...).Scan(dest)
 	}
 
 	if err != nil {

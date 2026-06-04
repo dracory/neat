@@ -24,6 +24,8 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 		insertSQL = insertSQL + " RETURNING id"
 	}
 
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	start := time.Now()
 	var lastID int64
 
@@ -31,13 +33,13 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 		// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use QueryRow instead of Exec
 		var row *sql.Row
 		if q.tx != nil {
-			row = q.tx.QueryRowContext(q.ctx, insertSQL, args...)
+			row = q.tx.QueryRowContext(ctx, insertSQL, args...)
 		} else {
 			dbConn, err := q.DB()
 			if err != nil {
 				return 0, err
 			}
-			row = dbConn.QueryRowContext(q.ctx, insertSQL, args...)
+			row = dbConn.QueryRowContext(ctx, insertSQL, args...)
 		}
 		if err := row.Scan(&lastID); err != nil {
 			return 0, fmt.Errorf("failed to get inserted ID: %w", err)
@@ -49,13 +51,13 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 
 		// Execute the INSERT without RETURNING clause
 		if q.tx != nil {
-			_, err = q.tx.ExecContext(q.ctx, insertSQL, args...)
+			_, err = q.tx.ExecContext(ctx, insertSQL, args...)
 		} else {
 			dbConn, err2 := q.DB()
 			if err2 != nil {
 				return 0, err2
 			}
-			_, err = dbConn.ExecContext(q.ctx, insertSQL, args...)
+			_, err = dbConn.ExecContext(ctx, insertSQL, args...)
 		}
 		if err != nil {
 			return 0, fmt.Errorf("failed to execute INSERT query: %w", err)
@@ -87,13 +89,13 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 			sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
 
 			if q.tx != nil {
-				err = q.tx.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+				err = q.tx.QueryRowContext(ctx, sequenceQuery).Scan(&lastID)
 			} else {
 				dbConn, err2 := q.DB()
 				if err2 != nil {
 					return 0, err2
 				}
-				err = dbConn.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+				err = dbConn.QueryRowContext(ctx, sequenceQuery).Scan(&lastID)
 			}
 
 			if err != nil {
@@ -101,13 +103,13 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 				// This is less safe but works as a last resort
 				maxIDQuery := fmt.Sprintf("SELECT MAX(id) FROM %s", tableName)
 				if q.tx != nil {
-					err = q.tx.QueryRowContext(q.ctx, maxIDQuery).Scan(&lastID)
+					err = q.tx.QueryRowContext(ctx, maxIDQuery).Scan(&lastID)
 				} else {
 					dbConn, err2 := q.DB()
 					if err2 != nil {
 						return 0, err2
 					}
-					err = dbConn.QueryRowContext(q.ctx, maxIDQuery).Scan(&lastID)
+					err = dbConn.QueryRowContext(ctx, maxIDQuery).Scan(&lastID)
 				}
 				if err != nil {
 					return 0, fmt.Errorf("failed to get last inserted ID: %w", err)
@@ -120,13 +122,13 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 		var err error
 		var result sql.Result
 		if q.tx != nil {
-			result, err = q.tx.ExecContext(q.ctx, insertSQL, args...)
+			result, err = q.tx.ExecContext(ctx, insertSQL, args...)
 		} else {
 			dbConn, err2 := q.DB()
 			if err2 != nil {
 				return 0, err2
 			}
-			result, err = dbConn.ExecContext(q.ctx, insertSQL, args...)
+			result, err = dbConn.ExecContext(ctx, insertSQL, args...)
 		}
 		if err != nil {
 			return 0, fmt.Errorf("failed to execute INSERT query: %w", err)

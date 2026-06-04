@@ -115,16 +115,18 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute raw SQL
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sql, values...)
+		result, err = q.tx.ExecContext(ctx, sql, values...)
 	} else {
 		databaseConn, dbErr := q.DB()
 		if dbErr != nil {
 			return nil, dbErr
 		}
-		result, err = databaseConn.ExecContext(q.ctx, sql, values...)
+		result, err = databaseConn.ExecContext(ctx, sql, values...)
 	}
 
 	if err != nil {
@@ -206,17 +208,19 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
 	start := time.Now()
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+		result, err = q.tx.ExecContext(ctx, sql, args...)
 	} else {
 		dbConn, dbErr := q.DB()
 		if dbErr != nil {
 			return nil, dbErr
 		}
-		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+		result, err = dbConn.ExecContext(ctx, sql, args...)
 	}
 
 	if err != nil {
@@ -263,17 +267,19 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
 	start := time.Now()
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sql, args...)
+		result, err = q.tx.ExecContext(ctx, sql, args...)
 	} else {
 		dbConn, dbErr := q.DB()
 		if dbErr != nil {
 			return nil, dbErr
 		}
-		result, err = dbConn.ExecContext(q.ctx, sql, args...)
+		result, err = dbConn.ExecContext(ctx, sql, args...)
 	}
 
 	if err != nil {

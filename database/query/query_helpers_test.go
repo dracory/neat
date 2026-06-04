@@ -96,5 +96,62 @@ func TestLogQueryBelowThreshold(t *testing.T) {
 	}
 }
 
+func TestTimeoutContextNilContext(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.ctx = nil
+
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
+
+	if ctx == nil {
+		t.Error("Expected non-nil context even when q.ctx is nil")
+	}
+}
+
+func TestTimeoutContextNoTimeout(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
+
+	if _, hasDeadline := ctx.Deadline(); hasDeadline {
+		t.Error("Expected no deadline when QueryTimeout is not configured")
+	}
+}
+
+func TestTimeoutContextZeroTimeout(t *testing.T) {
+	dbConfig := MakeDBConfig()
+	dbConfig.Pool.QueryTimeout = 0
+
+	q := NewQuery(context.TODO(), nil, nil, "", dbConfig, nil)
+
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
+
+	if _, hasDeadline := ctx.Deadline(); hasDeadline {
+		t.Error("Expected no deadline when QueryTimeout is 0")
+	}
+}
+
+func TestTimeoutContextWithTimeout(t *testing.T) {
+	dbConfig := MakeDBConfig()
+	dbConfig.Pool.QueryTimeout = 30
+
+	q := NewQuery(context.TODO(), nil, nil, "", dbConfig, nil)
+
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
+
+	deadline, hasDeadline := ctx.Deadline()
+	if !hasDeadline {
+		t.Fatal("Expected deadline when QueryTimeout is 30s")
+	}
+
+	remaining := time.Until(deadline)
+	if remaining <= 0 || remaining > 35*time.Second {
+		t.Errorf("Expected deadline ~30s from now, got %v remaining", remaining)
+	}
+}
+
 // UpdateOrInsert tests are in query_upsert_test.go
 // This file contains helper-specific tests

@@ -26,9 +26,11 @@ func (q *Query) Find(dest any, conds ...any) error {
 	sql, args := builder.BuildSelect()
 
 	start := time.Now()
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	// Execute query
 	if q.tx != nil {
-		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		rows, err := q.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
 			return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
 		}
@@ -42,7 +44,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 		return err
 	}
 
-	rows, err := dbConn.QueryContext(q.ctx, sql, args...)
+	rows, err := dbConn.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
 	}

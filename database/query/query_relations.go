@@ -139,7 +139,9 @@ func (q *Query) loadHasManyRelation(v reflect.Value, field reflect.Value, relati
 		return fmt.Errorf("database connection is nil")
 	}
 
-	rows, err := conn.QueryContext(q.ctx, querySQL, args...)
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
+	rows, err := conn.QueryContext(ctx, querySQL, args...)
 	if err != nil {
 		return fmt.Errorf("failed to query has-many relation %s: %w", relation, err)
 	}
@@ -222,7 +224,9 @@ func (q *Query) loadHasOneRelation(v reflect.Value, field reflect.Value, relatio
 		return fmt.Errorf("database connection is nil")
 	}
 
-	rows, err := conn.QueryContext(q.ctx, querySQL, args...)
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
+	rows, err := conn.QueryContext(ctx, querySQL, args...)
 	if err != nil {
 		return fmt.Errorf("failed to query has-one relation %s: %w", relation, err)
 	}

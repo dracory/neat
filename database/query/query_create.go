@@ -58,6 +58,8 @@ func (q *Query) Create(value any) error {
 	}
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var result sql.Result
 	var err error
 	start := time.Now()
@@ -65,7 +67,7 @@ func (q *Query) Create(value any) error {
 		if q.isPostgres() || q.isSQLServer() {
 			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
-			rows, err = q.tx.QueryContext(q.ctx, sqlStr, args...)
+			rows, err = q.tx.QueryContext(ctx, sqlStr, args...)
 			if err != nil {
 				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
@@ -112,7 +114,7 @@ func (q *Query) Create(value any) error {
 				}
 			}
 		} else {
-			result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
+			result, err = q.tx.ExecContext(ctx, sqlStr, args...)
 		}
 	} else {
 		var dbConn *sql.DB
@@ -123,7 +125,7 @@ func (q *Query) Create(value any) error {
 		if q.isPostgres() || q.isSQLServer() {
 			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
-			rows, err = dbConn.QueryContext(q.ctx, sqlStr, args...)
+			rows, err = dbConn.QueryContext(ctx, sqlStr, args...)
 			if err != nil {
 				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
 			}
@@ -170,7 +172,7 @@ func (q *Query) Create(value any) error {
 				}
 			}
 		} else {
-			result, err = dbConn.ExecContext(q.ctx, sqlStr, args...)
+			result, err = dbConn.ExecContext(ctx, sqlStr, args...)
 		}
 	}
 
@@ -219,12 +221,12 @@ func (q *Query) Create(value any) error {
 				sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
 
 				if q.tx != nil {
-					seqErr = q.tx.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+					seqErr = q.tx.QueryRowContext(ctx, sequenceQuery).Scan(&lastID)
 				} else {
 					var dbConn *sql.DB
 					dbConn, seqErr = q.DB()
 					if seqErr == nil {
-						seqErr = dbConn.QueryRowContext(q.ctx, sequenceQuery).Scan(&lastID)
+						seqErr = dbConn.QueryRowContext(ctx, sequenceQuery).Scan(&lastID)
 					}
 				}
 
@@ -238,12 +240,12 @@ func (q *Query) Create(value any) error {
 				// This is less safe but works as a last resort
 				maxIDQuery := fmt.Sprintf("SELECT MAX(id) FROM %s", tableName)
 				if q.tx != nil {
-					seqErr = q.tx.QueryRowContext(q.ctx, maxIDQuery).Scan(&lastID)
+					seqErr = q.tx.QueryRowContext(ctx, maxIDQuery).Scan(&lastID)
 				} else {
 					var dbConn *sql.DB
 					dbConn, seqErr = q.DB()
 					if seqErr == nil {
-						seqErr = dbConn.QueryRowContext(q.ctx, maxIDQuery).Scan(&lastID)
+						seqErr = dbConn.QueryRowContext(ctx, maxIDQuery).Scan(&lastID)
 					}
 				}
 				if seqErr != nil {

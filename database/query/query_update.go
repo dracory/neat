@@ -31,18 +31,20 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var err error
 	var result sql.Result
 	start := time.Now()
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, sqlStr, args...)
+		result, err = q.tx.ExecContext(ctx, sqlStr, args...)
 	} else {
 		var dbConn *sql.DB
 		dbConn, err = q.DB()
 		if err != nil {
 			return nil, err
 		}
-		result, err = dbConn.ExecContext(q.ctx, sqlStr, args...)
+		result, err = dbConn.ExecContext(ctx, sqlStr, args...)
 	}
 
 	if err != nil {

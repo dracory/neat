@@ -89,17 +89,19 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var result interface{ RowsAffected() (int64, error) }
 	start := time.Now()
 	if q.tx != nil {
-		result, err = q.tx.ExecContext(q.ctx, deleteSQL, args...)
+		result, err = q.tx.ExecContext(ctx, deleteSQL, args...)
 	} else {
 		var dbConn *sql.DB
 		dbConn, err = q.DB()
 		if err != nil {
 			return nil, err
 		}
-		result, err = dbConn.ExecContext(q.ctx, deleteSQL, args...)
+		result, err = dbConn.ExecContext(ctx, deleteSQL, args...)
 	}
 
 	if err != nil {

@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -35,6 +36,20 @@ func (q *Query) validateAggregate(column string, dest any) error {
 	}
 
 	return nil
+}
+
+// timeoutContext returns a context derived from q.ctx with a QueryTimeout deadline
+// applied when one is configured. The caller must invoke the returned cancel func
+// (e.g. via defer) to release resources.
+func (q *Query) timeoutContext() (context.Context, context.CancelFunc) {
+	base := q.ctx
+	if base == nil {
+		base = context.Background()
+	}
+	if q.dbConfig != nil && q.dbConfig.Pool.QueryTimeout > 0 {
+		return context.WithTimeout(base, time.Duration(q.dbConfig.Pool.QueryTimeout)*time.Second)
+	}
+	return base, func() {}
 }
 
 func (q *Query) UpdateOrInsert(attributes any, values any) error {

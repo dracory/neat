@@ -16,20 +16,23 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	querySQL, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
 	var rows *sql.Rows
 	var err error
 	if q.tx != nil {
-		rows, err = q.tx.QueryContext(q.ctx, querySQL, args...)
+		rows, err = q.tx.QueryContext(ctx, querySQL, args...)
 	} else {
 		var databaseConn *sql.DB
 		databaseConn, err = q.ReadDB()
 		if err != nil {
+			cancel()
 			return nil, err
 		}
-		rows, err = databaseConn.QueryContext(q.ctx, querySQL, args...)
+		rows, err = databaseConn.QueryContext(ctx, querySQL, args...)
 	}
 
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to execute cursor query: %w", err)
 	}
 
@@ -37,6 +40,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	cursorChan := make(chan contractsorm.Cursor, 10)
 
 	go func() {
+		defer cancel()
 		defer func() { _ = rows.Close() }()
 		defer close(cursorChan)
 

@@ -17,9 +17,11 @@ func (q *Query) Scan(dest any) error {
 	sql, args := builder.BuildSelect()
 
 	// Execute query
+	ctx, cancel := q.timeoutContext()
+	defer cancel()
 	var err error
 	if q.tx != nil {
-		rows, err := q.tx.QueryContext(q.ctx, sql, args...)
+		rows, err := q.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
 			return sanitizeError(fmt.Errorf("failed to execute SCAN query: %w", err), q.isProduction())
 		}
@@ -33,7 +35,7 @@ func (q *Query) Scan(dest any) error {
 		return err
 	}
 
-	rows, err := databaseConn.QueryContext(q.ctx, sql, args...)
+	rows, err := databaseConn.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return sanitizeError(fmt.Errorf("failed to execute SCAN query: %w", err), q.isProduction())
 	}
