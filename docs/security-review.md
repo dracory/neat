@@ -161,7 +161,7 @@ Validation of what comes *after* `->` is absent. The split simply joins with `.`
 
 ---
 
-### Finding N5: Read-Replica Connection Opened Without Ping or Error Handling (Medium) ⚠️ NOT FIXED
+### Finding N5: Read-Replica Connection Opened Without Ping or Error Handling (Medium) ✅ FIXED
 
 - **Severity**: Medium
 - **CWE**: CWE-390 (Detection of Error Condition Without Action)
@@ -323,9 +323,9 @@ The `Orm` struct uses a `sync.Mutex` (`orm.go:237`) to protect access to the sha
 |---|---|---|
 | Critical | 0 | - |
 | High | 1 (N1) | ✅ 1 FIXED |
-| Medium | 4 (N2, N3, N4, N5) | ✅ 1 FIXED, ⚠️ 2 PARTIAL, ⚠️ 1 NOT FIXED |
+| Medium | 4 (N2, N3, N4, N5) | ✅ 2 FIXED, ⚠️ 2 PARTIAL |
 | Low | 3 (N6, N7, N8) | ⚠️ 3 NOT FIXED |
-| **Total** | **8** | **2 FIXED, 4 PARTIAL, 2 REMAINING** |
+| **Total** | **8** | **3 FIXED, 2 PARTIAL, 3 REMAINING** |
 
 ---
 

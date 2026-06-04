@@ -174,8 +174,21 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		replicaCfg.Username = replica.Username
 		replicaCfg.Password = replica.Password
 		replicaDSN, err := db.NewConfigBuilder(replicaCfg).BuildDSN()
-		if err == nil {
-			readSQLDB, _ = dbDriver.Open(replicaDSN)
+		if err != nil {
+			log.Warningf("[Orm] Failed to build read-replica DSN for connection %s: %v", connection, err)
+		} else {
+			readSQLDB, err = dbDriver.Open(replicaDSN)
+			if err != nil {
+				log.Warningf("[Orm] Failed to open read-replica connection for %s: %v", connection, err)
+				readSQLDB = nil
+			} else if !skipPing {
+				// Ping to validate the replica connection
+				if err := dbDriver.Ping(ctx, readSQLDB); err != nil {
+					log.Warningf("[Orm] Failed to ping read-replica connection for %s: %v", connection, err)
+					_ = readSQLDB.Close()
+					readSQLDB = nil
+				}
+			}
 		}
 	}
 
@@ -190,8 +203,21 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		primaryCfg.Username = primary.Username
 		primaryCfg.Password = primary.Password
 		primaryDSN, err := db.NewConfigBuilder(primaryCfg).BuildDSN()
-		if err == nil {
-			writeSQLDB, _ = dbDriver.Open(primaryDSN)
+		if err != nil {
+			log.Warningf("[Orm] Failed to build write-primary DSN for connection %s: %v", connection, err)
+		} else {
+			writeSQLDB, err = dbDriver.Open(primaryDSN)
+			if err != nil {
+				log.Warningf("[Orm] Failed to open write-primary connection for %s: %v", connection, err)
+				writeSQLDB = nil
+			} else if !skipPing {
+				// Ping to validate the primary connection
+				if err := dbDriver.Ping(ctx, writeSQLDB); err != nil {
+					log.Warningf("[Orm] Failed to ping write-primary connection for %s: %v", connection, err)
+					_ = writeSQLDB.Close()
+					writeSQLDB = nil
+				}
+			}
 		}
 	}
 
