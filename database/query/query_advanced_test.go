@@ -33,6 +33,42 @@ func TestToSqlDecrement(t *testing.T) {
 	}
 }
 
+func TestIncrementQuotesColumnMySQL(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewMySQL(), "", nil, nil)
+	q.table = "users"
+
+	toSql := NewToSql(q)
+	sql := toSql.Increment("age")
+
+	if !contains(sql, "`age`") {
+		t.Errorf("Expected column 'age' to be backtick-quoted in MySQL SET clause, got: %s", sql)
+	}
+}
+
+func TestDecrementQuotesColumnMySQL(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewMySQL(), "", nil, nil)
+	q.table = "users"
+
+	toSql := NewToSql(q)
+	sql := toSql.Decrement("age")
+
+	if !contains(sql, "`age`") {
+		t.Errorf("Expected column 'age' to be backtick-quoted in MySQL SET clause, got: %s", sql)
+	}
+}
+
+func TestIncrementQuotesColumnPostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.table = "users"
+
+	toSql := NewToSql(q)
+	sql := toSql.Increment("age")
+
+	if !contains(sql, `"age"`) {
+		t.Errorf("Expected column 'age' to be double-quoted in PostgreSQL SET clause, got: %s", sql)
+	}
+}
+
 func TestQueryToSqlMethod(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"

@@ -211,8 +211,10 @@ func (t *ToSql) Increment(column string, amount ...any) string {
 			incAmount = val
 		}
 	}
-	updateQuery := fmt.Sprintf("%s = %s + ?", column, column)
-	sql, args := NewBuilder(t.query).BuildUpdate(updateQuery, incAmount)
+	builder := NewBuilder(t.query)
+	quoted := builder.quoteIdentifier(column)
+	updateQuery := fmt.Sprintf("%s = %s + ?", quoted, quoted)
+	sql, args := builder.BuildUpdate(updateQuery, incAmount)
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
 	}
@@ -227,8 +229,10 @@ func (t *ToSql) Decrement(column string, amount ...any) string {
 			decAmount = val
 		}
 	}
-	updateQuery := fmt.Sprintf("%s = %s - ?", column, column)
-	sql, args := NewBuilder(t.query).BuildUpdate(updateQuery, decAmount)
+	builder := NewBuilder(t.query)
+	quoted := builder.quoteIdentifier(column)
+	updateQuery := fmt.Sprintf("%s = %s - ?", quoted, quoted)
+	sql, args := builder.BuildUpdate(updateQuery, decAmount)
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
 	}

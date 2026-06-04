@@ -29,7 +29,8 @@ func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, e
 	}
 
 	// Use ? placeholder - the builder will replace it with dialect-specific placeholder
-	updateQuery := fmt.Sprintf("%s = %s + ?", column, column)
+	quoted := NewBuilder(q).quoteIdentifier(column)
+	updateQuery := fmt.Sprintf("%s = %s + ?", quoted, quoted)
 	return q.Update(updateQuery, incAmount)
 }
 
@@ -52,7 +53,8 @@ func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, e
 	}
 
 	// Use ? placeholder - the builder will replace it with dialect-specific placeholder
-	updateQuery := fmt.Sprintf("%s = %s - ?", column, column)
+	quoted := NewBuilder(q).quoteIdentifier(column)
+	updateQuery := fmt.Sprintf("%s = %s - ?", quoted, quoted)
 	return q.Update(updateQuery, decAmount)
 }
 
