@@ -46,7 +46,7 @@ The following findings from the previous review were all verified fixed during t
 
 ## New Findings
 
-### Finding N1: SQL Injection via Increment/Decrement Column Parameter (High)
+### Finding N1: SQL Injection via Increment/Decrement Column Parameter (High) ✅ FIXED
 
 - **Severity**: High
 - **CWE**: CWE-89 (SQL Injection)
@@ -77,7 +77,7 @@ More critically, the raw `updateQuery` string (`col = col + ?`) is inserted verb
 
 ---
 
-### Finding N2: QueryTimeout Field Defined but Never Enforced (Medium)
+### Finding N2: QueryTimeout Field Defined but Never Enforced (Medium) ✅ FIXED
 
 - **Severity**: Medium
 - **CWE**: CWE-400 (Uncontrolled Resource Consumption)
@@ -106,7 +106,7 @@ The `QueryTimeout` value is stored and returned by the config API but never cons
 
 ---
 
-### Finding N3: Oracle MAX(id) Fallback Is a TOCTOU Race Condition (Medium)
+### Finding N3: Oracle MAX(id) Fallback Is a TOCTOU Race Condition (Medium) ⚠️ PARTIALLY FIXED
 
 - **Severity**: Medium
 - **CWE**: CWE-367 (Time-of-Check Time-of-Use Race Condition)
@@ -130,7 +130,7 @@ Between the `INSERT` and the `SELECT MAX(id)`, another goroutine or database cli
 
 ---
 
-### Finding N4: JSON Path Injection via Unvalidated User-Supplied Path Components (Medium)
+### Finding N4: JSON Path Injection via Unvalidated User-Supplied Path Components (Medium) ⚠️ PARTIALLY FIXED
 
 - **Severity**: Medium
 - **CWE**: CWE-89 (SQL Injection via JSON path manipulation)
@@ -161,7 +161,7 @@ Validation of what comes *after* `->` is absent. The split simply joins with `.`
 
 ---
 
-### Finding N5: Read-Replica Connection Opened Without Ping or Error Handling (Medium)
+### Finding N5: Read-Replica Connection Opened Without Ping or Error Handling (Medium) ⚠️ NOT FIXED
 
 - **Severity**: Medium
 - **CWE**: CWE-390 (Detection of Error Condition Without Action)
@@ -185,7 +185,7 @@ If the replica DSN contains invalid credentials or is unreachable, `readSQLDB` w
 
 ---
 
-### Finding N6: Slow-Query Log Emits Full SQL with Bound Parameters (Low)
+### Finding N6: Slow-Query Log Emits Full SQL with Bound Parameters (Low) ⚠️ NOT FIXED
 
 - **Severity**: Low
 - **CWE**: CWE-532 (Insertion of Sensitive Information into Log File)
@@ -207,7 +207,7 @@ The `bindings` slice may contain sensitive values such as passwords, PII (names,
 
 ---
 
-### Finding N7: Docker Compose Hardcodes Production-Grade Passwords (Low)
+### Finding N7: Docker Compose Hardcodes Production-Grade Passwords (Low) ⚠️ NOT FIXED
 
 - **Severity**: Low
 - **CWE**: CWE-798 (Use of Hard-coded Credentials)
@@ -232,7 +232,7 @@ While these are intended only for local CI testing, if the same `docker-compose.
 
 ---
 
-### Finding N8: `UpdateOrCreate` Performs Non-Atomic Check-Then-Act (Low)
+### Finding N8: `UpdateOrCreate` Performs Non-Atomic Check-Then-Act (Low) ⚠️ NOT FIXED
 
 - **Severity**: Low
 - **CWE**: CWE-362 (Race Condition / TOCTOU)
@@ -319,13 +319,13 @@ The `Orm` struct uses a `sync.Mutex` (`orm.go:237`) to protect access to the sha
 
 **New findings**:
 
-| Severity | Count |
-|---|---|
-| Critical | 0 |
-| High | 1 (N1) |
-| Medium | 4 (N2, N3, N4, N5) |
-| Low | 3 (N6, N7, N8) |
-| **Total** | **8** |
+| Severity | Count | Status |
+|---|---|---|
+| Critical | 0 | - |
+| High | 1 (N1) | ✅ 1 FIXED |
+| Medium | 4 (N2, N3, N4, N5) | ✅ 1 FIXED, ⚠️ 2 PARTIAL, ⚠️ 1 NOT FIXED |
+| Low | 3 (N6, N7, N8) | ⚠️ 3 NOT FIXED |
+| **Total** | **8** | **2 FIXED, 4 PARTIAL, 2 REMAINING** |
 
 ---
 
