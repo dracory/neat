@@ -407,6 +407,63 @@ func (c ConnectionConfig) String() string {
 		c.Driver, c.Host, c.Port, c.Database, c.Username)
 }
 
+// Validate checks that the connection configuration has all required fields for the driver.
+// If a DSN is provided directly, driver-specific field validation is skipped.
+func (c *ConnectionConfig) Validate() error {
+	if c.Driver == "" {
+		return fmt.Errorf("driver is required")
+	}
+	if c.Dsn != "" {
+		return nil
+	}
+	switch c.Driver {
+	case "sqlite":
+		// database path is optional; empty defaults to :memory:
+		return nil
+	case "mysql":
+		if c.Host == "" {
+			return fmt.Errorf("host is required for %s driver", c.Driver)
+		}
+		if c.Database == "" {
+			return fmt.Errorf("database name is required for %s driver", c.Driver)
+		}
+		if c.Username == "" {
+			return fmt.Errorf("username is required for %s driver", c.Driver)
+		}
+	case "postgres":
+		if c.Host == "" {
+			return fmt.Errorf("host is required for %s driver", c.Driver)
+		}
+		if c.Database == "" {
+			return fmt.Errorf("database name is required for %s driver", c.Driver)
+		}
+		if c.Username == "" {
+			return fmt.Errorf("username is required for %s driver", c.Driver)
+		}
+	case "sqlserver":
+		if c.Host == "" {
+			return fmt.Errorf("host is required for %s driver", c.Driver)
+		}
+		if c.Database == "" {
+			return fmt.Errorf("database name is required for %s driver", c.Driver)
+		}
+	case "turso":
+		if c.Database == "" {
+			return fmt.Errorf("database URL is required for %s driver", c.Driver)
+		}
+	case "oracle":
+		if c.Host == "" {
+			return fmt.Errorf("host is required for %s driver", c.Driver)
+		}
+		if c.Database == "" {
+			return fmt.Errorf("database/service name is required for %s driver", c.Driver)
+		}
+	default:
+		return fmt.Errorf("unsupported driver: %s", c.Driver)
+	}
+	return nil
+}
+
 // PoolConfig represents connection pool configuration.
 type PoolConfig struct {
 	MaxIdleConns    int
@@ -423,4 +480,30 @@ type DBConfig struct {
 	Pool          PoolConfig
 	Debug         bool
 	SlowThreshold int // slow query threshold in milliseconds (0 = disabled)
+}
+
+// Validate checks that the database configuration has all required fields.
+// It verifies that at least one connection is configured, the default connection
+// exists, and each connection's driver-specific requirements are met.
+func (c *DBConfig) Validate() error {
+	if len(c.Connections) == 0 {
+		return fmt.Errorf("at least one database connection is required")
+	}
+	defaultConn := c.Default
+	if defaultConn == "" {
+		for name := range c.Connections {
+			defaultConn = name
+			break
+		}
+	}
+	if _, ok := c.Connections[defaultConn]; !ok {
+		return fmt.Errorf("default connection %q not found in connections", defaultConn)
+	}
+	for name, conn := range c.Connections {
+		connCopy := conn
+		if err := connCopy.Validate(); err != nil {
+			return fmt.Errorf("connection %q: %w", name, err)
+		}
+	}
+	return nil
 }

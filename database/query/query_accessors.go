@@ -8,6 +8,7 @@ import (
 
 	"github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	neatErrors "github.com/dracory/neat/errors"
 )
 
 // Table sets the table for the query.
@@ -59,7 +60,11 @@ func (q *Query) DB() (*sql.DB, error) {
 	if q.tx != nil {
 		return nil, fmt.Errorf("cannot get DB during transaction, use transaction methods instead")
 	}
-	return q.writeConn(), nil
+	conn := q.writeConn()
+	if conn == nil {
+		return nil, neatErrors.ErrNilDatabase
+	}
+	return conn, nil
 }
 
 // ReadDB returns the read-replica connection (falls back to primary if none configured).
@@ -67,7 +72,11 @@ func (q *Query) ReadDB() (*sql.DB, error) {
 	if q.tx != nil {
 		return nil, fmt.Errorf("cannot get ReadDB during transaction")
 	}
-	return q.readConn(), nil
+	conn := q.readConn()
+	if conn == nil {
+		return nil, neatErrors.ErrNilDatabase
+	}
+	return conn, nil
 }
 
 // InTransaction returns true if the query is in a transaction.
