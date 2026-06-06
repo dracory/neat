@@ -8,6 +8,9 @@ import (
 )
 
 // Transaction runs a callback wrapped in a database transaction.
+// The callback function should return errors instead of panicking.
+// If the callback returns an error, the transaction is rolled back.
+// If the callback completes successfully, the transaction is committed.
 func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*sql.TxOptions) error {
 	txQuery, err := q.Begin(opts...)
 	if err != nil {
@@ -15,13 +18,6 @@ func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*s
 	}
 
 	txQ := txQuery.(*Query)
-
-	defer func() {
-		if p := recover(); p != nil {
-			_ = txQ.Rollback()
-			panic(p)
-		}
-	}()
 
 	if err := txFunc(txQ); err != nil {
 		if rbErr := txQ.Rollback(); rbErr != nil {

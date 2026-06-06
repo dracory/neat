@@ -2,6 +2,7 @@ package query_test
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -276,16 +277,19 @@ func TestLogQueryNoWarnWhenThresholdNotSet(t *testing.T) {
 
 // --- Query routing tests ---
 
-func newSentinelDB() *sql.DB {
+func newSentinelDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		panic("newSentinelDB: " + err.Error())
+		return nil, fmt.Errorf("newSentinelDB: %w", err)
 	}
-	return db
+	return db, nil
 }
 
 func TestReadConnFallsBackToPrimary(t *testing.T) {
-	primary := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create sentinel DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
@@ -295,8 +299,14 @@ func TestReadConnFallsBackToPrimary(t *testing.T) {
 }
 
 func TestReadConnUsesReplicaWhenSet(t *testing.T) {
-	primary := newSentinelDB()
-	replica := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create primary DB: %v", err)
+	}
+	replica, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create replica DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 	defer func() { _ = replica.Close() }()
 
@@ -308,7 +318,10 @@ func TestReadConnUsesReplicaWhenSet(t *testing.T) {
 }
 
 func TestWriteConnFallsBackToPrimary(t *testing.T) {
-	primary := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create sentinel DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
@@ -318,8 +331,14 @@ func TestWriteConnFallsBackToPrimary(t *testing.T) {
 }
 
 func TestWriteConnUsesWriteWhenSet(t *testing.T) {
-	primary := newSentinelDB()
-	write := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create primary DB: %v", err)
+	}
+	write, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create write DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 	defer func() { _ = write.Close() }()
 
@@ -331,8 +350,14 @@ func TestWriteConnUsesWriteWhenSet(t *testing.T) {
 }
 
 func TestNewQueryWithReplicasSetsFields(t *testing.T) {
-	primary := newSentinelDB()
-	readReplica := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create primary DB: %v", err)
+	}
+	readReplica, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create read replica DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 	defer func() { _ = readReplica.Close() }()
 
@@ -352,9 +377,18 @@ func TestNewQueryWithReplicasSetsFields(t *testing.T) {
 }
 
 func TestClonePropagatesReplicas(t *testing.T) {
-	primary := newSentinelDB()
-	readReplica := newSentinelDB()
-	write := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create primary DB: %v", err)
+	}
+	readReplica, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create read replica DB: %v", err)
+	}
+	write, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create write DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 	defer func() { _ = readReplica.Close() }()
 	defer func() { _ = write.Close() }()
@@ -375,34 +409,46 @@ func TestClonePropagatesReplicas(t *testing.T) {
 }
 
 func TestDBErrorsDuringTransaction(t *testing.T) {
-	primary := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create sentinel DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetTx(&sql.Tx{})
 
-	_, err := w.Q.DB()
-	if err == nil {
+	_, dbErr := w.Q.DB()
+	if dbErr == nil {
 		t.Errorf("DB() should return error during active transaction")
 	}
 }
 
 func TestReadDBErrorsDuringTransaction(t *testing.T) {
-	primary := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create sentinel DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 
 	w := query.WrapQuery(query.NewTestQuery(primary, nil, query.MakeDBConfig(), nil))
 	w.SetTx(&sql.Tx{})
 
-	_, err := w.Q.ReadDB()
-	if err == nil {
+	_, readDBErr := w.Q.ReadDB()
+	if readDBErr == nil {
 		t.Errorf("ReadDB() should return error during active transaction")
 	}
 }
 
 func TestDBReturnsWriteConn(t *testing.T) {
-	primary := newSentinelDB()
-	write := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create primary DB: %v", err)
+	}
+	write, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create write DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 	defer func() { _ = write.Close() }()
 
@@ -419,8 +465,14 @@ func TestDBReturnsWriteConn(t *testing.T) {
 }
 
 func TestReadDBReturnsReadConn(t *testing.T) {
-	primary := newSentinelDB()
-	replica := newSentinelDB()
+	primary, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create primary DB: %v", err)
+	}
+	replica, err := newSentinelDB()
+	if err != nil {
+		t.Fatalf("Failed to create replica DB: %v", err)
+	}
 	defer func() { _ = primary.Close() }()
 	defer func() { _ = replica.Close() }()
 
