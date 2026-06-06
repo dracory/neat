@@ -242,6 +242,166 @@ db.Query().Association("posts").Append(&user, &post)
 - SQLite 3+
 - SQL Server 2017+
 - Turso (SQLite edge)
+- Oracle
+
+### Driver Compatibility Matrix
+
+| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server |
+|---------|--------|-------|------------|--------|-------|------------|
+| **Basic Operations** |
+| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Transactions** |
+| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Isolation Levels | Limited | Full | Full | Full | Limited | Full |
+| **Placeholder Style** |
+| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` |
+| **DSN Support** |
+| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Connection Pool** |
+| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Optimizations** |
+| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ |
+| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ |
+
+**Notes:**
+- **Turso** is a SQLite edge database, so it shares SQLite's placeholder style and PRAGMA support
+- **Transaction Isolation Levels**: SQLite has limited isolation level support (SERIALIZABLE only), MySQL/PostgreSQL/Oracle/SQL Server support all standard levels
+- **Savepoints**: All drivers support savepoints through the standard `database/sql` interface
+- **Connection Pool**: All drivers support standard `database/sql` connection pooling parameters
+
+## Connection Pool Configuration
+
+Neat ORM provides sensible defaults for connection pooling, but you can customize these settings based on your application's needs.
+
+### Pool Configuration Options
+
+```go
+poolConfig := db.PoolConfig{
+    MaxIdleConns:    5,   // Maximum number of idle connections
+    MaxOpenConns:    25,  // Maximum number of open connections
+    ConnMaxLifetime: 3600, // Connection lifetime in seconds (1 hour)
+    ConnMaxIdleTime: 300, // Maximum idle time in seconds (5 minutes)
+    QueryTimeout:    30,  // Query timeout in seconds (default: 30)
+}
+
+db, err := neat.New(config, neat.WithPool(poolConfig))
+```
+
+### SQLite-Specific Configuration
+
+**Why SQLite uses MaxOpen=1:**
+
+SQLite has a fundamental limitation: it allows only one writer at a time. Multiple concurrent write operations will cause "database is locked" errors. To prevent this, Neat automatically enforces `MaxOpenConns=1` and `MaxIdleConns=1` for SQLite connections, regardless of your pool configuration.
+
+**SQLite Pool Defaults:**
+- `MaxOpenConns`: 1 (enforced to prevent writer contention)
+- `MaxIdleConns`: 1 (enforced to prevent writer contention)
+- `QueryTimeout`: 30 seconds
+- **PRAGMA Optimizations**: Automatically applied (WAL mode, foreign keys, busy timeout)
+
+**Turso (SQLite Edge):**
+
+Turso is a SQLite edge database that inherits SQLite's single-writer limitation. The same pool constraints apply to Turso connections:
+- `MaxOpenConns`: 1 (enforced to prevent writer contention)
+- `MaxIdleConns`: 1 (enforced to prevent writer contention)
+- `QueryTimeout`: 30 seconds
+- **PRAGMA Optimizations**: Automatically applied (WAL mode, foreign keys, busy timeout)
+
+**When to use SQLite/Turso:**
+- Development and testing
+- Low-traffic applications
+- Single-process services
+- Embedded applications
+- Edge computing scenarios (Turso)
+
+**When to avoid SQLite/Turso:**
+- High-concurrency write workloads
+- Multi-process services requiring concurrent writes
+- Production applications with significant write traffic
+
+### MySQL/PostgreSQL/SQL Server/Oracle Configuration
+
+These databases support true concurrent connections and can handle larger connection pools.
+
+**Production Defaults:**
+- `MaxOpenConns`: 25 (adjust based on your database server capacity)
+- `MaxIdleConns`: 5 (keeps a small pool of ready connections)
+- `ConnMaxLifetime`: 3600 seconds (1 hour)
+- `ConnMaxIdleTime`: 300 seconds (5 minutes)
+- `QueryTimeout`: 30 seconds
+
+**Development Defaults:**
+- `MaxOpenConns`: 10 (lower for local development)
+- `MaxIdleConns`: 2 (minimal idle connections)
+- `ConnMaxLifetime`: 1800 seconds (30 minutes)
+- `ConnMaxIdleTime`: 300 seconds (5 minutes)
+- `QueryTimeout`: 30 seconds
+
+### Workload-Specific Recommendations
+
+**Read-Heavy Workloads:**
+```go
+poolConfig := db.PoolConfig{
+    MaxIdleConns:    10,  // More idle connections for quick reads
+    MaxOpenConns:    50,  // Higher open connection limit
+    ConnMaxLifetime: 7200, // Longer lifetime (2 hours)
+    QueryTimeout:    10,  // Shorter timeout for reads
+}
+```
+
+**Write-Heavy Workloads:**
+```go
+poolConfig := db.PoolConfig{
+    MaxIdleConns:    5,   // Fewer idle connections
+    MaxOpenConns:    20,  // Moderate open connection limit
+    ConnMaxLifetime: 3600, // Standard lifetime (1 hour)
+    QueryTimeout:    60,  // Longer timeout for writes
+}
+```
+
+**High-Concurrency Applications:**
+```go
+poolConfig := db.PoolConfig{
+    MaxIdleConns:    20,  // Larger idle pool
+    MaxOpenConns:    100, // High open connection limit
+    ConnMaxLifetime: 1800, // Shorter lifetime (30 minutes)
+    ConnMaxIdleTime: 120, // Shorter idle time (2 minutes)
+    QueryTimeout:    30,
+}
+```
+
+**Low-Traffic Services:**
+```go
+poolConfig := db.PoolConfig{
+    MaxIdleConns:    2,   // Minimal idle connections
+    MaxOpenConns:    5,   // Low open connection limit
+    ConnMaxLifetime: 3600, // Standard lifetime
+    QueryTimeout:    30,
+}
+```
+
+### Monitoring and Tuning
+
+Monitor your connection pool metrics to optimize performance:
+
+- **Pool Hit Rate**: High hit rate indicates good pool utilization
+- **Wait Time**: Long wait times suggest increasing `MaxOpenConns`
+- **Connection Age**: Frequent reconnections suggest increasing `ConnMaxLifetime`
+- **Idle Connections**: Too many idle connections waste resources, reduce `MaxIdleConns`
+
+### Important Notes
+
+- **SQLite Constraints**: SQLite pool settings are automatically overridden to prevent "database is locked" errors
+- **Query Timeout**: Default is 30 seconds, adjust based on your query complexity
+- **Connection Lifetime**: Set shorter lifetimes for cloud databases with connection limits
+- **Pool Size**: Never set `MaxOpenConns` higher than your database server's max connection limit
 
 ## API Documentation
 

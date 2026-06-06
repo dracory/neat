@@ -285,9 +285,11 @@ func (b *ConfigBuilder) buildMySQLDSN() (string, error) {
 	)
 
 	params := []string{}
-	if b.config.Charset != "" {
-		params = append(params, "charset="+b.config.Charset)
+	charset := b.config.Charset
+	if charset == "" {
+		charset = "utf8mb4"
 	}
+	params = append(params, "charset="+charset)
 	if b.config.Loc != "" {
 		params = append(params, "loc="+url.QueryEscape(b.config.Loc))
 	}
