@@ -236,6 +236,25 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 	return query.NewQuery(ctx, sqlDB, dbDriver, connection, dbConfig, log), nil
 }
 
+// BuildOrmFromDB builds an Orm instance from an already-open *sql.DB.
+// The caller retains ownership of sqlDB; connection pool settings are not modified.
+func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName string, connection string, dbConfig *db.DBConfig, log log.Log, refresh func()) (*Orm, error) {
+	dbDriver := createDriver(driverName)
+	drivers := map[string]driver.Driver{
+		connection: dbDriver,
+	}
+	dbConnections := map[string]*sql.DB{
+		connection: sqlDB,
+	}
+
+	q := query.NewQuery(ctx, sqlDB, dbDriver, connection, dbConfig, log)
+	queries := map[string]contractsorm.Query{
+		connection: q,
+	}
+
+	return NewOrm(ctx, dbConfig, connection, q, queries, log, nil, refresh, drivers, dbConnections), nil
+}
+
 func createDriver(driverName string) driver.Driver {
 	switch driverName {
 	case "mysql":

@@ -37,18 +37,9 @@ func TestNilDatabaseConnection(t *testing.T) {
 	q.Table("users")
 
 	var result map[string]any
-
-	// Recover from panic since nil DB causes panic
-	defer func() {
-		if r := recover(); r != nil { //nolint:staticcheck
-			// Expected panic for nil database connection - test passes if we recover
-			_ = r // Explicitly ignore recovered value
-		}
-	}()
-
 	err := q.First(&result)
 	if err == nil {
-		t.Error("Expected error with nil database connection")
+		t.Error("Expected error for nil database connection")
 	}
 }
 
@@ -150,25 +141,20 @@ func TestTransactionCommitError(t *testing.T) {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
 
-	// Close the database to simulate connection loss
-	_ = db.Close()
+	// Commit once so the transaction enters a done state
+	if err = tx.Commit(); err != nil {
+		t.Fatalf("Unexpected error on first commit: %v", err)
+	}
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.tx = tx
 	q.inTransaction = true
 
-	// Recover from panic since closed DB causes panic
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic for closed connection - test passes if we recover
-			_ = r // Explicitly ignore recovered value
-		}
-	}()
-
+	// Second commit should fail because the transaction is already done
 	err = q.Commit()
-	// Commit on closed connection may panic instead of returning error
-	// The defer recover handles the panic
-	_ = err
+	if err == nil {
+		t.Error("Expected error when committing an already-committed transaction")
+	}
 }
 
 func TestTransactionRollbackError(t *testing.T) {
@@ -188,25 +174,20 @@ func TestTransactionRollbackError(t *testing.T) {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
 
-	// Close the database to simulate connection loss
-	_ = db.Close()
+	// Rollback once so the transaction enters a done state
+	if err = tx.Rollback(); err != nil {
+		t.Fatalf("Unexpected error on first rollback: %v", err)
+	}
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.tx = tx
 	q.inTransaction = true
 
-	// Recover from panic since closed DB causes panic
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic for closed connection - test passes if we recover
-			_ = r // Explicitly ignore recovered value
-		}
-	}()
-
+	// Second rollback should fail because the transaction is already done
 	err = q.Rollback()
-	// Rollback on closed connection may panic instead of returning error
-	// The defer recover handles the panic
-	_ = err
+	if err == nil {
+		t.Error("Expected error when rolling back an already-rolled-back transaction")
+	}
 }
 
 func TestTransactionOperationNotInTransaction(t *testing.T) {
@@ -556,15 +537,11 @@ func TestExecErrorInvalidParameters(t *testing.T) {
 func TestRawErrorWithNilQuery(t *testing.T) {
 	var q *Query = nil
 
-	// This should panic or handle nil gracefully
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic for nil query
-			_ = r
-		}
-	}()
-
-	_ = q.Raw("SELECT * FROM users")
+	// Raw method handles nil query gracefully by returning empty Query
+	result := q.Raw("SELECT * FROM users")
+	if result == nil {
+		t.Error("Raw should return non-nil Query even when called on nil")
+	}
 }
 
 // --- Aggregate Error Handling ---
@@ -755,20 +732,10 @@ func TestDialectErrorHandlingMySQL(t *testing.T) {
 	q := NewQuery(context.Background(), nil, driver.NewMySQL(), "", nil, nil)
 	q.Table("users")
 
-	// MySQL-specific error handling
 	var result map[string]any
-
-	// Recover from panic since nil DB causes panic
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic for nil database connection
-			_ = r // Explicitly ignore recovered value
-		}
-	}()
-
 	err := q.First(&result)
 	if err == nil {
-		t.Error("Expected error with nil database connection")
+		t.Error("Expected error for nil database connection with MySQL driver")
 	}
 }
 
@@ -776,20 +743,10 @@ func TestDialectErrorHandlingPostgreSQL(t *testing.T) {
 	q := NewQuery(context.Background(), nil, driver.NewPostgreSQL(), "", nil, nil)
 	q.Table("users")
 
-	// PostgreSQL-specific error handling
 	var result map[string]any
-
-	// Recover from panic since nil DB causes panic
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic for nil database connection
-			_ = r // Explicitly ignore recovered value
-		}
-	}()
-
 	err := q.First(&result)
 	if err == nil {
-		t.Error("Expected error with nil database connection")
+		t.Error("Expected error for nil database connection with PostgreSQL driver")
 	}
 }
 
@@ -797,19 +754,9 @@ func TestDialectErrorHandlingSQLite(t *testing.T) {
 	q := NewQuery(context.Background(), nil, driver.NewSQLite(), "", nil, nil)
 	q.Table("users")
 
-	// SQLite-specific error handling
 	var result map[string]any
-
-	// Recover from panic since nil DB causes panic
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic for nil database connection
-			_ = r // Explicitly ignore recovered value
-		}
-	}()
-
 	err := q.First(&result)
 	if err == nil {
-		t.Error("Expected error with nil database connection")
+		t.Error("Expected error for nil database connection with SQLite driver")
 	}
 }

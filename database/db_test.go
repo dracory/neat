@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/orm"
@@ -606,5 +607,63 @@ func TestDatabase_MigrationStatus(t *testing.T) {
 	// When no migrations are registered, status should be empty
 	if len(status) != 0 {
 		t.Errorf("Expected empty status when no migrations, got %d items", len(status))
+	}
+}
+
+func TestNewFromSQLDB_NilDB(t *testing.T) {
+	_, err := NewFromSQLDB(nil, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
+	if err == nil {
+		t.Error("Expected error for nil *sql.DB")
+	}
+}
+
+func TestNewFromSQLDB_AutoDetect(t *testing.T) {
+	sqlDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open SQLite: %v", err)
+	}
+	defer func() { _ = sqlDB.Close() }()
+
+	neatDB, err := NewFromSQLDB(sqlDB, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("NewFromSQLDB auto-detect failed: %v", err)
+	}
+	defer func() { _ = neatDB.Close() }()
+
+	if neatDB.Name() != "default" {
+		t.Errorf("Expected connection name 'default', got %q", neatDB.Name())
+	}
+}
+
+func TestNewFromSQLDB_ExplicitDriver(t *testing.T) {
+	sqlDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open SQLite: %v", err)
+	}
+	defer func() { _ = sqlDB.Close() }()
+
+	neatDB, err := NewFromSQLDB(sqlDB, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("NewFromSQLDB explicit driver failed: %v", err)
+	}
+	defer func() { _ = neatDB.Close() }()
+
+	// Verify a basic ORM query works through the provided connection
+	_, err = sqlDB.Exec("CREATE TABLE test_from_sqldb (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Fatalf("Failed to create table: %v", err)
+	}
+	_, err = sqlDB.Exec("INSERT INTO test_from_sqldb (name) VALUES ('hello')")
+	if err != nil {
+		t.Fatalf("Failed to insert row: %v", err)
+	}
+
+	var rows []map[string]any
+	err = neatDB.Query().Table("test_from_sqldb").Find(&rows)
+	if err != nil {
+		t.Fatalf("ORM query failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Errorf("Expected 1 row, got %d", len(rows))
 	}
 }

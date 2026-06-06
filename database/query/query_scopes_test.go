@@ -290,9 +290,11 @@ func TestScopeErrorHandling(t *testing.T) {
 		}
 
 		var users []ScopeUser
+		// With the new error handling, panics in user functions are not caught
+		// This test verifies that panics propagate as expected
 		defer func() {
 			if r := recover(); r != nil {
-				// Expected panic
+				// Expected panic - user code panicked
 				_ = r
 			}
 		}()
