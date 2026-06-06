@@ -6,6 +6,7 @@ import (
 	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	neaterrors "github.com/dracory/neat/errors"
 )
 
 // logQuery appends a QueryLog entry with the actual execution duration.
@@ -33,6 +34,27 @@ func (q *Query) validateAggregate(column string, dest any) error {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '.' || r == '*') {
 			return fmt.Errorf("invalid column name: %s", column)
 		}
+	}
+
+	return nil
+}
+
+// validate checks for common validation errors before executing terminal methods.
+// It validates that the database connection is not nil and that a table name is set.
+// This provides clear, structured errors instead of relying on database driver errors.
+func (q *Query) validate() error {
+	// Check for build errors from query construction
+	if q.buildError != nil {
+		return q.buildError
+	}
+	// Check for nil database connection
+	if q.db == nil && q.readDB == nil && q.writeDB == nil {
+		return neaterrors.ErrNilDatabase.SetModule("query")
+	}
+
+	// Check for empty table name (only for operations that require a table)
+	if q.table == "" && q.rawSQL == "" {
+		return neaterrors.NewValidationError("table name cannot be empty").SetModule("query")
 	}
 
 	return nil

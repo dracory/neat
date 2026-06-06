@@ -9,8 +9,9 @@ import (
 
 // Count returns the number of records matching the query.
 func (q *Query) Count(count *int64) error {
-	if q.buildError != nil {
-		return q.buildError
+	// Validate common conditions (build errors, nil DB, empty table)
+	if err := q.validate(); err != nil {
+		return err
 	}
 	if count == nil {
 		return fmt.Errorf("destination cannot be nil")
@@ -257,8 +258,9 @@ func (q *Query) Max(column string, dest any) error {
 
 // Exists checks if any records match the query.
 func (q *Query) Exists(exists *bool) error {
-	if q.buildError != nil {
-		return q.buildError
+	// Validate common conditions (build errors, nil DB, empty table)
+	if err := q.validate(); err != nil {
+		return err
 	}
 	// Use a clone to avoid mutating the query state
 	clone := q.Clone().(*Query)
@@ -301,8 +303,9 @@ func (q *Query) Exists(exists *bool) error {
 
 // Pluck retrieves a single column's values from the query results.
 func (q *Query) Pluck(column string, dest any) error {
-	if q.buildError != nil {
-		return q.buildError
+	// Validate common conditions (build errors, nil DB, empty table)
+	if err := q.validate(); err != nil {
+		return err
 	}
 	// Use a clone to avoid mutating the query state
 	clone := q.Clone().(*Query)

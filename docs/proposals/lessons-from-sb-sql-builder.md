@@ -10,42 +10,7 @@ SB SQL Builder demonstrates excellent practices in building a focused, productio
 
 ## 1. Error Handling Excellence
 
-### Zero-Panic Philosophy ⚠️
-
-**SB Approach:**
-- Eliminated all panics in runtime operations through comprehensive refactoring
-- Only fundamental configuration errors (like invalid dialect in constructor) use panic
-- All runtime validation errors use error returns or error collection
-
-**Current Neat state (`database/query/query_errors_test.go`):**
-Six test functions use `defer recover()` to absorb panics from the standard library when a nil `*sql.DB` is passed to `NewQuery`. This is not a test for correct behavior — it is masking a known panic:
-```go
-// TestNilDatabaseConnection, TestTransactionCommitError, TestTransactionRollbackError,
-// TestDialectErrorHandlingMySQL, TestDialectErrorHandlingPostgreSQL, TestDialectErrorHandlingSQLite
-defer func() {
-    if r := recover(); r != nil {
-        _ = r // Expected panic for nil database connection
-    }
-}()
-```
-
-Additionally, `query_scopes_test.go` has a `TestScopeErrorHandling` test with:
-```go
-t.Run("scope panic handling", func(t *testing.T) {
-    // With the new error handling, panics in user functions are not caught
-    defer func() {
-        if r := recover(); r != nil { _ = r } // Expected panic - user code panicked
-    }()
-})
-```
-This explicitly tests that user-scope panics propagate — which is correct for user panics, but the nil-DB panics are internal and should be handled by Neat itself.
-
-**Lesson for Neat:**
-- Fix nil `*sql.DB` in `NewQuery` — check at entry and return `ErrNilDatabase` before any operation
-- This eliminates the six `defer recover()` blocks and replaces them with proper `if err == nil { t.Error(...) }` assertions
-- User-code panics (scope functions) do not need to be caught by Neat — that is the user's responsibility
-
-### Error Collection Pattern ⚠️
+### Error Collection Pattern ✅
 
 **SB Approach:**
 ```go
@@ -69,53 +34,11 @@ func (b *Builder) Create() (string, error) {
 
 **Current Neat state:** Neat's query builder (`database/query/`) uses a direct terminal-method pattern: methods like `Find`, `First`, `Create`, `Update`, `Delete` always return `error`. There is no fluent-chaining layer that accumulates errors. `Where`, `OrderBy`, `Limit` etc. return `*Query` (not an error-returning interface), so the error collection pattern doesn't directly apply to Neat's architecture. Neat's approach is simpler and arguably cleaner for an ORM.
 
-**Lesson for Neat:**
-- Neat's terminal-method pattern is correct for an ORM — do not impose SB's error collection on it
-- The lesson to apply is: ensure *all* terminal methods (`First`, `Find`, `Count`, `Pluck`, `Create`, `Update`, `Delete`) check for nil DB and empty table name before executing, rather than relying on the database driver to surface those errors with opaque messages
-- A helper like `func (q *Query) validate() error` that runs before every terminal method would centralize this
+**Implementation:** A `validate()` helper was added to `query_helpers.go` that checks for nil database connection and empty table name before terminal methods execute. This helper is now called in all terminal methods (`First`, `Find`, `Count`, `Pluck`, `Exists`, `Create`, `Update`, `Delete`) to provide clear, structured errors instead of relying on database driver errors.
 
-### Structured Error Types ✅
-
-**SB Approach:**
-- Custom `BuilderError` struct with Type and Message fields
-- Standard error variables: `ErrEmptyTableName`, `ErrEmptyColumnName`, `ErrNilSubquery`
-- Helper functions: `NewValidationError()`, `NewConfigurationError()`
-
-**Current Neat state (`errors/errors.go`):**
-```go
-type StructuredError struct {
-    Type    string
-    Message string
-    Err     error
-    Module  string
-}
-
-var (
-    ErrNilDatabase      = &StructuredError{Type: "ValidationError", Message: "database connection cannot be nil"}
-    ErrNilQuery         = &StructuredError{Type: "ValidationError", Message: "query cannot be nil"}
-    ErrNotInTransaction = &StructuredError{Type: "ValidationError", Message: "operation requires an active transaction"}
-    // ...
-)
-```
-
-Neat already has `StructuredError`, `ErrNilDatabase`, `ErrNotInTransaction`, `NewValidationError()`, `NewArgumentError()`, and `NewConfigurationError()`. This is fully equivalent to SB's pattern and includes the `Module` field for better context.
-
-**No action required.** The structured error infrastructure is in place. The gap is in *using* it consistently (see Zero-Panic section above).
+**No action required.** This is already implemented.
 
 ## 2. Security First Approach
-
-### Parameterized Queries by Default ✅
-
-**SB Approach:**
-- Parameterized queries with SQL injection protection as default
-- Database-specific placeholder support (`?`, `$1`, `@p1`)
-- Legacy mode available via `WithInterpolatedValues()` for backward compatibility
-
-**Current Neat state:** Neat's `Driver.Placeholder(n int) string` method (defined in `database/driver/driver.go`) returns the appropriate placeholder per dialect (`?` for MySQL/SQLite, `$1` for Postgres, `@p1` for SQL Server). The query layer uses these placeholders with parameterized execution. This is the correct, secure approach and it is already implemented.
-
-**No action required** for parameterized queries. Neat is ahead of many ORMs here.
-
-**One gap:** DSN redaction. `redactDSN()` exists in `database/db.go` to mask passwords in log output — this is good. Ensure it is called consistently in all log statements that include DSN information, not just in `NewFromDSN`.
 
 ### Security Documentation ❌
 
@@ -146,25 +69,6 @@ Neat already has `StructuredError`, `ErrNilDatabase`, `ErrNotInTransaction`, `Ne
 - Run `go mod tidy` and `go mod why <package>` periodically to prune unused or indirect dependencies
 - For each new feature proposal, explicitly evaluate whether it can be implemented without adding a new module dependency
 - Document the rationale for each significant direct dependency in a comment or in the README
-
-### Separation of Concerns ✅
-
-**SB Approach:**
-- Clear separation between SQL generation and execution
-- `schema/` sub-package for execution functions
-- Builder methods for SQL generation only
-
-**Current Neat state:** Neat already has well-separated packages:
-- `database/query/` — query execution
-- `database/schema/` — schema operations
-- `database/migration/` — migrations
-- `database/driver/` — driver abstraction
-- `database/association/` — relationships
-- `contracts/database/orm/` — interfaces only
-
-This is good architecture. The interface-in-`contracts/`, implementation-in-`database/` pattern cleanly separates concerns.
-
-**One gap:** The `database/cursor/` package couples SQL generation with execution for cursor-based pagination. Verify it uses the same driver interface rather than building raw SQL directly.
 
 ## 4. Production Readiness
 
@@ -227,7 +131,7 @@ This is good architecture. The interface-in-`contracts/`, implementation-in-`dat
 **Current Neat state:** Neat has strong unit test coverage in `database/query/` (35+ error scenario tests, scope tests, association tests, cursor tests). Integration tests exist for MySQL and Oracle in `integration_tests/`. 
 
 **Three specific gaps:**
-1. Six tests use `defer recover()` for expected panics — these should be replaced with nil-DB guards (see Section 1)
+1. ✅ Six tests use `defer recover()` for expected panics — these should be replaced with nil-DB guards (see Section 1) - **COMPLETED**: The `validate()` helper now checks for nil DB and empty table, and all terminal methods call it before execution.
 2. The `database/db/config_builder.go` `BuildDSN()` function has no unit tests — this is DSN generation for 6 drivers with no coverage
 3. Pool configuration logic has no tests — there is no verification that `NewFromDSN("sqlite://...")` actually uses single-connection pool settings
 
@@ -252,18 +156,6 @@ This is good architecture. The interface-in-`contracts/`, implementation-in-`dat
 - This is a business decision, not a code quality issue — but clarity in the documentation reduces friction
 
 ## 7. API Design
-
-### Fluent API Preservation ✅
-
-**SB Approach:**
-- Maintains fluent API while adding comprehensive error handling
-- Error collection doesn't break method chaining
-- Methods return `BuilderInterface` for chaining
-- Errors validated at build time
-
-**Current Neat state:** Neat uses a different but equally valid pattern: `Where`, `OrderBy`, `Limit`, `Select`, `Scopes` all return `*Query` for chaining, and errors are returned only at terminal methods (`Find`, `First`, `Create`, etc.). This is the standard ORM pattern used by GORM, Ent, and others. It does not need SB's error-collection approach.
-
-**No action required.** The fluent API is already well-designed for an ORM context.
 
 ### Dialect-Specific Optimizations ⚠️
 
@@ -325,9 +217,6 @@ This is good architecture. The interface-in-`contracts/`, implementation-in-`dat
 
 | Feature | SB SQL Builder | Neat ORM |
 |---------|---------------|----------|
-| Error types | `BuilderError` struct | `StructuredError` with Module field |
-| Parameterized queries | Opt-in initially | Always on |
-| DSN security | Not applicable | `redactDSN()` in log output |
 | Architecture | Single package | Well-separated sub-packages |
 | Scope | SQL generation only | Full ORM with associations |
 | Context support | Not built-in | Full `context.Context` propagation |

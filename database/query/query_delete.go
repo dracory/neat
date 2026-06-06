@@ -48,8 +48,9 @@ func hasSoftDeleteCapability(model any) bool {
 
 // Delete deletes records from the database.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
-	if q.buildError != nil {
-		return nil, q.buildError
+	// Validate common conditions (build errors, nil DB, empty table)
+	if err := q.validate(); err != nil {
+		return nil, err
 	}
 	// Fire Deleting event if not disabled
 	if !q.withoutEvents && q.model != nil {

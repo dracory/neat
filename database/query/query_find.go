@@ -9,9 +9,9 @@ import (
 // Find retrieves records matching the given conditions.
 func (q *Query) Find(dest any, conds ...any) error {
 	q = q.applyScopes()
-	// Check for build errors from query construction
-	if q.buildError != nil {
-		return q.buildError
+	// Validate common conditions (build errors, nil DB, empty table)
+	if err := q.validate(); err != nil {
+		return err
 	}
 	// Use a clone to avoid mutating the original query state
 	clone := q.Clone().(*Query)

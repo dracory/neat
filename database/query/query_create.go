@@ -14,8 +14,9 @@ import (
 // For Oracle databases, if you need the primary key populated after Create,
 // wrap the call in a transaction to reduce the race window in ID retrieval.
 func (q *Query) Create(value any) error {
-	if q.buildError != nil {
-		return q.buildError
+	// Validate common conditions (build errors, nil DB, empty table)
+	if err := q.validate(); err != nil {
+		return err
 	}
 	// Fire Creating event if not disabled
 	if !q.withoutEvents {
