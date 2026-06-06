@@ -53,7 +53,7 @@ func TestStructuredError_Error(t *testing.T) {
 		underlying := errors.New("underlying error")
 		err := NewValidationError("test message")
 		err.Err = underlying
-		err.SetModule("orm")
+		_ = err.SetModule("orm")
 		expected := "[orm] ValidationError: test message: underlying error"
 		if err.Error() != expected {
 			t.Errorf("Expected '%s', got '%s'", expected, err.Error())
@@ -83,7 +83,7 @@ func TestStructuredError_Unwrap(t *testing.T) {
 // TestStructuredError_SetModule verifies module setting.
 func TestStructuredError_SetModule(t *testing.T) {
 	err := NewValidationError("test message")
-	err.SetModule("orm")
+	_ = err.SetModule("orm")
 	if err.Module != "orm" {
 		t.Errorf("Expected module 'orm', got '%s'", err.Module)
 	}
