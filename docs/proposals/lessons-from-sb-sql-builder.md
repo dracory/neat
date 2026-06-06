@@ -24,35 +24,7 @@ SB SQL Builder demonstrates excellent practices in building a focused, productio
 - For each new feature proposal, explicitly evaluate whether it can be implemented without adding a new module dependency
 - Document the rationale for each significant direct dependency in a comment or in the README
 
-## 2. Production Readiness
-
-### Migration Strategy ⚠️
-
-**SB Approach:**
-- Clear migration guides for breaking changes
-- Well-documented deprecation timelines
-- Examples of before/after code patterns
-- Multiple migration strategies (quick, gradual)
-
-**Current Neat state:** Neat has a `CHANGELOG.md` but no migration guides. The `docs/proposals/` directory contains implementation plans but not upgrade guides for users of Neat itself.
-
-**Lesson for Neat:**
-- Establish a versioning policy: document which package version introduced which breaking change
-- For any change to the `contracts/database/orm/` interfaces (which is the public API surface), provide a concrete migration example
-- Add a `BREAKING_CHANGES.md` or section in `CHANGELOG.md` specifically for interface changes
-- Note: most of Neat's recent development has been additive — this becomes critical when the first major API refactor happens
-
-### Architectural Decision Records ❌
-
-**Observation:** Neat's `docs/proposals/` directory contains good proposal documents but lacks records of *why* key architectural decisions were made. This creates maintenance risk — future contributors don't know why the callback `Transaction(func(tx Query) error)` pattern was chosen over explicit Begin/Commit, or why the `contracts/` package exists separately from implementations.
-
-**Lesson for Neat:**
-- Add a lightweight `docs/decisions/` folder with short ADRs (Architecture Decision Records)
-- Each ADR covers: context, decision, rationale, consequences
-- Start with the most non-obvious decisions: callback transactions, interface-in-contracts pattern, driver registration system
-- ADRs do not need to be exhaustive — 3-4 sentences per decision is sufficient
-
-## 5. Code Quality Practices
+## 2. Code Quality Practices
 
 ### Standard Documentation ⚠️
 

@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## Breaking Changes
+
+This section documents breaking changes and provides migration guides. Most Neat ORM development has been additive, but when breaking changes occur, they will be documented here with concrete migration examples.
+
+### Versioning Policy
+
+- **Major version (X.0.0)**: Breaking changes to the public API surface
+- **Minor version (0.X.0)**: New features, backward-compatible additions
+- **Patch version (0.0.X)**: Bug fixes, internal improvements
+
+The primary public API surface is defined in `contracts/database/orm/`. Changes to these interfaces are considered breaking changes.
+
+### Migration Guide Template
+
+When a breaking change is introduced, it will be documented following this format:
+
+#### [Change Description]
+
+**Version**: X.Y.Z
+
+**Impact**: Description of what changed
+
+**Migration**: Step-by-step migration guide with code examples
+
+```go
+// Before (old code)
+oldCode()
+
+// After (new code)
+newCode()
+```
+
+### Current Breaking Changes
+
+*None at this time. Neat ORM has maintained backward compatibility since v0.1.0.*
+
 ## [Unreleased]
 
 ### Added
