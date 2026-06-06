@@ -8,23 +8,7 @@ This document outlines key lessons and best practices that Neat ORM can learn fr
 
 SB SQL Builder demonstrates excellent practices in building a focused, production-ready library with sophisticated error handling, security-first design, and systematic documentation. These lessons help identify where Neat ORM is already strong, and where concrete improvements should be made.
 
-## 1. Focused Architecture
-
-### Scope Management ⚠️
-
-**SB Approach:**
-- Focused scope with clear boundaries
-- Single-purpose library for SQL generation
-- Minimal dependencies (8 direct dependencies)
-
-**Current Neat state:** Neat is an ORM, not a SQL builder, so broader scope is intentional and correct. However, Neat's `go.mod` should be audited for unnecessary dependencies. The key discipline is: new features should not require new dependencies unless absolutely necessary.
-
-**Lesson for Neat:**
-- Run `go mod tidy` and `go mod why <package>` periodically to prune unused or indirect dependencies
-- For each new feature proposal, explicitly evaluate whether it can be implemented without adding a new module dependency
-- Document the rationale for each significant direct dependency in a comment or in the README
-
-## 2. Code Quality Practices
+## 1. Code Quality Practices
 
 ### Standard Documentation ⚠️
 
