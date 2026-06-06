@@ -404,9 +404,9 @@ func NewFromDSN(dsn string, opts ...database.Option) (*database.Database, error)
 }
 
 // NewFromSQLDB creates a new Database instance from an already-open *sql.DB.
-// Pass an empty string for driverName to let Neat auto-detect the driver via
-// reflection; an error is returned if detection fails.
+// The driver is auto-detected via reflection. Use database.WithDriver to
+// override when auto-detection is not reliable.
 // Neat does not close sqlDB or modify its connection-pool settings.
-func NewFromSQLDB(sqlDB *sql.DB, driverName string, opts ...database.Option) (*database.Database, error) {
-	return database.NewFromSQLDB(sqlDB, driverName, opts...)
+func NewFromSQLDB(sqlDB *sql.DB, opts ...database.Option) (*database.Database, error) {
+	return database.NewFromSQLDB(sqlDB, opts...)
 }

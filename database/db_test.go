@@ -611,7 +611,7 @@ func TestDatabase_MigrationStatus(t *testing.T) {
 }
 
 func TestNewFromSQLDB_NilDB(t *testing.T) {
-	_, err := NewFromSQLDB(nil, "sqlite", WithLogger(log.NewNoopLogger()))
+	_, err := NewFromSQLDB(nil, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
 	if err == nil {
 		t.Error("Expected error for nil *sql.DB")
 	}
@@ -624,7 +624,7 @@ func TestNewFromSQLDB_AutoDetect(t *testing.T) {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
-	neatDB, err := NewFromSQLDB(sqlDB, "", WithLogger(log.NewNoopLogger()))
+	neatDB, err := NewFromSQLDB(sqlDB, WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		t.Fatalf("NewFromSQLDB auto-detect failed: %v", err)
 	}
@@ -642,7 +642,7 @@ func TestNewFromSQLDB_ExplicitDriver(t *testing.T) {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
-	neatDB, err := NewFromSQLDB(sqlDB, "sqlite", WithLogger(log.NewNoopLogger()))
+	neatDB, err := NewFromSQLDB(sqlDB, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		t.Fatalf("NewFromSQLDB explicit driver failed: %v", err)
 	}

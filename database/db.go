@@ -42,6 +42,7 @@ type options struct {
 	pool     *db.PoolConfig
 	skipPing bool
 	debug    bool
+	driver   string
 }
 
 // WithContext sets the context for the database.
@@ -83,6 +84,15 @@ func SkipPing() Option {
 func WithDebug() Option {
 	return func(o *options) {
 		o.debug = true
+	}
+}
+
+// WithDriver sets the database driver name for NewFromSQLDB when auto-detection
+// is not reliable. Valid values: "mysql", "postgres", "sqlite", "sqlserver",
+// "oracle", "turso".
+func WithDriver(driverName string) Option {
+	return func(o *options) {
+		o.driver = driverName
 	}
 }
 
@@ -190,22 +200,13 @@ func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 }
 
 // NewFromSQLDB creates a new Database instance from an already-open *sql.DB.
-// The driverName parameter specifies the database driver ("mysql", "postgres",
-// "sqlite", "sqlserver", "oracle", "turso"). Pass an empty string to let Neat
-// auto-detect the driver by inspecting db.Driver() via reflection; an error is
-// returned when detection fails.
+// The driver is auto-detected from db.Driver() via reflection. Use WithDriver
+// to override when auto-detection is not reliable.
 // The caller retains full ownership of sqlDB — Neat will not close it or alter
 // its connection-pool settings.
-func NewFromSQLDB(sqlDB *sql.DB, driverName string, opts ...Option) (*Database, error) {
+func NewFromSQLDB(sqlDB *sql.DB, opts ...Option) (*Database, error) {
 	if sqlDB == nil {
 		return nil, fmt.Errorf("sqlDB cannot be nil")
-	}
-
-	if driverName == "" {
-		driverName = detectDriverName(sqlDB)
-	}
-	if driverName == "" {
-		return nil, fmt.Errorf("cannot detect database driver from *sql.DB; pass the driver name explicitly")
 	}
 
 	o := &options{
@@ -220,11 +221,18 @@ func NewFromSQLDB(sqlDB *sql.DB, driverName string, opts ...Option) (*Database, 
 		o.ctx = context.Background()
 	}
 
+	if o.driver == "" {
+		o.driver = detectDriverName(sqlDB)
+	}
+	if o.driver == "" {
+		return nil, fmt.Errorf("cannot detect database driver from *sql.DB; use WithDriver to set it explicitly")
+	}
+
 	const connName = "default"
 	cfg := db.DBConfig{
 		Default: connName,
 		Connections: map[string]db.ConnectionConfig{
-			connName: {Driver: driverName},
+			connName: {Driver: o.driver},
 		},
 		Debug: o.debug,
 	}
@@ -240,7 +248,7 @@ func NewFromSQLDB(sqlDB *sql.DB, driverName string, opts ...Option) (*Database, 
 		seeder:   databaseseeder.NewRunner(),
 	}
 
-	ormInstance, err := databaseorm.BuildOrmFromDB(o.ctx, sqlDB, driverName, connName, &cfg, o.logger, func() {})
+	ormInstance, err := databaseorm.BuildOrmFromDB(o.ctx, sqlDB, o.driver, connName, &cfg, o.logger, func() {})
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ORM from *sql.DB: %w", err)
 	}
