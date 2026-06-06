@@ -8,53 +8,7 @@ This document outlines key lessons and best practices that Neat ORM can learn fr
 
 SB SQL Builder demonstrates excellent practices in building a focused, production-ready library with sophisticated error handling, security-first design, and systematic documentation. These lessons help identify where Neat ORM is already strong, and where concrete improvements should be made.
 
-## 1. Error Handling Excellence
-
-### Error Collection Pattern ✅
-
-**SB Approach:**
-```go
-// Errors collected during fluent chaining
-func (b *Builder) Column(column Column) BuilderInterface {
-    if column.Name == "" {
-        b.sqlErrors = append(b.sqlErrors, ErrEmptyColumnName)
-        return b
-    }
-    return b
-}
-
-// Validated when SQL is generated
-func (b *Builder) Create() (string, error) {
-    if err := b.validateAndReturnError(); err != nil {
-        return "", err
-    }
-    // ... SQL generation
-}
-```
-
-**Current Neat state:** Neat's query builder (`database/query/`) uses a direct terminal-method pattern: methods like `Find`, `First`, `Create`, `Update`, `Delete` always return `error`. There is no fluent-chaining layer that accumulates errors. `Where`, `OrderBy`, `Limit` etc. return `*Query` (not an error-returning interface), so the error collection pattern doesn't directly apply to Neat's architecture. Neat's approach is simpler and arguably cleaner for an ORM.
-
-**Implementation:** A `validate()` helper was added to `query_helpers.go` that checks for nil database connection and empty table name before terminal methods execute. This helper is now called in all terminal methods (`First`, `Find`, `Count`, `Pluck`, `Exists`, `Create`, `Update`, `Delete`) to provide clear, structured errors instead of relying on database driver errors.
-
-**No action required.** This is already implemented.
-
-## 2. Security First Approach
-
-### Security Documentation ❌
-
-**SB Approach:**
-- Dedicated security guide with best practices
-- Clear examples of safe vs unsafe patterns
-- SQL injection protection documentation
-
-**Current Neat state:** There is no dedicated security documentation. The docs directory contains comparison docs, API reference, associations, and soft-delete proposals, but nothing on security.
-
-**Lesson for Neat:**
-- Add a `docs/security.md` covering: parameterized queries (already done), DSN redaction in logs, SQL injection prevention when using `Raw()`, safe handling of user-supplied table/column names
-- Document that `q.Where("column = ?", value)` is safe, and `q.Raw("SELECT * FROM " + userInput)` is not
-- Document that `redactDSN` is used in log output and link to the implementation
-
-## 3. Focused Architecture
+## 1. Focused Architecture
 
 ### Scope Management ⚠️
 
@@ -70,7 +24,7 @@ func (b *Builder) Create() (string, error) {
 - For each new feature proposal, explicitly evaluate whether it can be implemented without adding a new module dependency
 - Document the rationale for each significant direct dependency in a comment or in the README
 
-## 4. Production Readiness
+## 2. Production Readiness
 
 ### Migration Strategy ⚠️
 
@@ -191,13 +145,13 @@ func (b *Builder) Create() (string, error) {
 ## Implementation Roadmap
 
 ### Priority 1: Nil Safety (High Impact, Low Risk)
-1. Add nil `*sql.DB` guard at the start of every terminal query method
-2. Return `ErrNilDatabase` instead of panicking
-3. Remove six `defer recover()` blocks from `query_errors_test.go`
-4. Replace them with `if err == nil { t.Error("expected ErrNilDatabase") }` assertions
+1. ✅ Add nil `*sql.DB` guard at the start of every terminal query method - **COMPLETED**
+2. ✅ Return `ErrNilDatabase` instead of panicking - **COMPLETED**
+3. ✅ Remove six `defer recover()` blocks from `query_errors_test.go` - **COMPLETED**
+4. ✅ Replace them with `if err == nil { t.Error("expected ErrNilDatabase") }` assertions - **COMPLETED**
 
 ### Priority 2: Security Documentation (Medium Impact, Low Effort)
-1. Create `docs/security.md` covering parameterized queries, DSN redaction, Raw() risks
+1. ✅ Create `docs/security.md` covering parameterized queries, DSN redaction, Raw() risks - **COMPLETED**
 2. Audit all `db.go` log calls to confirm `redactDSN` is used consistently
 3. Add security notice to `Where` vs `Raw` comparison in docs
 
