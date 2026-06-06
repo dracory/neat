@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/orm"
@@ -665,5 +666,301 @@ func TestNewFromSQLDB_ExplicitDriver(t *testing.T) {
 	}
 	if len(rows) != 1 {
 		t.Errorf("Expected 1 row, got %d", len(rows))
+	}
+}
+
+func ExampleNew() {
+	// Create a database instance with configuration
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Use the database
+	query := db.Query()
+	_ = query
+}
+
+func ExampleNew_multipleConnections() {
+	// Create a database instance with multiple connections
+	config := db.DBConfig{
+		Default: "primary",
+		Connections: map[string]db.ConnectionConfig{
+			"primary": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+			"replica": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Get a specific connection
+	replica, err := db.Connection("replica")
+	if err != nil {
+		panic(err)
+	}
+	_ = replica
+}
+
+func ExampleNew_withPoolConfig() {
+	// Create a database instance with custom pool configuration
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(
+		config,
+		WithPool(db.PoolConfig{
+			MaxIdleConns:    5,
+			MaxOpenConns:    25,
+			ConnMaxLifetime: 3600,
+			ConnMaxIdleTime: 3600,
+			QueryTimeout:    30,
+		}),
+		WithLogger(log.NewNoopLogger()),
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromDSN() {
+	// Create a database instance from a DSN string
+	db, err := NewFromDSN("sqlite://:memory:", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromDSN_postgres() {
+	// PostgreSQL DSN with SSL mode
+	db, err := NewFromDSN("postgres://user:pass@localhost:5432/mydb?sslmode=require", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromDSN_mysql() {
+	// MySQL DSN with charset
+	db, err := NewFromDSN("mysql://user:pass@tcp(localhost:3306)/mydb?charset=utf8mb4", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromDSN_sqlite() {
+	// SQLite DSN with file path
+	db, err := NewFromDSN("sqlite://./database.db", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromDSN_turso() {
+	// Turso (SQLite edge) DSN
+	db, err := NewFromDSN("turso://lib-name.turso.io", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromSQLDB() {
+	// Create a database instance from an existing *sql.DB
+	sqlDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		panic(err)
+	}
+	defer sqlDB.Close()
+
+	db, err := NewFromSQLDB(sqlDB, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleNewFromSQLDB_withDriver() {
+	// Create a database instance from *sql.DB with explicit driver
+	sqlDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		panic(err)
+	}
+	defer sqlDB.Close()
+
+	db, err := NewFromSQLDB(sqlDB, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleDatabase_Query() {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Get the ORM query builder
+	query := db.Query()
+	_ = query
+}
+
+func ExampleDatabase_Schema() {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Get the schema builder
+	schema := db.Schema()
+	_ = schema
+}
+
+func ExampleDatabase_Transaction() {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Execute a transaction with automatic rollback on error
+	err = db.Transaction(func(tx orm.Query) error {
+		// Perform database operations within the transaction
+		// If an error is returned, the transaction is rolled back
+		// If nil is returned, the transaction is committed
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ExampleDatabase_Transaction_withError() {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Transaction with error handling - automatically rolls back on error
+	err = db.Transaction(func(tx orm.Query) error {
+		// Simulate an error
+		return fmt.Errorf("operation failed")
+	})
+	if err != nil {
+		// Transaction was rolled back
+		fmt.Println("Transaction rolled back:", err)
+	}
+}
+
+func ExampleDatabase_Transaction_withIsolation() {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Transaction with isolation level
+	err = db.Transaction(func(tx orm.Query) error {
+		// Perform operations with specific isolation level
+		return nil
+	}, &sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+		ReadOnly:  false,
+	})
+	if err != nil {
+		panic(err)
 	}
 }

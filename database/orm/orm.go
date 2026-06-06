@@ -148,9 +148,10 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		}
 
 		// Configure connection pool from DBConfig.
-		// In-memory SQLite: each physical connection has its own isolated database,
-		// so pin to a single connection so DDL and DML always share the same DB.
-		if connConfig.Driver == "sqlite" && (dsn == ":memory:" || dsn == "") {
+		// SQLite does not support concurrent writers; always pin to a single
+		// connection regardless of PoolConfig to prevent "database is locked" errors.
+		// WAL mode (applied below) allows concurrent readers alongside the single writer.
+		if connConfig.Driver == "sqlite" {
 			sqlDB.SetMaxOpenConns(1)
 			sqlDB.SetMaxIdleConns(1)
 		} else {
@@ -159,6 +160,15 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		}
 		sqlDB.SetConnMaxLifetime(time.Duration(dbConfig.Pool.ConnMaxLifetime) * time.Second)
 		sqlDB.SetConnMaxIdleTime(time.Duration(dbConfig.Pool.ConnMaxIdleTime) * time.Second)
+
+		// Apply SQLite-specific optimizations. Errors are intentionally ignored —
+		// these are performance/safety hints, not requirements for a valid connection.
+		if connConfig.Driver == "sqlite" {
+			_, _ = sqlDB.ExecContext(ctx, "PRAGMA journal_mode=WAL;")
+			_, _ = sqlDB.ExecContext(ctx, "PRAGMA synchronous=NORMAL;")
+			_, _ = sqlDB.ExecContext(ctx, "PRAGMA foreign_keys=ON;")
+			_, _ = sqlDB.ExecContext(ctx, "PRAGMA busy_timeout=5000;")
+		}
 
 		dbConnections[connection] = sqlDB
 	}

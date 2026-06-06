@@ -12,6 +12,70 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+func TestSQLitePragmas(t *testing.T) {
+	// WAL mode requires a file-based database; :memory: stays in "memory" journal mode.
+	dbPath := createTempDB(t)
+	db, err := NewFromDSN("sqlite://"+dbPath, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("NewFromDSN failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("db.DB() failed: %v", err)
+	}
+
+	tests := []struct {
+		pragma string
+		want   string
+	}{
+		{"PRAGMA journal_mode;", "wal"},
+		{"PRAGMA synchronous;", "1"},
+		{"PRAGMA foreign_keys;", "1"},
+	}
+	for _, tt := range tests {
+		var got string
+		if err := sqlDB.QueryRowContext(context.Background(), tt.pragma).Scan(&got); err != nil {
+			t.Errorf("%s query failed: %v", tt.pragma, err)
+			continue
+		}
+		if got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.pragma, got, tt.want)
+		}
+	}
+}
+
+func TestSQLitePoolConstraint(t *testing.T) {
+	db, err := NewFromDSN("sqlite://:memory:", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("NewFromDSN failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("db.DB() failed: %v", err)
+	}
+
+	stats := sqlDB.Stats()
+	if stats.MaxOpenConnections != 1 {
+		t.Errorf("SQLite MaxOpenConnections = %d, want 1", stats.MaxOpenConnections)
+	}
+}
+
+func TestNewFromDSN_DefaultPoolTimeout(t *testing.T) {
+	db, err := NewFromDSN("sqlite://:memory:", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		t.Fatalf("NewFromDSN failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	if db.config.Pool.QueryTimeout != 30 {
+		t.Errorf("default QueryTimeout = %d, want 30", db.config.Pool.QueryTimeout)
+	}
+}
+
 // createTempDB creates a temporary SQLite database file and returns its path
 func createTempDB(t *testing.T) string {
 	tmpDir := t.TempDir()
@@ -72,8 +136,9 @@ func TestPool_MaxOpenConns(t *testing.T) {
 			}
 
 			stats := sqlDB.Stats()
-			if stats.MaxOpenConnections != tt.maxOpenConns {
-				t.Errorf("Expected MaxOpenConnections to be %d, got %d", tt.maxOpenConns, stats.MaxOpenConnections)
+			// SQLite always enforces MaxOpen=1 to prevent "database is locked" errors.
+			if stats.MaxOpenConnections != 1 {
+				t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 			}
 		})
 	}
@@ -142,9 +207,10 @@ func TestPool_MaxIdleConns(t *testing.T) {
 				_ = conn.Close()
 
 				stats = sqlDB.Stats()
-				// After opening a connection, idle should be at most maxIdleConns
-				if stats.Idle > tt.maxIdleConns {
-					t.Errorf("Expected Idle connections to be at most %d, got %d", tt.maxIdleConns, stats.Idle)
+				// SQLite always enforces MaxIdle=1; effective idle ceiling is max(config, 1).
+				effectiveIdle := max(tt.maxIdleConns, 1)
+				if stats.Idle > effectiveIdle {
+					t.Errorf("Expected Idle connections to be at most %d, got %d", effectiveIdle, stats.Idle)
 				}
 			}
 		})
@@ -210,11 +276,10 @@ func TestPool_ConnMaxLifetime(t *testing.T) {
 			}
 			_ = conn.Close()
 
-			// The configuration is set, but we can't easily test the actual lifetime behavior
-			// without waiting for the duration. We verify the configuration was accepted.
+			// SQLite always enforces MaxOpen=1; this test verifies ConnMaxLifetime is accepted.
 			stats := sqlDB.Stats()
-			if stats.MaxOpenConnections != 10 {
-				t.Errorf("Expected pool to be configured with MaxOpenConns 10, got %d", stats.MaxOpenConnections)
+			if stats.MaxOpenConnections != 1 {
+				t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 			}
 		})
 	}
@@ -279,11 +344,10 @@ func TestPool_ConnMaxIdleTime(t *testing.T) {
 			}
 			_ = conn.Close()
 
-			// The configuration is set, but we can't easily test the actual idle time behavior
-			// without waiting for the duration. We verify the configuration was accepted.
+			// SQLite always enforces MaxOpen=1; this test verifies ConnMaxIdleTime is accepted.
 			stats := sqlDB.Stats()
-			if stats.MaxOpenConnections != 10 {
-				t.Errorf("Expected pool to be configured with MaxOpenConns 10, got %d", stats.MaxOpenConnections)
+			if stats.MaxOpenConnections != 1 {
+				t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 			}
 		})
 	}
@@ -328,8 +392,9 @@ func TestPool_WithPoolOption(t *testing.T) {
 	_ = conn.Close()
 
 	stats := sqlDB.Stats()
-	if stats.MaxOpenConnections != 15 {
-		t.Errorf("Expected MaxOpenConnections to be 15, got %d", stats.MaxOpenConnections)
+	// SQLite always enforces MaxOpen=1 regardless of WithPool setting.
+	if stats.MaxOpenConnections != 1 {
+		t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 	}
 }
 
@@ -368,10 +433,9 @@ func TestPool_DefaultConfiguration(t *testing.T) {
 	stats := sqlDB.Stats()
 	t.Logf("Pool stats with no config: MaxOpen=%d, Open=%d, InUse=%d, Idle=%d",
 		stats.MaxOpenConnections, stats.OpenConnections, stats.InUse, stats.Idle)
-	// When no pool config is provided, the ORM uses zero values which means unlimited
-	// SetMaxOpenConns(0) means unlimited connections
-	if stats.MaxOpenConnections != 0 {
-		t.Errorf("Expected MaxOpenConnections to be 0 (unlimited), got %d", stats.MaxOpenConnections)
+	// SQLite always enforces MaxOpen=1 even when no explicit pool config is given.
+	if stats.MaxOpenConnections != 1 {
+		t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 	}
 }
 
@@ -390,9 +454,9 @@ func TestPool_NewFromDSN_DefaultPool(t *testing.T) {
 	}
 
 	stats := sqlDB.Stats()
-	// Default pool config from NewFromDSN: MaxOpenConns=100, MaxIdleConns=10
-	if stats.MaxOpenConnections != 100 {
-		t.Errorf("Expected MaxOpenConnections to be 100 (default), got %d", stats.MaxOpenConnections)
+	// SQLite always enforces MaxOpen=1 regardless of NewFromDSN defaults.
+	if stats.MaxOpenConnections != 1 {
+		t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 	}
 }
 
@@ -418,8 +482,9 @@ func TestPool_NewFromDSN_CustomPool(t *testing.T) {
 	}
 
 	stats := sqlDB.Stats()
-	if stats.MaxOpenConnections != 25 {
-		t.Errorf("Expected MaxOpenConnections to be 25, got %d", stats.MaxOpenConnections)
+	// SQLite always enforces MaxOpen=1 regardless of custom pool setting.
+	if stats.MaxOpenConnections != 1 {
+		t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 	}
 }
 
@@ -496,9 +561,9 @@ func TestPool_ExhaustionBehavior(t *testing.T) {
 	t.Logf("Pool stats after exhaustion test: Open=%d, InUse=%d, Idle=%d, MaxOpen=%d",
 		stats.OpenConnections, stats.InUse, stats.Idle, stats.MaxOpenConnections)
 
-	// Verify pool was actually limited
-	if stats.MaxOpenConnections != 2 {
-		t.Errorf("Expected MaxOpenConnections to be 2, got %d", stats.MaxOpenConnections)
+	// SQLite always enforces MaxOpen=1 regardless of pool config.
+	if stats.MaxOpenConnections != 1 {
+		t.Errorf("Expected SQLite MaxOpenConnections to be 1 (safety override), got %d", stats.MaxOpenConnections)
 	}
 }
 

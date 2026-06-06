@@ -97,6 +97,25 @@ func WithDriver(driverName string) Option {
 }
 
 // New creates a new Database instance from a DBConfig.
+// The cfg parameter specifies the database configuration including connections and pool settings.
+// The opts parameter allows for functional options like WithContext, WithLogger, WithPool, etc.
+//
+// Example:
+//
+//	config := db.DBConfig{
+//	    Default: "default",
+//	    Connections: map[string]db.ConnectionConfig{
+//	        "default": {
+//	            Driver:   "sqlite",
+//	            Database: ":memory:",
+//	        },
+//	    },
+//	}
+//	db, err := New(config, WithLogger(log.NewNoopLogger()))
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer db.Close()
 func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 	// Apply options
 	o := &options{
@@ -156,9 +175,25 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 
 // NewFromDSN creates a new Database instance from a DSN string.
 // Supported DSN formats:
-// - postgres://user:pass@localhost:5432/mydb?sslmode=disable
-// - mysql://user:pass@localhost:3306/mydb
-// - sqlite://path/to/database.db
+// - PostgreSQL: postgres://user:pass@localhost:5432/mydb?sslmode=require
+// - MySQL: mysql://user:pass@tcp(localhost:3306)/mydb?charset=utf8mb4
+// - SQLite: sqlite://path/to/database.db
+// - SQLite in-memory: sqlite://:memory:
+// - Turso (SQLite edge): turso://lib-name.turso.io
+// - SQL Server: sqlserver://user:pass@localhost:1433/mydb
+// - Oracle: oracle://user:pass@localhost:1521/mydb
+//
+// Query parameters supported:
+// - PostgreSQL: sslmode (default: require), search_path (default: public), timezone (default: UTC)
+// - MySQL: charset, loc
+//
+// Example:
+//
+//	db, err := NewFromDSN("postgres://user:pass@localhost:5432/mydb?sslmode=require")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer db.Close()
 func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 	// Apply options
 	o := &options{
@@ -178,10 +213,11 @@ func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 
 	// Create DBConfig
 	poolConfig := db.PoolConfig{
-		MaxIdleConns:    10,
-		MaxOpenConns:    100,
+		MaxIdleConns:    5,
+		MaxOpenConns:    25,
 		ConnMaxLifetime: int(time.Hour.Seconds()),
 		ConnMaxIdleTime: int(time.Hour.Seconds()),
+		QueryTimeout:    30,
 	}
 	if o.pool != nil {
 		poolConfig = *o.pool
@@ -428,12 +464,37 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 	return driver, config, nil
 }
 
-// Query returns the ORM query builder.
+// Query returns the ORM query builder for executing database operations.
+// The returned query object can be used to perform CRUD operations, aggregations,
+// and complex queries with joins, where clauses, and more.
+//
+// Example:
+//
+//	query := db.Query()
+//	var users []User
+//	err := query.Table("users").Where("status", "=", "active").Find(&users)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 func (d *Database) Query() orm.Query {
 	return d.ormInstance.Query()
 }
 
-// Schema returns the schema builder.
+// Schema returns the schema builder for database schema operations.
+// The returned schema object can be used to create, alter, and drop tables,
+// indexes, and other database schema elements.
+//
+// Example:
+//
+//	schema := db.Schema()
+//	err := schema.CreateTable("users", func(table *schema.Blueprint) {
+//	    table.ID()
+//	    table.String("name")
+//	    table.Timestamps()
+//	})
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 func (d *Database) Schema() *schema.Schema {
 	return d.schema
 }
@@ -493,6 +554,38 @@ func (d *Database) Connection(name string) (*Database, error) {
 }
 
 // Transaction executes a function within a database transaction.
+// The txFunc parameter is a callback function that receives a transaction query object.
+// If the callback returns an error, the transaction is rolled back. If it returns nil,
+// the transaction is committed.
+//
+// The opts parameter allows specifying transaction isolation level and read-only mode.
+// For example: &sql.TxOptions{Isolation: sql.LevelSerializable, ReadOnly: false}
+//
+// This callback pattern is safer than manual Begin/Commit because it ensures
+// transactions are always rolled back on error and never left open.
+//
+// Example:
+//
+//	err := db.Transaction(func(tx orm.Query) error {
+//	    // Perform database operations
+//	    if err := tx.Table("users").Create(map[string]any{"name": "John"}); err != nil {
+//	        return err // Transaction will be rolled back
+//	    }
+//	    return nil // Transaction will be committed
+//	})
+//
+// Savepoints:
+//
+//	Savepoints are supported through the query interface for nested transactions.
+//	Use tx.SavePoint("name") and tx.RollbackTo("name") for partial rollbacks.
+//
+// Transaction Isolation:
+//
+//	Use opts to control isolation level:
+//	- sql.LevelReadUncommitted: Lowest isolation, allows dirty reads
+//	- sql.LevelReadCommitted: Prevents dirty reads
+//	- sql.LevelRepeatableRead: Prevents dirty and non-repeatable reads
+//	- sql.LevelSerializable: Highest isolation, prevents all anomalies
 func (d *Database) Transaction(txFunc func(tx orm.Query) error, opts ...*sql.TxOptions) error {
 	return d.ormInstance.Transaction(txFunc, opts...)
 }
