@@ -1,6 +1,7 @@
 package neat
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -400,4 +401,12 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 // It parses the DSN and initializes the database connection.
 func NewFromDSN(dsn string, opts ...database.Option) (*database.Database, error) {
 	return database.NewFromDSN(dsn, opts...)
+}
+
+// NewFromSQLDB creates a new Database instance from an already-open *sql.DB.
+// Pass an empty string for driverName to let Neat auto-detect the driver via
+// reflection; an error is returned if detection fails.
+// Neat does not close sqlDB or modify its connection-pool settings.
+func NewFromSQLDB(sqlDB *sql.DB, driverName string, opts ...database.Option) (*database.Database, error) {
+	return database.NewFromSQLDB(sqlDB, driverName, opts...)
 }

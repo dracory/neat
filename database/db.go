@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -186,6 +187,92 @@ func NewFromDSN(dsn string, opts ...Option) (*Database, error) {
 	}
 
 	return New(cfg, opts...)
+}
+
+// NewFromSQLDB creates a new Database instance from an already-open *sql.DB.
+// The driverName parameter specifies the database driver ("mysql", "postgres",
+// "sqlite", "sqlserver", "oracle", "turso"). Pass an empty string to let Neat
+// auto-detect the driver by inspecting db.Driver() via reflection; an error is
+// returned when detection fails.
+// The caller retains full ownership of sqlDB — Neat will not close it or alter
+// its connection-pool settings.
+func NewFromSQLDB(sqlDB *sql.DB, driverName string, opts ...Option) (*Database, error) {
+	if sqlDB == nil {
+		return nil, fmt.Errorf("sqlDB cannot be nil")
+	}
+
+	if driverName == "" {
+		driverName = detectDriverName(sqlDB)
+	}
+	if driverName == "" {
+		return nil, fmt.Errorf("cannot detect database driver from *sql.DB; pass the driver name explicitly")
+	}
+
+	o := &options{
+		ctx:      context.Background(),
+		logger:   log.NewStdLogger(),
+		eventBus: databaseorm.NewEventBus(),
+	}
+	for _, opt := range opts {
+		opt(o)
+	}
+	if o.ctx == nil {
+		o.ctx = context.Background()
+	}
+
+	const connName = "default"
+	cfg := db.DBConfig{
+		Default: connName,
+		Connections: map[string]db.ConnectionConfig{
+			connName: {Driver: driverName},
+		},
+		Debug: o.debug,
+	}
+	if o.pool != nil {
+		cfg.Pool = *o.pool
+	}
+
+	database := &Database{
+		ctx:      o.ctx,
+		config:   &cfg,
+		logger:   o.logger,
+		eventBus: o.eventBus,
+		seeder:   databaseseeder.NewRunner(),
+	}
+
+	ormInstance, err := databaseorm.BuildOrmFromDB(o.ctx, sqlDB, driverName, connName, &cfg, o.logger, func() {})
+	if err != nil {
+		return nil, fmt.Errorf("failed to build ORM from *sql.DB: %w", err)
+	}
+	database.ormInstance = ormInstance
+
+	s, err := schema.NewSchema(database.config, database.logger, database.ormInstance, nil)
+	if err != nil {
+		return nil, err
+	}
+	database.schema = s
+
+	return database, nil
+}
+
+// detectDriverName returns the Neat driver name for the given *sql.DB by
+// inspecting the type name of db.Driver() via reflection.
+func detectDriverName(sqlDB *sql.DB) string {
+	name := reflect.ValueOf(sqlDB.Driver()).Type().String()
+	switch {
+	case strings.Contains(name, "mysql"):
+		return "mysql"
+	case strings.Contains(name, "postgres"), strings.Contains(name, "pq"), strings.Contains(name, "pgx"):
+		return "postgres"
+	case strings.Contains(name, "sqlite"):
+		return "sqlite"
+	case strings.Contains(name, "mssql"), strings.Contains(name, "sqlserver"):
+		return "sqlserver"
+	case strings.Contains(name, "oracle"):
+		return "oracle"
+	default:
+		return ""
+	}
 }
 
 // redactDSN removes credentials from a DSN string for safe logging/error messages.
