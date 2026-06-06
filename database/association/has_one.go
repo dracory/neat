@@ -10,13 +10,41 @@ import (
 )
 
 // HasOne represents a has-one relationship.
+// In a has-one relationship, the current model has one related model.
+// The foreign key is stored on the related model's table.
+// Similar to has-many, but only one related record is expected.
+//
+// Example: A User has one Profile.
+//   - users table has id primary key
+//   - profiles table has user_id foreign key (unique)
+//
+// Database Schema:
+//
+//	users (id, name, email)
+//	profiles (id, user_id, bio, avatar)
+//
+//	type User struct {
+//	    ID      uint
+//	    Name    string
+//	    Profile *Profile // has-one relationship
+//	}
 type HasOne struct {
 	*Association
-	foreignKey string
-	localKey   string
+	foreignKey string // The foreign key column on the related model (e.g., "user_id")
+	localKey   string // The primary key column on the current model (e.g., "id")
 }
 
 // NewHasOne creates a new HasOne association.
+// The query parameter provides the query builder for database operations.
+// The model parameter is the model instance that has one related model.
+// The association parameter is the name of the association (e.g., "profile").
+// The foreignKey parameter is the foreign key column on the related model (e.g., "user_id").
+// The localKey parameter is the primary key column on the current model (e.g., "id").
+//
+// Example:
+//
+//	user := User{ID: 1, Name: "John"}
+//	assoc := NewHasOne(db.Query(), &user, "profile", "user_id", "id")
 func NewHasOne(query contractsorm.Query, model any, association, foreignKey, localKey string) *HasOne {
 	return &HasOne{
 		Association: NewAssociation(query, model, association),
@@ -26,6 +54,19 @@ func NewHasOne(query contractsorm.Query, model any, association, foreignKey, loc
 }
 
 // Find loads the associated model for a has-one relationship.
+// The out parameter must be a pointer to a struct for the related model.
+// The conds parameter provides optional WHERE conditions for the query.
+// Queries the related table where the foreign key equals the local key value.
+// Only includes records where the foreign key is not null.
+// Uses First() to retrieve a single record.
+//
+// Example:
+//
+//	var profile Profile
+//	err := assoc.Find(&profile)
+//
+//	var profile Profile
+//	err := assoc.Find(&profile, "active = ?", true)
 func (h *HasOne) Find(out any, conds ...any) error {
 	// Get the local key value from the model
 	localKeyValue, err := h.getLocalKeyValue()
@@ -53,7 +94,15 @@ func (h *HasOne) Find(out any, conds ...any) error {
 	return query.First(out)
 }
 
-// Append sets the foreign key to associate the model.
+// Append appends a model to the association.
+// The values parameter must contain exactly one model to associate with.
+// Sets the foreign key on the related model to the current model's local key value.
+// Saves the related model to persist the foreign key change.
+//
+// Example:
+//
+//	profile := Profile{Bio: "Software Developer"}
+//	err := assoc.Append(&profile)
 func (h *HasOne) Append(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no value provided to append")
@@ -80,6 +129,14 @@ func (h *HasOne) Append(values ...any) error {
 }
 
 // Replace replaces the current association with the given value.
+// The values parameter must contain exactly one model to associate with.
+// First clears the current association by setting the foreign key to null.
+// Then appends the new value.
+//
+// Example:
+//
+//	profile := Profile{Bio: "Updated Bio"}
+//	err := assoc.Replace(&profile)
 func (h *HasOne) Replace(values ...any) error {
 	// First, clear the current association by setting foreign key to null
 	if err := h.Clear(); err != nil {
@@ -91,6 +148,14 @@ func (h *HasOne) Replace(values ...any) error {
 }
 
 // Delete removes the given value from the association.
+// The values parameter provides the model to remove from the association.
+// Sets the foreign key to null for the related model using direct SQL update.
+// Ensures the model belongs to this association by checking the foreign key.
+//
+// Example:
+//
+//	profile := Profile{ID: 1}
+//	err := assoc.Delete(&profile)
 func (h *HasOne) Delete(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no value provided to delete")
@@ -131,6 +196,11 @@ func (h *HasOne) Delete(values ...any) error {
 }
 
 // Clear clears the association by setting the foreign key to null.
+// Updates the related model to set foreign key to null.
+//
+// Example:
+//
+//	err := assoc.Clear()
 func (h *HasOne) Clear() error {
 	// Get the local key value from the model
 	localKeyValue, err := h.getLocalKeyValue()
@@ -153,6 +223,12 @@ func (h *HasOne) Clear() error {
 }
 
 // Count returns 1 if the association exists, 0 otherwise.
+// Counts records where the foreign key equals the local key value.
+// Returns 1 if at least one record exists, 0 otherwise.
+//
+// Example:
+//
+//	count := assoc.Count() // 1 if associated, 0 if not
 func (h *HasOne) Count() int64 {
 	localKeyValue, err := h.getLocalKeyValue()
 	if err != nil {
@@ -172,6 +248,8 @@ func (h *HasOne) Count() int64 {
 }
 
 // getLocalKeyValue gets the local key value from the model.
+// Handles both snake_case (id) and PascalCase (ID) field names.
+// Returns an error if the field is not found or not accessible.
 func (h *HasOne) getLocalKeyValue() (any, error) {
 	val := reflect.ValueOf(h.model)
 	if val.Kind() == reflect.Ptr {
@@ -201,6 +279,10 @@ func (h *HasOne) getLocalKeyValue() (any, error) {
 }
 
 // setForeignKeyValue sets the foreign key value on a related model.
+// Handles both snake_case (user_id) and PascalCase (UserID) field names.
+// Handles type conversion if the value type doesn't match the field type.
+// Setting to nil sets the field to its zero value.
+// Returns an error if the field is not found or not settable.
 func (h *HasOne) setForeignKeyValue(model any, value any) error {
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Ptr {
@@ -266,6 +348,8 @@ func (h *HasOne) setForeignKeyValue(model any, value any) error {
 }
 
 // associationName returns the association name (table name).
+// Infers the table name from the model's TableName() method or struct name.
+// Simple pluralization is applied (e.g., "Profile" -> "profiles").
 func (h *HasOne) associationName() string {
 	// Get the field type to infer table name
 	val := reflect.ValueOf(h.model)

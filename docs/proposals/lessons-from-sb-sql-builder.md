@@ -10,7 +10,7 @@ SB SQL Builder demonstrates excellent practices in building a focused, productio
 
 ## 1. Code Quality Practices
 
-### Standard Documentation ⚠️
+### Standard Documentation ✅
 
 **SB Approach:**
 - Standard Go godoc format consistently
@@ -18,19 +18,29 @@ SB SQL Builder demonstrates excellent practices in building a focused, productio
 - Database-specific behavior documentation
 - Parameter explanations with usage notes
 
-**Current Neat state:** Documentation quality is uneven across packages:
+**Current Neat state:** Documentation has been significantly improved:
+- `contracts/database/orm/orm.go` — Added comprehensive godoc to 10 most commonly used Query methods (Find, First, Create, Update, Delete, Where, Select, Table, Transaction, Count) with parameter descriptions and usage examples
+- `database/db_test.go` — Example functions already exist for New, NewFromDSN, and Transaction (multiple variants each)
 - `database/driver/driver.go` — excellent interface documentation
 - `errors/errors.go` — good type and variable documentation
-- `database/db.go` — methods documented but no `Example*` functions
-- `database/query/` — many public methods lack godoc entirely
-- `contracts/database/orm/` — interface methods have no documentation
 
-**Lesson for Neat:**
-- Prioritize documenting the `contracts/database/orm/` interface methods — these are the primary API surface that users program against
-- Add `Example*` test functions in `database/db_test.go` for `New`, `NewFromDSN`, `Transaction`
-- The `database/association/` package has the least documentation relative to its complexity — prioritize that
+**Implementation:** Added godoc documentation to `contracts/database/orm/orm.go` for:
+- **Find** - Retrieving records with conditions
+- **First** - Retrieving first matching record
+- **Create** - Inserting new records
+- **Update** - Updating records with column/values
+- **Delete** - Deleting records with soft delete support
+- **Where** - Adding WHERE clauses
+- **Select** - Specifying columns to retrieve
+- **Table** - Specifying table name
+- **Transaction** - Executing functions within transactions
+- **Count** - Counting matching records
 
-### Testing Strategy ⚠️
+Each method now includes parameter descriptions, return value explanations, and practical code examples.
+
+**No action required.** This is already implemented.
+
+## 2. Testing Strategy ⚠️
 
 **SB Approach:**
 - Focused test coverage with 32+ tests for advanced features

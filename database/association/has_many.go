@@ -10,13 +10,40 @@ import (
 )
 
 // HasMany represents a has-many relationship.
+// In a has-many relationship, the current model has many related models.
+// The foreign key is stored on the related model's table.
+//
+// Example: A User has many Posts.
+//   - users table has id primary key
+//   - posts table has user_id foreign key
+//
+// Database Schema:
+//
+//	users (id, name, email)
+//	posts (id, user_id, title, content)
+//
+//	type User struct {
+//	    ID    uint
+//	    Name  string
+//	    Posts []Post // has-many relationship
+//	}
 type HasMany struct {
 	*Association
-	foreignKey string
-	localKey   string
+	foreignKey string // The foreign key column on the related model (e.g., "user_id")
+	localKey   string // The primary key column on the current model (e.g., "id")
 }
 
 // NewHasMany creates a new HasMany association.
+// The query parameter provides the query builder for database operations.
+// The model parameter is the model instance that has many related models.
+// The association parameter is the name of the association (e.g., "posts").
+// The foreignKey parameter is the foreign key column on the related model (e.g., "user_id").
+// The localKey parameter is the primary key column on the current model (e.g., "id").
+//
+// Example:
+//
+//	user := User{ID: 1, Name: "John"}
+//	assoc := NewHasMany(db.Query(), &user, "posts", "user_id", "id")
 func NewHasMany(query contractsorm.Query, model any, association, foreignKey, localKey string) *HasMany {
 	return &HasMany{
 		Association: NewAssociation(query, model, association),
@@ -26,6 +53,18 @@ func NewHasMany(query contractsorm.Query, model any, association, foreignKey, lo
 }
 
 // Find loads the associated models for a has-many relationship.
+// The out parameter must be a pointer to a slice for the related models.
+// The conds parameter provides optional WHERE conditions for the query.
+// Queries the related table where the foreign key equals the local key value.
+// Only includes records where the foreign key is not null.
+//
+// Example:
+//
+//	var posts []Post
+//	err := assoc.Find(&posts)
+//
+//	var posts []Post
+//	err := assoc.Find(&posts, "published = ?", true)
 func (h *HasMany) Find(out any, conds ...any) error {
 	// Get the local key value from the model
 	localKeyValue, err := h.getLocalKeyValue()
@@ -55,6 +94,15 @@ func (h *HasMany) Find(out any, conds ...any) error {
 }
 
 // Append appends models to the association.
+// The values parameter provides the model(s) to append to the association.
+// Sets the foreign key on each related model to the current model's local key value.
+// Saves each related model to persist the foreign key change.
+//
+// Example:
+//
+//	post1 := Post{Title: "First Post"}
+//	post2 := Post{Title: "Second Post"}
+//	err := assoc.Append(&post1, &post2)
 func (h *HasMany) Append(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no values provided to append")
@@ -83,6 +131,14 @@ func (h *HasMany) Append(values ...any) error {
 }
 
 // Replace replaces the current association with the given values.
+// The values parameter provides the new model(s) for the association.
+// First clears the current association by setting foreign keys to null.
+// Then appends the new values.
+//
+// Example:
+//
+//	posts := []Post{{Title: "New Post"}, {Title: "Another Post"}}
+//	err := assoc.Replace(posts...)
 func (h *HasMany) Replace(values ...any) error {
 	// First, clear the current association by setting foreign key to null
 	if err := h.Clear(); err != nil {
@@ -94,6 +150,14 @@ func (h *HasMany) Replace(values ...any) error {
 }
 
 // Delete removes the given values from the association.
+// The values parameter provides the model(s) to remove from the association.
+// Sets the foreign key to null for each related model using direct SQL update.
+// Ensures the model belongs to this association by checking the foreign key.
+//
+// Example:
+//
+//	post := Post{ID: 1}
+//	err := assoc.Delete(&post)
 func (h *HasMany) Delete(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no values provided to delete")
@@ -136,6 +200,11 @@ func (h *HasMany) Delete(values ...any) error {
 }
 
 // Clear clears the association by setting the foreign key to null for all related models.
+// Updates all related models to set foreign key to null.
+//
+// Example:
+//
+//	err := assoc.Clear()
 func (h *HasMany) Clear() error {
 	// Get the local key value from the model
 	localKeyValue, err := h.getLocalKeyValue()
@@ -158,6 +227,11 @@ func (h *HasMany) Clear() error {
 }
 
 // Count returns the number of records in the association.
+// Counts records where the foreign key equals the local key value.
+//
+// Example:
+//
+//	count := assoc.Count()
 func (h *HasMany) Count() int64 {
 	localKeyValue, err := h.getLocalKeyValue()
 	if err != nil {
@@ -174,6 +248,8 @@ func (h *HasMany) Count() int64 {
 }
 
 // getLocalKeyValue gets the local key value from the model.
+// Handles both snake_case (id) and PascalCase (ID) field names.
+// Returns an error if the field is not found or not accessible.
 func (h *HasMany) getLocalKeyValue() (any, error) {
 	val := reflect.ValueOf(h.model)
 	if val.Kind() == reflect.Ptr {
@@ -203,6 +279,10 @@ func (h *HasMany) getLocalKeyValue() (any, error) {
 }
 
 // setForeignKeyValue sets the foreign key value on a related model.
+// Handles both snake_case (user_id) and PascalCase (UserID) field names.
+// Handles type conversion if the value type doesn't match the field type.
+// Setting to nil sets the field to its zero value.
+// Returns an error if the field is not found or not settable.
 func (h *HasMany) setForeignKeyValue(model any, value any) error {
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Ptr {
@@ -268,6 +348,8 @@ func (h *HasMany) setForeignKeyValue(model any, value any) error {
 }
 
 // associationName returns the association name (table name).
+// Infers the table name from the model's TableName() method or struct name.
+// Simple pluralization is applied (e.g., "Post" -> "posts").
 func (h *HasMany) associationName() string {
 	// Get the field type to infer table name
 	val := reflect.ValueOf(h.model)

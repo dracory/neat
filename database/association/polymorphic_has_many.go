@@ -11,15 +11,43 @@ import (
 
 // PolymorphicHasMany represents a polymorphic has-many relationship.
 // This allows a model to have many related models that can belong to multiple different model types.
+// Uses polymorphic fields (ID and Type) on the related models to store the relationship.
+//
 // Example: A Post can have many Comments, and a Video can also have many Comments.
+//   - comments table has commentable_id and commentable_type columns
+//   - commentable_id stores the ID of the parent model
+//   - commentable_type stores the type name (e.g., "Post", "Video")
+//
+// Database Schema:
+//
+//	posts (id, title, content)
+//	videos (id, title, url)
+//	comments (id, commentable_id, commentable_type, content)
+//
+//	type Post struct {
+//	    ID       uint
+//	    Title    string
+//	    Comments []Comment // polymorphic has-many
+//	}
 type PolymorphicHasMany struct {
 	*Association
-	polymorphicID   string
-	polymorphicType string
-	localKey        string
+	polymorphicID   string // The polymorphic ID field name on related models (e.g., "commentable_id")
+	polymorphicType string // The polymorphic type field name on related models (e.g., "commentable_type")
+	localKey        string // The primary key column on the current model (e.g., "id")
 }
 
 // NewPolymorphicHasMany creates a new PolymorphicHasMany association.
+// The query parameter provides the query builder for database operations.
+// The model parameter is the model instance that has many related models.
+// The association parameter is the name of the association (e.g., "comments").
+// The polymorphicID parameter is the polymorphic ID field name on related models (e.g., "commentable_id").
+// The polymorphicType parameter is the polymorphic type field name on related models (e.g., "commentable_type").
+// The localKey parameter is the primary key column on the current model (e.g., "id").
+//
+// Example:
+//
+//	post := Post{ID: 1, Title: "My Post"}
+//	assoc := NewPolymorphicHasMany(db.Query(), &post, "comments", "commentable_id", "commentable_type", "id")
 func NewPolymorphicHasMany(query contractsorm.Query, model any, association, polymorphicID, polymorphicType, localKey string) *PolymorphicHasMany {
 	return &PolymorphicHasMany{
 		Association:     NewAssociation(query, model, association),
@@ -30,6 +58,18 @@ func NewPolymorphicHasMany(query contractsorm.Query, model any, association, pol
 }
 
 // Find loads the associated models for a polymorphic has-many relationship.
+// The out parameter must be a pointer to a slice for the related models.
+// The conds parameter provides optional WHERE conditions for the query.
+// Uses the local key and model type name to query related models.
+// Filters by both polymorphic ID and polymorphic type.
+//
+// Example:
+//
+//	var comments []Comment
+//	err := assoc.Find(&comments)
+//
+//	var comments []Comment
+//	err := assoc.Find(&comments, "approved = ?", true)
 func (p *PolymorphicHasMany) Find(out any, conds ...any) error {
 	// Get the local key value from the model
 	localKeyValue, err := p.getLocalKeyValue()
@@ -67,6 +107,17 @@ func (p *PolymorphicHasMany) Find(out any, conds ...any) error {
 }
 
 // Append appends models to the polymorphic association.
+// The values parameter provides the model(s) to append to the association.
+// Sets the polymorphic ID to the current model's local key value.
+// Sets the polymorphic type to the current model's type name.
+// Validates that the value type matches the expected association type.
+// Saves each related model to persist the polymorphic fields.
+//
+// Example:
+//
+//	comment1 := Comment{Content: "Great post!"}
+//	comment2 := Comment{Content: "Thanks for sharing"}
+//	err := assoc.Append(&comment1, &comment2)
 func (p *PolymorphicHasMany) Append(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no values provided to append")
@@ -132,6 +183,14 @@ func (p *PolymorphicHasMany) Append(values ...any) error {
 }
 
 // Replace replaces the current association with the given values.
+// The values parameter provides the new model(s) for the association.
+// First clears the current association by setting polymorphic fields to null.
+// Then appends the new values.
+//
+// Example:
+//
+//	comments := []Comment{{Content: "New comment"}, {Content: "Another comment"}}
+//	err := assoc.Replace(comments...)
 func (p *PolymorphicHasMany) Replace(values ...any) error {
 	// First, clear the current association
 	if err := p.Clear(); err != nil {
@@ -143,6 +202,15 @@ func (p *PolymorphicHasMany) Replace(values ...any) error {
 }
 
 // Delete removes the given values from the association.
+// The values parameter provides the model(s) to remove from the association.
+// Sets the polymorphic fields to null for each related model using direct SQL update.
+// Ensures the model belongs to this association by checking both polymorphic fields.
+// Returns an error if the value was not part of the association.
+//
+// Example:
+//
+//	comment := Comment{ID: 1}
+//	err := assoc.Delete(&comment)
 func (p *PolymorphicHasMany) Delete(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no values provided to delete")
@@ -194,6 +262,12 @@ func (p *PolymorphicHasMany) Delete(values ...any) error {
 }
 
 // Clear clears the association by setting the polymorphic fields to null for all related models.
+// Updates all related models to set polymorphic ID and type to null.
+// Uses a single UPDATE statement for efficiency.
+//
+// Example:
+//
+//	err := assoc.Clear()
 func (p *PolymorphicHasMany) Clear() error {
 	// Get the local key value from the model
 	localKeyValue, err := p.getLocalKeyValue()
@@ -225,6 +299,11 @@ func (p *PolymorphicHasMany) Clear() error {
 }
 
 // Count returns the number of records in the association.
+// Counts records where both polymorphic ID and type match the current model.
+//
+// Example:
+//
+//	count := assoc.Count()
 func (p *PolymorphicHasMany) Count() int64 {
 	localKeyValue, err := p.getLocalKeyValue()
 	if err != nil {
@@ -249,6 +328,8 @@ func (p *PolymorphicHasMany) Count() int64 {
 }
 
 // getLocalKeyValue gets the local key value from the model.
+// Handles both snake_case (id) and PascalCase (ID) field names.
+// Returns an error if the field is not found or not accessible.
 func (p *PolymorphicHasMany) getLocalKeyValue() (any, error) {
 	val := reflect.ValueOf(p.model)
 	if val.Kind() == reflect.Ptr {
@@ -278,6 +359,8 @@ func (p *PolymorphicHasMany) getLocalKeyValue() (any, error) {
 }
 
 // getModelTypeName gets the type name of the model.
+// Returns the struct type name (e.g., "Post", "Video").
+// Returns empty string if the model is not a struct.
 func (p *PolymorphicHasMany) getModelTypeName() string {
 	val := reflect.ValueOf(p.model)
 	if val.Kind() == reflect.Ptr {
@@ -291,6 +374,10 @@ func (p *PolymorphicHasMany) getModelTypeName() string {
 }
 
 // setPolymorphicIDValue sets the polymorphic ID value on a related model.
+// Uses getFieldByTagOrName to find the field by tag or name.
+// Handles type conversion if the value type doesn't match the field type.
+// Setting to nil sets the field to its zero value.
+// Returns an error if the field is not found or not settable.
 func (p *PolymorphicHasMany) setPolymorphicIDValue(model any, value any) error {
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Ptr {
@@ -333,6 +420,10 @@ func (p *PolymorphicHasMany) setPolymorphicIDValue(model any, value any) error {
 }
 
 // setPolymorphicTypeValue sets the polymorphic type value on a related model.
+// Uses getFieldByTagOrName to find the field by tag or name.
+// Handles type conversion if the value type doesn't match the field type.
+// Setting to nil sets the field to its zero value.
+// Returns an error if the field is not found or not settable.
 func (p *PolymorphicHasMany) setPolymorphicTypeValue(model any, value any) error {
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Ptr {
@@ -375,6 +466,8 @@ func (p *PolymorphicHasMany) setPolymorphicTypeValue(model any, value any) error
 }
 
 // associationName returns the association name (table name).
+// Infers the table name from the model's TableName() method or struct name.
+// Simple pluralization is applied (e.g., "Comment" -> "comments").
 func (p *PolymorphicHasMany) associationName() string {
 	// Try to get the field type from the model to infer table name
 	val := reflect.ValueOf(p.model)

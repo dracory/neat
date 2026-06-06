@@ -964,3 +964,81 @@ func ExampleDatabase_Transaction_withIsolation() {
 		panic(err)
 	}
 }
+
+func ExampleNew_withReadWriteConnections() {
+	// Create a database instance with read-write separation
+	config := db.DBConfig{
+		Default: "read",
+		Connections: map[string]db.ConnectionConfig{
+			"read": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+			"write": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Use read connection for queries
+	readConn, err := db.Connection("read")
+	if err != nil {
+		panic(err)
+	}
+	_ = readConn
+
+	// Use write connection for mutations
+	writeConn, err := db.Connection("write")
+	if err != nil {
+		panic(err)
+	}
+	_ = writeConn
+}
+
+func ExampleNewFromDSN_withQueryParams() {
+	// Create a database instance from DSN with query parameters
+	db, err := NewFromDSN("postgres://user:pass@localhost:5432/mydb?sslmode=disable&connect_timeout=10", WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = db
+}
+
+func ExampleDatabase_Transaction_nested() {
+	config := db.DBConfig{
+		Default: "default",
+		Connections: map[string]db.ConnectionConfig{
+			"default": {
+				Driver:   "sqlite",
+				Database: ":memory:",
+			},
+		},
+	}
+
+	db, err := New(config, WithLogger(log.NewNoopLogger()))
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	// Nested transaction using savepoints
+	err = db.Transaction(func(tx orm.Query) error {
+		// Outer transaction
+		err := tx.Transaction(func(innerTx orm.Query) error {
+			// Inner transaction (savepoint)
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+}

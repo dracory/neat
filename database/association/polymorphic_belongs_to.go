@@ -11,14 +11,41 @@ import (
 
 // PolymorphicBelongsTo represents a polymorphic belongs-to relationship.
 // This allows a model to belong to multiple different model types.
+// Uses polymorphic fields (ID and Type) to store the relationship.
+//
 // Example: A Comment can belong to a Post or a Video.
+//   - comments table has commentable_id and commentable_type columns
+//   - commentable_id stores the ID of the related model
+//   - commentable_type stores the type name (e.g., "Post", "Video")
+//
+// Database Schema:
+//
+//	posts (id, title, content)
+//	videos (id, title, url)
+//	comments (id, commentable_id, commentable_type, content)
+//
+//	type Comment struct {
+//	    ID            uint
+//	    CommentableID uint   // polymorphic ID
+//	    CommentableType string // polymorphic type
+//	}
 type PolymorphicBelongsTo struct {
 	*Association
-	polymorphicID   string
-	polymorphicType string
+	polymorphicID   string // The polymorphic ID field name (e.g., "commentable_id")
+	polymorphicType string // The polymorphic type field name (e.g., "commentable_type")
 }
 
 // NewPolymorphicBelongsTo creates a new PolymorphicBelongsTo association.
+// The query parameter provides the query builder for database operations.
+// The model parameter is the model instance that belongs to another model.
+// The association parameter is the name of the association (e.g., "commentable").
+// The polymorphicID parameter is the polymorphic ID field name (e.g., "commentable_id").
+// The polymorphicType parameter is the polymorphic type field name (e.g., "commentable_type").
+//
+// Example:
+//
+//	comment := Comment{ID: 1, CommentableID: 5, CommentableType: "Post"}
+//	assoc := NewPolymorphicBelongsTo(db.Query(), &comment, "commentable", "commentable_id", "commentable_type")
 func NewPolymorphicBelongsTo(query contractsorm.Query, model any, association, polymorphicID, polymorphicType string) *PolymorphicBelongsTo {
 	return &PolymorphicBelongsTo{
 		Association:     NewAssociation(query, model, association),
@@ -28,6 +55,18 @@ func NewPolymorphicBelongsTo(query contractsorm.Query, model any, association, p
 }
 
 // Find loads the associated model for a polymorphic belongs-to relationship.
+// The out parameter must be a pointer to a struct for the related model.
+// The conds parameter provides optional WHERE conditions for the query.
+// Uses the polymorphic ID and type to determine which table to query.
+// Infers the table name from the type or model's TableName() method.
+//
+// Example:
+//
+//	var post Post
+//	err := assoc.Find(&post)
+//
+//	var video Video
+//	err := assoc.Find(&video, "published = ?", true)
 func (p *PolymorphicBelongsTo) Find(out any, conds ...any) error {
 	// Get the polymorphic ID value
 	polymorphicIDValue, err := p.getPolymorphicIDValue()
@@ -84,6 +123,15 @@ func (p *PolymorphicBelongsTo) Find(out any, conds ...any) error {
 }
 
 // Append sets the polymorphic fields to associate the model.
+// The values parameter must contain exactly one model to associate with.
+// Sets the polymorphic ID to the related model's ID.
+// Sets the polymorphic type to the related model's type name.
+// Saves the current model to persist the polymorphic fields.
+//
+// Example:
+//
+//	post := Post{ID: 5, Title: "My Post"}
+//	err := assoc.Append(&post)
 func (p *PolymorphicBelongsTo) Append(values ...any) error {
 	if len(values) == 0 {
 		return fmt.Errorf("no value provided to append")
@@ -141,12 +189,26 @@ func (p *PolymorphicBelongsTo) Append(values ...any) error {
 }
 
 // Replace replaces the current association with the given value.
+// The values parameter must contain exactly one model to associate with.
+// This is equivalent to Append for polymorphic belongs-to relationships.
+//
+// Example:
+//
+//	video := Video{ID: 10, Title: "My Video"}
+//	err := assoc.Replace(&video)
 func (p *PolymorphicBelongsTo) Replace(values ...any) error {
 	return p.Append(values...)
 }
 
 // Delete clears the association by setting the polymorphic fields to nil.
 // The values parameter is validated to ensure the provided value matches the current association.
+// Sets the polymorphic ID and type to nil/zero values.
+// Saves the current model to persist the changes.
+//
+// Example:
+//
+//	post := Post{ID: 5}
+//	err := assoc.Delete(&post)
 func (p *PolymorphicBelongsTo) Delete(values ...any) error {
 	// Validate that a value was provided
 	if len(values) == 0 {
@@ -219,6 +281,12 @@ func (p *PolymorphicBelongsTo) Delete(values ...any) error {
 }
 
 // Clear clears the association by setting the polymorphic fields to nil.
+// Sets the polymorphic ID and type to nil/zero values.
+// Saves the current model to persist the changes.
+//
+// Example:
+//
+//	err := assoc.Clear()
 func (p *PolymorphicBelongsTo) Clear() error {
 	if err := p.setPolymorphicIDValue(nil); err != nil {
 		return fmt.Errorf("failed to set polymorphic ID value: %w", err)
@@ -238,6 +306,11 @@ func (p *PolymorphicBelongsTo) Clear() error {
 }
 
 // Count returns 1 if the association exists, 0 otherwise.
+// Checks if the polymorphic ID and type are set and the related record exists.
+//
+// Example:
+//
+//	count := assoc.Count() // 1 if associated, 0 if not
 func (p *PolymorphicBelongsTo) Count() int64 {
 	polymorphicIDValue, err := p.getPolymorphicIDValue()
 	if err != nil {
@@ -286,6 +359,8 @@ func (p *PolymorphicBelongsTo) Count() int64 {
 }
 
 // getPolymorphicIDValue gets the polymorphic ID value from the model.
+// Uses getFieldByTagOrName to find the field by tag or name.
+// Returns an error if the field is not found or not accessible.
 func (p *PolymorphicBelongsTo) getPolymorphicIDValue() (any, error) {
 	val := reflect.ValueOf(p.model)
 	if val.Kind() == reflect.Ptr {
@@ -311,6 +386,8 @@ func (p *PolymorphicBelongsTo) getPolymorphicIDValue() (any, error) {
 }
 
 // getPolymorphicTypeValue gets the polymorphic type value from the model.
+// Uses getFieldByTagOrName to find the field by tag or name.
+// Returns an error if the field is not found or not accessible.
 func (p *PolymorphicBelongsTo) getPolymorphicTypeValue() (any, error) {
 	val := reflect.ValueOf(p.model)
 	if val.Kind() == reflect.Ptr {
@@ -336,6 +413,10 @@ func (p *PolymorphicBelongsTo) getPolymorphicTypeValue() (any, error) {
 }
 
 // setPolymorphicIDValue sets the polymorphic ID value on the model.
+// Uses getFieldByTagOrName to find the field by tag or name.
+// Handles type conversion if the value type doesn't match the field type.
+// Setting to nil sets the field to its zero value.
+// Returns an error if the field is not found or not settable.
 func (p *PolymorphicBelongsTo) setPolymorphicIDValue(value any) error {
 	val := reflect.ValueOf(p.model)
 	if val.Kind() == reflect.Ptr {
@@ -378,6 +459,10 @@ func (p *PolymorphicBelongsTo) setPolymorphicIDValue(value any) error {
 }
 
 // setPolymorphicTypeValue sets the polymorphic type value on the model.
+// Uses getFieldByTagOrName to find the field by tag or name.
+// Handles type conversion if the value type doesn't match the field type.
+// Setting to nil sets the field to its zero value.
+// Returns an error if the field is not found or not settable.
 func (p *PolymorphicBelongsTo) setPolymorphicTypeValue(value any) error {
 	val := reflect.ValueOf(p.model)
 	if val.Kind() == reflect.Ptr {
