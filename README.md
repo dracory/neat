@@ -42,9 +42,9 @@ import (
 )
 
 type User struct {
-    ID       uint   `json:"id"`
-    Name     string `json:"name"`
-    Email    string `json:"email"`
+    ID    uint
+    Name  string
+    Email string
 }
 
 func main() {
@@ -102,6 +102,10 @@ db, err := neat.New(config)
 - **SQL Server**: `sqlserver://user:password@localhost:1433?database=database`
 
 ## ORM Usage
+
+### Models
+
+Neat maps Go structs to database tables using struct tags. For detailed information on table names, column names, and tag priority, see [Models Documentation](./docs/models.md).
 
 ### Creating Records
 
