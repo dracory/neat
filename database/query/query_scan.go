@@ -23,7 +23,7 @@ func (q *Query) Scan(dest any) error {
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
-			return sanitizeError(fmt.Errorf("failed to execute SCAN query: %w", err), q.isProduction())
+			return q.sanitizeError(fmt.Errorf("failed to execute SCAN query: %w", err))
 		}
 		defer func() { _ = rows.Close() }()
 
@@ -37,7 +37,7 @@ func (q *Query) Scan(dest any) error {
 
 	rows, err := databaseConn.QueryContext(ctx, sql, args...)
 	if err != nil {
-		return sanitizeError(fmt.Errorf("failed to execute SCAN query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute SCAN query: %w", err))
 	}
 	defer func() { _ = rows.Close() }()
 

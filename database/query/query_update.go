@@ -49,7 +49,7 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, sanitizeError(fmt.Errorf("failed to execute UPDATE query: %w", err), q.isProduction())
+		return nil, q.sanitizeError(fmt.Errorf("failed to execute UPDATE query: %w", err))
 	}
 	q.logQuery(sqlStr, args, start)
 

@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"sync"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
@@ -23,6 +24,10 @@ type Query struct {
 	log        log.Log
 	queryLog   *[]contractsorm.QueryLog
 	enableLog  bool
+
+	// Runtime debug state
+	debugMu    sync.RWMutex
+	debugState bool
 
 	// Query state
 	table        string

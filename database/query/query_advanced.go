@@ -12,7 +12,7 @@ import (
 
 // Increment increments a column's value by a specified amount.
 func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, error) {
-	if err := q.validateAggregate(column, "*"); err != nil {
+	if err := q.validateAggregate(column); err != nil {
 		return nil, err
 	}
 
@@ -36,7 +36,7 @@ func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, e
 
 // Decrement decrements a column's value by a specified amount.
 func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, error) {
-	if err := q.validateAggregate(column, "*"); err != nil {
+	if err := q.validateAggregate(column); err != nil {
 		return nil, err
 	}
 
@@ -66,9 +66,9 @@ func (q *Query) InRandomOrder() contractsorm.Query {
 	} else {
 		order = "RANDOM()"
 	}
-	newQ := *q
+	newQ := q.Clone().(*Query)
 	newQ.orders = append(newQ.orders, orderClause{column: order, direction: ""})
-	return &newQ
+	return newQ
 }
 
 // LockForUpdate locks the selected rows for update.
@@ -91,10 +91,10 @@ func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
 		return &Query{}
 	}
 	// Store raw SQL for later use
-	newQ := *q
+	newQ := q.Clone().(*Query)
 	newQ.rawSQL = sql
 	newQ.rawArgs = values
-	return &newQ
+	return newQ
 }
 
 // Exec executes a raw SQL query.
@@ -130,7 +130,7 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, sanitizeError(fmt.Errorf("failed to execute raw SQL: %w", err), q.isProduction())
+		return nil, q.sanitizeError(fmt.Errorf("failed to execute raw SQL: %w", err))
 	}
 
 	if result == nil {
@@ -151,9 +151,9 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 
 // Omit specifies columns to omit from INSERT/UPDATE operations.
 func (q *Query) Omit(columns ...string) contractsorm.Query {
-	newQ := *q
+	newQ := q.Clone().(*Query)
 	newQ.omitColumns = append(newQ.omitColumns, columns...)
-	return &newQ
+	return newQ
 }
 
 // Restore restores a soft-deleted record.
@@ -224,7 +224,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, sanitizeError(fmt.Errorf("failed to execute RESTORE query: %w", err), q.isProduction())
+		return nil, q.sanitizeError(fmt.Errorf("failed to execute RESTORE query: %w", err))
 	}
 	q.logQuery(sql, args, start)
 
@@ -283,7 +283,7 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, sanitizeError(fmt.Errorf("failed to execute FORCE DELETE query: %w", err), q.isProduction())
+		return nil, q.sanitizeError(fmt.Errorf("failed to execute FORCE DELETE query: %w", err))
 	}
 	q.logQuery(sql, args, start)
 

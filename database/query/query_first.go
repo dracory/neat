@@ -30,7 +30,7 @@ func (q *Query) First(dest any) error {
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
-			return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
+			return q.sanitizeError(fmt.Errorf("failed to execute query: %w", err))
 		}
 		q.logQuery(sql, args, start)
 		if err := q.scanRows(rows, dest); err != nil {
@@ -61,7 +61,7 @@ func (q *Query) First(dest any) error {
 
 	rows, err := dbConn.QueryContext(ctx, sql, args...)
 	if err != nil {
-		return sanitizeError(fmt.Errorf("failed to execute query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute query: %w", err))
 	}
 	q.logQuery(sql, args, start)
 	if err := q.scanRows(rows, dest); err != nil {

@@ -1,6 +1,8 @@
 package query
 
 import (
+	"sync"
+
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
@@ -88,6 +90,10 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.afterCommit = append([]func() error{}, q.afterCommit...)
 	clone.beforeRollback = append([]func() error{}, q.beforeRollback...)
 	clone.afterRollback = append([]func() error{}, q.afterRollback...)
+
+	// Debug state
+	clone.debugState = q.debugState
+	clone.debugMu = sync.RWMutex{}
 
 	return clone
 }

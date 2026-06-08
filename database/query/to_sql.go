@@ -129,9 +129,9 @@ func (t *ToSql) Save(value any) string {
 
 	if id != 0 {
 		// UPDATE: set WHERE id = <id> on a clone, then generate UPDATE query
-		clone := *t.query
+		clone := t.query.Clone().(*Query)
 		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{id}})
-		builder := NewBuilder(&clone)
+		builder := NewBuilder(clone)
 		sql, args = builder.BuildUpdate(value)
 	} else {
 		// INSERT: generate INSERT query
