@@ -620,6 +620,21 @@ func (d *Database) GetQueryLog() []orm.QueryLog {
 	return d.ormInstance.GetQueryLog()
 }
 
+// EnableDebug enables debug mode at runtime for all queries.
+func (d *Database) EnableDebug() {
+	d.ormInstance.EnableDebug()
+}
+
+// DisableDebug disables debug mode at runtime for all queries.
+func (d *Database) DisableDebug() {
+	d.ormInstance.DisableDebug()
+}
+
+// IsDebug returns true if debug mode is enabled.
+func (d *Database) IsDebug() bool {
+	return d.ormInstance.IsDebug()
+}
+
 // Factory returns the ORM factory for creating test data.
 func (d *Database) Factory() orm.Factory {
 	return d.ormInstance.Factory()

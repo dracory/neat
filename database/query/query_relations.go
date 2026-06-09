@@ -323,7 +323,7 @@ func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
 
 // With specifies relations to eager load.
 func (q *Query) With(query string, args ...any) contractsorm.Query {
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 	newQuery.withRelations = append(newQuery.withRelations, query)
 
 	// Check if a constraint callback is provided
@@ -336,13 +336,13 @@ func (q *Query) With(query string, args ...any) contractsorm.Query {
 		}
 	}
 
-	return &newQuery
+	return newQuery
 }
 
 // Load loads a relation for the given model.
 func (q *Query) Load(dest any, relation string, args ...any) error {
 	// Create a new query for lazy loading
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 	newQuery.withRelations = []string{relation}
 	newQuery.model = dest
 
@@ -401,7 +401,7 @@ func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
 
 // Without removes specified relations from eager loading.
 func (q *Query) Without(relations ...string) contractsorm.Query {
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 	// Remove specified relations from withRelations
 	for _, relation := range relations {
 		for i, r := range newQuery.withRelations {
@@ -415,7 +415,7 @@ func (q *Query) Without(relations ...string) contractsorm.Query {
 			delete(newQuery.relationConstraints, relation)
 		}
 	}
-	return &newQuery
+	return newQuery
 }
 
 // WithCount adds a count subquery to the SELECT clause for the given relationship.
@@ -427,7 +427,7 @@ func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
 		return q
 	}
 
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 
 	cq := countQuery{
 		relation: relation,
@@ -442,7 +442,7 @@ func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
 	}
 
 	newQuery.withCountQueries = append(newQuery.withCountQueries, cq)
-	return &newQuery
+	return newQuery
 }
 
 // WithExists adds an exists subquery to the SELECT clause for the given relationship.
@@ -454,7 +454,7 @@ func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
 		return q
 	}
 
-	newQuery := *q
+	newQuery := q.Clone().(*Query)
 
 	eq := existsQuery{
 		relation: relation,
@@ -468,7 +468,7 @@ func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
 	}
 
 	newQuery.withExistsQueries = append(newQuery.withExistsQueries, eq)
-	return &newQuery
+	return newQuery
 }
 
 // Association returns an association for the given relationship name.

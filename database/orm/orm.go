@@ -339,6 +339,45 @@ func (r *Orm) GetQueryLog() []contractsorm.QueryLog {
 	return nil
 }
 
+// EnableDebug enables debug mode at runtime for all queries.
+func (r *Orm) EnableDebug() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	for _, q := range r.queries {
+		if queryWithDebug, ok := q.(interface{ EnableDebug() }); ok {
+			queryWithDebug.EnableDebug()
+		}
+	}
+}
+
+// DisableDebug disables debug mode at runtime for all queries.
+func (r *Orm) DisableDebug() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.query != nil {
+		if queryWithDebug, ok := r.query.(interface{ DisableDebug() }); ok {
+			queryWithDebug.DisableDebug()
+		}
+	}
+	for _, q := range r.queries {
+		if queryWithDebug, ok := q.(interface{ DisableDebug() }); ok {
+			queryWithDebug.DisableDebug()
+		}
+	}
+}
+
+// IsDebug returns true if debug mode is enabled.
+func (r *Orm) IsDebug() bool {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if r.query != nil {
+		if queryWithDebug, ok := r.query.(interface{ IsDebug() bool }); ok {
+			return queryWithDebug.IsDebug()
+		}
+	}
+	return false
+}
+
 func (r *Orm) Factory() contractsorm.Factory {
 	return NewFactory(r)
 }

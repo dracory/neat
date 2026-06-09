@@ -4,15 +4,20 @@ import (
 	"context"
 	"database/sql"
 
+	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/observer"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
-	"github.com/dracory/neat/contracts/log"
 )
 
 // NewQuery creates a new Query instance.
 func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection string, dbConfig *db.DBConfig, log log.Log) *Query {
+	debugState := false
+	if dbConfig != nil {
+		debugState = dbConfig.Debug
+	}
+
 	return &Query{
 		ctx:             ctx,
 		db:              db,
@@ -27,6 +32,7 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 		modelToObserver: make([]contractsorm.ModelToObserver, 0),
 		withoutEvents:   false,
 		dispatcher:      observer.NewDispatcher(log),
+		debugState:      debugState,
 	}
 }
 

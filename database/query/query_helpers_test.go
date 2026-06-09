@@ -14,7 +14,7 @@ func TestValidateAggregate(t *testing.T) {
 	// Test valid column names
 	validColumns := []string{"id", "user_id", "count", "*", "table.column"}
 	for _, col := range validColumns {
-		err := q.validateAggregate(col, nil)
+		err := q.validateAggregate(col)
 		if err != nil {
 			t.Errorf("Expected no error for valid column '%s', got: %v", col, err)
 		}
@@ -23,7 +23,7 @@ func TestValidateAggregate(t *testing.T) {
 	// Test invalid column names
 	invalidColumns := []string{"id;", "user'id", "count--", "table`column"}
 	for _, col := range invalidColumns {
-		err := q.validateAggregate(col, nil)
+		err := q.validateAggregate(col)
 		if err == nil {
 			t.Errorf("Expected error for invalid column '%s'", col)
 		}

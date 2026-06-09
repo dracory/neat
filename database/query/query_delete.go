@@ -106,7 +106,7 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, sanitizeError(fmt.Errorf("failed to execute DELETE query: %w", err), q.isProduction())
+		return nil, q.sanitizeError(fmt.Errorf("failed to execute DELETE query: %w", err))
 	}
 	q.logQuery(deleteSQL, args, start)
 

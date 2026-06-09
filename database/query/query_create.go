@@ -72,7 +72,7 @@ func (q *Query) Create(value any) error {
 			var rows *sql.Rows
 			rows, err = q.tx.QueryContext(ctx, sqlStr, args...)
 			if err != nil {
-				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
+				return q.sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err))
 			}
 			defer func() { _ = rows.Close() }()
 
@@ -130,7 +130,7 @@ func (q *Query) Create(value any) error {
 			var rows *sql.Rows
 			rows, err = dbConn.QueryContext(ctx, sqlStr, args...)
 			if err != nil {
-				return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
+				return q.sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err))
 			}
 			defer func() { _ = rows.Close() }()
 
@@ -180,7 +180,7 @@ func (q *Query) Create(value any) error {
 	}
 
 	if err != nil {
-		return sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute INSERT query: %w", err))
 	}
 	q.logQuery(sqlStr, args, start)
 

@@ -16,7 +16,7 @@ func (q *Query) Count(count *int64) error {
 	if count == nil {
 		return fmt.Errorf("destination cannot be nil")
 	}
-	if err := q.validateAggregate("*", count); err != nil {
+	if err := q.validateAggregate("*"); err != nil {
 		return err
 	}
 
@@ -47,7 +47,7 @@ func (q *Query) Count(count *int64) error {
 	}
 
 	if err != nil {
-		return sanitizeError(fmt.Errorf("failed to execute COUNT query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute COUNT query: %w", err))
 	}
 
 	// Log query if enabled
@@ -64,7 +64,7 @@ func (q *Query) Sum(column string, dest any) error {
 	if dest == nil {
 		return fmt.Errorf("destination cannot be nil")
 	}
-	if err := q.validateAggregate(column, dest); err != nil {
+	if err := q.validateAggregate(column); err != nil {
 		return err
 	}
 
@@ -97,7 +97,7 @@ func (q *Query) Sum(column string, dest any) error {
 			// No rows found - set zero value for destination
 			return nil
 		}
-		return sanitizeError(fmt.Errorf("failed to execute SUM query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute SUM query: %w", err))
 	}
 
 	// Log query if enabled
@@ -114,7 +114,7 @@ func (q *Query) Avg(column string, dest any) error {
 	if dest == nil {
 		return fmt.Errorf("destination cannot be nil")
 	}
-	if err := q.validateAggregate(column, dest); err != nil {
+	if err := q.validateAggregate(column); err != nil {
 		return err
 	}
 
@@ -147,7 +147,7 @@ func (q *Query) Avg(column string, dest any) error {
 			// No rows found - set zero value for destination
 			return nil
 		}
-		return sanitizeError(fmt.Errorf("failed to execute AVG query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute AVG query: %w", err))
 	}
 
 	// Log query if enabled
@@ -164,7 +164,7 @@ func (q *Query) Min(column string, dest any) error {
 	if dest == nil {
 		return fmt.Errorf("destination cannot be nil")
 	}
-	if err := q.validateAggregate(column, dest); err != nil {
+	if err := q.validateAggregate(column); err != nil {
 		return err
 	}
 
@@ -197,7 +197,7 @@ func (q *Query) Min(column string, dest any) error {
 			// No rows found - set zero value for destination
 			return nil
 		}
-		return sanitizeError(fmt.Errorf("failed to execute MIN query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute MIN query: %w", err))
 	}
 
 	// Log query if enabled
@@ -214,7 +214,7 @@ func (q *Query) Max(column string, dest any) error {
 	if dest == nil {
 		return fmt.Errorf("destination cannot be nil")
 	}
-	if err := q.validateAggregate(column, dest); err != nil {
+	if err := q.validateAggregate(column); err != nil {
 		return err
 	}
 
@@ -247,7 +247,7 @@ func (q *Query) Max(column string, dest any) error {
 			// No rows found - set zero value for destination
 			return nil
 		}
-		return sanitizeError(fmt.Errorf("failed to execute MAX query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute MAX query: %w", err))
 	}
 
 	// Log query if enabled
@@ -290,7 +290,7 @@ func (q *Query) Exists(exists *bool) error {
 	}
 
 	if err != nil {
-		return sanitizeError(fmt.Errorf("failed to execute EXISTS query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute EXISTS query: %w", err))
 	}
 
 	*exists = count > 0
@@ -322,7 +322,7 @@ func (q *Query) Pluck(column string, dest any) error {
 	if q.tx != nil {
 		rows, err := q.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
-			return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
+			return q.sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err))
 		}
 		defer func() { _ = rows.Close() }()
 
@@ -336,7 +336,7 @@ func (q *Query) Pluck(column string, dest any) error {
 
 	rows, err := databaseConn.QueryContext(ctx, sql, args...)
 	if err != nil {
-		return sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute PLUCK query: %w", err))
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -380,7 +380,7 @@ func (q *Query) Value(column string, dest any) error {
 			// No rows found is not an error for Value - return zero value
 			return nil
 		}
-		return sanitizeError(fmt.Errorf("failed to execute VALUE query: %w", err), q.isProduction())
+		return q.sanitizeError(fmt.Errorf("failed to execute VALUE query: %w", err))
 	}
 
 	// Log query if enabled

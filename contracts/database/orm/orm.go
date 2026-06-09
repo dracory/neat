@@ -37,6 +37,14 @@ type Orm interface {
 	// GetQueryLog retrieves the captured queries from the log.
 	// Returns a slice of QueryLog containing all executed queries since logging was enabled.
 	GetQueryLog() []QueryLog
+	// EnableDebug enables debug mode at runtime for all queries.
+	// When enabled, detailed SQL error messages are shown instead of generic errors.
+	EnableDebug()
+	// DisableDebug disables debug mode at runtime for all queries.
+	// When disabled, SQL error messages are sanitized for security.
+	DisableDebug()
+	// IsDebug returns true if debug mode is enabled.
+	IsDebug() bool
 	// Factory gets a new factory instance for the given model name.
 	// Factories are used for generating test data and seeding databases.
 	Factory() Factory

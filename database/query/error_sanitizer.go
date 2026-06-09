@@ -7,21 +7,20 @@ import (
 	"strings"
 )
 
-// isProduction returns true when the query is not in debug mode.
-// Safe to call when dbConfig is nil (defaults to production/non-debug).
-func (q *Query) isProduction() bool {
-	if q.dbConfig == nil {
-		return true
-	}
-	return !q.dbConfig.Debug
-}
-
 // sanitizeError removes SQL details from error messages in production mode.
-// Call with q.isProduction() to prevent SQL detail leakage to callers.
+// Logs full errors when debug is enabled.
 // Integrated into query execution error return paths (Scan, Exec, Create, Update, Delete, Restore, ForceDelete).
 // See security review Finding #9.
-func sanitizeError(err error, isProduction bool) error {
-	if err == nil || !isProduction {
+func (q *Query) sanitizeError(err error) error {
+	if err == nil {
+		return err
+	}
+
+	if q.IsDebug() {
+		// Log full error when debug is enabled
+		if q.log != nil {
+			q.log.Errorf("Database error: %v", err)
+		}
 		return err
 	}
 
