@@ -23,7 +23,20 @@ type SoftDeletes struct {
 	DeletedAt sql.NullTime `json:"deleted_at,omitempty"`
 }
 
-// Timestamps represents created and updated timestamp fields.
+// CreatedAt provides only the created timestamp for immutable models.
+// Embed this when you need only created_at without updated_at (e.g., audit logs, event sourcing).
+type CreatedAt struct {
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// UpdatedAt provides only the updated timestamp.
+// Embed this when you need only updated_at without created_at.
+type UpdatedAt struct {
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Timestamps represents both created and updated timestamp fields.
+// This is a convenience embed combining CreatedAt and UpdatedAt.
 type Timestamps struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
