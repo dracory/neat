@@ -275,34 +275,6 @@ func setModelPrimaryKey(value any, id any) {
 	}
 }
 
-// getModelPrimaryKey gets the primary key field (ID or Id) from a struct model.
-func getModelPrimaryKey(value any) int64 {
-	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if v.Kind() != reflect.Struct {
-		return 0
-	}
-	for _, name := range []string{"ID", "Id"} {
-		field := v.FieldByName(name)
-		if !field.IsValid() {
-			continue
-		}
-		switch field.Kind() {
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			u := field.Uint()
-			if u > uint64(1<<63-1) {
-				return 0 // Overflow, return 0
-			}
-			return int64(u)
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return field.Int()
-		}
-	}
-	return 0
-}
-
 // getPrimaryKeyValueAny returns the primary key value (ID/Id) of a struct as any.
 // Returns the value and true if found, or nil and false if absent.
 func getPrimaryKeyValueAny(value any) (any, bool) {
