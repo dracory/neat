@@ -1,141 +1,350 @@
 # Proposal: Track Updated Fields (Dirty Tracking)
 
-This proposal outlines several ways to implement "Dirty Tracking" in the Neat ORM, allowing for efficient updates by only sending modified fields to the database.
+This proposal outlines how to implement "dirty tracking" in the Neat ORM, allowing efficient updates by sending only modified fields to the database.
 
-## Overview
+## Problem Statement
 
-Currently, Neat's `Save` method updates all non-zero fields of a struct. While this works for most cases, it can lead to:
-1. Unnecessary database traffic.
-2. Accidental overwrites of data changed by other processes.
-3. Inability to "unset" fields (e.g., setting a string to empty) if the ORM treats empty as "don't update".
+The current `Save` method updates all non-zero fields of a struct. This works for most cases but can be optimized:
 
-Inspired by `dataobject`, we propose three potential implementations.
-
----
-
-## Proposal A: Automatic Snapshotting (Transparent)
-
-The ORM automatically takes a snapshot of the model when it is loaded from the database and compares it with the current state during the update.
-
-### Mechanism
-- When `Scan` is called, the ORM stores a copy of the retrieved data.
-- This snapshot can be stored in a hidden field in the model (if it implements a specific interface) or in a registry associated with the query/transaction.
-- Upon `Save`, the ORM uses reflection to compare the current struct fields with the snapshot.
-
-### Example Usage
 ```go
-user := models.User{}
-db.Model(&user).First(&user, 1)
+user := User{Name: "John", Age: 30, Email: "john@example.com"}
+db.First(&user, 1)
 
-user.Name = "John Doe"
-// user.Age remains 30
-
+user.Name = "Jane"
 db.Save(&user)
-// SQL: UPDATE users SET name = 'John Doe', updated_at = '...' WHERE id = 1
+// Current: UPDATE users SET name = 'Jane', age = 30, email = 'john@example.com' WHERE id = 1
+// Optimized: UPDATE users SET name = 'Jane' WHERE id = 1
 ```
 
-### Breaking Changes
-- **None**. Existing code remains exactly the same.
+With dirty tracking:
+- Reduced database traffic
+- Better handling of zero values (empty strings, 0, false)
+- Cleaner UPDATE statements
 
-### Method Signatures
-- No public signature changes.
-- Internal changes to `database/query/query_scan.go` and `database/query/query_save.go`.
+## Priority: Nice to Have
 
-### Pros
-- **Zero Boilerplate**: Works "out of the box" for all models.
-- **Developer Experience**: Feels like standard Go; no need to use getters/setters.
+**This is a convenience feature, not essential functionality.** Neat ORM already handles all dirty tracking use cases through existing methods.
 
-### Cons
-- **Memory Overhead**: Storing a snapshot for every loaded model.
-- **CPU Overhead**: Reflection-based comparison on every save.
-- **Complexity**: Managing the lifecycle of snapshots (especially when models are passed across different query instances).
+### Current Workarounds (Work Today)
+
+| Use Case | Current Solution | Example |
+|----------|------------------|---------|
+| Update specific fields | `Update()` with map | `db.Where("id = ?", 1).Update(map[string]any{"name": "Jane"})` |
+| Update with zero value | `Update()` with map | `Update(map[string]any{"count": 0})` |
+| Partial update via Save | `Select()` + `Save()` | `db.Select("name").Save(&user)` |
+
+### When This Feature Helps
+
+Dirty tracking becomes convenient when:
+- Models have **10+ fields** and manual `Select()` field lists become tedious
+- You modify fields across **multiple code paths** and tracking changes is complex
+- You want `Save()` to "just work" without specifying which fields changed
+
+### When This Feature Is Unnecessary
+
+Skip this implementation if:
+- Most models have **3-5 fields** (easy to track manually)
+- You're comfortable with explicit `Update()` or `Select()` calls
+- You prefer keeping the ORM **simple and minimal**
 
 ---
 
-## Proposal B: Explicit Tracking (Getter/Setter)
+## Inspiration: `dracory/dataobject`
 
-Following the `dataobject` pattern, models use private fields and public methods to interact with data. The setter method explicitly marks the field as "dirty".
+The [dracory/dataobject](https://github.com/dracory/dataobject) library demonstrates an elegant dirty tracking pattern using `Set()` and `Hydrate()` methods:
 
-### Mechanism
-- Models embed a `orm.Trackable` struct.
-- Fields are kept private.
-- Setters call `o.MarkDirty("field_name")`.
-- `Save` only processes fields present in the "dirty" map.
+```go
+func (do *DataObject) Set(key string, value string) {
+    do.data[key] = value
+    do.dataChanged[key] = value  // automatic tracking
+}
 
-### Example Usage
+func (do *DataObject) Hydrate(data map[string]string) {
+    do.data = data  // load without marking dirty
+}
+```
+
+**Adapting for Neat ORM**: Since Neat uses native Go structs with typed fields (not `map[string]string`), we can adapt this pattern to work with struct scanning and reflection-based comparison.
+
+---
+
+## Proposal A: Automatic Snapshotting (Recommended)
+
+Models implement a `Snapshotter` interface. The ORM automatically stores a copy when loading and compares on save.
+
+### Implementation
+
+```go
+// contracts/database/orm/snapshotter.go
+package orm
+
+type Snapshotter interface {
+    SetSnapshot(data map[string]any)
+    GetSnapshot() map[string]any
+    ClearSnapshot()
+}
+```
+
+### Usage
+
 ```go
 type User struct {
     orm.Model
-    orm.Trackable
-    name string
+    Name  string `db:"name"`
+    Email string `db:"email"`
+    Age   int    `db:"age"`
+    snapshot map[string]any
 }
 
-func (u *User) SetName(name string) {
-    u.name = name
-    u.MarkDirty("name")
-}
+func (u *User) SetSnapshot(data map[string]any) { u.snapshot = data }
+func (u *User) GetSnapshot() map[string]any     { return u.snapshot }
+func (u *User) ClearSnapshot()                  { u.snapshot = nil }
 
-// ... in application code
-user := models.NewUser()
-db.First(user, 1)
-user.SetName("John Doe")
-db.Save(user)
+// Usage - no changes to application code
+user := User{}
+db.First(&user, 1)  // Snapshot stored automatically
+user.Name = "Jane"
+db.Save(&user)        // Only name is updated
 ```
 
-### Breaking Changes
-- **High**. Requires users to rewrite their models if they want to use this feature.
-- Method signatures for `Save` might need to check for a `Trackable` interface.
+### PROS
 
-### Method Signatures
-- New interface `contractsorm.Trackable`.
-- New base struct `orm.Trackable` with `MarkDirty`, `IsDirty`, `GetDirty`, etc.
+| Benefit | Description |
+|---------|-------------|
+| **Transparent** | Zero changes to application code after interface implementation |
+| **Opt-in** | Only models implementing `Snapshotter` get the behavior; no breaking changes |
+| **Familiar** | Similar pattern to `json.Marshaler`, `sql.Scanner` |
+| **Zero-value support** | Can update fields to `0`, `""`, `false` - the snapshot shows they changed |
+| **Automatic** | Works without manual `MarkDirty()` calls in every setter |
+| **Type-safe** | Maintains Go's type system (unlike map-based approaches) |
 
-### Pros
-- **Performance**: Extremely fast. No comparison needed; the ORM knows exactly what changed.
-- **Explicit**: No magic; the developer has full control.
-- **Functionality**: Easily allows setting fields to their zero values (e.g., `""` or `0`).
+### CONS
 
-### Cons
-- **Boilerplate**: Significant amount of code needed for each model (Getters/Setters).
-- **Not "Idiomatic" Go**: Many Go developers prefer public fields on structs for simple data models.
+| Consideration | Mitigation |
+|---------------|------------|
+| **Memory overhead** | One extra map per tracked instance; cleared after `Save` |
+| **CPU overhead** | Reflection-based comparison on save; limited to `Snapshotter` models |
+| **Partial loading** | If `Select()` loads partial fields, snapshot may be incomplete; document or skip snapshotting |
+| **Interface boilerplate** | ~10 lines of boilerplate per model; could be code-generated |
+
+### Implementation Notes
+
+Internal changes needed:
+- `query_scan.go`: Call `SetSnapshot` after successful scan
+- `query_save.go`: Detect `Snapshotter`, compare fields, build partial UPDATE
+- `builder_update.go`: Generate UPDATE with only changed columns
+
+### Handling Partial Loading
+
+If `Select()` is used to load partial fields, the ORM can either:
+1. Skip snapshotting when partial fields loaded (documented limitation)
+2. Store which fields were loaded and only compare those
 
 ---
 
-## Proposal C: Manual Marking / Selective Update
+## Proposal B: Hybrid Approach (Manual + Automatic)
 
-A middle-ground where the developer manually specifies which fields have changed, or uses a fluent API to restrict the update.
+Combine automatic snapshotting with optional manual control via embedded struct.
 
-### Mechanism
-- Add a fluent method `OnlyColumns(...string)` or `UpdateOnly(&model, "field1", "field2")`.
+### Implementation
 
-### Example Usage
 ```go
-user.Name = "John Doe"
-db.Model(&user).Only("name").Save(&user)
+// database/orm/trackable.go
+type Trackable struct {
+    dirtyFields map[string]bool
+}
+
+func (t *Trackable) MarkDirty(fields ...string) {
+    for _, f := range fields {
+        t.dirtyFields[f] = true
+    }
+}
+
+func (t *Trackable) IsDirty() bool {
+    return len(t.dirtyFields) > 0
+}
+
+func (t *Trackable) GetDirtyFields() []string { ... }
+func (t *Trackable) ClearDirty() { t.dirtyFields = nil }
 ```
 
-### Breaking Changes
-- **None**.
+### Usage
 
-### Method Signatures
-- Add `Only(columns ...string) Query` to the `Query` interface.
+```go
+type User struct {
+    orm.Model
+    orm.Trackable  // embedded
+    Name  string
+    Email string
+}
 
-### Pros
-- **Simple to implement**.
-- **No overhead** when not used.
+user := User{}
+db.First(&user, 1)
 
-### Cons
-- **Error-Prone**: Easy to forget to include a column.
-- **Tedious**: Developer must manually keep track of what they changed.
+user.Name = "Jane"
+user.MarkDirty("name")  // explicit control
+
+db.Save(&user)
+```
+
+### PROS
+
+| Benefit | Description |
+|---------|-------------|
+| **Explicit control** | Developer decides exactly which fields are "dirty" |
+| **No reflection** | Slightly faster than snapshot comparison at save time |
+| **Partial model friendly** | Works well with `Select()` partial loading |
+| **Composable** | Can be combined with `Snapshotter` for hybrid approach |
+
+### CONS
+
+| Consideration | Mitigation |
+|---------------|------------|
+| **Manual tracking** | Easy to forget `MarkDirty()`, causing silent bugs |
+| **Boilerplate** | Must call `MarkDirty()` in every setter or after every field change |
+| **String field names** | Prone to typos; no compile-time checking |
+
+### When to Use
+
+- When you want explicit control over which fields are considered "changed"
+- When working with partial models where automatic comparison isn't desired
+- As a fallback for models that need custom dirty tracking logic
+
+---
+
+## Existing Alternative: `Select()` Method
+
+For ad-hoc partial updates, the existing `Select()` method already works:
+
+```go
+user := User{ID: 1, Name: "Jane"}
+db.Select("name").Save(&user)
+// SQL: UPDATE users SET name = 'Jane' WHERE id = 1
+```
+
+### PROS
+
+| Benefit | Description |
+|---------|-------------|
+| **Already works** | No implementation needed |
+| **Explicit** | Clear intent in code |
+| **Zero overhead** | No memory or CPU overhead |
+
+### CONS
+
+| Consideration | Description |
+|---------------|-------------|
+| **Manual** | Must specify fields every time |
+| **Not automatic** | Doesn't solve general dirty tracking use case |
+| **Easy to forget** | If you change multiple fields, must update `Select()` call |
+
+This is useful for one-off updates but doesn't solve the general dirty tracking use case.
+
+---
+
+## Comparison Matrix
+
+| Aspect | Proposal A (Snapshot) | Proposal B (Trackable) | Existing `Select` |
+|--------|------------------------|------------------------|-------------------|
+| **Boilerplate** | Interface methods (~10 lines) | Embed + `MarkDirty` calls everywhere | Per-query |
+| **Automatic** | Yes | No (manual) | No (manual) |
+| **Performance** | Reflection on save | No reflection | Optimal |
+| **Zero values** | Supported | Supported | Supported |
+| **Partial loading** | Edge case | Works fine | N/A |
+| **Forgotten tracking** | Automatic | Silent bug | N/A |
 
 ---
 
 ## Recommendation
 
-We recommend **Proposal A** as the primary implementation because it aligns with the Neat philosophy of being developer-friendly and "magical" in a good way.
+**Implement Proposal A (Snapshotter)** as the primary mechanism.
 
-However, to address the performance concerns, we can implement it as an **Opt-in** feature:
-1. If a model embeds `orm.DirtyTracking`, the ORM will perform snapshotting.
-2. If it doesn't, it falls back to the current "update all non-zero" behavior.
+### Why Snapshotter
 
-We can also provide the methods from **Proposal B** (`MarkDirty`) as a way for developers to manually override or optimize the process.
+1. **Least intrusive**: Models only need ~10 lines of interface implementation
+2. **Automatic**: Works transparently once set up
+3. **Type-safe**: Maintains Go's type system (unlike `dataobject` map approach)
+4. **Flexible**: Opt-in per model via interface
+
+### Implementation Plan
+
+1. **Add `Snapshotter` interface** to `contracts/database/orm/`
+2. **Modify `Save()`** to detect and use snapshot comparison
+3. **Add helper utilities** for common snapshot operations
+4. **Document** the interface and benefits
+
+### Example Migration
+
+```go
+// Before - no dirty tracking
+type User struct {
+    orm.Model
+    Name  string `db:"name"`
+    Email string `db:"email"`
+}
+
+// After - with dirty tracking
+type User struct {
+    orm.Model
+    Name  string `db:"name"`
+    Email string `db:"email"`
+    snapshot map[string]any
+}
+
+func (u *User) SetSnapshot(data map[string]any) { u.snapshot = data }
+func (u *User) GetSnapshot() map[string]any     { return u.snapshot }
+func (u *User) ClearSnapshot()                  { u.snapshot = nil }
+```
+
+Application code requires **no changes**.
+
+---
+
+## Implementation Details
+
+### Save Method Behavior
+
+```go
+func (q *Query) Save(value any) error {
+    // Check if model implements Snapshotter
+    if snapshotter, ok := value.(Snapshotter); ok {
+        if snapshot := snapshotter.GetSnapshot(); snapshot != nil {
+            // Compare and build partial UPDATE
+            changed := getChangedFields(value, snapshot)
+            if len(changed) > 0 {
+                // Build UPDATE only with changed fields
+                return q.updateOnly(value, changed)
+            }
+            // No changes - optionally update timestamps only
+            return nil
+        }
+    }
+    // Fall back to current behavior
+    return q.saveAllNonZero(value)
+}
+```
+
+### Zero Value Updates
+
+With snapshotting, zero values work correctly:
+
+```go
+user := User{ID: 1}
+db.First(&user)  // user.Count = 5 from DB
+
+user.Count = 0  // Setting to zero
+db.Save(&user)  // UPDATE users SET count = 0 WHERE id = 1
+// Snapshot shows count changed from 5 to 0
+```
+
+---
+
+## Appendix: Related Proposals
+
+- [Alternative Soft Delete Support](alternative-soft-delete-support.md)
+- [Alternative Soft Delete Column Naming](alternative-soft-delete-column-naming.md)
+
+## References
+
+1. [dracory/dataobject](https://github.com/dracory/dataobject) - Go data object library with automatic dirty tracking
+2. [Doctrine ORM Change Tracking Policies](https://www.doctrine-project.org/projects/doctrine-orm/en/2.17/reference/change-tracking-policies.html)
