@@ -122,21 +122,20 @@ func (t *ToSql) Value(column string, dest any) string {
 
 // Save generates the SQL for an INSERT or UPDATE query based on primary key.
 func (t *ToSql) Save(value any) string {
-	// Determine if it's an insert or update based on primary key
-	id := getPrimaryKeyValue(value)
 	var sql string
 	var args []any
 
-	if id != 0 {
-		// UPDATE: set WHERE id = <id> on a clone, then generate UPDATE query
-		clone := t.query.Clone().(*Query)
-		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{id}})
-		builder := NewBuilder(clone)
-		sql, args = builder.BuildUpdate(value)
-	} else {
+	if isPrimaryKeyZero(value) {
 		// INSERT: generate INSERT query
 		builder := NewBuilder(t.query)
 		sql, args = builder.BuildInsert(value)
+	} else {
+		// UPDATE: set WHERE id = <id> on a clone, then generate UPDATE query
+		idVal, _ := getPrimaryKeyValueAny(value)
+		clone := t.query.Clone().(*Query)
+		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{idVal}})
+		builder := NewBuilder(clone)
+		sql, args = builder.BuildUpdate(value)
 	}
 
 	if t.useValues {

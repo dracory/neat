@@ -386,6 +386,18 @@ func (r *Blueprint) SetTable(name string) {
 	r.table = name
 }
 
+// ShortID creates a new short string primary key column on the table.
+// Suitable for client-generated short IDs (e.g., Crockford Base32).
+func (r *Blueprint) ShortID(column ...string) schema.ColumnDefinition {
+	name := "id"
+	if len(column) > 0 {
+		name = column[0]
+	}
+	col := r.String(name, 21)
+	r.Primary(name)
+	return col
+}
+
 // ShouldSkipTransaction returns true if the blueprint should skip the transaction wrapper.
 // This is used for SQLite-specific operations like RenameIndex that have issues with DDL in transactions.
 func (r *Blueprint) ShouldSkipTransaction() bool {

@@ -436,6 +436,102 @@ func TestApplyAttributes(t *testing.T) {
 	})
 }
 
+func TestGetPrimaryKeyValueAny(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+	type UserWithStringID struct {
+		ID string
+	}
+	type UserNoID struct {
+		Name string
+	}
+
+	tests := []struct {
+		name     string
+		value    any
+		expected any
+		found    bool
+	}{
+		{"uint ID", &User{ID: 42}, int64(42), true},
+		{"string ID", &UserWithStringID{ID: "abc123"}, "abc123", true},
+		{"empty string ID", &UserWithStringID{ID: ""}, "", true},
+		{"no ID field", &UserNoID{Name: "test"}, nil, false},
+		{"nil pointer", (*User)(nil), nil, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, found := getPrimaryKeyValueAny(tt.value)
+			if found != tt.found {
+				t.Errorf("getPrimaryKeyValueAny(%v) found = %v, want %v", tt.value, found, tt.found)
+			}
+			if found && result != tt.expected {
+				t.Errorf("getPrimaryKeyValueAny(%v) = %v, want %v", tt.value, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsPrimaryKeyZero(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+	type UserWithStringID struct {
+		ID string
+	}
+	type UserNoID struct {
+		Name string
+	}
+
+	tests := []struct {
+		name     string
+		value    any
+		expected bool
+	}{
+		{"non-zero uint ID", &User{ID: 42}, false},
+		{"zero uint ID", &User{ID: 0}, true},
+		{"non-empty string ID", &UserWithStringID{ID: "abc123"}, false},
+		{"empty string ID", &UserWithStringID{ID: ""}, true},
+		{"no ID field", &UserNoID{Name: "test"}, true},
+		{"nil pointer", (*User)(nil), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isPrimaryKeyZero(tt.value)
+			if result != tt.expected {
+				t.Errorf("isPrimaryKeyZero(%v) = %v, want %v", tt.value, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsShortIDModel(t *testing.T) {
+	type User struct {
+		ID uint
+	}
+	type Product struct {
+		ID string
+	}
+	type NoID struct {
+		Name string
+	}
+
+	if isShortIDModel(&User{ID: 1}) {
+		t.Error("expected uint ID model to not be short ID model")
+	}
+	if !isShortIDModel(&Product{ID: "abc"}) {
+		t.Error("expected string ID model to be short ID model")
+	}
+	if isShortIDModel(&NoID{Name: "test"}) {
+		t.Error("expected model without ID to not be short ID model")
+	}
+	if !isShortIDModel([]Product{{ID: "abc"}}) {
+		t.Error("expected slice of string-ID models to be short ID model")
+	}
+}
+
 func TestIsSimpleIdentifier(t *testing.T) {
 	tests := []struct {
 		name     string

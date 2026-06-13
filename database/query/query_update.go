@@ -108,7 +108,8 @@ func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any
 		// Merge attributes into values for the update
 		merged := mergeAttributes(values, attributes)
 		// Set the ID from the found record to ensure we update the correct record
-		setModelPrimaryKey(merged, getModelPrimaryKey(dest))
+		idVal, _ := getPrimaryKeyValueAny(dest)
+		setModelPrimaryKey(merged, idVal)
 		if err := q.Save(merged); err != nil {
 			return err
 		}

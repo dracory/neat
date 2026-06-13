@@ -16,12 +16,12 @@ func (q *Query) Save(value any) error {
 		}
 	}
 
-	id := getPrimaryKeyValue(value)
+	idVal, _ := getPrimaryKeyValueAny(value)
 	var saveErr error
-	if id != 0 {
+	if !isPrimaryKeyZero(value) {
 		// UPDATE: set WHERE id = <id> on a clone, then call Update with the value
 		clone := q.Clone().(*Query)
-		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{id}})
+		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{idVal}})
 		_, saveErr = clone.Update(value)
 	} else {
 		saveErr = q.Create(value)

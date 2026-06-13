@@ -240,7 +240,8 @@ func copyScanResults(v reflect.Value, columns []string, dests []any) {
 }
 
 // setModelPrimaryKey sets the primary key field (ID or Id) on a struct model to the given value.
-func setModelPrimaryKey(value any, id int64) {
+// Supports int64 for integer PKs and string for short-ID PKs.
+func setModelPrimaryKey(value any, id any) {
 	v := reflect.ValueOf(value)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
 		return
@@ -256,12 +257,19 @@ func setModelPrimaryKey(value any, id int64) {
 		}
 		switch field.Kind() {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			if id >= 0 {
-				field.SetUint(uint64(id))
+			if i, ok := id.(int64); ok && i >= 0 {
+				field.SetUint(uint64(i))
 			}
 			return
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			field.SetInt(id)
+			if i, ok := id.(int64); ok {
+				field.SetInt(i)
+			}
+			return
+		case reflect.String:
+			if s, ok := id.(string); ok {
+				field.SetString(s)
+			}
 			return
 		}
 	}
@@ -293,6 +301,105 @@ func getModelPrimaryKey(value any) int64 {
 		}
 	}
 	return 0
+}
+
+// getPrimaryKeyValueAny returns the primary key value (ID/Id) of a struct as any.
+// Returns the value and true if found, or nil and false if absent.
+func getPrimaryKeyValueAny(value any) (any, bool) {
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil, false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, false
+	}
+	for _, name := range []string{"ID", "Id"} {
+		field := v.FieldByName(name)
+		if !field.IsValid() {
+			continue
+		}
+		switch field.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			u := field.Uint()
+			if u > uint64(1<<63-1) {
+				return int64(0), true
+			}
+			return int64(u), true
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return field.Int(), true
+		case reflect.String:
+			return field.String(), true
+		}
+	}
+	return nil, false
+}
+
+// isPrimaryKeyZero reports whether the primary key is unset.
+// For integers: zero value; for strings: empty string.
+func isPrimaryKeyZero(value any) bool {
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return true
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return true
+	}
+	for _, name := range []string{"ID", "Id"} {
+		field := v.FieldByName(name)
+		if !field.IsValid() {
+			continue
+		}
+		switch field.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return field.Uint() == 0
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return field.Int() == 0
+		case reflect.String:
+			return field.String() == ""
+		}
+	}
+	return true
+}
+
+// isShortIDModel reports whether the value is a struct (or slice of structs)
+// with a string ID field, indicating it uses client-generated short IDs.
+func isShortIDModel(value any) bool {
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		if v.Len() == 0 {
+			return false
+		}
+		elem := v.Index(0)
+		if elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		v = elem
+	}
+	if v.Kind() != reflect.Struct {
+		return false
+	}
+	for _, name := range []string{"ID", "Id"} {
+		field := v.FieldByName(name)
+		if !field.IsValid() {
+			continue
+		}
+		if field.Kind() == reflect.String {
+			return true
+		}
+	}
+	return false
 }
 
 // applyWhereConditions applies attributes as WHERE conditions to a query.

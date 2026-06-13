@@ -238,12 +238,68 @@ type Order struct {
 
 Neat automatically looks for fields named `ID` or `Id` as the primary key.
 
+### Integer Primary Keys (Default)
+
+By default, Neat expects `uint` or `int` primary keys that are auto-incremented by the database.
+
 ```go
 type User struct {
     ID    uint // Primary key
     Name  string
     Email string
 }
+```
+
+### Short String Primary Keys (Opt-In)
+
+For URL-friendly, client-generated primary keys, embed `orm.ShortID` instead of `orm.Model`.
+The ID is generated automatically before insert using a Crockford Base32-encoded microsecond timestamp (11 lowercase characters, e.g., `1jkne4e0jv0`).
+
+```go
+import "github.com/dracory/neat/database/orm"
+
+type Product struct {
+    orm.ShortID      // ID string — generated client-side
+    orm.Timestamps   // optional — add only if you need it
+    Name  string     `db:"name"`
+    Price float64    `db:"price"`
+}
+```
+
+Compose only what you need:
+
+```go
+// With timestamps
+type Product struct {
+    orm.ShortID
+    orm.Timestamps
+    Name  string
+    Price float64
+}
+
+// Without timestamps
+type Category struct {
+    orm.ShortID
+    Name string
+}
+
+// With soft deletes too
+type Order struct {
+    orm.ShortID
+    orm.Timestamps
+    orm.SoftDeletes
+    Total float64
+}
+```
+
+Use `table.ShortID()` in migrations for string-primary-key tables:
+
+```go
+db.Schema().Create("products", func(table neat.Blueprint) {
+    table.ShortID()            // VARCHAR(21) PRIMARY KEY
+    table.String("name", 255)
+    table.Timestamps()
+})
 ```
 
 ## Timestamps
