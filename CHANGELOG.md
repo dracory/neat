@@ -43,6 +43,8 @@ newCode()
 ### Added
 - Observer pattern for model lifecycle events
 - Soft delete functionality with SoftDeletes struct
+- Max-date sentinel soft delete strategy (SoftDeletesMaxDate, DeletedAtMaxDate) for NOT NULL column compatibility
+- SoftDeleteStrategy interface for custom soft delete implementations
 - Model associations (BelongsTo, HasMany, HasOne)
 - Eager and lazy loading (With, Load, LoadMissing)
 - ToSql interface for SQL generation without execution
