@@ -42,6 +42,10 @@
 <p>This document compares the developer experience, ease of use, and features of Neat ORM with upper/db, a productive data access layer (DAL) for Go that provides database-agnostic tools.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you need a full ORM with associations, migrations, factories, and seeders rather than a data access layer with limited ORM features.</strong> upper/db is a DAL with ORM convenience but lacks full ORM features like associations, migrations, and testing tools. Neat provides a complete ORM solution with BelongsTo, HasMany, HasOne associations, built-in migrations, factories, and seeders. If you need a full-featured ORM with all standard capabilities rather than a DAL with limited ORM features, Neat is the better choice.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>upper/db Overview</h2>
 <p>upper/db is a data access layer (DAL) for Go that provides agnostic tools to work with different data sources. It aims to provide the convenience of an ORM while allowing SQL usage when needed. It's described as a DAL rather than a full ORM.</p>
 <h2>Architecture Comparison</h2>

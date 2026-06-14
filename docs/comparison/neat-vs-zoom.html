@@ -43,6 +43,10 @@
 <p><strong>Important Note</strong>: Zoom is built on Redis and stores all data in memory. It's not a traditional SQL ORM like Neat ORM.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you need SQL database support with disk-based persistence and data durability rather than Redis in-memory storage.</strong> Zoom is Redis-based with excellent performance but limited to in-memory storage with potential data loss without persistence. Neat provides traditional SQL databases with disk-based persistence, data durability, and multi-database support. If you need SQL databases, data durability, and traditional persistence over in-memory performance, Neat is the better choice. These are fundamentally different technologies for different use cases.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>Zoom Overview</h2>
 <p>Zoom is a Go ORM built on top of Redis where all data is stored in memory. It's typically much faster than datastores/ORMs based on traditional SQL databases due to in-memory storage.</p>
 <h2>Architecture Comparison</h2>

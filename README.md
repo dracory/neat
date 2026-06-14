@@ -12,7 +12,7 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Query Builder**: Fluent and intuitive query building interface
 - **ORM**: Full ORM support with models and relationships
 - **Schema Builder**: Database schema creation and modification
-- **Migrations**: Database migration system (ORM driver supported)
+- **Migrations**: Complete database migration system with schema builder, rollback support, and ORM driver integration (major advantage over most Go ORMs)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
 - **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle
@@ -25,6 +25,10 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
 - **ToSql Interface**: SQL generation without execution
 - **Security Hardening**: SQL injection prevention with identifier validation
+
+## Key Advantage: Complete Migration System
+
+> **🚀 Most Go ORMs lack comprehensive schema migration support.** Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.
 
 ## Installation
 

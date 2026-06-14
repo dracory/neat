@@ -42,6 +42,10 @@
 <p>This document compares the developer experience, ease of use, and features of Neat ORM with Ent, Facebook's code-first ORM for Go.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you prefer runtime flexibility over compile-time code generation and want a simpler setup without the complexity of Ent's graph-based paradigm.</strong> Neat provides a traditional ORM experience with Laravel Eloquent-like API that's immediately usable without code generation steps. While Ent offers superior compile-time type safety and excellent IDE support, Neat offers faster development cycles with no build step required and a more familiar query builder pattern. If you value quick iteration, dynamic query construction, and avoiding code generation complexity over compile-time type safety, Neat is the better choice.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>Ent Overview</h2>
 <p>Ent is a Facebook-developed ORM that uses a code-first approach. Developers define schemas using Go code, and Ent generates type-safe database operations. It emphasizes type safety and compile-time checks.</p>
 <h2>Architecture Comparison</h2>

@@ -42,6 +42,10 @@
 <p>This document compares the developer experience, ease of use, and features of Neat ORM with SQLBoiler, a code generation tool that creates a Go ORM from your database schema.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you prefer code-first schema definition and want built-in migrations, factories, and seeders without database-first code generation.</strong> Neat provides a traditional ORM experience where you define schemas via Go struct tags and get immediate usage without code generation steps. While SQLBoiler offers excellent performance and auto-generated relationships from existing databases, Neat offers code-first flexibility, built-in testing tools, and no regeneration when schema changes. If you value code-first development, dynamic schema changes, and comprehensive testing tools over database-first code generation, Neat is the better choice.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>SQLBoiler Overview</h2>
 <p>SQLBoiler is a code generation tool that inspects your database and generates a complete Go ORM tailored to your schema. It emphasizes type safety and performance by generating optimized code.</p>
 <h2>Architecture Comparison</h2>

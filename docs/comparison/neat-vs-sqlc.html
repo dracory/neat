@@ -42,6 +42,10 @@
 <p>This document compares the developer experience, ease of use, and features of Neat ORM with sqlc, a SQL compiler that generates type-safe Go code from SQL queries.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you prefer a traditional ORM abstraction over writing raw SQL and want built-in migrations, factories, and seeders without code generation complexity.</strong> Neat provides a familiar ORM experience with Laravel Eloquent-like API that abstracts SQL away while still offering dynamic query construction. While sqlc offers superior compile-time type safety and excellent IDE support, Neat offers faster development with no build step and comprehensive testing tools out of the box. If you value ORM abstraction, dynamic queries, and built-in testing infrastructure over writing raw SQL and code generation, Neat is the better choice.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>sqlc Overview</h2>
 <p>sqlc is not a traditional ORM - it's a SQL compiler that takes SQL queries as input and generates type-safe Go code. It emphasizes compile-time safety and explicit SQL control. You write SQL, sqlc generates type-safe Go code.</p>
 <h2>Architecture Comparison</h2>

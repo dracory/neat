@@ -42,6 +42,10 @@
 <p>This document compares the developer experience, ease of use, and features of Neat ORM with Reform, a better ORM for Go based on non-empty interface design.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you need built-in migrations, factories, seeders, and Laravel Eloquent-like API rather than compiler-checkable method signatures.</strong> While Reform offers excellent compiler-checkable signatures and better record management, it lacks built-in migrations, factories, seeders, and observers. Neat provides comprehensive testing infrastructure, model lifecycle observers, and a more familiar Laravel-like API. If you value built-in testing tools, observer patterns, and Laravel familiarity over compiler-checkable signatures, Neat is the better choice.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>Reform Overview</h2>
 <p>Reform is described as "a better ORM for Go" that focuses on better record management. It emphasizes compiler-checkable method signatures and works against the limitations of traditional ORMs that can't be checked by the compiler.</p>
 <h2>Architecture Comparison</h2>

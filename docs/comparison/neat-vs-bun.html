@@ -42,6 +42,10 @@
 <p>This document compares the developer experience, ease of use, and features of Neat ORM with Bun, a SQL-first Golang ORM that emphasizes performance and minimal overhead.</p>
 <h2>Why Neat Wins?</h2>
 <p><strong>Neat ORM wins when you prefer Laravel Eloquent-like API and need multi-database support including SQLite, SQL Server, and Turso rather than SQL-first PostgreSQL/MySQL focus.</strong> While Bun offers excellent performance and compile-time type safety, it's limited to PostgreSQL and MySQL. Neat provides a more familiar Laravel-like API, supports more databases including SQL Server and Turso, and includes built-in migrations, factories, and seeders. If you value Laravel patterns, database flexibility, and comprehensive testing tools over SQL-first performance optimization, Neat is the better choice.</p>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+    <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+    <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+</div>
 <h2>Bun Overview</h2>
 <p>Bun is a SQL-first Golang ORM for PostgreSQL and MySQL that is built on database/sql APIs. It emphasizes minimal overhead over raw SQL, type-safe operations, and rich relationships. It's the recommended successor to go-pg.</p>
 <h2>Architecture Comparison</h2>
