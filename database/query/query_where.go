@@ -147,6 +147,12 @@ func (q *Query) WhereNot(query any, args ...any) orm.Query {
 	return q
 }
 
+// Exclude is an alias for WhereNot, providing Django-style syntax.
+// Supports Django-style syntax: Exclude("column", "value") automatically uses = operator.
+func (q *Query) Exclude(query any, args ...any) orm.Query {
+	return q.WhereNot(query, args...)
+}
+
 // OrWhereNot adds an or where not clause to the query.
 func (q *Query) OrWhereNot(query any, args ...any) orm.Query {
 	// Handle closure callback - wrap conditions in NOT

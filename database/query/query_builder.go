@@ -187,6 +187,12 @@ func isWordChar(c string) bool {
 	return (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
 }
 
+// Filter is an alias for Where, providing Django-style syntax.
+// Supports Django-style syntax: Filter("column", "value") automatically uses = operator.
+func (q *Query) Filter(query any, args ...any) orm.Query {
+	return q.Where(query, args...)
+}
+
 // OrWhere adds an or where clause to the query.
 // Supports Laravel-style syntax: OrWhere("column", "value") automatically uses = operator.
 func (q *Query) OrWhere(query any, args ...any) orm.Query {

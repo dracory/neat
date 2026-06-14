@@ -80,3 +80,9 @@ func (q *Query) Get(dest any) error {
 
 	return nil
 }
+
+// All is an alias for Get, providing Django-style syntax.
+// Retrieves all records matching the query.
+func (q *Query) All(dest any) error {
+	return q.Get(dest)
+}

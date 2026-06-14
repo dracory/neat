@@ -588,3 +588,51 @@ func TestMethodChainingReturnsQuery(t *testing.T) {
 		t.Errorf("Expected 1 argument from chained where, got %d", len(args))
 	}
 }
+
+func TestFilter(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.Filter("name", "John")
+
+	if result == nil {
+		t.Error("Expected non-nil Query from Filter")
+	}
+}
+
+func TestFilterSQLGeneration(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Filter("age >= ?", 18)
+
+	wrapped := WrapQuery(q)
+	sql, args := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "WHERE") {
+		t.Errorf("Expected SQL to contain 'WHERE', got: %s", sql)
+	}
+	if len(args) != 1 || args[0] != 18 {
+		t.Errorf("Expected args [18], got %v", args)
+	}
+}
+
+func TestFilterAsAliasForWhere(t *testing.T) {
+	q1 := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q1.Table("users")
+	q1.Where("age >= ?", 18)
+
+	q2 := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q2.Table("users")
+	q2.Filter("age >= ?", 18)
+
+	wrapped1 := WrapQuery(q1)
+	wrapped2 := WrapQuery(q2)
+
+	sql1, args1 := wrapped1.BuildSelectSQL()
+	sql2, args2 := wrapped2.BuildSelectSQL()
+
+	if sql1 != sql2 {
+		t.Errorf("Filter and Where should generate identical SQL. Got:\nWhere: %s\nFilter: %s", sql1, sql2)
+	}
+	if len(args1) != len(args2) || (len(args1) > 0 && args1[0] != args2[0]) {
+		t.Errorf("Filter and Where should generate identical args. Got %v vs %v", args1, args2)
+	}
+}

@@ -295,6 +295,15 @@ type Query interface {
 	//   var results []map[string]any
 	//   err := query.Table("users").Get(&results)
 	Get(dest any) error
+
+	// All is an alias for Get, providing Django-style syntax.
+	// Retrieves all records matching the query.
+	//
+	// Example:
+	//   var users []User
+	//   err := query.Filter("age > ?", 18).All(&users)
+	All(dest any) error
+
 	// Group specifies a GROUP BY clause for the query.
 	// Groups results by the specified column or expression.
 	// Returns the query instance for method chaining.
@@ -739,6 +748,12 @@ type Query interface {
 	//
 	//   query.Where(map[string]any{"status": "active", "age > ?": 18})
 	Where(query any, args ...any) Query
+	// Filter is an alias for Where, providing Django-style syntax.
+	// Supports Django-style syntax: Filter("column", "value") automatically uses = operator.
+	//
+	// Example:
+	//   query.Filter("age > ?", 18)
+	Filter(query any, args ...any) Query
 	// WhereIn adds a WHERE column IN clause to the query.
 	// The column parameter specifies the column to check.
 	// The values parameter provides the list of values to match against.
@@ -820,6 +835,12 @@ type Query interface {
 	// Example:
 	//   query.WhereNot("status = ?", "inactive")
 	WhereNot(query any, args ...any) Query
+	// Exclude is an alias for WhereNot, providing Django-style syntax.
+	// Supports Django-style syntax: Exclude("column", "value") automatically uses = operator.
+	//
+	// Example:
+	//   query.Exclude("status = ?", "inactive")
+	Exclude(query any, args ...any) Query
 	// OrWhereNot adds an OR WHERE NOT clause to the query.
 	// Query can be a string (SQL fragment) or a map[string]any for multiple conditions.
 	// Args provides parameter values for prepared statements.

@@ -1431,3 +1431,35 @@ func TestJsonUpdatePathSyntax(t *testing.T) {
 		}
 	})
 }
+
+func TestExclude(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	result := q.Exclude("status", "inactive")
+
+	if result == nil {
+		t.Error("Expected non-nil Query from Exclude")
+	}
+}
+
+func TestExcludeAsAliasForWhereNot(t *testing.T) {
+	q1 := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q1.Table("users")
+	q1.WhereNot("is_active = ?", false)
+
+	q2 := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q2.Table("users")
+	q2.Exclude("is_active = ?", false)
+
+	wrapped1 := WrapQuery(q1)
+	wrapped2 := WrapQuery(q2)
+
+	sql1, args1 := wrapped1.BuildSelectSQL()
+	sql2, args2 := wrapped2.BuildSelectSQL()
+
+	if sql1 != sql2 {
+		t.Errorf("Exclude and WhereNot should generate identical SQL. Got:\nWhereNot: %s\nExclude: %s", sql1, sql2)
+	}
+	if len(args1) != len(args2) {
+		t.Errorf("Exclude and WhereNot should generate identical args. Got %v vs %v", args1, args2)
+	}
+}
