@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs Beego ORM Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs Beego ORM Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with Beego ORM, the ORM component of the Beego web framework.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you need a standalone ORM without framework dependencies and prefer Laravel Eloquent-like API over Django-like patterns.</strong> While Beego ORM offers Django-like API and framework integration, it requires the Beego framework and lacks built-in migrations, factories, and seeders. Neat provides a standalone ORM with Laravel-like patterns, comprehensive testing tools, and multi-database support including SQL Server and Turso. If you value modularity, Laravel patterns, and built-in testing tools over framework integration and Django-like API, Neat is the better choice.</p>
+<h2>Beego ORM Overview</h2>
+<p>Beego ORM is a powerful ORM framework for Go that is part of the Beego web framework. It is heavily influenced by Django ORM and SQLAlchemy. It supports MySQL, PostgreSQL, and SQLite3.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Standalone ORM</strong>: Can be used independently without framework</li>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+<li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+<li><strong>Modern design</strong>: Recent development with security focus</li>
+</ul>
+<h3>Beego ORM</h3>
+<ul>
+<li><strong>Framework ORM</strong>: Part of the Beego web framework</li>
+<li><strong>Django-inspired</strong>: Heavily influenced by Django ORM</li>
+<li><strong>Mature codebase</strong>: Established ORM with years of use</li>
+<li><strong>Framework integration</strong>: Integrated with Beego framework</li>
+<li><strong>SQLAlchemy influence</strong>: Python ORM patterns</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar to PHP/Laravel developers</li>
+<li><strong>Standalone usage</strong>: Can be used without framework</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Active development</strong>: Regular updates and improvements</li>
+<li><strong>Comprehensive documentation</strong>: Docs with examples</li>
+<li><strong>Testing tools</strong>: Built-in factories and seeders</li>
+</ul>
+<h3>Beego ORM</h3>
+<ul>
+<li><strong>Django-like API</strong>: Familiar to Python/Django developers</li>
+<li><strong>Framework integration</strong>: Works within Beego framework</li>
+<li><strong>Mature ecosystem</strong>: Established Beego framework</li>
+<li><strong>Comprehensive features</strong>: Powerful ORM capabilities</li>
+<li><strong>Framework documentation</strong>: Beego framework docs</li>
+<li><strong>Python ORM patterns</strong>: Familiar to Python developers</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>Beego ORM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Standalone ORM</td>
+<td>Framework ORM (Beego)</td>
+</tr>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>Django-like API</td>
+</tr>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>MySQL, PostgreSQL, SQLite3</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Not included in ORM</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>Supports associations</td>
+</tr>
+<tr>
+<td><strong>Soft Deletes</strong></td>
+<td>Built-in soft delete support</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Observers</strong></td>
+<td>Model lifecycle observers</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Framework</strong></td>
+<td>No framework required</td>
+<td>Part of Beego framework</td>
+</tr>
+<tr>
+<td><strong>API Influence</strong></td>
+<td>Laravel Eloquent</td>
+<td>Django ORM, SQLAlchemy</td>
+</tr>
+</tbody>
+</table>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to many)</li>
+<li>Standalone (no framework required)</li>
+<li>Built-in migrations, factories, and seeders</li>
+<li>Model lifecycle observers</li>
+<li>Soft deletes support</li>
+<li>Active development</li>
+<li>Recent security hardening</li>
+<li>Multi-database support including SQL Server and Turso</li>
+</ul>
+<h3>Beego ORM</h3>
+<ul>
+<li>Django-like API (familiar to Python developers)</li>
+<li>Mature codebase</li>
+<li>Framework integration</li>
+<li>Powerful ORM capabilities</li>
+<li>Established Beego ecosystem</li>
+<li>Comprehensive framework features</li>
+<li>SQL database support</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Newer codebase</li>
+<li>Smaller community</li>
+<li>No framework integration (if you want one)</li>
+</ul>
+<h3>Beego ORM</h3>
+<ul>
+<li>Requires Beego framework (not standalone)</li>
+<li>No built-in migrations</li>
+<li>No factories or seeders</li>
+<li>No observers</li>
+<li>No soft deletes</li>
+<li>Limited to MySQL, PostgreSQL, SQLite3</li>
+<li>Less recent security review</li>
+<li>Framework dependency</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You want a standalone ORM without framework</li>
+<li>You prefer Laravel Eloquent-like API</li>
+<li>You need built-in migrations, factories, and seeders</li>
+<li>You need model lifecycle observers</li>
+<li>You need soft deletes</li>
+<li>You need SQL Server or Turso support</li>
+<li>You prefer active development</li>
+<li>Recent security hardening is important</li>
+<li>You're coming from PHP/Laravel background</li>
+</ul>
+<h3>Choose Beego ORM If:</h3>
+<ul>
+<li>You're using the Beego framework</li>
+<li>You prefer Django-like API</li>
+<li>You need framework integration</li>
+<li>You're familiar with Python/Django patterns</li>
+<li>You want established framework features</li>
+<li>You need comprehensive web framework</li>
+<li>You prefer Python ORM patterns</li>
+</ul>
+<h2>Conclusion</h2>
+<p>Neat ORM and Beego ORM serve different purposes:</p>
+<p><strong>Neat ORM</strong>: Standalone ORM with Laravel Eloquent-like API and modern features. Ideal for developers who want a focused ORM library without framework dependencies.</p>
+<p><strong>Beego ORM</strong>: Framework ORM with Django-like API integrated into Beego framework. Ideal for developers using the Beego framework who need framework integration.</p>
+<p>The choice depends on your needs:
+- <strong>Standalone ORM with Laravel-like API</strong>: Neat ORM
+- <strong>Framework ORM with Django-like API</strong>: Beego ORM</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>Beego ORM Documentation: https://beego.wiki/docs/mvc/model/overview/</li>
+<li>Beego Framework: https://beego.wiki/</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+<li>Django ORM Documentation: https://docs.djangoproject.com/en/stable/topics/db/queries/</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

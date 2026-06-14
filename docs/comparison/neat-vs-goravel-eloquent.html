@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs Goravel Eloquent Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs Goravel Eloquent Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with Goravel's ORM layer (which uses GORM as its underlying implementation).</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you need a standalone ORM library without framework dependencies and want a focused database solution rather than a full-stack framework.</strong> Neat provides a clean, focused ORM that can be used in any Go project without pulling in an entire framework's worth of dependencies. While Goravel offers a complete web framework with auth, routing, and more, Neat offers the flexibility to integrate with any existing project or framework. If you value modularity, minimal dependencies, and the ability to use the ORM independently over an all-in-one framework solution, Neat is the better choice.</p>
+<h2>Key Distinction</h2>
+<p><strong>Important</strong>: Goravel is not an ORM itself - it's a full-stack web framework that uses <strong>GORM</strong> as its underlying ORM layer. This comparison is between Neat ORM (standalone) and Goravel's GORM-based ORM implementation.</p>
+<h2>Neat ORM</h2>
+<h3>Architecture</h3>
+<ul>
+<li>Standalone ORM library built from scratch</li>
+<li>No GORM dependencies</li>
+<li>Designed for feature parity with Laravel's Eloquent ORM</li>
+<li>Clean, focused API design</li>
+</ul>
+<h3>Developer Experience</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Focused feature set</strong>: Essential ORM features without bloat</li>
+<li><strong>Clear documentation</strong>: Comprehensive docs with examples</li>
+<li><strong>Quick learning curve</strong>: Easy to get started for Eloquent users</li>
+<li><strong>No framework dependencies</strong>: Use as standalone library</li>
+</ul>
+<h3>Key Features</h3>
+<ul>
+<li><strong>Query Builder</strong>: Fluent Eloquent-like API</li>
+<li><strong>ORM Features</strong>: Models, relationships, migrations</li>
+<li><strong>Database Support</strong>: MySQL, PostgreSQL, SQLite, SQL Server, Turso</li>
+<li><strong>Migrations</strong>: Built-in migration system</li>
+<li><strong>Associations</strong>: BelongsTo, HasMany, HasOne</li>
+<li><strong>Soft Deletes</strong>: Built-in soft delete support</li>
+<li><strong>Transactions</strong>: Transaction support</li>
+<li><strong>Observers</strong>: Model lifecycle observers</li>
+<li><strong>Factories/Seeders</strong>: Built-in factories and seeders</li>
+<li><strong>Connection Pooling</strong>: Configurable pooling</li>
+<li><strong>Context Support</strong>: Full context.Context support</li>
+</ul>
+<h2>Goravel (GORM)</h2>
+<h3>Architecture</h3>
+<ul>
+<li>Full-stack web framework</li>
+<li>Uses GORM as underlying ORM layer</li>
+<li>Inherits GORM's features and ecosystem</li>
+<li>Laravel-inspired framework for Go</li>
+</ul>
+<h3>Developer Experience</h3>
+<ul>
+<li><strong>Full-stack framework</strong>: ORM, routing, auth, and more</li>
+<li><strong>Mature ecosystem</strong>: Extensive GORM community and plugins</li>
+<li><strong>Laravel-like</strong>: Similar patterns to Laravel framework</li>
+<li><strong>Comprehensive documentation</strong>: Framework-wide documentation</li>
+<li><strong>Large community</strong>: Active development and support</li>
+<li><strong>Production-ready</strong>: Battle-tested in production</li>
+</ul>
+<h3>Key Features</h3>
+<ul>
+<li><strong>GORM ORM</strong>: Mature, feature-rich ORM</li>
+<li><strong>Query Builder</strong>: Chainable GORM API</li>
+<li><strong>ORM Features</strong>: Models, relationships, hooks</li>
+<li><strong>Database Support</strong>: Wide database support via GORM</li>
+<li><strong>Migrations</strong>: Auto-migration and third-party tools</li>
+<li><strong>Associations</strong>: All relationship types including ManyToMany</li>
+<li><strong>Soft Deletes</strong>: Built-in soft delete support</li>
+<li><strong>Transactions</strong>: Transaction support</li>
+<li><strong>Auth System</strong>: Built-in authentication</li>
+<li><strong>Routing</strong>: HTTP routing</li>
+<li><strong>Middleware</strong>: Middleware support</li>
+<li><strong>Validation</strong>: Request validation</li>
+</ul>
+<h2>Comparison Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Neat ORM</th>
+<th>Goravel (GORM)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Standalone ORM</td>
+<td>Full framework with GORM ORM</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Database operations only</td>
+<td>Full-stack web framework</td>
+</tr>
+<tr>
+<td><strong>API Style</strong></td>
+<td>Laravel Eloquent-like</td>
+<td>Laravel framework-like</td>
+</tr>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>GORM chainable API</td>
+</tr>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>Wide support via GORM</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Auto-migration and tools</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>All relationship types</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Available via plugins</td>
+</tr>
+<tr>
+<td><strong>Auth System</strong></td>
+<td>Not included</td>
+<td>Built-in authentication</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Not included</td>
+<td>Built-in routing</td>
+</tr>
+<tr>
+<td><strong>Learning Curve</strong></td>
+<td>Easy for Eloquent users</td>
+<td>Steeper (full framework)</td>
+</tr>
+<tr>
+<td><strong>Dependencies</strong></td>
+<td>Minimal</td>
+<td>Framework dependencies</td>
+</tr>
+</tbody>
+</table>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to PHP developers)</li>
+<li>Clean, focused feature set</li>
+<li>Easy learning curve for Eloquent users</li>
+<li>Built-in migrations, factories, and seeders</li>
+<li>Comprehensive documentation</li>
+<li>No framework dependencies (use anywhere)</li>
+<li>Lightweight and focused</li>
+</ul>
+<h3>Goravel (GORM)</h3>
+<ul>
+<li>Full-stack solution (everything included)</li>
+<li>Mature GORM ORM with large ecosystem</li>
+<li>Laravel-inspired framework patterns</li>
+<li>Built-in authentication and routing</li>
+<li>Large community and production adoption</li>
+<li>Active development and maintenance</li>
+<li>Comprehensive feature set</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Newer codebase (less battle-tested)</li>
+<li>Smaller community (fewer eyes on code)</li>
+<li>Limited to database operations only</li>
+<li>Fewer relationship types (no ManyToMany yet)</li>
+<li>No built-in auth or routing</li>
+</ul>
+<h3>Goravel (GORM)</h3>
+<ul>
+<li>Larger codebase (more complexity)</li>
+<li>Steeper learning curve (full framework)</li>
+<li>Framework dependencies</li>
+<li>Overkill for simple projects</li>
+<li>More complex setup</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You need a standalone ORM library</li>
+<li>You prefer Laravel Eloquent-like API in Go</li>
+<li>You want a clean, focused ORM without bloat</li>
+<li>You need built-in migrations, factories, and seeders</li>
+<li>You're building a microservice or API</li>
+<li>You want to use the ORM in existing projects</li>
+<li>You prefer minimal dependencies</li>
+</ul>
+<h3>Choose Goravel If:</h3>
+<ul>
+<li>You need a full-stack web framework</li>
+<li>You want Laravel-like framework experience in Go</li>
+<li>You need built-in authentication and routing</li>
+<li>You're building a complete web application</li>
+<li>You want GORM's mature ecosystem</li>
+<li>You prefer an all-in-one solution</li>
+<li>You're starting a new project from scratch</li>
+</ul>
+<h2>Conclusion</h2>
+<p>Neat ORM and Goravel serve different purposes:</p>
+<p><strong>Neat ORM</strong>: Standalone ORM with Laravel Eloquent-like API. Ideal for developers who want a focused ORM library they can use in any Go project without framework dependencies.</p>
+<p><strong>Goravel</strong>: Full-stack web framework with GORM ORM. Ideal for developers building complete web applications who want an all-in-one solution with auth, routing, and more.</p>
+<p>The choice depends on your project needs:
+- <strong>Standalone ORM</strong>: Neat ORM offers focused database operations with familiar Eloquent API
+- <strong>Full framework</strong>: Goravel provides complete web framework with GORM ORM and additional features</p>
+<p>Both provide excellent developer experiences but for different use cases (standalone ORM vs full-stack framework).</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>Goravel Documentation: https://www.goravel.dev/</li>
+<li>GORM Documentation: https://gorm.io/docs/</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs upper/db Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs upper/db Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with upper/db, a productive data access layer (DAL) for Go that provides database-agnostic tools.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you need a full ORM with associations, migrations, factories, and seeders rather than a data access layer with limited ORM features.</strong> upper/db is a DAL with ORM convenience but lacks full ORM features like associations, migrations, and testing tools. Neat provides a complete ORM solution with BelongsTo, HasMany, HasOne associations, built-in migrations, factories, and seeders. If you need a full-featured ORM with all standard capabilities rather than a DAL with limited ORM features, Neat is the better choice.</p>
+<h2>upper/db Overview</h2>
+<p>upper/db is a data access layer (DAL) for Go that provides agnostic tools to work with different data sources. It aims to provide the convenience of an ORM while allowing SQL usage when needed. It's described as a DAL rather than a full ORM.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Full ORM</strong>: Complete ORM with models, relationships, migrations</li>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+<li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+<li><strong>Modern design</strong>: Recent development with security focus</li>
+</ul>
+<h3>upper/db</h3>
+<ul>
+<li><strong>Data Access Layer</strong>: Productive DAL (not a full ORM)</li>
+<li><strong>Database-agnostic</strong>: Works with different data sources</li>
+<li><strong>ORM convenience</strong>: ORM-like convenience with SQL flexibility</li>
+<li><strong>Multi-database</strong>: Support for PostgreSQL, MySQL, SQLite, and more</li>
+<li><strong>Mature codebase</strong>: Established library</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar to PHP/Laravel developers</li>
+<li><strong>Full ORM experience</strong>: Complete ORM with all standard features</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Active development</strong>: Regular updates and improvements</li>
+<li><strong>Comprehensive documentation</strong>: Docs with examples</li>
+<li><strong>Testing tools</strong>: Built-in factories and seeders</li>
+</ul>
+<h3>upper/db</h3>
+<ul>
+<li><strong>Productive DAL</strong>: Focus on business logic without manual SQL</li>
+<li><strong>Database-agnostic</strong>: Works with multiple databases</li>
+<li><strong>ORM convenience</strong>: ORM-like features</li>
+<li><strong>SQL flexibility</strong>: Can use SQL when needed</li>
+<li><strong>Mature codebase</strong>: Established library</li>
+<li><strong>Simpler learning curve</strong>: DAL approach</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>upper/db</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Full ORM</td>
+<td>Data Access Layer (DAL)</td>
+</tr>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>Database-agnostic API</td>
+</tr>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>PostgreSQL, MySQL, SQLite, and more</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>Limited association support</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Soft Deletes</strong></td>
+<td>Built-in soft delete support</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Observers</strong></td>
+<td>Model lifecycle observers</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>SQL Flexibility</strong></td>
+<td>RawExpr for raw SQL</td>
+<td>Can use SQL when needed</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Complete ORM solution</td>
+<td>DAL with ORM convenience</td>
+</tr>
+</tbody>
+</table>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to many)</li>
+<li>Full ORM with all standard features</li>
+<li>Built-in migrations, factories, and seeders</li>
+<li>Associations and relationships</li>
+<li>Model lifecycle observers</li>
+<li>Soft deletes support</li>
+<li>Active development</li>
+<li>Recent security hardening</li>
+</ul>
+<h3>upper/db</h3>
+<ul>
+<li>Database-agnostic (works with many databases)</li>
+<li>ORM convenience with SQL flexibility</li>
+<li>Productive (focus on business logic)</li>
+<li>Mature codebase</li>
+<li>Can use SQL when needed</li>
+<li>Simpler than full ORM</li>
+<li>Good for multiple data sources</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>More complex (full ORM)</li>
+<li>Runtime overhead from features</li>
+<li>Newer codebase</li>
+<li>Smaller community</li>
+</ul>
+<h3>upper/db</h3>
+<ul>
+<li>Not a full ORM (DAL approach)</li>
+<li>Limited association support</li>
+<li>No migrations</li>
+<li>No factories or seeders</li>
+<li>No observers or hooks</li>
+<li>No soft deletes</li>
+<li>Less ORM features</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You need a full ORM with all standard features</li>
+<li>You need associations and relationships</li>
+<li>You need built-in migrations</li>
+<li>You need factories and seeders for testing</li>
+<li>You prefer Laravel Eloquent-like API</li>
+<li>You need model lifecycle observers</li>
+<li>You need soft deletes</li>
+<li>You want a complete ORM solution</li>
+</ul>
+<h3>Choose upper/db If:</h3>
+<ul>
+<li>You need database-agnostic data access</li>
+<li>You want ORM convenience with SQL flexibility</li>
+<li>You work with multiple data sources</li>
+<li>You prefer a DAL over full ORM</li>
+<li>You don't need full ORM features</li>
+<li>You want to focus on business logic</li>
+<li>You need to use SQL occasionally</li>
+</ul>
+<h2>Conclusion</h2>
+<p>Neat ORM and upper/db serve different purposes:</p>
+<p><strong>Neat ORM</strong>: Full-featured ORM with Laravel Eloquent-like API and complete ORM features. Ideal for developers building full applications who need a comprehensive ORM.</p>
+<p><strong>upper/db</strong>: Database-agnostic data access layer with ORM convenience and SQL flexibility. Ideal for developers who need productive data access without full ORM complexity.</p>
+<p>The choice depends on your needs:
+- <strong>Full ORM with all features</strong>: Neat ORM
+- <strong>Database-agnostic DAL with ORM convenience</strong>: upper/db</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>upper/db Documentation: https://upper.io/</li>
+<li>upper/db GitHub: https://github.com/upper/db</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

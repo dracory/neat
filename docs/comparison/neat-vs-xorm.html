@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs Xorm Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs Xorm Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with Xorm, a simple and powerful ORM for Go.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you prefer Laravel Eloquent-like API and need built-in migrations, factories, and seeders with modern development practices.</strong> While Xorm offers excellent features like caching, optimistic locking, and reverse engineering, Neat provides a more familiar API for Laravel developers and comprehensive testing infrastructure out of the box. If you value Laravel-like patterns, built-in testing tools, and modern security hardening over Xorm's specific features like caching and reverse engineering, Neat is the better choice.</p>
+<h2>Xorm Overview</h2>
+<p>Xorm is a simple and powerful ORM for Go that emphasizes simplicity and code efficiency. It supports caching, transactions, optimistic locking, multiple databases, and reverse engineering.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+<li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+<li><strong>Reflection-based</strong>: Uses Go reflection for model mapping</li>
+<li><strong>Modern design</strong>: Recent development with security focus</li>
+</ul>
+<h3>Xorm</h3>
+<ul>
+<li><strong>Simple API</strong>: Emphasizes simplicity and code efficiency</li>
+<li><strong>Mature ORM</strong>: Established codebase with years of use</li>
+<li><strong>Feature-rich</strong>: Caching, transactions, optimistic locking</li>
+<li><strong>Multiple database support</strong>: Support for many databases</li>
+<li><strong>Reverse engineering</strong>: Can generate models from database</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar to PHP/Laravel developers</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Focused feature set</strong>: Essential ORM features without bloat</li>
+<li><strong>Clear documentation</strong>: Comprehensive docs with examples</li>
+<li><strong>Quick learning curve</strong>: Easy for Eloquent users</li>
+<li><strong>Recent development</strong>: Active development with modern practices</li>
+</ul>
+<h3>Xorm</h3>
+<ul>
+<li><strong>Simple API</strong>: Designed for simplicity</li>
+<li><strong>Code efficiency</strong>: Use less code to finish DB operations</li>
+<li><strong>Mature ecosystem</strong>: Established documentation and community</li>
+<li><strong>Caching support</strong>: Built-in caching capabilities</li>
+<li><strong>Optimistic locking</strong>: Built-in optimistic locking support</li>
+<li><strong>Reverse engineering</strong>: Generate models from database</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>Xorm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>Simple and powerful API</td>
+</tr>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>Multiple databases</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>Supports associations</td>
+</tr>
+<tr>
+<td><strong>Caching</strong></td>
+<td>Not included</td>
+<td>Built-in caching</td>
+</tr>
+<tr>
+<td><strong>Optimistic Locking</strong></td>
+<td>Not included</td>
+<td>Built-in support</td>
+</tr>
+<tr>
+<td><strong>Reverse Engineering</strong></td>
+<td>Not included</td>
+<td>Generate models from DB</td>
+</tr>
+<tr>
+<td><strong>Transactions</strong></td>
+<td>Transaction support</td>
+<td>Transaction support</td>
+</tr>
+<tr>
+<td><strong>Soft Deletes</strong></td>
+<td>Built-in soft delete support</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Observers</strong></td>
+<td>Model lifecycle observers</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Not included</td>
+</tr>
+</tbody>
+</table>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to many)</li>
+<li>Built-in migrations, factories, and seeders</li>
+<li>Clean, focused feature set</li>
+<li>Recent security review and hardening</li>
+<li>Modern design and active development</li>
+<li>Comprehensive documentation</li>
+</ul>
+<h3>Xorm</h3>
+<ul>
+<li>Simple and powerful API</li>
+<li>Built-in caching support</li>
+<li>Optimistic locking support</li>
+<li>Reverse engineering capabilities</li>
+<li>Multiple database support</li>
+<li>Mature and battle-tested</li>
+<li>Code efficiency (less code for operations)</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Newer codebase (less battle-tested)</li>
+<li>Smaller community</li>
+<li>No built-in caching</li>
+<li>No optimistic locking</li>
+<li>No reverse engineering</li>
+</ul>
+<h3>Xorm</h3>
+<ul>
+<li>No built-in migrations</li>
+<li>No factories or seeders</li>
+<li>No observers</li>
+<li>No soft deletes</li>
+<li>Less recent security review</li>
+<li>Older codebase design</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You prefer Laravel Eloquent-like API</li>
+<li>You need built-in migrations, factories, and seeders</li>
+<li>You need model lifecycle observers</li>
+<li>You need soft deletes</li>
+<li>You prefer modern ORM design</li>
+<li>Recent security hardening is important</li>
+<li>You're coming from PHP/Laravel background</li>
+</ul>
+<h3>Choose Xorm If:</h3>
+<ul>
+<li>You need built-in caching</li>
+<li>You need optimistic locking</li>
+<li>You want reverse engineering (models from DB)</li>
+<li>You prefer simple, efficient code</li>
+<li>You need multiple database support</li>
+<li>You value mature, battle-tested code</li>
+<li>You want code efficiency</li>
+</ul>
+<h2>Conclusion</h2>
+<p>Neat ORM and Xorm are both capable ORMs with different strengths:</p>
+<p><strong>Neat ORM</strong>: Laravel Eloquent-like API with modern design and built-in migrations, factories, and seeders. Ideal for developers who want a familiar ORM experience with comprehensive testing support.</p>
+<p><strong>Xorm</strong>: Simple and powerful ORM with caching, optimistic locking, and reverse engineering. Ideal for developers who need these specific features and value code efficiency.</p>
+<p>The choice depends on your specific feature needs:
+- <strong>Laravel-like API with testing tools</strong>: Neat ORM
+- <strong>Caching and optimistic locking</strong>: Xorm</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>Xorm Documentation: https://xorm.io/docs/</li>
+<li>Xorm GitHub: https://github.com/go-xorm/xorm</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs Ent Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs Ent Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with Ent, Facebook's code-first ORM for Go.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you prefer runtime flexibility over compile-time code generation and want a simpler setup without the complexity of Ent's graph-based paradigm.</strong> Neat provides a traditional ORM experience with Laravel Eloquent-like API that's immediately usable without code generation steps. While Ent offers superior compile-time type safety and excellent IDE support, Neat offers faster development cycles with no build step required and a more familiar query builder pattern. If you value quick iteration, dynamic query construction, and avoiding code generation complexity over compile-time type safety, Neat is the better choice.</p>
+<h2>Ent Overview</h2>
+<p>Ent is a Facebook-developed ORM that uses a code-first approach. Developers define schemas using Go code, and Ent generates type-safe database operations. It emphasizes type safety and compile-time checks.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+<li><strong>Dynamic queries</strong>: Queries constructed programmatically</li>
+<li><strong>Reflection-based</strong>: Uses Go reflection for model mapping</li>
+<li><strong>Laravel Eloquent-like</strong>: API similar to Laravel's Eloquent ORM</li>
+<li><strong>No code generation</strong>: Direct usage without build step</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Code-first schema</strong>: Schema defined in Go code</li>
+<li><strong>Code generation</strong>: Generates type-safe Go code from schema</li>
+<li><strong>Compile-time safety</strong>: Many errors caught at compile time</li>
+<li><strong>Graph-based</strong>: Uses graph traversal for queries</li>
+<li><strong>Facebook-backed</strong>: Developed and maintained by Meta</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>No code generation</strong>: Direct usage without build complexity</li>
+<li><strong>Quick setup</strong>: Simple configuration and immediate usage</li>
+<li><strong>Flexible queries</strong>: Dynamic query construction at runtime</li>
+<li><strong>Clear documentation</strong>: Comprehensive docs with examples</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Type-safe by design</strong>: Compile-time errors prevent runtime issues</li>
+<li><strong>IDE support</strong>: Excellent autocomplete and type hints</li>
+<li><strong>Code generation</strong>: Consistent, type-safe code generated</li>
+<li><strong>Graph-based API</strong>: Powerful but different query paradigm</li>
+<li><strong>Facebook quality</strong>: Meta's engineering standards</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>Ent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>Graph-based type-safe API</td>
+</tr>
+<tr>
+<td><strong>Type Safety</strong></td>
+<td>Runtime type checking</td>
+<td>Compile-time type safety</td>
+</tr>
+<tr>
+<td><strong>Code Generation</strong></td>
+<td>Not required</td>
+<td>Required (generates code)</td>
+</tr>
+<tr>
+<td><strong>Schema Definition</strong></td>
+<td>Struct tags</td>
+<td>Go code schema definition</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Migration tooling</td>
+</tr>
+<tr>
+<td><strong>Relationships</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>All relationship types</td>
+</tr>
+<tr>
+<td><strong>IDE Support</strong></td>
+<td>Basic autocomplete</td>
+<td>Excellent type hints</td>
+</tr>
+<tr>
+<td><strong>Learning Curve</strong></td>
+<td>Easy for Eloquent users</td>
+<td>Steeper (graph-based)</td>
+</tr>
+<tr>
+<td><strong>Build Complexity</strong></td>
+<td>Simple</td>
+<td>Requires code generation</td>
+</tr>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>Multiple databases</td>
+</tr>
+</tbody>
+</table>
+<h2>Type Safety</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Runtime type checking</strong>: Types validated at query execution</li>
+<li><strong>Reflection-based</strong>: Uses Go reflection for model mapping</li>
+<li><strong>Dynamic queries</strong>: Query structure determined at runtime</li>
+<li><strong>Flexibility</strong>: More flexible but less compile-time safety</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Compile-time type safety</strong>: Types validated at compile time</li>
+<li><strong>Code generation</strong>: Type-safe code generated from schema</li>
+<li><strong>Static analysis</strong>: IDE support and static analysis tools</li>
+<li><strong>Strong typing</strong>: Strict type enforcement prevents many errors</li>
+</ul>
+<h2>Schema Management</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Struct tags</strong>: Schema defined via Go struct tags</li>
+<li><strong>Migration support</strong>: Built-in migration system</li>
+<li><strong>Flexible structure</strong>: Schema can change at runtime</li>
+<li><strong>Reflection-based</strong>: Uses Go reflection for schema discovery</li>
+<li><strong>Quick changes</strong>: No regeneration needed</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Code-first schema</strong>: Schema defined in Go code</li>
+<li><strong>Schema validation</strong>: Schema validated at code generation time</li>
+<li><strong>Migration tools</strong>: Ent provides migration tooling</li>
+<li><strong>Type-safe operations</strong>: All operations type-safe based on schema</li>
+<li><strong>Regeneration required</strong>: Schema changes need code regeneration</li>
+</ul>
+<h2>Query Building</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Fluent interface</strong>: Chainable query builder methods</li>
+<li><strong>Runtime construction</strong>: Queries built at runtime</li>
+<li><strong>Dynamic conditions</strong>: Conditions can be added dynamically</li>
+<li><strong>Laravel-like API</strong>: Similar to Laravel Eloquent</li>
+<li><strong>Easy to learn</strong>: Familiar pattern for many developers</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Graph-based queries</strong>: Uses graph traversal for queries</li>
+<li><strong>Code generation</strong>: Query code generated from schema</li>
+<li><strong>Type-safe builders</strong>: Query builders are type-safe</li>
+<li><strong>Static analysis</strong>: Queries benefit from IDE support</li>
+<li><strong>Different paradigm</strong>: Learning curve for graph traversal</li>
+</ul>
+<h2>Setup and Configuration</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Simple setup</strong>: Import and use immediately</li>
+<li><strong>No build step</strong>: Direct usage without code generation</li>
+<li><strong>DSN configuration</strong>: Simple connection string</li>
+<li><strong>Quick start</strong>: Get started in minutes</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Code generation setup</strong>: Requires initial schema definition</li>
+<li><strong>Build step</strong>: Must run code generation</li>
+<li><strong>Schema definition</strong>: Define schema in Go code</li>
+<li><strong>Initial complexity</strong>: More setup required</li>
+</ul>
+<h2>Error Handling</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Runtime errors</strong>: Errors caught at query execution</li>
+<li><strong>Debug mode</strong>: Detailed errors in development</li>
+<li><strong>Context preservation</strong>: Context errors not suppressed</li>
+<li><strong>Clear error messages</strong>: Easy to debug</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Compile-time errors</strong>: Many errors caught at compile time</li>
+<li><strong>Generated error handling</strong>: Consistent error patterns</li>
+<li><strong>Type-safe errors</strong>: Type-safe error handling</li>
+<li><strong>Fewer runtime errors</strong>: Compile-time safety prevents many issues</li>
+</ul>
+<h2>Performance</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Runtime overhead</strong>: Reflection and validation at runtime</li>
+<li><strong>Query builder</strong>: Fluent interface overhead</li>
+<li><strong>Dynamic queries</strong>: Flexibility with some performance cost</li>
+<li><strong>Recent optimization</strong>: Performance considerations in design</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li><strong>Code generation</strong>: Generated code is optimized</li>
+<li><strong>Compile-time optimization</strong>: Queries optimized at generation time</li>
+<li><strong>Graph traversal</strong>: Efficient graph-based queries</li>
+<li><strong>Facebook optimization</strong>: Optimized by Meta engineers</li>
+</ul>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to many)</li>
+<li>No code generation required (simple setup)</li>
+<li>Flexible runtime query building</li>
+<li>Easy learning curve for Eloquent users</li>
+<li>Quick to get started</li>
+<li>Dynamic query construction</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li>Compile-time type safety (catch errors early)</li>
+<li>Facebook-backed development</li>
+<li>Excellent IDE support and autocomplete</li>
+<li>Strong schema validation</li>
+<li>Type-safe operations by design</li>
+<li>Consistent generated code</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Runtime type checking (less compile-time safety)</li>
+<li>Reflection overhead</li>
+<li>Newer codebase (less battle-tested)</li>
+<li>Smaller community</li>
+<li>Fewer IDE type hints</li>
+</ul>
+<h3>Ent</h3>
+<ul>
+<li>Code generation required (build complexity)</li>
+<li>Learning curve (graph-based queries)</li>
+<li>Less flexible runtime queries</li>
+<li>Schema changes require regeneration</li>
+<li>More complex setup</li>
+<li>Different paradigm (not traditional ORM)</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You prefer Laravel Eloquent-like API</li>
+<li>You need flexible runtime query building</li>
+<li>You want to avoid code generation</li>
+<li>You need dynamic query construction</li>
+<li>You prefer simple setup and quick start</li>
+<li>You're coming from PHP/Laravel background</li>
+<li>You want traditional ORM experience</li>
+</ul>
+<h3>Choose Ent If:</h3>
+<ul>
+<li>Compile-time type safety is critical</li>
+<li>You want Facebook-backed technology</li>
+<li>You prefer code generation approach</li>
+<li>Strong schema validation is important</li>
+<li>IDE support and static analysis are valuable</li>
+<li>You want type-safe operations by design</li>
+<li>You're comfortable with graph-based queries</li>
+<li>You're building a large, complex schema</li>
+</ul>
+<h2>Conclusion</h2>
+<p>Neat ORM and Ent represent different approaches to ORM development:</p>
+<p><strong>Neat ORM</strong>: Traditional runtime query builder with Laravel Eloquent-like API. Offers flexibility and quick setup without code generation. Ideal for developers who want a familiar ORM experience.</p>
+<p><strong>Ent</strong>: Code-first ORM with compile-time type safety and Facebook backing. Provides type-safe operations through code generation with excellent IDE support. Ideal for projects that value compile-time safety and type hints.</p>
+<p>The choice depends on your philosophy:
+- <strong>Runtime flexibility with simple setup</strong>: Neat ORM
+- <strong>Compile-time safety with code generation</strong>: Ent</p>
+<p>Both provide excellent developer experiences but through different approaches (runtime query builder vs code generation).</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>Ent Documentation: https://entgo.io/docs/</li>
+<li>Ent GitHub: https://github.com/ent/ent</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

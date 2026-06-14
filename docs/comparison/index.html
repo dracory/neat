@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM Comparisons</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .card { border: 1px solid #eee; border-radius: 8px; padding: 1.5rem; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit; display: block; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); border-color: #3498db; }
+        .card h2 { margin-top: 0; color: #3498db; font-size: 1.25rem; }
+        .card p { margin-bottom: 0; font-size: 0.9rem; color: #666; }
+        .badge { display: inline-block; background: #27ae60; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; }
+        .badge.major { background: #3498db; }
+        .badge.database { background: #9b59b6; }
+        .badge.framework { background: #e74c3c; }
+        .badge.compiler { background: #f39c12; }
+        .badge.query { background: #1abc9c; }
+        .badge.traditional { background: #95a5a6; }
+        .badge.specialized { background: #e67e22; }
+        .section-title { color: #7f8c8d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin: 2rem 0 1rem 0; font-weight: 600; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">← Back to Documentation</a>
+    <h1>Neat ORM Comparisons</h1>
+    <p class="subtitle">Developer experience and feature comparisons between Neat ORM and other Go database libraries</p>
+
+    <div class="section-title">Major ORMs</div>
+    <div class="grid">
+        <a href="neat-vs-gorm.html" class="card">
+            <span class="badge major">Major ORM</span>
+            <h2>Neat ORM vs GORM</h2>
+            <p>Comparison with the most popular Go ORM</p>
+        </a>
+        <a href="neat-vs-ent.html" class="card">
+            <span class="badge major">Major ORM</span>
+            <h2>Neat ORM vs Ent</h2>
+            <p>Comparison with Facebook's code-first ORM</p>
+        </a>
+        <a href="neat-vs-xorm.html" class="card">
+            <span class="badge major">Major ORM</span>
+            <h2>Neat ORM vs Xorm</h2>
+            <p>Comparison with the simple and powerful ORM</p>
+        </a>
+        <a href="neat-vs-bun.html" class="card">
+            <span class="badge major">Major ORM</span>
+            <h2>Neat ORM vs Bun</h2>
+            <p>Comparison with the SQL-first ORM</p>
+        </a>
+    </div>
+
+    <div class="section-title">Database-Specific ORMs</div>
+    <div class="grid">
+        <a href="neat-vs-go-pg.html" class="card">
+            <span class="badge database">Database-Specific</span>
+            <h2>Neat ORM vs go-pg</h2>
+            <p>Comparison with the PostgreSQL-focused ORM</p>
+        </a>
+    </div>
+
+    <div class="section-title">Framework ORMs</div>
+    <div class="grid">
+        <a href="neat-vs-goravel-eloquent.html" class="card">
+            <span class="badge framework">Framework</span>
+            <h2>Neat ORM vs Goravel</h2>
+            <p>Comparison with the Goravel framework's GORM-based ORM</p>
+        </a>
+        <a href="neat-vs-beego-orm.html" class="card">
+            <span class="badge framework">Framework</span>
+            <h2>Neat ORM vs Beego ORM</h2>
+            <p>Comparison with the Beego framework ORM</p>
+        </a>
+    </div>
+
+    <div class="section-title">SQL Compilers & Code Generators</div>
+    <div class="grid">
+        <a href="neat-vs-sqlc.html" class="card">
+            <span class="badge compiler">Compiler</span>
+            <h2>Neat ORM vs sqlc</h2>
+            <p>Comparison with the SQL compiler approach</p>
+        </a>
+        <a href="neat-vs-sqlboiler.html" class="card">
+            <span class="badge compiler">Compiler</span>
+            <h2>Neat ORM vs SQLBoiler</h2>
+            <p>Comparison with the database-first code generator</p>
+        </a>
+    </div>
+
+    <div class="section-title">Query Builders & DALs</div>
+    <div class="grid">
+        <a href="neat-vs-goqu.html" class="card">
+            <span class="badge query">Query Builder</span>
+            <h2>Neat ORM vs goqu</h2>
+            <p>Comparison with the SQL builder library</p>
+        </a>
+        <a href="neat-vs-upper-io.html" class="card">
+            <span class="badge query">Query Builder</span>
+            <h2>Neat ORM vs upper/db</h2>
+            <p>Comparison with the database-agnostic DAL</p>
+        </a>
+    </div>
+
+    <div class="section-title">Traditional ORMs</div>
+    <div class="grid">
+        <a href="neat-vs-gorp.html" class="card">
+            <span class="badge traditional">Traditional</span>
+            <h2>Neat ORM vs GORP</h2>
+            <p>Comparison with Go Relational Persistence</p>
+        </a>
+        <a href="neat-vs-reform.html" class="card">
+            <span class="badge traditional">Traditional</span>
+            <h2>Neat ORM vs Reform</h2>
+            <p>Comparison with better record management</p>
+        </a>
+        <a href="neat-vs-rel.html" class="card">
+            <span class="badge traditional">Traditional</span>
+            <h2>Neat ORM vs REL</h2>
+            <p>Comparison with the modern clean API ORM</p>
+        </a>
+        <a href="neat-vs-go-queryset.html" class="card">
+            <span class="badge traditional">Traditional</span>
+            <h2>Neat ORM vs go-queryset</h2>
+            <p>Comparison with Django-like querysets</p>
+        </a>
+        <a href="neat-vs-godb.html" class="card">
+            <span class="badge traditional">Traditional</span>
+            <h2>Neat ORM vs godb</h2>
+            <p>Comparison with the simple ORM</p>
+        </a>
+    </div>
+
+    <div class="section-title">Specialized ORMs</div>
+    <div class="grid">
+        <a href="neat-vs-zoom.html" class="card">
+            <span class="badge specialized">Specialized</span>
+            <h2>Neat ORM vs Zoom</h2>
+            <p>Comparison with the Redis-based in-memory ORM</p>
+        </a>
+    </div>
+
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

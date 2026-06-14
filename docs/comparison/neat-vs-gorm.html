@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs GORM Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs GORM Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with GORM, the most widely-used ORM library for Go.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you prefer Laravel Eloquent-like API and want a focused, modern ORM without the complexity of GORM's extensive ecosystem.</strong> Neat provides a cleaner, more focused feature set with built-in migrations, factories, and seeders out of the box. While GORM has a larger community and more mature ecosystem, Neat offers a more straightforward learning curve for developers familiar with Laravel Eloquent and avoids the overhead of GORM's extensive feature set. If you value simplicity, modern design, and Laravel-like patterns over the battle-tested but complex GORM ecosystem, Neat is the better choice.</p>
+<h2>GORM Overview</h2>
+<p>GORM is the most popular Go ORM library with a large community and mature codebase. It has been in production use for many years and powers countless applications.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Standalone ORM library built from scratch</li>
+<li>No GORM dependencies</li>
+<li>Designed for feature parity with Laravel's Eloquent ORM</li>
+<li>Query builder pattern with fluent interface</li>
+<li>Clean, focused API design</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li>Mature, battle-tested ORM with years of production use</li>
+<li>Largest community and ecosystem in Go ORM space</li>
+<li>Extensive documentation and community resources</li>
+<li>Active development and maintenance</li>
+<li>Feature-rich with many advanced capabilities</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Focused feature set</strong>: Essential ORM features without bloat</li>
+<li><strong>Clear documentation</strong>: Comprehensive docs with examples</li>
+<li><strong>Quick learning curve</strong>: Easy to get started for Eloquent users</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>Mature ecosystem</strong>: Extensive documentation and tutorials</li>
+<li><strong>Large community</strong>: Stack Overflow answers, blog posts, examples</li>
+<li><strong>Feature-rich</strong>: Many advanced features and plugins</li>
+<li><strong>Widely adopted</strong>: Many existing projects use GORM</li>
+<li><strong>Active community</strong>: Regular updates and community support</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>GORM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>Fluent chainable API</td>
+</tr>
+<tr>
+<td><strong>ORM Features</strong></td>
+<td>Models, relationships, migrations</td>
+<td>Models, relationships, hooks</td>
+</tr>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, and more</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Migration tools available</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>BelongsTo, HasMany, HasOne, Many2Many</td>
+</tr>
+<tr>
+<td><strong>Soft Deletes</strong></td>
+<td>Built-in soft delete support with multiple strategies (NULL-based and max-date sentinel)</td>
+<td>Built-in soft delete support</td>
+</tr>
+<tr>
+<td><strong>Transactions</strong></td>
+<td>Transaction support</td>
+<td>Transaction support</td>
+</tr>
+<tr>
+<td><strong>Observers</strong></td>
+<td>Model lifecycle observers</td>
+<td>Callbacks and hooks</td>
+</tr>
+<tr>
+<td><strong>Connection Pooling</strong></td>
+<td>Configurable pooling</td>
+<td>Configurable pooling</td>
+</tr>
+<tr>
+<td><strong>Context Support</strong></td>
+<td>Full context.Context support</td>
+<td>Context support</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Available via plugins</td>
+</tr>
+</tbody>
+</table>
+<h2>Query Building</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Eloquent-like syntax</strong>: Familiar methods like <code>Where()</code>, <code>OrderBy()</code>, <code>Select()</code></li>
+<li><strong>Method chaining</strong>: Intuitive fluent interface</li>
+<li><strong>Dynamic conditions</strong>: Easy to build complex queries dynamically</li>
+<li><strong>Subqueries</strong>: Support for subqueries and closures</li>
+<li><strong>Raw expressions</strong>: <code>RawExpr()</code> for database functions</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>Chainable API</strong>: Fluent method chaining</li>
+<li><strong>Flexible conditions</strong>: Multiple ways to build conditions</li>
+<li><strong>Advanced features</strong>: Preloading, scopes, joins</li>
+<li><strong>Raw SQL</strong>: <code>Raw()</code> and <code>Exec()</code> for custom queries</li>
+<li><strong>Extensive query options</strong>: Many query building methods</li>
+</ul>
+<h2>Model Definition</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Struct-based</strong>: Use Go structs with tags</li>
+<li><strong>Flexible naming</strong>: Convention over configuration</li>
+<li><strong>Custom table names</strong>: <code>TableName()</code> interface</li>
+<li><strong>Soft deletes</strong>: Built-in via <code>SoftDeletes</code> embed</li>
+<li><strong>Timestamps</strong>: Automatic timestamp management</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>Struct-based</strong>: Use Go structs with tags</li>
+<li><strong>Convention over configuration</strong>: Sensible defaults</li>
+<li><strong>Custom table names</strong>: <code>TableName()</code> method</li>
+<li><strong>Soft deletes</strong>: Built-in via <code>gorm.DeletedAt</code></li>
+<li><strong>Timestamps</strong>: Automatic timestamp fields</li>
+</ul>
+<h2>Relationships</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>BelongsTo</strong>: Parent-child relationships</li>
+<li><strong>HasMany</strong>: One-to-many relationships</li>
+<li><strong>HasOne</strong>: One-to-one relationships</li>
+<li><strong>PolymorphicBelongsTo</strong>: Polymorphic parent-child relationships</li>
+<li><strong>PolymorphicHasMany</strong>: Polymorphic one-to-many relationships</li>
+<li><strong>Eager loading</strong>: <code>With()</code> for preloading</li>
+<li><strong>Lazy loading</strong>: <code>Load()</code> for on-demand loading</li>
+<li><strong>Association operations</strong>: Append, remove, sync</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>BelongsTo</strong>: Parent-child relationships</li>
+<li><strong>HasMany</strong>: One-to-many relationships</li>
+<li><strong>HasOne</strong>: One-to-one relationships</li>
+<li><strong>ManyToMany</strong>: Many-to-many relationships</li>
+<li><strong>Preloading</strong>: <code>Preload()</code> for eager loading</li>
+<li><strong>Association mode</strong>: Association operations</li>
+</ul>
+<h2>Migration Support</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Built-in migrations</strong>: Schema builder for migrations</li>
+<li><strong>ORM driver</strong>: Migration system with ORM support</li>
+<li><strong>Schema builder</strong>: Fluent API for schema changes</li>
+<li><strong>Rollback support</strong>: Migration rollback capabilities</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>Auto-migration</strong>: <code>AutoMigrate()</code> for schema updates</li>
+<li><strong>Migration tools</strong>: Third-party migration libraries</li>
+<li><strong>Schema changes</strong>: Limited built-in schema building</li>
+<li><strong>Community tools</strong>: Many migration solutions available</li>
+</ul>
+<h2>Testing Support</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Factories</strong>: Built-in factory pattern for test data</li>
+<li><strong>Seeders</strong>: Database seeding for test data</li>
+<li><strong>Integration tests</strong>: Docker Compose setup for testing</li>
+<li><strong>Transaction rollback</strong>: Test transaction support</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>Factory libraries</strong>: Third-party factory libraries</li>
+<li><strong>Test utilities</strong>: Community testing tools</li>
+<li><strong>Transaction support</strong>: Transaction rollback for tests</li>
+<li><strong>Mocking</strong>: Mock database support available</li>
+</ul>
+<h2>Performance</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Query builder</strong>: Minimal overhead from fluent interface</li>
+<li><strong>Connection pooling</strong>: Efficient connection management</li>
+<li><strong>Dialect translation</strong>: Placeholder conversion cost</li>
+<li><strong>Recent optimization</strong>: Performance considerations in design</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li><strong>Mature optimization</strong>: Years of performance tuning</li>
+<li><strong>Widely benchmarked</strong>: Performance well-understood</li>
+<li><strong>Caching options</strong>: Built-in caching support</li>
+<li><strong>Connection pooling</strong>: Efficient connection management</li>
+</ul>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to PHP developers)</li>
+<li>Clean, focused feature set</li>
+<li>Easy learning curve for Eloquent users</li>
+<li>Built-in migrations, factories, and seeders</li>
+<li>Comprehensive documentation</li>
+<li>No GORM dependencies (clean slate)</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li>Mature, battle-tested codebase</li>
+<li>Largest community and ecosystem</li>
+<li>Extensive documentation and resources</li>
+<li>Proven in production</li>
+<li>Active development and maintenance</li>
+<li>Wide database support</li>
+<li>Many plugins and extensions</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Newer codebase (less battle-tested)</li>
+<li>Smaller community (fewer eyes on code)</li>
+<li>Less extensive ecosystem</li>
+<li>Fewer database-specific optimizations</li>
+<li>Fewer relationship types (no ManyToMany yet)</li>
+</ul>
+<h3>GORM</h3>
+<ul>
+<li>Larger codebase (more complexity)</li>
+<li>Performance overhead from features</li>
+<li>Steeper learning curve for some features</li>
+<li>More complex API surface</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You prefer Laravel Eloquent-like API in Go</li>
+<li>You want a clean, focused ORM without bloat</li>
+<li>You need built-in migrations, factories, and seeders</li>
+<li>You're coming from PHP/Laravel background</li>
+<li>You want comprehensive documentation</li>
+<li>You prefer a standalone ORM without framework dependencies</li>
+<li>You need BelongsTo, HasMany, HasOne relationships</li>
+</ul>
+<h3>Choose GORM If:</h3>
+<ul>
+<li>You need a mature, battle-tested ORM</li>
+<li>Large community support is important</li>
+<li>You need extensive ecosystem and plugins</li>
+<li>You need ManyToMany relationships</li>
+<li>You want established best practices</li>
+<li>You need wide database support</li>
+<li>Community knowledge and resources are valuable</li>
+<li>You're building on existing GORM expertise</li>
+</ul>
+<h2>Conclusion</h2>
+<p>Both Neat ORM and GORM provide excellent developer experiences for Go database operations. The key differences are:</p>
+<p><strong>Neat ORM</strong>: Laravel Eloquent-like API with clean, focused feature set. Ideal for developers familiar with Eloquent who want a straightforward ORM in Go.</p>
+<p><strong>GORM</strong>: Mature, feature-rich ORM with large community and extensive ecosystem. Ideal for projects that need advanced features and community support.</p>
+<p>The choice depends on your priorities:
+- <strong>API familiarity</strong>: Neat ORM offers Laravel Eloquent-like API
+- <strong>Maturity and community</strong>: GORM has years of production use and large community
+- <strong>Feature needs</strong>: GORM has more advanced features and relationship types
+- <strong>Ecosystem needs</strong>: GORM has extensive plugins and extensions
+- <strong>Learning curve</strong>: Neat ORM may be easier for Eloquent users</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>GORM Documentation: https://gorm.io/docs/</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs GORP Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs GORP Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with GORP (Go Relational Persistence), an ORM-ish library for Go.</p>
+<p><strong>Important Note</strong>: The GORP author explicitly states they "hesitate to call gorp an ORM" as it doesn't have full ORM features like associations.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you need a full ORM with associations, migrations, factories, and seeders rather than a basic ORM-ish library.</strong> GORP explicitly states it's not a full ORM and lacks standard ORM features like associations, migrations, and testing tools. Neat provides a complete ORM solution with BelongsTo, HasMany, HasOne associations, built-in migrations, factories, and seeders. If you need a full-featured ORM with all standard capabilities rather than a basic ORM-ish library, Neat is the clear winner.</p>
+<h2>GORP Overview</h2>
+<p>GORP is Go Relational Persistence, described as an "ORM-ish library." It takes a code-first approach using tags for specifications and uses reflection for constructing SQL queries. It lacks full ORM features like associations.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Full ORM</strong>: Complete ORM with models, relationships, migrations</li>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+<li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+<li><strong>Modern design</strong>: Recent development with security focus</li>
+</ul>
+<h3>GORP</h3>
+<ul>
+<li><strong>ORM-ish library</strong>: Not a full ORM (explicitly stated by author)</li>
+<li><strong>Code-first approach</strong>: Uses tags for specifications</li>
+<li><strong>Reflection-based</strong>: Uses reflection for SQL queries</li>
+<li><strong>Limited features</strong>: Lacks associations and full ORM features</li>
+<li><strong>Mature codebase</strong>: Established but simpler</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar to PHP/Laravel developers</li>
+<li><strong>Full ORM experience</strong>: Complete ORM with all standard features</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Active development</strong>: Regular updates and improvements</li>
+<li><strong>Comprehensive documentation</strong>: Docs with examples</li>
+<li><strong>Testing tools</strong>: Built-in factories and seeders</li>
+</ul>
+<h3>GORP</h3>
+<ul>
+<li><strong>Simple API</strong>: Code-first approach with tags</li>
+<li><strong>Reflection-based</strong>: Automatic SQL construction</li>
+<li><strong>Limited scope</strong>: Not a full ORM</li>
+<li><strong>Mature codebase</strong>: Established library</li>
+<li><strong>Simple learning curve</strong>: Basic features</li>
+<li><strong>No associations</strong>: Limited relationship support</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>GORP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Full ORM</td>
+<td>ORM-ish library (not full ORM)</td>
+</tr>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>Code-first with tags</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>Not supported</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Soft Deletes</strong></td>
+<td>Built-in soft delete support</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Observers</strong></td>
+<td>Model lifecycle observers</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Reflection</strong></td>
+<td>Uses reflection for mapping</td>
+<td>Uses reflection for SQL</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Complete ORM solution</td>
+<td>Limited ORM features</td>
+</tr>
+</tbody>
+</table>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Laravel Eloquent-like API (familiar to many)</li>
+<li>Full ORM with all standard features</li>
+<li>Built-in migrations, factories, and seeders</li>
+<li>Associations and relationships</li>
+<li>Model lifecycle observers</li>
+<li>Soft deletes support</li>
+<li>Active development</li>
+<li>Recent security hardening</li>
+</ul>
+<h3>GORP</h3>
+<ul>
+<li>Simple code-first approach</li>
+<li>Reflection-based SQL construction</li>
+<li>Mature codebase</li>
+<li>Lightweight</li>
+<li>Simple learning curve</li>
+<li>Tag-based configuration</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>More complex (full ORM)</li>
+<li>Runtime overhead from features</li>
+<li>Newer codebase</li>
+<li>Smaller community</li>
+</ul>
+<h3>GORP</h3>
+<ul>
+<li><strong>Not a full ORM</strong> (explicitly stated)</li>
+<li>No associations or relationships</li>
+<li>No migrations</li>
+<li>No factories or seeders</li>
+<li>No observers or hooks</li>
+<li>No soft deletes</li>
+<li>Limited feature set</li>
+<li>Less active development</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You need a full ORM with all standard features</li>
+<li>You need associations and relationships</li>
+<li>You need built-in migrations</li>
+<li>You need factories and seeders for testing</li>
+<li>You prefer Laravel Eloquent-like API</li>
+<li>You need model lifecycle observers</li>
+<li>You need soft deletes</li>
+<li>You want a complete ORM solution</li>
+</ul>
+<h3>Choose GORP If:</h3>
+<ul>
+<li>You only need basic ORM-ish features</li>
+<li>You prefer code-first approach with tags</li>
+<li>You don't need associations</li>
+<li>You want a simple, lightweight solution</li>
+<li>You don't need migrations</li>
+<li>You don't need testing tools</li>
+<li>You're okay with limited features</li>
+</ul>
+<p><strong>Important</strong>: GORP explicitly states it's not a full ORM. If you need ORM features like associations, Neat ORM is the appropriate choice.</p>
+<h2>Conclusion</h2>
+<p>Neat ORM and GORP serve different purposes:</p>
+<p><strong>Neat ORM</strong>: Full-featured ORM with Laravel Eloquent-like API and complete ORM features. Ideal for developers building full applications who need a comprehensive ORM.</p>
+<p><strong>GORP</strong>: ORM-ish library with basic features and code-first approach. Ideal for developers who only need basic persistence without full ORM features.</p>
+<p>The choice depends on your needs:
+- <strong>Full ORM with all features</strong>: Neat ORM
+- <strong>Basic ORM-ish features</strong>: GORP</p>
+<p><strong>Important</strong>: GORP is explicitly not a full ORM. If you need standard ORM features, Neat ORM is the better choice.</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>GORP GitHub: https://github.com/go-gorp/gorp</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>

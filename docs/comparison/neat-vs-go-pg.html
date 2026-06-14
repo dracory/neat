@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs go-pg Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs go-pg Developer Experience Comparison</h1>
+<p><strong>Date</strong>: June 1, 2026</p>
+<h2>Overview</h2>
+<p>This document compares the developer experience, ease of use, and features of Neat ORM with go-pg, a PostgreSQL-focused ORM for Go.</p>
+<p><strong>Important Note</strong>: go-pg is in maintenance mode and will NOT receive new features. The official recommendation is to use Bun Golang ORM instead.</p>
+<h2>Why Neat Wins?</h2>
+<p><strong>Neat ORM wins when you need multi-database support, active development, and built-in testing tools rather than PostgreSQL-specific features in maintenance mode.</strong> While go-pg offers excellent PostgreSQL-specific features like arrays and hstore, it's in maintenance mode with no new features. Neat provides active development, multi-database support including SQL Server and Turso, and comprehensive testing infrastructure with factories and seeders. If you value active development, database flexibility, and built-in testing tools over PostgreSQL-specific optimizations, Neat is the better choice.</p>
+<h2>go-pg Overview</h2>
+<p>go-pg is a PostgreSQL client and ORM for Go with focus on PostgreSQL features. It supports PostgreSQL-specific features like arrays, hstore, composite types, and has good performance.</p>
+<h2>Architecture Comparison</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Multi-database</strong>: Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso</li>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+<li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+<li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+<li><strong>Active development</strong>: Recent development with security focus</li>
+</ul>
+<h3>go-pg</h3>
+<ul>
+<li><strong>PostgreSQL-only</strong>: Focused exclusively on PostgreSQL</li>
+<li><strong>PostgreSQL features</strong>: Arrays, hstore, composite types</li>
+<li><strong>Maintenance mode</strong>: No new features being added</li>
+<li><strong>Performance-focused</strong>: Optimized for PostgreSQL performance</li>
+<li><strong>Mature codebase</strong>: Established but in maintenance</li>
+</ul>
+<h2>Developer Experience</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li><strong>Laravel Eloquent-like API</strong>: Familiar to PHP/Laravel developers</li>
+<li><strong>Multi-database support</strong>: Works with multiple databases</li>
+<li><strong>Clean fluent interface</strong>: Intuitive method chaining</li>
+<li><strong>Active development</strong>: Regular updates and improvements</li>
+<li><strong>Comprehensive documentation</strong>: Docs with examples</li>
+<li><strong>Testing tools</strong>: Built-in factories and seeders</li>
+</ul>
+<h3>go-pg</h3>
+<ul>
+<li><strong>PostgreSQL expertise</strong>: Deep PostgreSQL feature support</li>
+<li><strong>Performance</strong>: Good performance for PostgreSQL</li>
+<li><strong>PostgreSQL-specific</strong>: Arrays, hstore, composite types</li>
+<li><strong>Maintenance mode</strong>: No new features</li>
+<li><strong>Mature documentation</strong>: Established docs</li>
+<li><strong>Limited scope</strong>: PostgreSQL only</li>
+</ul>
+<h2>Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Neat ORM</th>
+<th>go-pg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Database Support</strong></td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>PostgreSQL only</td>
+</tr>
+<tr>
+<td><strong>Query Builder</strong></td>
+<td>Fluent Eloquent-like API</td>
+<td>PostgreSQL-focused API</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL Features</strong></td>
+<td>Basic support</td>
+<td>Arrays, hstore, composite types</td>
+</tr>
+<tr>
+<td><strong>Migrations</strong></td>
+<td>Built-in migration system</td>
+<td>Migrations available</td>
+</tr>
+<tr>
+<td><strong>Associations</strong></td>
+<td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+<td>Has one, belongs to, has many, many to many</td>
+</tr>
+<tr>
+<td><strong>Soft Deletes</strong></td>
+<td>Built-in soft delete support</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Observers</strong></td>
+<td>Model lifecycle observers</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Factories/Seeders</strong></td>
+<td>Built-in factories and seeders</td>
+<td>Not included</td>
+</tr>
+<tr>
+<td><strong>Development Status</strong></td>
+<td>Active development</td>
+<td>Maintenance mode</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Good</td>
+<td>Optimized for PostgreSQL</td>
+</tr>
+</tbody>
+</table>
+<h2>Strengths</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Multi-database support</li>
+<li>Laravel Eloquent-like API</li>
+<li>Active development</li>
+<li>Built-in migrations, factories, seeders</li>
+<li>Model lifecycle observers</li>
+<li>Recent security hardening</li>
+<li>Comprehensive documentation</li>
+</ul>
+<h3>go-pg</h3>
+<ul>
+<li>Deep PostgreSQL feature support</li>
+<li>PostgreSQL-specific optimizations</li>
+<li>Good performance</li>
+<li>Mature codebase</li>
+<li>Arrays, hstore, composite types</li>
+<li>PostgreSQL expertise</li>
+</ul>
+<h2>Weaknesses</h2>
+<h3>Neat ORM</h3>
+<ul>
+<li>Less PostgreSQL-specific features</li>
+<li>Newer codebase</li>
+<li>Smaller community</li>
+</ul>
+<h3>go-pg</h3>
+<ul>
+<li><strong>Maintenance mode</strong> (no new features)</li>
+<li>PostgreSQL only (no multi-database)</li>
+<li>No factories or seeders</li>
+<li>No observers</li>
+<li>No soft deletes</li>
+<li>Official recommendation to use Bun</li>
+</ul>
+<h2>Use Case Recommendations</h2>
+<h3>Choose Neat ORM If:</h3>
+<ul>
+<li>You need multi-database support</li>
+<li>You prefer Laravel Eloquent-like API</li>
+<li>You need built-in migrations, factories, and seeders</li>
+<li>You need model lifecycle observers</li>
+<li>You prefer active development</li>
+<li>You might switch databases in the future</li>
+<li>Recent security hardening is important</li>
+</ul>
+<h3>Choose go-pg If:</h3>
+<ul>
+<li>You're committed to PostgreSQL only</li>
+<li>You need PostgreSQL-specific features (arrays, hstore)</li>
+<li>You need PostgreSQL optimizations</li>
+<li>You're maintaining existing go-pg code</li>
+<li>You don't need new features</li>
+<li>Performance is critical for PostgreSQL</li>
+</ul>
+<p><strong>Important</strong>: If starting a new project, consider Bun (the recommended successor to go-pg) instead of go-pg.</p>
+<h2>Conclusion</h2>
+<p>Neat ORM and go-pg serve different purposes:</p>
+<p><strong>Neat ORM</strong>: Multi-database ORM with Laravel Eloquent-like API and active development. Ideal for projects that need database flexibility and modern ORM features.</p>
+<p><strong>go-pg</strong>: PostgreSQL-focused ORM with deep PostgreSQL feature support but in maintenance mode. Ideal for existing PostgreSQL projects that need PostgreSQL-specific features.</p>
+<p><strong>Recommendation</strong>: For new projects, consider Bun (the official successor to go-pg) rather than go-pg due to its maintenance status.</p>
+<h2>References</h2>
+<ul>
+<li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+<li>go-pg Documentation: https://pg.uptrace.dev/</li>
+<li>go-pg GitHub: https://github.com/go-pg/pg</li>
+<li>Bun ORM (go-pg successor): https://bun.uptrace.dev/</li>
+<li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+</ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>
