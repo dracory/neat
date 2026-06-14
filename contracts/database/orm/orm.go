@@ -206,6 +206,7 @@ type Query interface {
 	//   var exists bool
 	//   err := query.Where("email = ?", "test@example.com").Exists(&exists)
 	Exists(exists *bool) error
+
 	// Find retrieves all records matching the given conditions.
 	// The dest parameter must be a pointer to a slice (e.g., *[]User).
 	// Conditions can be provided as variadic arguments for WHERE clauses.
@@ -217,6 +218,7 @@ type Query interface {
 	//   var users []User
 	//   err := query.Find(&users, "age > ?", 18)
 	Find(dest any, conds ...any) error
+
 	// FindOrFail finds records that match given conditions or returns an error.
 	// Similar to Find, but returns an error if no records are found.
 	// The dest parameter must be a pointer to a slice (e.g., *[]User).
@@ -227,6 +229,7 @@ type Query interface {
 	//   var users []User
 	//   err := query.FindOrFail(&users, "age > ?", 18)
 	FindOrFail(dest any, conds ...any) error
+
 	// First retrieves the first record matching the query conditions.
 	// The dest parameter must be a pointer to a struct (e.g., *User).
 	// Returns an error if no record is found.
@@ -282,6 +285,7 @@ type Query interface {
 	//   var user User
 	//   err := query.Where("email = ?", "test@example.com").FirstOrFail(&user)
 	FirstOrFail(dest any) error
+
 	// FirstOrNew finds the first record matching the given conditions,
 	// or returns a new instance of the model initialized with those attributes.
 	// The dest parameter must be a pointer to a struct (e.g., *User).
@@ -295,6 +299,7 @@ type Query interface {
 	//   var user User
 	//   err := query.FirstOrNew(&user, map[string]any{"email": "john@example.com"})
 	FirstOrNew(dest any, attributes any, values ...any) error
+
 	// ForceDelete permanently deletes records matching the query conditions.
 	// Unlike Delete, this bypasses soft delete mechanisms and permanently removes records.
 	// Returns the number of rows affected and any error.
@@ -302,6 +307,7 @@ type Query interface {
 	// Example:
 	//   result, err := query.Where("status = ?", "inactive").ForceDelete()
 	ForceDelete(value ...any) (*Result, error)
+
 	// Get retrieves all rows from the database matching the query conditions.
 	// The dest parameter must be a pointer to a slice of structs or maps.
 	// Returns an error if the query fails.
@@ -338,6 +344,7 @@ type Query interface {
 	//   query.Group("status")
 	//   query.Group("department", "role")
 	Group(name string) Query
+
 	// Having specifies HAVING conditions for the query.
 	// Used with GROUP BY to filter grouped results.
 	// Query can be a string (SQL fragment) or a map.
@@ -347,6 +354,7 @@ type Query interface {
 	// Example:
 	//   query.Group("status").Having("COUNT(*) > ?", 10)
 	Having(query any, args ...any) Query
+
 	// InRandomOrder specifies that results should be returned in random order.
 	// Useful for sampling or random selection.
 	// Returns the query instance for method chaining.
@@ -354,9 +362,11 @@ type Query interface {
 	// Example:
 	//   query.InRandomOrder().Limit(10)
 	InRandomOrder() Query
+
 	// InTransaction checks if the query is currently within a transaction.
 	// Returns true if the query is part of an active transaction, false otherwise.
 	InTransaction() bool
+
 	// Join specifies INNER JOIN conditions for the query.
 	// The query parameter specifies the join condition (e.g., "users ON orders.user_id = users.id").
 	// Args provides parameter values for prepared statements.
@@ -365,6 +375,7 @@ type Query interface {
 	// Example:
 	//   query.Join("users ON orders.user_id = users.id")
 	Join(query string, args ...any) Query
+
 	// LeftJoin specifies LEFT JOIN conditions for the query.
 	// The query parameter specifies the join condition.
 	// Args provides parameter values for prepared statements.
@@ -373,6 +384,7 @@ type Query interface {
 	// Example:
 	//   query.LeftJoin("profiles ON users.id = profiles.user_id")
 	LeftJoin(query string, args ...any) Query
+
 	// RightJoin specifies RIGHT JOIN conditions for the query.
 	// The query parameter specifies the join condition.
 	// Args provides parameter values for prepared statements.
@@ -381,6 +393,7 @@ type Query interface {
 	// Example:
 	//   query.RightJoin("orders ON users.id = orders.user_id")
 	RightJoin(query string, args ...any) Query
+
 	// CrossJoin specifies CROSS JOIN conditions for the query.
 	// The query parameter specifies the table to join.
 	// Args provides parameter values for prepared statements.
@@ -389,6 +402,7 @@ type Query interface {
 	// Example:
 	//   query.CrossJoin("categories")
 	CrossJoin(query string, args ...any) Query
+
 	// Limit restricts the number of records returned by the query.
 	// The limit parameter specifies the maximum number of records to return.
 	// Returns the query instance for method chaining.
@@ -396,6 +410,7 @@ type Query interface {
 	// Example:
 	//   query.Limit(10)
 	Limit(limit int) Query
+
 	// Load eager loads a relationship for the model.
 	// The dest parameter is the model instance to load the relationship for.
 	// The relation parameter specifies the relationship name (e.g., "posts", "profile").
@@ -407,6 +422,7 @@ type Query interface {
 	//   err := query.First(&user)
 	//   err = query.Load(&user, "posts")
 	Load(dest any, relation string, args ...any) error
+
 	// LoadMissing eager loads a relationship only if it's not already loaded.
 	// The dest parameter is the model instance to load the relationship for.
 	// The relation parameter specifies the relationship name.
@@ -414,6 +430,7 @@ type Query interface {
 	// Returns an error if the load operation fails.
 	// This is more efficient than Load for relationships that may already be loaded.
 	LoadMissing(dest any, relation string, args ...any) error
+
 	// LockForUpdate locks the selected rows in the table for updating.
 	// This prevents other transactions from modifying the selected rows.
 	// Returns the query instance for method chaining.
@@ -421,6 +438,7 @@ type Query interface {
 	// Example:
 	//   query.Where("id = ?", 1).LockForUpdate().First(&user)
 	LockForUpdate() Query
+
 	// Model sets the model instance to be queried.
 	// The value parameter must be a struct or pointer to a struct.
 	// The model's TableName() method or struct name (lowercased) determines the table.
@@ -430,6 +448,7 @@ type Query interface {
 	//   query.Model(&User{})
 	//   query.Model(user)
 	Model(value any) Query
+
 	// Offset specifies the number of records to skip before returning results.
 	// Often used with Limit for pagination.
 	// Returns the query instance for method chaining.
@@ -437,6 +456,7 @@ type Query interface {
 	// Example:
 	//   query.Offset(10).Limit(10) // Skip first 10, return next 10
 	Offset(offset int) Query
+
 	// Omit specifies columns that should be omitted from the query.
 	// Useful for excluding sensitive fields or large columns from results.
 	// Returns the query instance for method chaining.
@@ -444,6 +464,7 @@ type Query interface {
 	// Example:
 	//   query.Omit("password", "secret_key")
 	Omit(columns ...string) Query
+
 	// Order specifies the order in which results should be returned.
 	// The value parameter can be a string (column name) or expression.
 	// Returns the query instance for method chaining.
@@ -452,6 +473,7 @@ type Query interface {
 	//   query.Order("created_at DESC")
 	//   query.Order("name ASC")
 	Order(value any) Query
+
 	// OrderBy specifies that results should be ordered by a column in ascending order.
 	// The column parameter specifies the column to order by.
 	// The optional direction parameter can override the default ASC direction.
@@ -461,6 +483,7 @@ type Query interface {
 	//   query.OrderBy("name")
 	//   query.OrderBy("created_at", "DESC")
 	OrderBy(column string, direction ...string) Query
+
 	// OrderByDesc specifies that results should be ordered by a column in descending order.
 	// The column parameter specifies the column to order by.
 	// Returns the query instance for method chaining.
@@ -468,6 +491,7 @@ type Query interface {
 	// Example:
 	//   query.OrderByDesc("created_at")
 	OrderByDesc(column string) Query
+
 	// OrWhere adds an OR WHERE clause to the query.
 	// Query can be a string (SQL fragment) or a map[string]any for multiple conditions.
 	// Args provides parameter values for prepared statements.
@@ -476,6 +500,7 @@ type Query interface {
 	// Example:
 	//   query.Where("status = ?", "active").OrWhere("status = ?", "pending")
 	OrWhere(query any, args ...any) Query
+
 	// OrWhereIn adds an OR WHERE column IN clause to the query.
 	// The column parameter specifies the column to check.
 	// The values parameter provides the list of values to match against.
@@ -484,6 +509,7 @@ type Query interface {
 	// Example:
 	//   query.Where("status = ?", "active").OrWhereIn("id", []any{1, 2, 3})
 	OrWhereIn(column string, values []any) Query
+
 	// OrWhereNotIn adds an OR WHERE column NOT IN clause to the query.
 	// The column parameter specifies the column to check.
 	// The values parameter provides the list of values to exclude.
@@ -492,6 +518,7 @@ type Query interface {
 	// Example:
 	//   query.Where("status = ?", "active").OrWhereNotIn("id", []any{1, 2, 3})
 	OrWhereNotIn(column string, values []any) Query
+
 	// OrWhereBetween adds an OR WHERE column BETWEEN clause to the query.
 	// The column parameter specifies the column to check.
 	// The x and y parameters specify the range boundaries.
@@ -500,6 +527,7 @@ type Query interface {
 	// Example:
 	//   query.Where("status = ?", "active").OrWhereBetween("age", 18, 65)
 	OrWhereBetween(column string, x, y any) Query
+
 	// OrWhereNotBetween adds an OR WHERE column NOT BETWEEN clause to the query.
 	// The column parameter specifies the column to check.
 	// The x and y parameters specify the range boundaries.
@@ -515,6 +543,7 @@ type Query interface {
 	// Example:
 	//   query.Where("status = ?", "active").OrWhereNull("deleted_at")
 	OrWhereNull(column string) Query
+
 	// Paginate paginates the query results into pages.
 	// The page parameter specifies the current page number (1-based).
 	// The limit parameter specifies the number of records per page.
@@ -527,6 +556,7 @@ type Query interface {
 	//   var total int64
 	//   err := query.Paginate(1, 10, &users, &total)
 	Paginate(page, limit int, dest any, total *int64) error
+
 	// Pluck retrieves a single column's values from the database.
 	// The column parameter specifies the column to retrieve.
 	// The dest parameter must be a pointer to a slice (e.g., *[]string, *[]int).
@@ -536,6 +566,7 @@ type Query interface {
 	//   var names []string
 	//   err := query.Pluck("name", &names)
 	Pluck(column string, dest any) error
+
 	// Value retrieves a single column's value from the first matching record.
 	// The column parameter specifies the column to retrieve.
 	// The dest parameter must be a pointer to the appropriate type.
@@ -545,6 +576,7 @@ type Query interface {
 	//   var name string
 	//   err := query.Where("id = ?", 1).Value("name", &name)
 	Value(column string, dest any) error
+
 	// Raw creates a raw SQL query.
 	// The sql parameter is the raw SQL statement to execute.
 	// The values parameter provides parameter values for prepared statements.
@@ -553,6 +585,7 @@ type Query interface {
 	// Example:
 	//   query.Raw("SELECT * FROM users WHERE status = ?", "active")
 	Raw(sql string, values ...any) Query
+
 	// RestoreSoftDeleted restores a soft-deleted model.
 	// Sets the soft-delete timestamp column to NULL for the specified model(s).
 	// Returns the number of rows affected and any error.

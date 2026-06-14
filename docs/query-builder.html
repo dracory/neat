@@ -124,19 +124,507 @@ db.Query().Limit(10).Offset(20)</code></pre>
     <h3>Aggregations</h3>
 
     <pre><code>// Count
-count, err := db.Query().Count()
+var count int64
+err := db.Query().Count(&amp;count)
 
 // Sum
-sum, err := db.Query().Sum("amount")
+var sum float64
+err := db.Query().Sum("amount", &amp;sum)
 
 // Average
-avg, err := db.Query().Avg("amount")
+var avg float64
+err := db.Query().Avg("amount", &amp;avg)
 
 // Min
-min, err := db.Query().Min("amount")
+var min float64
+err := db.Query().Min("amount", &amp;min)
 
 // Max
-max, err := db.Query().Max("amount")</code></pre>
+var max float64
+err := db.Query().Max("amount", &amp;max)
+
+// Exists
+var exists bool
+err := db.Query().Where("id", 1).Exists(&amp;exists)</code></pre>
+
+    <h3>Selection Methods</h3>
+
+    <pre><code>// Select specific columns
+db.Query().Select("id", "name", "email")
+
+// Select with subquery
+subquery := db.Query().Select("user_id").From("orders")
+db.Query().Select(subquery)
+
+// Distinct results
+db.Query().Distinct("category")
+
+// Pluck single column
+var names []string
+err := db.Query().Pluck("name", &amp;names)
+
+// Get single value
+var count int
+err := db.Query().Value("COUNT(*)", &amp;count)
+
+// Scan raw results
+var results []map[string]any
+err := db.Query().Raw("SELECT * FROM users").Scan(&amp;results)</code></pre>
+
+    <h3>Advanced Retrieval Methods</h3>
+
+    <pre><code>// All - Django-style alias for Get
+var users []User
+err := db.Query().All(&amp;users)
+
+// FindAll - Sequelize-style alias for All
+err := db.Query().FindAll(&amp;users)
+
+// FindOne - Sequelize-style alias for First
+var user User
+err := db.Query().FindOne(&amp;user)
+
+// Find with conditions
+var users []User
+err := db.Query().Find(&amp;users, "active = ?", true)
+
+// FirstOrFail - error if not found
+var user User
+err := db.Query().Where("email", "john@example.com").FirstOrFail(&amp;user)
+
+// FindOrFail - error if not found
+var user User
+err := db.Query().FindOrFail(&amp;user, 1)
+
+// FirstOr - execute callback if not found
+var user User
+err := db.Query().Where("email", "john@example.com").FirstOr(&amp;user, func() error {
+    user = User{Name: "Default User"}
+    return nil
+})
+
+// FirstOrCreate - get or create
+var user User
+err := db.Query().Where("email", "john@example.com").FirstOrCreate(&amp;user)
+
+// FirstOrNew - get or new instance (not saved)
+var user User
+err := db.Query().Where("email", "john@example.com").FirstOrNew(&amp;user)</code></pre>
+
+    <h3>Advanced Where Clauses</h3>
+
+    <pre><code>// WhereNotIn
+db.Query().WhereNotIn("id", []any{1, 2, 3})
+
+// OrWhereIn
+db.Query().Where("name", "John").OrWhereIn("id", []any{4, 5, 6})
+
+// OrWhereNotIn
+db.Query().Where("name", "John").OrWhereNotIn("id", []any{1, 2, 3})
+
+// WhereNotBetween
+db.Query().WhereNotBetween("age", 18, 65)
+
+// OrWhereBetween
+db.Query().Where("name", "John").OrWhereBetween("age", 18, 25)
+
+// OrWhereNotBetween
+db.Query().Where("name", "John").OrWhereNotBetween("age", 30, 65)
+
+// WhereNotNull
+db.Query().WhereNotNull("email")
+
+// OrWhereNull
+db.Query().Where("name", "John").OrWhereNull("deleted_at")
+
+// WhereColumn - compare columns
+db.Query().WhereColumn("created_at", "&lt;", "updated_at")
+
+// OrWhereColumn
+db.Query().Where("name", "John").OrWhereColumn("age", "&gt;", "18")
+
+// WhereExists - subquery
+subquery := db.Query().Select("id").From("orders")
+db.Query().WhereExists(subquery)
+
+// WhereNot
+db.Query().WhereNot("active", true)
+
+// Exclude - Django-style alias for WhereNot
+db.Query().Exclude("active", true)
+
+// OrWhereNot
+db.Query().Where("name", "John").OrWhereNot("active", true)
+
+// WhereAny - OR across multiple columns
+db.Query().WhereAny([]string{"first_name", "last_name"}, "LIKE", "%John%")
+
+// WhereAll - AND across multiple columns
+db.Query().WhereAll([]string{"first_name", "last_name"}, "LIKE", "%John%")
+
+// WhereNone - NOT OR across multiple columns
+db.Query().WhereNone([]string{"first_name", "last_name"}, "LIKE", "%John%")</code></pre>
+
+    <h3>JSON Where Methods</h3>
+
+    <pre><code>// WhereJsonContains
+db.Query().WhereJsonContains("metadata", "key", "value")
+
+// OrWhereJsonContains
+db.Query().Where("type", "product").OrWhereJsonContains("metadata", "category", "electronics")
+
+// WhereJsonDoesntContain
+db.Query().WhereJsonDoesntContain("metadata", "discount")
+
+// OrWhereJsonDoesntContain
+db.Query().Where("type", "product").OrWhereJsonDoesntContain("metadata", "deleted")
+
+// WhereJsonContainsKey
+db.Query().WhereJsonContainsKey("metadata", "price")
+
+// OrWhereJsonContainsKey
+db.Query().Where("type", "product").OrWhereJsonContainsKey("metadata", "attributes")
+
+// WhereJsonDoesntContainKey
+db.Query().WhereJsonDoesntContainKey("metadata", "internal_notes")
+
+// OrWhereJsonDoesntContainKey
+db.Query().Where("type", "product").OrWhereJsonDoesntContainKey("metadata", "private")
+
+// WhereJsonLength
+db.Query().WhereJsonLength("tags", "&gt;", 3)</code></pre>
+
+    <h3>Advanced Ordering</h3>
+
+    <pre><code>// Order with DESC/ASC suffix
+db.Query().Order("created_at DESC")
+
+// OrderBy with direction
+db.Query().OrderBy("created_at", "desc")
+
+// OrderByDesc shorthand
+db.Query().OrderByDesc("created_at")
+
+// Random order
+db.Query().InRandomOrder()</code></pre>
+
+    <h3>Advanced Joins</h3>
+
+    <pre><code>// Inner join
+db.Query().Join("posts", "users.id", "=", "posts.user_id")
+
+// Left join
+db.Query().LeftJoin("posts", "users.id", "=", "posts.user_id")
+
+// Right join
+db.Query().RightJoin("posts", "users.id", "=", "posts.user_id")
+
+// Cross join
+db.Query().CrossJoin("categories")</code></pre>
+
+    <h3>Soft Delete Methods</h3>
+
+    <pre><code>// Include soft-deleted records
+db.Query().WithSoftDeleted().Get(&amp;users)
+
+// Deprecated alias
+db.Query().WithTrashed().Get(&amp;users)
+
+// Only soft-deleted records
+db.Query().OnlySoftDeleted().Get(&amp;users)
+
+// Deprecated alias
+db.Query().OnlyTrashed().Get(&amp;users)
+
+// Exclude soft-deleted (default)
+db.Query().WithoutSoftDeleted().Get(&amp;users)
+
+// Deprecated alias
+db.Query().WithoutTrashed().Get(&amp;users)
+
+// Restore soft-deleted records
+result, err := db.Query().Where("id", 1).RestoreSoftDeleted()
+
+// Deprecated alias
+result, err := db.Query().Where("id", 1).Restore()</code></pre>
+
+    <h3>Relationship Methods</h3>
+
+    <pre><code>// Eager load relationships
+db.Query().With("posts").Get(&amp;users)
+
+// Eager load multiple relationships
+db.Query().With("posts", "comments").Get(&amp;users)
+
+// Exclude relationships
+db.Query().Without("posts").Get(&amp;users)
+
+// Load relationship for model
+var user User
+db.Query().First(&amp;user)
+db.Query().Load(&amp;user, "posts")
+
+// Load missing relationships
+db.Query().LoadMissing(&amp;user, "posts")
+
+// Eager load relationship count
+db.Query().WithCount("posts").Get(&amp;users)
+
+// Filter by relationship existence
+db.Query().WithExists("posts").Get(&amp;users)
+
+// Get association instance
+assoc := db.Query().Model(&amp;user).Association("posts")</code></pre>
+
+    <h3>Chunking and Cursor</h3>
+
+    <pre><code>// Process records in chunks
+err := db.Query().Chunk(100, func(users []User) error {
+    // Process each chunk
+    for _, user := range users {
+        fmt.Println(user.Name)
+    }
+    return nil
+})
+
+// Use cursor for efficient iteration
+cursor, err := db.Query().Cursor()
+if err != nil {
+    return err
+}
+defer cursor.Close()
+
+for cursor.Next() {
+    var user User
+    if err := cursor.Scan(&amp;user); err != nil {
+        return err
+    }
+    fmt.Println(user.Name)
+}</code></pre>
+
+    <h3>Transaction Methods</h3>
+
+    <pre><code>// Execute within transaction
+err := db.Query().Transaction(func(tx Query) error {
+    // Perform operations
+    if err := tx.Create(&amp;user); err != nil {
+        return err // Will rollback
+    }
+    return nil // Will commit
+})
+
+// Manual transaction control
+tx, err := db.Query().Begin()
+if err != nil {
+    return err
+}
+
+if err := tx.Create(&amp;user); err != nil {
+    tx.Rollback()
+    return err
+}
+
+if err := tx.Commit(); err != nil {
+    return err
+}
+
+// Savepoints
+err := db.Query().Transaction(func(tx Query) error {
+    if err := tx.SavePoint("before_update"); err != nil {
+        return err
+    }
+    
+    if err := tx.Update(&amp;user); err != nil {
+        tx.RollbackTo("before_update")
+        return err
+    }
+    
+    return nil
+})
+
+// Transaction callbacks
+err := db.Query().
+    BeforeCommit(func() error {
+        fmt.Println("About to commit")
+        return nil
+    }).
+    AfterCommit(func() error {
+        fmt.Println("Committed successfully")
+        return nil
+    }).
+    Transaction(func(tx Query) error {
+        return tx.Create(&amp;user)
+    })
+
+// Check if in transaction
+if db.Query().InTransaction() {
+    fmt.Println("Currently in transaction")
+}</code></pre>
+
+    <h3>Advanced Operations</h3>
+
+    <pre><code>// Increment column
+err := db.Query().Where("id", 1).Increment("views")
+
+// Increment by amount
+err := db.Query().Where("id", 1).Increment("views", 5)
+
+// Decrement column
+err := db.Query().Where("id", 1).Decrement("stock")
+
+// Decrement by amount
+err := db.Query().Where("id", 1).Decrement("stock", 2)
+
+// Raw SQL
+db.Query().Raw("SELECT * FROM users WHERE created_at &gt; ?", time.Now().AddDate(-7, 0, 0))
+
+// Execute raw SQL
+result, err := db.Query().Exec("UPDATE users SET active = ? WHERE id = ?", true, 1)
+
+// Omit columns from INSERT/UPDATE
+user := User{Name: "John", Email: "john@example.com", InternalField: "secret"}
+err := db.Query().Omit("internal_field").Create(&amp;user)
+
+// Lock for update
+err := db.Query().Where("id", 1).LockForUpdate().First(&amp;user)
+
+// Shared lock
+err := db.Query().Where("id", 1).SharedLock().First(&amp;user)
+
+// Apply scopes
+func ActiveUsers(q Query) Query {
+    return q.Where("active", true)
+}
+func PremiumUsers(q Query) Query {
+    return q.Where("plan", "premium")
+}
+err := db.Query().Scopes(ActiveUsers, PremiumUsers).Get(&amp;users)</code></pre>
+
+    <h3>Configuration Methods</h3>
+
+    <pre><code>// Specify table name
+db.Query().Table("users").Get(&amp;users)
+
+// Set model for query
+db.Query().Model(&amp;User{}).Where("active", true).Get(&amp;users)
+
+// Use specific connection
+db.Query().Connection("read_replica").Get(&amp;users)
+
+// Set context
+ctx := context.WithTimeout(context.Background(), 5*time.Second)
+db.Query().WithContext(ctx).Get(&amp;users)
+
+// Clone query
+query1 := db.Query().Where("active", true)
+query2 := query1.Clone().Where("premium", true)
+
+// Get database connection
+dbConn := db.Query().DB()
+
+// Get read database connection
+readConn := db.Query().ReadDB()
+
+// Get database driver
+driver := db.Query().Driver()
+
+// Register observer
+db.Query().Observe(&amp;User{}, &amp;UserObserver{})
+
+// Disable events
+db.Query().WithoutEvents().Create(&amp;user)</code></pre>
+
+    <h3>Debug and Logging Methods</h3>
+
+    <pre><code>// Enable debug mode
+db.Query().EnableDebug().Get(&amp;users)
+
+// Disable debug mode
+db.Query().DisableDebug().Get(&amp;users)
+
+// Check if debug enabled
+if db.Query().IsDebug() {
+    fmt.Println("Debug mode is on")
+}
+
+// Enable query logging
+db.Query().EnableQueryLog().Get(&amp;users)
+
+// Disable query logging
+db.Query().DisableQueryLog().Get(&amp;users)
+
+// Flush query log
+db.Query().FlushQueryLog()
+
+// Get query log
+logs := db.Query().GetQueryLog()
+for _, log := range logs {
+    fmt.Printf("Query: %s\n", log.Sql)
+    fmt.Printf("Duration: %v\n", log.Duration)
+}</code></pre>
+
+    <h3>SQL Generation</h3>
+
+    <pre><code>// Get SQL interface
+toSql := db.Query().Where("id", 1).ToSql()
+
+// Get count SQL
+countSql := toSql.Count()
+
+// Get create SQL
+createSql := toSql.Create(&amp;user)
+
+// Get raw SQL interface
+rawSql := db.Query().Where("id", 1).ToRawSql()</code></pre>
+
+    <h3>Method Aliases</h3>
+
+    <p>Neat provides method aliases for developers familiar with different ORMs:</p>
+
+    <table>
+        <tr>
+            <th>Laravel-style</th>
+            <th>Django-style</th>
+            <th>Sequelize-style</th>
+        </tr>
+        <tr>
+            <td>Where()</td>
+            <td>Filter()</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>WhereNot()</td>
+            <td>Exclude()</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>Get()</td>
+            <td>All()</td>
+            <td>FindAll()</td>
+        </tr>
+        <tr>
+            <td>First()</td>
+            <td>-</td>
+            <td>FindOne()</td>
+        </tr>
+        <tr>
+            <td>Delete()</td>
+            <td>-</td>
+            <td>Destroy()</td>
+        </tr>
+        <tr>
+            <td>WithSoftDeleted()</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>WithTrashed()</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+    </table>
+
+    <p><strong>Note:</strong> Some aliases are deprecated. Use the primary method names for new code.</p>
 
     <h2>Advanced Queries</h2>
 

@@ -60,38 +60,254 @@ err := db.Schema().DropIfExists("users")</code></pre>
 
     <h2>Column Types</h2>
 
-    <h3>String</h3>
+    <h3>Integer Types</h3>
+
+    <pre><code>// Auto-incrementing integers
+table.Increments("id")           // 4-byte auto-increment
+table.IntegerIncrements("id")  // Alias for Increments
+table.BigIncrements("id")      // 8-byte auto-increment
+table.MediumIncrements("id")   // 3-byte auto-increment
+table.SmallIncrements("id")   // 2-byte auto-increment
+table.TinyIncrements("id")    // 1-byte auto-increment
+
+// Regular integers
+table.Integer("age")           // 4-byte integer
+table.BigInteger("count")      // 8-byte integer
+table.MediumInteger("status")  // 3-byte integer
+table.SmallInteger("priority") // 2-byte integer
+table.TinyInteger("flags")     // 1-byte integer
+
+// Unsigned integers
+table.UnsignedInteger("age")
+table.UnsignedBigInteger("count")
+table.UnsignedMediumInteger("status")
+table.UnsignedSmallInteger("priority")
+table.UnsignedTinyInteger("flags")</code></pre>
+
+    <h3>String Types</h3>
 
     <pre><code>table.String("name")
-table.String("name", 100) // with length</code></pre>
+table.String("name", 100) // with length
+table.Char("code", 10)    // Fixed-length string</code></pre>
 
-    <h3>Integer</h3>
+    <h3>Text Types</h3>
 
-    <pre><code>table.Integer("age")
-table.BigInteger("id")</code></pre>
+    <pre><code>table.Text("description")      // TEXT
+table.TinyText("short_desc")    // TINYTEXT
+table.MediumText("content")    // MEDIUMTEXT
+table.LongText("article")      // LONGTEXT</code></pre>
+
+    <h3>Numeric Types</h3>
+
+    <pre><code>table.Float("price")           // FLOAT
+table.Float("price", 8, 2)    // FLOAT with precision
+table.Double("amount")         // DOUBLE
+table.Decimal("price", 10, 2)  // DECIMAL with precision and scale</code></pre>
 
     <h3>Boolean</h3>
 
     <pre><code>table.Boolean("active")</code></pre>
 
-    <h3>DateTime</h3>
+    <h3>Date/Time Types</h3>
 
-    <pre><code>table.DateTime("created_at")
+    <pre><code>table.Date("birth_date")
+table.DateTime("created_at")
+table.DateTime("created_at", 3) // with precision
+table.DateTimeTz("created_at")    // with timezone
+table.DateTimeTz("created_at", 3) // with timezone and precision
+table.Time("start_time")
+table.Time("start_time", 3)       // with precision
+table.TimeTz("start_time")       // with timezone
+table.TimeTz("start_time", 3)     // with timezone and precision
 table.Timestamp("updated_at")
-table.Date("birth_date")
-table.Time("start_time")</code></pre>
+table.Timestamp("updated_at", 3)   // with precision
+table.TimestampTz("updated_at")   // with timezone
+table.TimestampTz("updated_at", 3) // with timezone and precision</code></pre>
 
-    <h3>Text</h3>
+    <h3>JSON Types</h3>
 
-    <pre><code>table.Text("description")</code></pre>
+    <pre><code>table.JSON("metadata")     // JSON
+table.Jsonb("data")         // JSONB (PostgreSQL)</code></pre>
 
-    <h3>Decimal</h3>
+    <h3>Enum Type</h3>
 
-    <pre><code>table.Decimal("price", 10, 2)</code></pre>
+    <pre><code>table.Enum("status", []any{"active", "inactive", "pending"})</code></pre>
 
-    <h3>JSON</h3>
+    <h3>Geometry Types (Spatial)</h3>
 
-    <pre><code>table.JSON("metadata")</code></pre>
+    <pre><code>table.Geometry("location")
+table.GeometryCollection("shapes")
+table.Point("coordinates")
+table.LineString("path")
+table.Polygon("area")
+table.MultiPoint("points")
+table.MultiLineString("paths")
+table.MultiPolygon("areas")</code></pre>
+
+    <h3>Custom Column Type</h3>
+
+    <pre><code>table.Column("custom_type", "VARCHAR(255)")</code></pre>
+
+    <h2>Column Modifiers</h2>
+
+    <h3>Position Modifiers</h3>
+
+    <pre><code>table.String("name").After("id")      // Place after another column
+table.String("name").First()          // Place as first column</code></pre>
+
+    <h3>Value Modifiers</h3>
+
+    <pre><code>table.String("name").Default("John")           // Set default value
+table.String("name").Nullable()                   // Allow NULL values
+table.Boolean("active").Default(true)
+table.Timestamp("created_at").UseCurrent()          // Use current timestamp
+table.Timestamp("updated_at").UseCurrentOnUpdate() // Update on record update</code></pre>
+
+    <h3>Index Modifiers</h3>
+
+    <pre><code>table.String("email").Unique()    // Add unique constraint
+table.String("email").Index()     // Add index
+table.String("email").Primary()   // Set as primary key</code></pre>
+
+    <h3>Other Modifiers</h3>
+
+    <pre><code>table.Integer("id").AutoIncrement()    // Auto-increment flag
+table.String("name").Change()             // Mark column for modification
+table.String("name").Collation("utf8mb4_unicode_ci") // Set collation
+table.String("name").Comment("User name") // Add column comment
+table.Decimal("price", 10, 2).Total(10).Places(2) // Decimal precision
+table.Geometry("location").Srid(4326)     // Set SRID for geometry
+table.Integer("age").Unsigned()          // Unsigned flag</code></pre>
+
+    <h2>Index Operations</h3>
+
+    <pre><code>// Regular index
+table.Index("email")
+
+// Composite index
+table.Index("first_name", "last_name")
+
+// Unique index
+table.Unique("email")
+
+// Fulltext index
+table.FullText("content")
+
+// Primary key
+table.Primary("id")
+
+// Foreign key
+table.Foreign("user_id").References("id").On("users")</code></pre>
+
+    <h2>Drop Operations</h2>
+
+    <pre><code>// Drop table
+table.Drop()
+
+// Drop if exists
+table.DropIfExists()
+
+// Drop columns
+table.DropColumn("old_column")
+table.DropColumn("column1", "column2")
+
+// Drop primary key
+table.DropPrimary("id")
+
+// Drop unique index
+table.DropUnique("email")
+table.DropUniqueByName("users_email_unique")
+
+// Drop index
+table.DropIndex("email")
+table.DropIndexByName("users_email_index")
+
+// Drop foreign key
+table.DropForeign("user_id")
+table.DropForeignByName("users_user_id_foreign")
+
+// Drop fulltext index
+table.DropFullText("content")
+table.DropFullTextByName("posts_content_fulltext")
+
+// Drop soft delete column
+table.DropSoftDeletes("deleted_at")
+table.DropSoftDeletesTz("deleted_at")
+
+// Drop timestamps
+table.DropTimestamps()
+table.DropTimestampsTz()</code></pre>
+
+    <h2>Modification Operations</h2>
+
+    <pre><code>// Rename table
+table.Rename("new_table_name")
+
+// Rename column
+table.RenameColumn("old_name", "new_name")
+
+// Rename index
+table.RenameIndex("old_index_name", "new_index_name")
+
+// Mark for creation
+table.Create()
+
+// Mark column for modification
+table.Change()</code></pre>
+
+    <h2>Soft Delete Columns</h3>
+
+    <pre><code>// NULL-based soft delete
+table.SoftDeletes()              // soft_deleted_at (nullable)
+table.SoftDeletes("deleted_at")  // deleted_at (nullable)
+
+// Max-date sentinel soft delete
+table.SoftDeletes().Default("9999-12-31 23:59:59")
+
+// With timezone
+table.SoftDeletesTz()           // soft_deleted_at with timezone
+table.SoftDeletesTz("deleted_at") // deleted_at with timezone</code></pre>
+
+    <h2>Timestamp Helpers</h2>
+
+    <pre><code>// Standard timestamps
+table.Timestamps()              // created_at, updated_at
+table.Timestamps(3)             // with precision
+
+// With timezone
+table.TimestampsTz()            // created_at, updated_at with timezone
+table.TimestampsTz(3)           // with timezone and precision
+
+// Individual timestamps
+table.CreatedAt()               // created_at only
+table.UpdatedAt()               // updated_at only</code></pre>
+
+    <h2>Blueprint Utility Methods</h2>
+
+    <pre><code>// Get table name with prefix
+tableName := table.GetTableName()
+
+// Set table name
+table.SetTable("custom_name")
+
+// Check if command exists
+if table.HasCommand("create") {
+    // ...
+}
+
+// Get added columns
+columns := table.GetAddedColumns()
+
+// Get all commands
+commands := table.GetCommands()
+
+// Skip transaction
+table.SkipTransaction()
+
+// Check if should skip transaction
+if table.ShouldSkipTransaction() {
+    // ...
+}</code></pre>
 
     <h2>Column Modifiers</h2>
 

@@ -95,6 +95,274 @@ users, err := db.Factory().Count(3).Make(&amp;User{Name: "Template"})</code></pr
 
     <p>Creates a model in memory without persisting to the database. Useful for test setup where you don't need to hit the database.</p>
 
+    <h3>CreateQuietly(value any, attributes ...map[string]any) (any, error)</h3>
+
+    <p>Creates a model and persists it to database without firing observer events. Useful for seeding data where you don't want to trigger side effects like emails.</p>
+
+    <pre><code>// Create without triggering observers
+user, err := db.Factory().Table("users").CreateQuietly(&amp;User{
+    Name: "System User",
+    Email: "system@example.com",
+})</code></pre>
+
+    <h2>Factory States</h2>
+
+    <p>Define different states for your models to represent different scenarios:</p>
+
+    <pre><code>type UserFactory struct{}
+
+func (f *UserFactory) Definition() FactoryDefinition {
+    return FactoryDefinition{
+        Model: &amp;User{},
+        States: map[string]map[string]any{
+            "admin": {
+                "is_admin": true,
+                "role": "admin",
+            },
+            "premium": {
+                "is_premium": true,
+                "plan": "premium",
+            },
+            "inactive": {
+                "active": false,
+            },
+        },
+    }
+}
+
+// Use states
+factory := db.Factory().Model(&amp;UserFactory{})
+adminUser, _ := factory.State("admin").Create()
+premiumUser, _ := factory.State("premium").Create()</code></pre>
+
+    <h2>Factory Sequences</h2>
+
+    <p>Use sequences to generate unique values across multiple factory calls:</p>
+
+    <pre><code>type UserFactory struct{}
+
+func (f *UserFactory) Definition() FactoryDefinition {
+    return FactoryDefinition{
+        Model: &amp;User{},
+        Sequences: map[string]func(int) any{
+            "email": func(n int) any {
+                return fmt.Sprintf("user%d@example.com", n)
+            },
+        },
+    }
+}
+
+// Each call will generate a unique email
+user1, _ := factory.Create() // user1@example.com
+user2, _ := factory.Create() // user2@example.com
+user3, _ := factory.Create() // user3@example.com</code></pre>
+
+    <h2>Factory Relationships</h2>
+
+    <p>Create related models using factory associations:</p>
+
+    <pre><code>// Create users with posts
+factory := db.Factory().Table("users")
+
+for i := 0; i &lt; 10; i++ {
+    user, _ := factory.Create(&amp;User{
+        Name: fmt.Sprintf("User %d", i),
+    })
+    
+    // Create posts for each user
+    postFactory := db.Factory().Table("posts")
+    for j := 0; j &lt; 5; j++ {
+        postFactory.Create(&amp;Post{
+            UserID: user.ID,
+            Title:  fmt.Sprintf("Post %d", j),
+        })
+    }
+}</code></pre>
+
+    <h2>Factory Callbacks</h2>
+
+    <p>Define callbacks to modify models before/after creation:</p>
+
+    <pre><code>type UserFactory struct{}
+
+func (f *UserFactory) Definition() FactoryDefinition {
+    return FactoryDefinition{
+        Model: &amp;User{},
+        AfterCreating: func(model any) error {
+            user := model.(*User)
+            // Hash password after creation
+            user.Password = hashPassword(user.Password)
+            return nil
+        },
+    }
+}</code></pre>
+
+    <h2>Factory Traits</h2>
+
+    <p>Define reusable traits that can be applied to multiple factories:</p>
+
+    <pre><code>type HasProfileTrait struct{}
+
+func (t *HasProfileTrait) Apply(model any) {
+    user := model.(*User)
+    user.Profile = &amp;Profile{
+        Bio: "Default bio",
+    }
+}
+
+type UserFactory struct{}
+
+func (f *UserFactory) Definition() FactoryDefinition {
+    return FactoryDefinition{
+        Model: &amp;User{},
+        Traits: []Trait{HasProfileTrait{}},
+    }
+}</code></pre>
+
+    <h2>Factory with Transactions</h2>
+
+    <p>Wrap factory operations in transactions for data consistency:</p>
+
+    <pre><code>err := db.Query().Transaction(func(tx Query) error {
+    factory := tx.Factory().Table("users")
+    
+    // All operations in transaction
+    for i := 0; i &lt; 10; i++ {
+        if _, err := factory.Create(&amp;User{
+            Name: fmt.Sprintf("User %d", i),
+        }); err != nil {
+            return err // Will rollback
+        }
+    }
+    
+    return nil // Will commit
+})</code></pre>
+
+    <h2>Factory with Observers</h2>
+
+    <p>By default, factory operations trigger observer events. Use <code>CreateQuietly()</code> to disable:</p>
+
+    <pre><code>// This will trigger Creating and Created events
+user, err := db.Factory().Table("users").Create(&amp;User{
+    Name: "John",
+})
+
+// This will NOT trigger observer events
+user, err := db.Factory().Table("users").CreateQuietly(&amp;User{
+    Name: "John",
+})</code></pre>
+
+    <h2>Factory Validation</h2>
+
+    <p>Implement validation in factory callbacks:</p>
+
+    <pre><code>type UserFactory struct{}
+
+func (f *UserFactory) Definition() FactoryDefinition {
+    return FactoryDefinition{
+        Model: &amp;User{},
+        BeforeCreating: func(model any) error {
+            user := model.(*User)
+            
+            if user.Name == "" {
+                return errors.New("name is required")
+            }
+            
+            if !isValidEmail(user.Email) {
+                return errors.New("invalid email")
+            }
+            
+            return nil
+        },
+    }
+}</code></pre>
+
+    <h2>Factory Error Handling</h2>
+
+    <p>Handle factory creation errors appropriately:</p>
+
+    <pre><code>users, err := db.Factory().Table("users").Count(10).Create(&amp;User{
+    Name: "Template User",
+})
+
+if err != nil {
+    // Handle creation error
+    log.Printf("Failed to create users: %v", err)
+    return err
+}
+
+// Continue with created users
+for _, user := range users.([]User) {
+    fmt.Printf("Created user: %s\n", user.Name)
+}</code></pre>
+
+    <h2>Factory Batch Operations</h2>
+
+    <p>Create large batches efficiently:</p>
+
+    <pre><code>// Create 1000 users in batches of 100
+batchSize := 100
+total := 1000
+
+for i := 0; i &lt; total; i += batchSize {
+    end := i + batchSize
+    if end &gt; total {
+        end = total
+    }
+    
+    _, err := db.Factory().Table("users").Count(end - i).Create(&amp;User{
+        Name: "Batch User",
+    })
+    
+    if err != nil {
+        log.Printf("Failed to create batch %d: %v", i/batchSize, err)
+        return err
+    }
+}</code></pre>
+
+    <h2>Factory Custom Attributes</h2>
+
+    <p>Override template attributes with custom values:</p>
+
+    <pre><code>template := &amp;User{
+    Name:  "Default Name",
+    Email: "default@example.com",
+}
+
+// Override specific attributes
+user, err := db.Factory().Table("users").Create(template, map[string]any{
+    "Name":  "Custom Name",
+    "Email": "custom@example.com",
+    "Age":   25,
+})</code></pre>
+
+    <h2>Factory Inheritance</h2>
+
+    <p>Extend base factories for specific use cases:</p>
+
+    <pre><code>type BaseUserFactory struct{}
+
+func (f *BaseUserFactory) Definition() FactoryDefinition {
+    return FactoryDefinition{
+        Model: &amp;User{},
+        Attributes: map[string]any{
+            "active": true,
+            "verified": false,
+        },
+    }
+}
+
+type AdminUserFactory struct {
+    BaseUserFactory
+}
+
+func (f *AdminUserFactory) Definition() FactoryDefinition {
+    def := f.BaseUserFactory.Definition()
+    def.Attributes["is_admin"] = true
+    def.Attributes["role"] = "admin"
+    return def
+}</code></pre>
+
     <h2>Practical Example</h2>
 
     <pre><code>// Create test users with varying data

@@ -99,6 +99,219 @@
     return nil
 }</code></pre>
 
+    <h3>Restoring</h3>
+
+    <p>Called before a soft-deleted model is restored:</p>
+
+    <pre><code>func (o *UserObserver) Restoring(event neat.Event) error {
+    // Validate or modify data before restore
+    return nil
+}</code></pre>
+
+    <h3>Restored</h3>
+
+    <p>Called after a soft-deleted model is restored:</p>
+
+    <pre><code>func (o *UserObserver) Restored(event neat.Event) error {
+    // Perform post-restore actions
+    return nil
+}</code></pre>
+
+    <h3>Saving</h3>
+
+    <p>Called before a model is saved (create or update):</p>
+
+    <pre><code>func (o *UserObserver) Saving(event neat.Event) error {
+    // Validate or modify data before save
+    return nil
+}</code></pre>
+
+    <h3>Saved</h3>
+
+    <p>Called after a model is saved (create or update):</p>
+
+    <pre><code>func (o *UserObserver) Saved(event neat.Event) error {
+    // Perform post-save actions
+    return nil
+}</code></pre>
+
+    <h3>Retrieved</h3>
+
+    <p>Called after a model is retrieved from the database:</p>
+
+    <pre><code>func (o *UserObserver) Retrieved(event neat.Event) error {
+    // Perform post-retrieval actions (e.g., load relationships)
+    return nil
+}</code></pre>
+
+    <h2>Event Lifecycle</h2>
+
+    <p>Observer events follow this lifecycle:</p>
+
+    <ul>
+        <li><strong>Create:</strong> Creating → Created</li>
+        <li><strong>Update:</strong> Saving → Updating → Updated → Saved</li>
+        <li><strong>Delete:</strong> Deleting → Deleted (or ForceDeleted)</li>
+        <li><strong>Restore:</strong> Restoring → Restored</li>
+        <li><strong>Retrieve:</strong> Retrieved</li>
+    </ul>
+
+    <h2>Event Propagation Control</h2>
+
+    <p>Return an error from any event method to stop the operation:</p>
+
+    <pre><code>func (o *UserObserver) Creating(event neat.Event) error {
+    user := event.GetModel().(*User)
+    
+    // Return error to prevent creation
+    if user.Email == "" {
+        return errors.New("email is required")
+    }
+    
+    return nil // Continue with creation
+}</code></pre>
+
+    <h2>Event Context</h2>
+
+    <p>Access the event context for additional information:</p>
+
+    <pre><code>func (o *UserObserver) Created(event neat.Event) error {
+    ctx := event.GetContext()
+    
+    // Access context values
+    if userID := ctx.Value("user_id"); userID != nil {
+        log.Printf("Created by user: %v", userID)
+    }
+    
+    return nil
+}</code></pre>
+
+    <h2>Multiple Observers</h3>
+
+    <p>You can register multiple observers for the same model. They will be called in registration order:</p>
+
+    <pre><code>db.Orm().Observe([]neat.ModelToObserver{
+    {Model: User{}, Observer: ValidationObserver{}},
+    {Model: User{}, Observer: LoggingObserver{}},
+    {Model: User{}, Observer: NotificationObserver{}},
+})</code></pre>
+
+    <h2>Observer Registration Options</h2>
+
+    <pre><code>// Register with query builder
+db.Query().Observe(&amp;User{}, &amp;UserObserver{})
+
+// Register with ORM
+db.Orm().Observe(&amp;User{}, &amp;UserObserver{})</code></pre>
+
+    <h2>Observer Error Handling</h2>
+
+    <p>Errors returned from observer methods will stop the operation and return the error to the caller:</p>
+
+    <pre><code>func (o *UserObserver) Creating(event neat.Event) error {
+    user := event.GetModel().(*User)
+    
+    if err := validateUser(user); err != nil {
+        return err // This will prevent the creation
+    }
+    
+    return nil
+}</code></pre>
+
+    <h2>Observer Priorities</h2>
+
+    <p>Observers are called in the order they are registered. Register critical observers first:</p>
+
+    <pre><code>db.Orm().Observe([]neat.ModelToObserver{
+    {Model: User{}, Observer: SecurityObserver{}},      // Called first
+    {Model: User{}, Observer: ValidationObserver{}},    // Called second
+    {Model: User{}, Observer: LoggingObserver{}},      // Called third
+})</code></pre>
+
+    <h2>Observer Lifecycle Hooks</h2>
+
+    <p>Observers can maintain state across multiple events:</p>
+
+    <pre><code>type AuditObserver struct {
+    mu       sync.Mutex
+    changes  map[uint][]string
+}
+
+func (o *AuditObserver) Updating(event neat.Event) error {
+    o.mu.Lock()
+    defer o.mu.Unlock()
+    
+    user := event.GetModel().(*User)
+    o.changes[user.ID] = append(o.changes[user.ID], "user_updated")
+    
+    return nil
+}
+
+func (o *AuditObserver) Deleted(event neat.Event) error {
+    o.mu.Lock()
+    defer o.mu.Unlock()
+    
+    user := event.GetModel().(*User)
+    o.changes[user.ID] = append(o.changes[user.ID], "user_deleted")
+    
+    return nil
+}</code></pre>
+
+    <h2>Observer Transaction Integration</h2>
+
+    <p>Observers work seamlessly with transactions. If a transaction fails, observer events will not be called for the failed operation:</p>
+
+    <pre><code>err := db.Query().Transaction(func(tx Query) error {
+    // Creating events will fire
+    if err := tx.Create(&amp;user); err != nil {
+        return err // Created event will not fire
+    }
+    
+    // Created event fires here
+    
+    // Updating events will fire
+    if err := tx.Update(&amp;user); err != nil {
+        return err // Updated event will not fire
+    }
+    
+    // Updated event fires here
+    
+    return nil
+})</code></pre>
+
+    <h2>Disabling Observers</h2>
+
+    <p>Temporarily disable observers for specific operations:</p>
+
+    <pre><code>// Disable observers for this query
+db.Query().WithoutEvents().Create(&amp;user)</code></pre>
+
+    <h2>Observer Event Filtering</h2>
+
+    <p>You can conditionally execute observer logic based on event context:</p>
+
+    <pre><code>func (o *UserObserver) Creating(event neat.Event) error {
+    ctx := event.GetContext()
+    
+    // Skip validation for system users
+    if ctx.Value("skip_validation") == true {
+        return nil
+    }
+    
+    user := event.GetModel().(*User)
+    return validateUser(user)
+}</code></pre>
+
+    <h2>Observer Batch Operations</h3>
+
+    <p>Observers are called for each model in batch operations:</p>
+
+    <pre><code>// Each Create will fire Creating and Created events
+users := []User{{Name: "John"}, {Name: "Jane"}}
+for _, user := range users {
+    db.Query().Create(&amp;user)
+}</code></pre>
+
     <h2>Creating an Observer</h2>
 
     <pre><code>type UserObserver struct{}

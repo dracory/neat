@@ -209,6 +209,262 @@ type Product struct {
     table.Timestamps()
 })</code></pre>
 
+    <h2>Model Embeds</h2>
+
+    <p>Neat provides several embed structs to add common functionality to your models:</p>
+
+    <h3>Base Model</h3>
+
+    <pre><code>import "github.com/dracory/neat/database/orm"
+
+type User struct {
+    orm.Model  // Includes ID and timestamps
+    Name  string `db:"name"`
+    Email string `db:"email"`
+}</code></pre>
+
+    <h3>Timestamps</h3>
+
+    <pre><code>import "github.com/dracory/neat/database/orm"
+
+type User struct {
+    ID    uint             `db:"id"`
+    Name  string           `db:"name"`
+    orm.Timestamps       // created_at and updated_at
+}</code></pre>
+
+    <h3>Individual Timestamps</h3>
+
+    <pre><code>import "github.com/dracory/neat/database/orm"
+
+type User struct {
+    ID        uint       `db:"id"`
+    Name      string     `db:"name"`
+    orm.CreatedAt       // Only created_at
+    orm.UpdatedAt       // Only updated_at
+}</code></pre>
+
+    <h3>Soft Deletes</h3>
+
+    <pre><code>import "github.com/dracory/neat/database/soft_delete"
+
+type User struct {
+    soft_delete.SoftDeletes  // soft_deleted_at column
+    ID    uint               `db:"id"`
+    Name  string             `db:"name"`
+}</code></pre>
+
+    <p>For Laravel compatibility:</p>
+
+    <pre><code>import "github.com/dracory/neat/database/soft_delete"
+
+type User struct {
+    soft_delete.DeletedAt  // deleted_at column
+    ID    uint             `db:"id"`
+    Name  string           `db:"name"`
+}</code></pre>
+
+    <h2>Model Relationships</h2>
+
+    <p>Define relationships using association methods in your models:</p>
+
+    <pre><code>type User struct {
+    ID    uint   `db:"id"`
+    Name  string `db:"name"`
+    Posts []Post `db:"-"` // Don't map to database column
+}
+
+type Post struct {
+    ID      uint   `db:"id"`
+    Title   string `db:"title"`
+    UserID uint   `db:"user_id"`
+    User    User   `db:"-"`
+}</code></pre>
+
+    <h2>Model Scopes</h2>
+
+    <p>Scopes allow you to define reusable query constraints:</p>
+
+    <pre><code>type User struct {
+    ID     uint   `db:"id"`
+    Name   string `db:"name"`
+    Active bool   `db:"active"`
+    Premium bool  `db:"premium"`
+}
+
+// Define scopes
+func ActiveUsers(q Query) Query {
+    return q.Where("active", true)
+}
+
+func PremiumUsers(q Query) Query {
+    return q.Where("premium", true)
+}
+
+// Use scopes
+var users []User
+db.Query().Model(&amp;User{}).Scopes(ActiveUsers, PremiumUsers).Get(&amp;users)</code></pre>
+
+    <h2>Model Observers</h2>
+
+    <p>Observers allow you to hook into model lifecycle events:</p>
+
+    <pre><code>type UserObserver struct{}
+
+func (o *UserObserver) Creating(event neat.Event) error {
+    user := event.GetModel().(*User)
+    // Validate before creation
+    return nil
+}
+
+func (o *UserObserver) Created(event neat.Event) error {
+    user := event.GetModel().(*User)
+    // Send welcome email
+    return nil
+}
+
+// Register observer
+db.Orm().Observe(&amp;User{}, &amp;UserObserver{})</code></pre>
+
+    <h2>Model Serialization</h2>
+
+    <p>Neat automatically handles JSON serialization based on struct tags:</p>
+
+    <pre><code>type User struct {
+    ID        uint   `json:"id" db:"id"`
+    Name      string `json:"name" db:"name"`
+    Email     string `json:"email" db:"email"`
+    Password  string `json:"-" db:"password"` // Hidden from JSON
+    CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+// JSON output
+userJSON, _ := json.Marshal(user)
+// {"id":1,"name":"John","email":"john@example.com","created_at":"2024-01-01T00:00:00Z"}</code></pre>
+
+    <h2>Model Validation</h2>
+
+    <p>Use observers to implement validation logic:</p>
+
+    <pre><code>func (o *UserObserver) Creating(event neat.Event) error {
+    user := event.GetModel().(*User)
+    
+    if user.Name == "" {
+        return errors.New("name is required")
+    }
+    
+    if !isValidEmail(user.Email) {
+        return errors.New("invalid email format")
+    }
+    
+    return nil
+}</code></pre>
+
+    <h2>Model Type Conversion</h2>
+
+    <p>Neat automatically handles type conversion between Go and database types:</p>
+
+    <table>
+        <tr>
+            <th>Go Type</th>
+            <th>Database Type</th>
+        </tr>
+        <tr>
+            <td>uint, int</td>
+            <td>INT, BIGINT, etc.</td>
+        </tr>
+        <tr>
+            <td>string</td>
+            <td>VARCHAR, TEXT, CHAR</td>
+        </tr>
+        <tr>
+            <td>bool</td>
+            <td>BOOLEAN, TINYINT</td>
+        </tr>
+        <tr>
+            <td>time.Time</td>
+            <td>DATETIME, TIMESTAMP, DATE</td>
+        </tr>
+        <tr>
+            <td>float64</td>
+            <td>FLOAT, DOUBLE, DECIMAL</td>
+        </tr>
+        <tr>
+            <td>[]byte</td>
+            <td>BLOB, BINARY</td>
+        </tr>
+    </table>
+
+    <h2>Model Query Builder Integration</h2>
+
+    <p>Use models with the query builder for type-safe operations:</p>
+
+    <pre><code>var user User
+err := db.Query().Model(&amp;User{}).Where("id", 1).First(&amp;user)
+
+var users []User
+err := db.Query().Model(&amp;User{}).Where("active", true).Get(&amp;users)
+
+err := db.Query().Model(&amp;User{}).Create(&amp;user)
+
+err := db.Query().Model(&amp;User{}).Where("id", 1).Update(&amp;user)
+
+result, err := db.Query().Model(&amp;User{}).Where("id", 1).Delete()</code></pre>
+
+    <h2>Model Factory Integration</h2>
+
+    <p>Use models with the factory for test data generation:</p>
+
+    <pre><code>factory := db.Factory()
+factory.Model(&amp;User{}).Count(10).Create(&amp;User{})</code></pre>
+
+    <h2>Advanced Model Features</h2>
+
+    <h3>Hidden Attributes</h3>
+
+    <p>Use struct tags to hide sensitive fields from serialization:</p>
+
+    <pre><code>type User struct {
+    ID       uint   `json:"id" db:"id"`
+    Name     string `json:"name" db:"name"`
+    Password string `json:"-" db:"password"` // Hidden from JSON
+}</code></pre>
+
+    <h3>Custom Attribute Names</h3>
+
+    <p>Use different names for Go fields vs database columns:</p>
+
+    <pre><code>type User struct {
+    ID       uint   `db:"id"`
+    FullName string `db:"full_name" json:"full_name"`
+    Email    string `db:"email" json:"email_address"`
+}</code></pre>
+
+    <h3>Computed Fields</h3>
+
+    <p>Define methods for computed properties:</p>
+
+    <pre><code>type User struct {
+    FirstName string `db:"first_name"`
+    LastName  string `db:"last_name"`
+}
+
+func (u *User) FullName() string {
+    return u.FirstName + " " + u.LastName
+}</code></pre>
+
+    <h2>Model Best Practices</h2>
+
+    <ul>
+        <li><strong>Use db tags</strong> for explicit column mapping</li>
+        <li><strong>Use json tags</strong> for API serialization control</li>
+        <li><strong>Embed common functionality</strong> (Timestamps, SoftDeletes, etc.)</li>
+        <li><strong>Use observers</strong> for validation and lifecycle hooks</li>
+        <li><strong>Use scopes</strong> for reusable query logic</li>
+        <li><strong>Keep models simple</strong> - business logic in services</li>
+        <li><strong>Use associations</strong> for relationships instead of manual joins</li>
+    </ul>
+
     <div class="footer">
         <p>Neat ORM Documentation</p>
     </div>
