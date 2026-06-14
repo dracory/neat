@@ -112,3 +112,9 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 		RowsAffected: rowsAffected,
 	}, nil
 }
+
+// Destroy is an alias for Delete, providing Sequelize-style syntax.
+// Deletes records from the database.
+func (q *Query) Destroy(value ...any) (*contractsorm.Result, error) {
+	return q.Delete(value...)
+}

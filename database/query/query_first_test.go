@@ -345,3 +345,58 @@ func TestUpdateOrCreate(t *testing.T) {
 		}
 	})
 }
+
+func TestFindOne(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_find_one (id INTEGER PRIMARY KEY, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_find_one VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_find_one VALUES (2, 'Bob')")
+
+	w.SetTable("test_find_one")
+	w.Q.Where("name = ?", "Bob")
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	var result User
+	if err := w.Q.FindOne(&result); err != nil {
+		t.Fatalf("FindOne failed: %v", err)
+	}
+	if result.Name != "Bob" {
+		t.Errorf("expected name 'Bob', got %s", result.Name)
+	}
+}
+
+func TestFindOneAsAliasForFirst(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_find_one_alias (id INTEGER PRIMARY KEY, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_find_one_alias VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_find_one_alias VALUES (2, 'Bob')")
+
+	w.SetTable("test_find_one_alias")
+	w.Q.OrderBy("id")
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	var result1 User
+	var result2 User
+
+	if err := w.Q.First(&result1); err != nil {
+		t.Fatalf("First failed: %v", err)
+	}
+
+	w.SetTable("test_find_one_alias")
+	w.Q.OrderBy("id")
+	if err := w.Q.FindOne(&result2); err != nil {
+		t.Fatalf("FindOne failed: %v", err)
+	}
+
+	if result1.Name != result2.Name {
+		t.Errorf("FindOne and First should return same result. Got %s vs %s", result1.Name, result2.Name)
+	}
+}

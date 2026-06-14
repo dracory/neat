@@ -86,3 +86,9 @@ func (q *Query) Get(dest any) error {
 func (q *Query) All(dest any) error {
 	return q.Get(dest)
 }
+
+// FindAll is an alias for All, providing Sequelize-style syntax.
+// Retrieves all records matching the query.
+func (q *Query) FindAll(dest any) error {
+	return q.All(dest)
+}

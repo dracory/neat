@@ -323,3 +323,66 @@ func TestBulkDeleteWithLimitAndOrderBy(t *testing.T) {
 		t.Errorf("Expected 3 records remaining, got %d", count)
 	}
 }
+
+func TestDestroy(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_destroy (id INTEGER PRIMARY KEY, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_destroy VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_destroy VALUES (2, 'Bob')")
+
+	w.SetTable("test_destroy")
+	w.Q.Where("name = ?", "Alice")
+
+	result, err := w.Q.Destroy()
+	if err != nil {
+		t.Fatalf("Destroy failed: %v", err)
+	}
+	if result.RowsAffected != 1 {
+		t.Errorf("expected 1 row affected, got %d", result.RowsAffected)
+	}
+
+	// Verify deletion using raw SQL to avoid query state pollution
+	var count int64
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("DB() failed: %v", err)
+	}
+	err = db.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM test_destroy").Scan(&count)
+	if err != nil {
+		t.Fatalf("Raw count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 row remaining, got %d", count)
+	}
+}
+
+func TestDestroyAsAliasForDelete(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_destroy_alias (id INTEGER PRIMARY KEY, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_destroy_alias VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_destroy_alias VALUES (2, 'Bob')")
+
+	// Test Delete
+	w.SetTable("test_destroy_alias")
+	w.Q.Where("name = ?", "Alice")
+	result1, err := w.Q.Delete()
+	if err != nil {
+		t.Fatalf("Delete failed: %v", err)
+	}
+
+	// Reset and test Destroy
+	execSQL(t, w, "DELETE FROM test_destroy_alias")
+	execSQL(t, w, "INSERT INTO test_destroy_alias VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_destroy_alias VALUES (2, 'Bob')")
+
+	w.SetTable("test_destroy_alias")
+	w.Q.Where("name = ?", "Alice")
+	result2, err := w.Q.Destroy()
+	if err != nil {
+		t.Fatalf("Destroy failed: %v", err)
+	}
+
+	if result1.RowsAffected != result2.RowsAffected {
+		t.Errorf("Destroy and Delete should affect same number of rows. Got %d vs %d", result1.RowsAffected, result2.RowsAffected)
+	}
+}

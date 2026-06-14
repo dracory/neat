@@ -85,6 +85,12 @@ func (q *Query) First(dest any) error {
 	return nil
 }
 
+// FindOne is an alias for First, providing Sequelize-style syntax.
+// Retrieves the first record matching the query.
+func (q *Query) FindOne(dest any) error {
+	return q.First(dest)
+}
+
 // FirstOrFail retrieves the first record or returns an error if not found.
 func (q *Query) FirstOrFail(dest any) error {
 	if err := q.First(dest); err != nil {

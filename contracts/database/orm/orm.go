@@ -170,6 +170,13 @@ type Query interface {
 	// Example:
 	//   result, err := query.Where("status = ?", "inactive").Delete()
 	Delete(value ...any) (*Result, error)
+
+	// Destroy is an alias for Delete, providing Sequelize-style syntax.
+	// Deletes records from the database.
+	//
+	// Example:
+	//   result, err := query.Where("status = ?", "inactive").Destroy()
+	Destroy(value ...any) (*Result, error)
 	// Distinct specifies distinct fields to query.
 	// Removes duplicate rows from the result set based on the specified columns.
 	// Args can be column names or expressions.
@@ -231,6 +238,15 @@ type Query interface {
 	//   var user User
 	//   err := query.Where("email = ?", "test@example.com").First(&user)
 	First(dest any) error
+
+	// FindOne is an alias for First, providing Sequelize-style syntax.
+	// Retrieves the first record matching the query.
+	//
+	// Example:
+	//   var user User
+	//   err := query.Where("email = ?", "test@example.com").FindOne(&user)
+	FindOne(dest any) error
+
 	// FirstOrCreate finds the first record matching the given attributes,
 	// or creates a new one with those attributes if none was found.
 	// The dest parameter must be a pointer to a struct (e.g., *User).
@@ -242,6 +258,7 @@ type Query interface {
 	//   var user User
 	//   err := query.FirstOrCreate(&user, "email = ?", "john@example.com")
 	FirstOrCreate(dest any, conds ...any) error
+
 	// FirstOr finds the first record matching the given conditions,
 	// or executes the callback and returns its result if no record is found.
 	// The dest parameter must be a pointer to a struct (e.g., *User).
@@ -255,6 +272,7 @@ type Query interface {
 	//       return nil
 	//   })
 	FirstOr(dest any, callback func() error) error
+
 	// FirstOrFail finds the first record matching the given conditions or returns an error.
 	// Similar to First, but returns an error if no record is found.
 	// The dest parameter must be a pointer to a struct (e.g., *User).
@@ -303,6 +321,14 @@ type Query interface {
 	//   var users []User
 	//   err := query.Filter("age > ?", 18).All(&users)
 	All(dest any) error
+
+	// FindAll is an alias for All, providing Sequelize-style syntax.
+	// Retrieves all records matching the query.
+	//
+	// Example:
+	//   var users []User
+	//   err := query.FindAll(&users)
+	FindAll(dest any) error
 
 	// Group specifies a GROUP BY clause for the query.
 	// Groups results by the specified column or expression.
