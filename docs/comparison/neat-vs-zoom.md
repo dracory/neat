@@ -57,8 +57,8 @@ Zoom is a Go ORM built on top of Redis where all data is stored in memory. It's 
 | **Storage** | SQL databases (disk-based) | Redis (in-memory) |
 | **Performance** | Good | Excellent (in-memory) |
 | **Query Builder** | Fluent Eloquent-like API | Redis-based API |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Redis only |
-| **Associations** | BelongsTo, HasMany, HasOne | Redis-based relationships |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Redis only |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Redis-based relationships |
 | **Migrations** | Built-in migration system | Not applicable (Redis) |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

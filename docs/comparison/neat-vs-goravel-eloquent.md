@@ -81,9 +81,9 @@ This document compares the developer experience, ease of use, and features of Ne
 | **Scope** | Database operations only | Full-stack web framework |
 | **API Style** | Laravel Eloquent-like | Laravel framework-like |
 | **Query Builder** | Fluent Eloquent-like API | GORM chainable API |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Wide support via GORM |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Wide support via GORM |
 | **Migrations** | Built-in migration system | Auto-migration and tools |
-| **Associations** | BelongsTo, HasMany, HasOne | All relationship types |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | All relationship types |
 | **Factories/Seeders** | Built-in factories and seeders | Available via plugins |
 | **Auth System** | Not included | Built-in authentication |
 | **Routing** | Not included | Built-in routing |

@@ -54,8 +54,8 @@ go-queryset is a 100% type-safe ORM for Go that implements the Django QuerySet p
 |---------|----------|-------------|
 | **Query Builder** | Fluent Eloquent-like API | Django QuerySet pattern |
 | **Type Safety** | Runtime type checking | 100% type-safe (compile-time) |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Same as GORM (MySQL, PostgreSQL, SQLite3, SQL Server) |
-| **Associations** | BelongsTo, HasMany, HasOne | Supports associations |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Same as GORM (MySQL, PostgreSQL, SQLite3, SQL Server) |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Supports associations |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

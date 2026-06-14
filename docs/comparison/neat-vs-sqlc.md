@@ -57,11 +57,11 @@ sqlc is not a traditional ORM - it's a SQL compiler that takes SQL queries as in
 | **Code Generation** | Not required | Required (generates code) |
 | **SQL Control** | Abstracted (query builder) | Full SQL control |
 | **Migrations** | Built-in migration system | Not included |
-| **Relationships** | BelongsTo, HasMany, HasOne | Manual SQL joins |
+| **Relationships** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Manual SQL joins |
 | **IDE Support** | Basic autocomplete | Excellent type hints |
 | **Learning Curve** | Easy for ORM users | Requires SQL expertise |
 | **Build Complexity** | Simple | Requires code generation |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Multiple databases |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Multiple databases |
 
 ## Query Building
 

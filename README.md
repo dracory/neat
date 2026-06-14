@@ -15,13 +15,16 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Migrations**: Database migration system (ORM driver supported)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
-- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso
+- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle
 - **Transactions**: Robust transaction support
 - **Observers**: Model lifecycle event system
-- **Soft Deletes**: Soft delete functionality
-- **Associations**: BelongsTo, HasMany, HasOne relationships
+- **Soft Deletes**: Soft delete functionality with multiple strategies (NULL-based and max-date sentinel)
+- **Associations**: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany relationships
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
+- **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
+- **ToSql Interface**: SQL generation without execution
+- **Security Hardening**: SQL injection prevention with identifier validation
 
 ## Installation
 

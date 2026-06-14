@@ -53,11 +53,11 @@ Bun is a SQL-first Golang ORM for PostgreSQL and MySQL that is built on database
 | Feature | Neat ORM | Bun |
 |---------|----------|-----|
 | **Query Builder** | Fluent Eloquent-like API | SQL-first API |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | PostgreSQL, MySQL |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | PostgreSQL, MySQL |
 | **Type Safety** | Runtime type checking | Compile-time type safety |
 | **Performance** | Good with minimal overhead | Excellent (minimal overhead) |
 | **Migrations** | Built-in migration system | SQL-based migrations |
-| **Associations** | BelongsTo, HasMany, HasOne | Rich relationships |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Rich relationships |
 | **Soft Deletes** | Built-in soft delete support | Built-in soft delete support |
 | **Observers** | Model lifecycle observers | Query hooks |
 | **Factories/Seeders** | Built-in factories and seeders | Fixtures support |

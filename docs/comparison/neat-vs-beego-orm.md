@@ -54,9 +54,9 @@ Beego ORM is a powerful ORM framework for Go that is part of the Beego web frame
 |---------|----------|-----------|
 | **Type** | Standalone ORM | Framework ORM (Beego) |
 | **Query Builder** | Fluent Eloquent-like API | Django-like API |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | MySQL, PostgreSQL, SQLite3 |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | MySQL, PostgreSQL, SQLite3 |
 | **Migrations** | Built-in migration system | Not included in ORM |
-| **Associations** | BelongsTo, HasMany, HasOne | Supports associations |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Supports associations |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |
 | **Factories/Seeders** | Built-in factories and seeders | Not included |

@@ -55,12 +55,12 @@ goqu is a SQL builder and query library for Go. It's important to note that goqu
 | **Type** | Full ORM | SQL builder (not ORM) |
 | **Query Builder** | Fluent Eloquent-like API | Fluent SQL builder API |
 | **ORM Features** | Models, relationships, hooks | None (query builder only) |
-| **Associations** | BelongsTo, HasMany, HasOne | Not supported |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Not supported |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |
 | **Factories/Seeders** | Built-in factories and seeders | Not included |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Multiple databases |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Multiple databases |
 | **Learning Curve** | Easy for ORM users | Easy for SQL developers |
 | **Scope** | Complete ORM solution | Query building only |
 

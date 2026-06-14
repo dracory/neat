@@ -54,7 +54,7 @@ Reform is described as "a better ORM for Go" that focuses on better record manag
 |---------|----------|--------|
 | **Query Builder** | Fluent Eloquent-like API | Record-focused API |
 | **Type Safety** | Runtime type checking | Compiler-checkable signatures |
-| **Associations** | BelongsTo, HasMany, HasOne | Supports associations |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Supports associations |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

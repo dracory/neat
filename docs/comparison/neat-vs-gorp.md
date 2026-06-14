@@ -56,7 +56,7 @@ GORP is Go Relational Persistence, described as an "ORM-ish library." It takes a
 |---------|----------|------|
 | **Type** | Full ORM | ORM-ish library (not full ORM) |
 | **Query Builder** | Fluent Eloquent-like API | Code-first with tags |
-| **Associations** | BelongsTo, HasMany, HasOne | Not supported |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Not supported |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

@@ -56,8 +56,8 @@ godb is a simple Go query builder and struct mapper described as a lightweight s
 |---------|----------|------|
 | **Type** | Full ORM | Simple ORM (not full-featured) |
 | **Query Builder** | Fluent Eloquent-like API | Simple query builder |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | PostgreSQL, MySQL, SQLite, SQL Server |
-| **Relationships** | BelongsTo, HasMany, HasOne | Not supported |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | PostgreSQL, MySQL, SQLite, SQL Server |
+| **Relationships** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Not supported |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

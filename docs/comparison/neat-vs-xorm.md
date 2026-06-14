@@ -53,9 +53,9 @@ Xorm is a simple and powerful ORM for Go that emphasizes simplicity and code eff
 | Feature | Neat ORM | Xorm |
 |---------|----------|------|
 | **Query Builder** | Fluent Eloquent-like API | Simple and powerful API |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Multiple databases |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Multiple databases |
 | **Migrations** | Built-in migration system | Not included |
-| **Associations** | BelongsTo, HasMany, HasOne | Supports associations |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Supports associations |
 | **Caching** | Not included | Built-in caching |
 | **Optimistic Locking** | Not included | Built-in support |
 | **Reverse Engineering** | Not included | Generate models from DB |

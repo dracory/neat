@@ -61,6 +61,12 @@ This directory contains developer experience and feature comparisons between Nea
 - Built-in migrations, factories, and seeders
 - Clean, focused feature set
 - Quick setup and easy learning curve
+- Oracle database support
+- Advanced soft delete strategies (NULL-based and max-date sentinel)
+- Polymorphic associations (PolymorphicBelongsTo, PolymorphicHasMany)
+- Multiple query method aliases (Sequelize and Django-style)
+- Security hardening with SQL injection prevention
+- ToSql interface for SQL generation without execution
 
 ### When to Choose Neat ORM
 - You prefer Laravel Eloquent-like API

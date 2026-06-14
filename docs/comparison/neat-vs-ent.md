@@ -55,11 +55,11 @@ Ent is a Facebook-developed ORM that uses a code-first approach. Developers defi
 | **Code Generation** | Not required | Required (generates code) |
 | **Schema Definition** | Struct tags | Go code schema definition |
 | **Migrations** | Built-in migration system | Migration tooling |
-| **Relationships** | BelongsTo, HasMany, HasOne | All relationship types |
+| **Relationships** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | All relationship types |
 | **IDE Support** | Basic autocomplete | Excellent type hints |
 | **Learning Curve** | Easy for Eloquent users | Steeper (graph-based) |
 | **Build Complexity** | Simple | Requires code generation |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Multiple databases |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Multiple databases |
 
 ## Type Safety
 

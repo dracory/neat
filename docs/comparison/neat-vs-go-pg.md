@@ -54,11 +54,11 @@ go-pg is a PostgreSQL client and ORM for Go with focus on PostgreSQL features. I
 
 | Feature | Neat ORM | go-pg |
 |---------|----------|-------|
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | PostgreSQL only |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | PostgreSQL only |
 | **Query Builder** | Fluent Eloquent-like API | PostgreSQL-focused API |
 | **PostgreSQL Features** | Basic support | Arrays, hstore, composite types |
 | **Migrations** | Built-in migration system | Migrations available |
-| **Associations** | BelongsTo, HasMany, HasOne | Has one, belongs to, has many, many to many |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Has one, belongs to, has many, many to many |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |
 | **Factories/Seeders** | Built-in factories and seeders | Not included |

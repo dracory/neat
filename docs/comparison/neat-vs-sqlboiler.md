@@ -57,11 +57,11 @@ SQLBoiler is a code generation tool that inspects your database and generates a 
 | **Code Generation** | Not required | Required (from database) |
 | **Schema Definition** | Struct tags | Database schema |
 | **Migrations** | Built-in migration system | Not included |
-| **Relationships** | BelongsTo, HasMany, HasOne | Auto-generated from foreign keys |
+| **Relationships** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Auto-generated from foreign keys |
 | **IDE Support** | Basic autocomplete | Excellent type hints |
 | **Learning Curve** | Easy for ORM users | Requires database knowledge |
 | **Build Complexity** | Simple | Requires code generation |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | Multiple databases |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | Multiple databases |
 
 ## Query Building
 

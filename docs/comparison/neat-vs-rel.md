@@ -55,7 +55,7 @@ REL is a modern database access layer for Golang that's described as "ORM-ish" f
 | **Query Builder** | Fluent Eloquent-like API | Extendable query builder |
 | **Testing** | Built-in factories and seeders | Built-in reltest package |
 | **Transactions** | Transaction support | Seamless nested transactions |
-| **Associations** | BelongsTo, HasMany, HasOne | Supports associations |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Supports associations |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

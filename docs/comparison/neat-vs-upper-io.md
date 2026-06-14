@@ -54,8 +54,8 @@ upper/db is a data access layer (DAL) for Go that provides agnostic tools to wor
 |---------|----------|----------|
 | **Type** | Full ORM | Data Access Layer (DAL) |
 | **Query Builder** | Fluent Eloquent-like API | Database-agnostic API |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | PostgreSQL, MySQL, SQLite, and more |
-| **Associations** | BelongsTo, HasMany, HasOne | Limited association support |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | PostgreSQL, MySQL, SQLite, and more |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | Limited association support |
 | **Migrations** | Built-in migration system | Not included |
 | **Soft Deletes** | Built-in soft delete support | Not included |
 | **Observers** | Model lifecycle observers | Not included |

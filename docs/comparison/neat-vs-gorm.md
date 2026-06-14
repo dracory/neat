@@ -52,10 +52,10 @@ GORM is the most popular Go ORM library with a large community and mature codeba
 |---------|----------|------|
 | **Query Builder** | Fluent Eloquent-like API | Fluent chainable API |
 | **ORM Features** | Models, relationships, migrations | Models, relationships, hooks |
-| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso | MySQL, PostgreSQL, SQLite, SQL Server, and more |
+| **Database Support** | MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle | MySQL, PostgreSQL, SQLite, SQL Server, and more |
 | **Migrations** | Built-in migration system | Migration tools available |
-| **Associations** | BelongsTo, HasMany, HasOne | BelongsTo, HasMany, HasOne, Many2Many |
-| **Soft Deletes** | Built-in soft delete support | Built-in soft delete support |
+| **Associations** | BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany | BelongsTo, HasMany, HasOne, Many2Many |
+| **Soft Deletes** | Built-in soft delete support with multiple strategies (NULL-based and max-date sentinel) | Built-in soft delete support |
 | **Transactions** | Transaction support | Transaction support |
 | **Observers** | Model lifecycle observers | Callbacks and hooks |
 | **Connection Pooling** | Configurable pooling | Configurable pooling |
@@ -100,6 +100,8 @@ GORM is the most popular Go ORM library with a large community and mature codeba
 - **BelongsTo**: Parent-child relationships
 - **HasMany**: One-to-many relationships
 - **HasOne**: One-to-one relationships
+- **PolymorphicBelongsTo**: Polymorphic parent-child relationships
+- **PolymorphicHasMany**: Polymorphic one-to-many relationships
 - **Eager loading**: `With()` for preloading
 - **Lazy loading**: `Load()` for on-demand loading
 - **Association operations**: Append, remove, sync
