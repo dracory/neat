@@ -11,8 +11,8 @@ This directory contains examples demonstrating various use cases of the neat Go 
 - **[migrations](./migrations/)** - Database migration examples with relationships and constraints
 - **[advanced-queries](./advanced-queries/)** - Advanced query builder features (joins, aggregations, subqueries)
 - **[soft-deletes](./soft-deletes/)** - NULL-based soft delete with `soft_deleted_at` column
-- **[deleted-at-soft-delete](./deleted-at-soft-delete/)** - NULL-based soft delete with `deleted_at` column (Laravel-compatible)
-- **[max-date-soft-delete](./max-date-soft-delete/)** - Max-date sentinel soft delete strategy for NOT NULL compatibility
+- **[soft-delete-alt-deleted-at](./soft-delete-alt-deleted-at/)** - NULL-based soft delete with `deleted_at` column (Laravel-compatible)
+- **[soft-delete-max-date](./soft-delete-max-date/)** - Max-date sentinel soft delete strategy for NOT NULL compatibility
 - **[associations](./associations/)** - Model relationships (BelongsTo, HasMany, HasOne)
 - **[observers](./observers/)** - Model lifecycle event observers
 - **[factory](./factory/)** - Model factory patterns for testing
