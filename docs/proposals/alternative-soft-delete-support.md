@@ -574,9 +574,14 @@ if user.IsSoftDeleted() {
    in an incorrect state until the record is re-fetched. The ORM will detect the
    interface and set the sentinel before executing the INSERT.
 
-2. **`time.Now()` inside `IsActiveCondition`/`IsDeletedCondition`** — should
-   these methods accept a `time.Time` argument for testability, rather than
-   calling `time.Now()` internally?
+2. **`time.Now()` inside `IsActiveCondition`/`IsDeletedCondition`** — **Resolved:
+   call `time.Now()` internally**, consistent with every other `time.Now()` call
+   in the codebase (query builder, soft delete structs, observers). No clock
+   abstraction exists anywhere in Neat ORM and introducing one here would be
+   inconsistent. Tests that need a fixed timestamp should construct the condition
+   SQL directly and assert the bound arg falls within an acceptable window
+   (e.g. `time.Since(arg) < time.Second`), the same pattern already used in
+   `query_helpers_test.go` and `query_accessors_test.go`.
 
 3. **Interface placement** — `SoftDeleteStrategy` in
    `contracts/database/orm/soft_delete.go` alongside `SoftDeleteColumnNamer` is
