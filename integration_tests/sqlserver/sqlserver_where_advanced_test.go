@@ -13,9 +13,9 @@ func TestSQLServerIntegrationWhereColumn(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data
-	_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?, ?)", "user1", "user2", "same").Delete(&models.User{})
 	defer func() {
-		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2", "same"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?, ?)", "user1", "user2", "same").Delete(&models.User{})
 	}()
 
 	// Create users with same/different created/updated at
@@ -87,9 +87,9 @@ func TestSQLServerIntegrationOrWhereColumn(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data
-	_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?, ?)", "match", "other", "user1").Delete(&models.User{})
 	defer func() {
-		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"match", "other", "user1"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?, ?)", "match", "other", "user1").Delete(&models.User{})
 	}()
 
 	users := []models.User{
@@ -163,9 +163,9 @@ func TestSQLServerIntegrationWhereNot(t *testing.T) {
 	query := db.Query()
 
 	// Cleanup test data
-	_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
+	_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?)", "user1", "user2").Delete(&models.User{})
 	defer func() {
-		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"user1", "user2"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?)", "user1", "user2").Delete(&models.User{})
 	}()
 
 	users := []models.User{

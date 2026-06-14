@@ -16,7 +16,7 @@ func TestSQLServerIntegrationUpdateOrInsert(t *testing.T) {
 
 	// Cleanup test data
 	defer func() {
-		_, _ = db.Query().Model(&models.User{}).Where("name IN ?", []string{"insert_map", "insert_struct", "insert_map_struct"}).Delete(&models.User{})
+		_, _ = db.Query().Model(&models.User{}).Where("name IN (?, ?, ?)", "insert_map", "insert_struct", "insert_map_struct").Delete(&models.User{})
 	}()
 
 	// Test Insert with Map
