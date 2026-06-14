@@ -583,9 +583,10 @@ if user.IsSoftDeleted() {
    (e.g. `time.Since(arg) < time.Second`), the same pattern already used in
    `query_helpers_test.go` and `query_accessors_test.go`.
 
-3. **Interface placement** — `SoftDeleteStrategy` in
-   `contracts/database/orm/soft_delete.go` alongside `SoftDeleteColumnNamer` is
-   the natural home; confirm before implementation.
+3. **Interface placement** — **Resolved: `SoftDeleteStrategy` goes in
+   `contracts/database/orm/soft_delete.go`** alongside `SoftDeleteColumnNamer`.
+   Both interfaces govern soft delete behavior at the contract layer; keeping
+   them in the same file makes the relationship explicit.
 
 4. **`DeletedAt`-column max-date variant** — ~~should a `DeletedAtMaxDate` embed
    also be provided?~~ **Resolved: yes.** `DeletedAtMaxDate` is included in the
