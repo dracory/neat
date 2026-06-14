@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 // whereTestSoftModel is a package-level type used by builder_where tests.
@@ -15,7 +17,7 @@ type whereTestSoftModel struct {
 	DeletedAt *time.Time
 }
 
-func (m *whereTestSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
+func (m *whereTestSoftModel) SoftDeletedAtColumn() string { return constants.DeletedAtColumnName }
 
 func TestBuildWheres(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
@@ -319,7 +321,7 @@ func TestBuildWheresWithSoftDeleteWithSoftDeleted(t *testing.T) {
 	where, args := b.buildWheresWithSoftDelete()
 
 	// Should NOT include soft-delete filter
-	if strings.Contains(where, "deleted_at") {
+	if strings.Contains(where, constants.DeletedAtColumnName) {
 		t.Errorf("Expected no soft-delete filter in WHERE clause, got %s", where)
 	}
 	if !strings.Contains(where, "name = ?") {
@@ -338,7 +340,7 @@ func TestBuildWheresWithSoftDeleteNoModel(t *testing.T) {
 	where, args := b.buildWheresWithSoftDelete()
 
 	// Should NOT include soft-delete filter (no model)
-	if strings.Contains(where, "deleted_at") {
+	if strings.Contains(where, constants.DeletedAtColumnName) {
 		t.Errorf("Expected no soft-delete filter in WHERE clause, got %s", where)
 	}
 	if !strings.Contains(where, "name = ?") {

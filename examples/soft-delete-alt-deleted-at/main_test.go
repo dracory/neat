@@ -6,6 +6,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 	"github.com/dracory/neat/database/soft_delete"
 	mainpkg "github.com/dracory/neat/examples/soft-delete-alt-deleted-at"
 )
@@ -39,8 +40,8 @@ func TestDeletedAtSoftDelete_CreateAndSoftDelete(t *testing.T) {
 		blueprint.String("title")
 		blueprint.Text("content")
 		blueprint.String("author")
-		blueprint.Timestamp("created_at")
-		blueprint.Timestamp("deleted_at").Nullable()
+		blueprint.Timestamp(constants.DefaultCreatedAtColumn)
+		blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -104,7 +105,7 @@ func TestDeletedAtSoftDelete_Restore(t *testing.T) {
 		blueprint.String("title")
 		blueprint.Text("content")
 		blueprint.String("author")
-		blueprint.Timestamp("deleted_at").Nullable()
+		blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -169,7 +170,7 @@ func TestDeletedAtSoftDelete_ForceDelete(t *testing.T) {
 		blueprint.String("title")
 		blueprint.Text("content")
 		blueprint.String("author")
-		blueprint.Timestamp("deleted_at").Nullable()
+		blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -214,7 +215,7 @@ func TestDeletedAtSoftDelete_OnlySoftDeleted(t *testing.T) {
 		blueprint.String("title")
 		blueprint.Text("content")
 		blueprint.String("author")
-		blueprint.Timestamp("deleted_at").Nullable()
+		blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -294,11 +295,11 @@ func TestDeletedAtSoftDelete_DeletedAtField(t *testing.T) {
 }
 
 func TestDeletedAtSoftDelete_ColumnName(t *testing.T) {
-	// Verify the column name is "deleted_at" for Laravel compatibility
+	// Verify the column name is constants.DeletedAtColumnName for Laravel compatibility
 	post := Post{}
 
 	columnName := post.SoftDeletedAtColumn()
-	if columnName != "deleted_at" {
+	if columnName != constants.DeletedAtColumnName {
 		t.Errorf("expected column name to be 'deleted_at', got '%s'", columnName)
 	}
 }

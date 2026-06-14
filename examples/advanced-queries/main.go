@@ -6,6 +6,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 // This example demonstrates advanced query builder features
@@ -31,7 +32,7 @@ func RunExample(dsn string) error {
 		blueprint.Integer("age")
 		blueprint.String("status")
 		blueprint.Timestamp("created_at")
-		blueprint.Timestamp("deleted_at").Nullable()
+		blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %w", err)

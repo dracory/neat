@@ -421,7 +421,7 @@ type PoolConfig struct {
     <h3>Soft Delete Columns</h3>
 
     <ul class="method-list">
-        <li><code>SoftDeletes(column ...string)</code> - Soft delete column (default "soft_deleted_at")</li>
+        <li><code>SoftDeletes(column ...string)</code> - Soft delete column (default constants.SoftDeleteAtColumn)</li>
         <li><code>SoftDeletesTz(column ...string)</code> - Soft delete with timezone</li>
     </ul>
 
@@ -495,14 +495,14 @@ type PoolConfig struct {
     <h3>Soft Delete Column Setup</h3>
 
     <p>For NULL-based strategy:</p>
-    <pre><code>blueprint.Timestamp("soft_deleted_at").Nullable()
+    <pre><code>blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 // or
-blueprint.Timestamp("deleted_at").Nullable()</code></pre>
+blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()</code></pre>
 
     <p>For Max-Date sentinel strategy:</p>
-    <pre><code>blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+    <pre><code>blueprint.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
 // or
-blueprint.Timestamp("deleted_at").Default("9999-12-31 23:59:59")</code></pre>
+blueprint.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDeletedAtDefault)</code></pre>
 
     <h2>Association Methods</h2>
 

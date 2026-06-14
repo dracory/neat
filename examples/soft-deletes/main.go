@@ -7,6 +7,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 	"github.com/dracory/neat/database/soft_delete"
 )
 
@@ -43,9 +44,9 @@ func RunExample(dsn string) error {
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
 		blueprint.Text("description")
-		blueprint.Timestamp("created_at")
+		blueprint.Timestamp(constants.DefaultCreatedAtColumn)
 		// For NULL-based strategy, soft_deleted_at should be nullable with no default
-		blueprint.Timestamp("soft_deleted_at").Nullable()
+		blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create products table: %w", err)

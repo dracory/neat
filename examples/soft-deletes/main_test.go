@@ -6,6 +6,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 	"github.com/dracory/neat/database/soft_delete"
 	mainpkg "github.com/dracory/neat/examples/soft-deletes"
 )
@@ -39,8 +40,8 @@ func TestSoftDelete_CreateAndSoftDelete(t *testing.T) {
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
 		blueprint.Text("description")
-		blueprint.Timestamp("created_at")
-		blueprint.Timestamp("soft_deleted_at").Nullable()
+		blueprint.Timestamp(constants.DefaultCreatedAtColumn)
+		blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -103,7 +104,7 @@ func TestSoftDelete_Restore(t *testing.T) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
-		blueprint.Timestamp("soft_deleted_at").Nullable()
+		blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -166,7 +167,7 @@ func TestSoftDelete_ForceDelete(t *testing.T) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
-		blueprint.Timestamp("soft_deleted_at").Nullable()
+		blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -209,7 +210,7 @@ func TestSoftDelete_OnlySoftDeleted(t *testing.T) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
-		blueprint.Timestamp("soft_deleted_at").Nullable()
+		blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)

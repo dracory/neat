@@ -7,11 +7,12 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 	"github.com/dracory/neat/database/soft_delete"
 )
 
 // Post model using NULL-based soft delete strategy with deleted_at column
-// This is Laravel-compatible and uses the traditional "deleted_at" column name
+// This is Laravel-compatible and uses the traditional constants.DeletedAtColumnName column name
 type Post struct {
 	soft_delete.DeletedAt
 	ID        uint      `json:"id" db:"id"`
@@ -43,9 +44,9 @@ func RunExample(dsn string) error {
 		blueprint.String("title")
 		blueprint.Text("content")
 		blueprint.String("author")
-		blueprint.Timestamp("created_at")
+		blueprint.Timestamp(constants.DefaultCreatedAtColumn)
 		// For Laravel compatibility, deleted_at should be nullable
-		blueprint.Timestamp("deleted_at").Nullable()
+		blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create posts table: %w", err)

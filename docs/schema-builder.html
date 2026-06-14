@@ -231,8 +231,8 @@ table.DropFullText("content")
 table.DropFullTextByName("posts_content_fulltext")
 
 // Drop soft delete column
-table.DropSoftDeletes("deleted_at")
-table.DropSoftDeletesTz("deleted_at")
+table.DropSoftDeletes(constants.DeletedAtColumnName)
+table.DropSoftDeletesTz(constants.DeletedAtColumnName)
 
 // Drop timestamps
 table.DropTimestamps()
@@ -259,12 +259,19 @@ table.Change()</code></pre>
 
     <pre><code>// NULL-based soft delete
 table.SoftDeletes()              // soft_deleted_at (nullable)
-table.SoftDeletes("deleted_at")  // deleted_at (nullable)
+table.SoftDeletes(constants.DeletedAtColumnName)  // deleted_at (nullable)
 
-// Max-date sentinel soft delete
-table.SoftDeletes().Default("9999-12-31 23:59:59")
+// Max-date sentinel soft delete (recommended for NOT NULL columns)
+table.SoftDeletesMaxDate()              // soft_deleted_at with max-date default
+table.SoftDeletesMaxDate(constants.DeletedAtColumnName)  // deleted_at with max-date default
+table.SoftDeletesMaxDateTz()            // soft_deleted_tz with max-date default
+table.SoftDeletesMaxDateTz(constants.DeletedAtColumnName) // deleted_tz with max-date default
 
-// With timezone
+// Or use the constant directly
+import "github.com/dracory/neat/database/schema/constants"
+table.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
+
+// With timezone (NULL-based)
 table.SoftDeletesTz()           // soft_deleted_at with timezone
 table.SoftDeletesTz("deleted_at") // deleted_at with timezone</code></pre>
 

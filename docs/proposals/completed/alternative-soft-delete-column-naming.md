@@ -29,7 +29,7 @@ The original implementation had three problems:
 2. **Laravel coupling** — `WithTrashed()` / `OnlyTrashed()` / `WithoutTrashed()` are
    Laravel Eloquent terms with no meaning outside that ecosystem.
 
-3. **Hardcoded column** — `builder_where.go` hardcoded `"deleted_at"` regardless of any
+3. **Hardcoded column** — `builder_where.go` hardcoded `constants.DeletedAtColumnName` regardless of any
    override, making the documented customization mechanism non-functional.
 
 ---
@@ -39,7 +39,7 @@ The original implementation had three problems:
 ### 1. Default column: `deleted_at` → `soft_deleted_at`
 
 The fallback in `getSoftDeleteColumn()` (`database/query/query_delete.go`) now returns
-`"soft_deleted_at"`. The `SoftDeletes` embed also now uses `soft_deleted_at`.
+`constants.SoftDeleteAtColumn`. The `SoftDeletes` embed also now uses `soft_deleted_at`.
 
 This is a **breaking change** for users migrating from a schema with `deleted_at`.
 See the [Migration Guide](#migration-guide) below.
@@ -96,8 +96,8 @@ type SoftDeleteColumnNamer interface {
 
 | New (primary) | Old (deprecated alias) |
 |---|---|
-| `SoftDeleteAtColumn = "soft_deleted_at"` | `DeletedAtColumn` (points to `SoftDeleteAtColumn`) |
-| `DeletedAtColumnName = "deleted_at"` | _(new, no alias needed)_ |
+| `SoftDeleteAtColumn = constants.SoftDeleteAtColumn` | `DeletedAtColumn` (points to `SoftDeleteAtColumn`) |
+| `DeletedAtColumnName = constants.DeletedAtColumnName` | _(new, no alias needed)_ |
 
 ### 5. Internal query struct field renames
 
@@ -117,7 +117,7 @@ Private fields in the query struct — no API impact, purely internal clarity:
 
 ```go
 type User struct {
-    soft_delete.SoftDeletes  // uses "soft_deleted_at"
+    soft_delete.SoftDeletes  // uses constants.SoftDeleteAtColumn
     ID   uint
     Name string
 }
@@ -132,7 +132,7 @@ ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NULL;
 
 ```go
 type User struct {
-    soft_delete.SoftDeletedAt  // also uses "soft_deleted_at"
+    soft_delete.SoftDeletedAt  // also uses constants.SoftDeleteAtColumn
     ID   uint
     Name string
 }
@@ -142,7 +142,7 @@ type User struct {
 
 ```go
 type User struct {
-    soft_delete.DeletedAt  // uses "deleted_at"
+    soft_delete.DeletedAt  // uses constants.DeletedAtColumnName
     ID   uint
     Name string
 }
@@ -232,7 +232,7 @@ type User struct {
     ID uint
 }
 
-func (u *User) SoftDeletedAtColumn() string { return "deleted_at" }
+func (u *User) SoftDeletedAtColumn() string { return constants.DeletedAtColumnName }
 ```
 
 ---

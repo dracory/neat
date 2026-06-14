@@ -125,7 +125,7 @@ func TestSoftDeletesDeleteIsAlias(t *testing.T) {
 
 func TestSoftDeletesSoftDeletedAtColumn(t *testing.T) {
 	sd := &SoftDeletes{}
-	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+	if sd.SoftDeletedAtColumn() != SoftDeleteAtColumn {
 		t.Errorf("Expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }
@@ -213,7 +213,7 @@ func TestSoftDeletedAtGetDeletedAt(t *testing.T) {
 
 func TestSoftDeletedAtSoftDeletedAtColumn(t *testing.T) {
 	sd := &SoftDeletedAt{}
-	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+	if sd.SoftDeletedAtColumn() != SoftDeleteAtColumn {
 		t.Errorf("Expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }
@@ -300,7 +300,7 @@ func TestDeletedAtGetSoftDeletedAt(t *testing.T) {
 
 func TestDeletedAtSoftDeletedAtColumn(t *testing.T) {
 	sd := &DeletedAt{}
-	if sd.SoftDeletedAtColumn() != "deleted_at" {
+	if sd.SoftDeletedAtColumn() != DeletedAtColumnName {
 		t.Errorf("Expected 'deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }
@@ -377,7 +377,7 @@ func TestSoftDeletesMaxDateGetSoftDeletedAt(t *testing.T) {
 
 func TestSoftDeletesMaxDateSoftDeletedAtColumn(t *testing.T) {
 	sd := &SoftDeletesMaxDate{}
-	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+	if sd.SoftDeletedAtColumn() != SoftDeleteAtColumn {
 		t.Errorf("Expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }
@@ -489,7 +489,7 @@ func TestDeletedAtMaxDateGetSoftDeletedAt(t *testing.T) {
 
 func TestDeletedAtMaxDateSoftDeletedAtColumn(t *testing.T) {
 	sd := &DeletedAtMaxDate{}
-	if sd.SoftDeletedAtColumn() != "deleted_at" {
+	if sd.SoftDeletedAtColumn() != DeletedAtColumnName {
 		t.Errorf("Expected 'deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }

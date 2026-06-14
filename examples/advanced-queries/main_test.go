@@ -5,6 +5,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 	mainpkg "github.com/dracory/neat/examples/advanced-queries"
 )
 
@@ -32,7 +33,7 @@ func setupAdvancedDB(t *testing.T) *neat.Database {
 		bp.Integer("age")
 		bp.String("status")
 		bp.Timestamp("created_at")
-		bp.Timestamp("deleted_at").Nullable()
+		bp.Timestamp(constants.DeletedAtColumnName).Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create users: %v", err)

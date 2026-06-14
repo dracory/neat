@@ -44,12 +44,14 @@ type Post struct {
 ### Schema Definition
 
 ```go
+import "github.com/dracory/neat/database/schema/constants"
+
 db.Schema().Create("posts", func(blueprint schema.Blueprint) {
     blueprint.ID()
     blueprint.String("title")
     blueprint.Text("content")
     // For Laravel compatibility, deleted_at should be nullable
-    blueprint.Timestamp("deleted_at").Nullable()
+    blueprint.Timestamp(constants.DeletedAtColumnName).Nullable()
 })
 ```
 
@@ -100,6 +102,24 @@ if post.IsSoftDeleted() {
 var post Post
 columnName := post.SoftDeletedAtColumn()
 // Returns "deleted_at" for Laravel compatibility
+```
+
+
+## Using Constants
+
+The neat package provides constants for all default column names to avoid hardcoding:
+
+- `constants.SoftDeleteAtColumn` - Default soft delete column name ("soft_deleted_at")
+- `constants.DeletedAtColumnName` - Laravel-compatible column name ("deleted_at")  
+- `constants.MaxSoftDeletedAtDefault` - Max-date sentinel value ("9999-12-31 23:59:59")
+- `constants.DefaultIDColumn` - Default ID column name ("id")
+- `constants.DefaultCreatedAtColumn` - Default created_at column name ("created_at")
+- `constants.DefaultUpdatedAtColumn` - Default updated_at column name ("updated_at")
+
+Import the constants package to use them:
+
+```go
+import "github.com/dracory/neat/database/schema/constants"
 ```
 
 ## Comparison with Other Soft Delete Strategies

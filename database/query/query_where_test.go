@@ -7,6 +7,7 @@ import (
 
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/driver"
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 func TestWhereIn(t *testing.T) {
@@ -83,7 +84,7 @@ func TestOrWhereNotBetween(t *testing.T) {
 
 func TestWhereNull(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	result := q.WhereNull("deleted_at")
+	result := q.WhereNull(constants.DeletedAtColumnName)
 
 	if result == nil {
 		t.Error("Expected non-nil Query from WhereNull")
@@ -92,7 +93,7 @@ func TestWhereNull(t *testing.T) {
 
 func TestOrWhereNull(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	result := q.OrWhereNull("deleted_at")
+	result := q.OrWhereNull(constants.DeletedAtColumnName)
 
 	if result == nil {
 		t.Error("Expected non-nil Query from OrWhereNull")
@@ -185,7 +186,7 @@ func TestOrWhereNotWithClosure(t *testing.T) {
 
 func TestWhereNotNull(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
-	result := q.WhereNotNull("deleted_at")
+	result := q.WhereNotNull(constants.DeletedAtColumnName)
 
 	if result == nil {
 		t.Error("Expected non-nil Query from WhereNotNull")
@@ -490,7 +491,7 @@ func TestWhereBetween_SqlOutput(t *testing.T) {
 
 func TestWhereNull_SqlOutput(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
-	q.WhereNull("deleted_at")
+	q.WhereNull(constants.DeletedAtColumnName)
 
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
@@ -506,7 +507,7 @@ func TestWhereNull_SqlOutput(t *testing.T) {
 
 func TestWhereNotNull_SqlOutput(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
-	q.WhereNotNull("deleted_at")
+	q.WhereNotNull(constants.DeletedAtColumnName)
 
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
@@ -733,7 +734,7 @@ func TestWhereInAndBetween(t *testing.T) {
 
 func TestWhereNullAndNotNull(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
-	q.WhereNull("deleted_at")
+	q.WhereNull(constants.DeletedAtColumnName)
 	q.WhereNotNull("email")
 
 	builder := NewBuilder(q)

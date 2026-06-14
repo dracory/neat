@@ -2,16 +2,21 @@ package soft_delete
 
 import (
 	"time"
+
+	"github.com/dracory/neat/database/schema/constants"
 )
 
+// Re-export constants for backward compatibility
 const (
 	// SoftDeleteAtColumn is the default column name used for soft deletes.
 	// The default is "soft_deleted_at" — semantically explicit about what the column tracks.
-	// Use DeletedAt embed for "deleted_at" (Laravel-style) compatibility.
-	SoftDeleteAtColumn = "soft_deleted_at"
+	// Use DeletedAtColumnName for "deleted_at" (Laravel-style) compatibility.
+	// Deprecated: Use constants.SoftDeleteAtColumn instead.
+	SoftDeleteAtColumn = constants.SoftDeleteAtColumn
 
 	// DeletedAtColumnName is the column name used by the DeletedAt embed (Laravel-compatible).
-	DeletedAtColumnName = "deleted_at"
+	// Deprecated: Use constants.DeletedAtColumnName instead.
+	DeletedAtColumnName = constants.DeletedAtColumnName
 
 	// DeletedAtColumn is an alias for SoftDeleteAtColumn.
 	//
@@ -38,7 +43,7 @@ type SoftDeletes struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (sd *SoftDeletes) SoftDeletedAtColumn() string {
-	return "soft_deleted_at"
+	return constants.SoftDeleteAtColumn
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.
@@ -114,7 +119,7 @@ type SoftDeletedAt struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (sd *SoftDeletedAt) SoftDeletedAtColumn() string {
-	return "soft_deleted_at"
+	return constants.SoftDeleteAtColumn
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.
@@ -190,7 +195,7 @@ type DeletedAt struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (sd *DeletedAt) SoftDeletedAtColumn() string {
-	return "deleted_at"
+	return constants.DeletedAtColumnName
 }
 
 // IsSoftDeleted returns true if the model has been soft deleted.
@@ -271,7 +276,7 @@ type SoftDeletesMaxDate struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (s *SoftDeletesMaxDate) SoftDeletedAtColumn() string {
-	return "soft_deleted_at"
+	return constants.SoftDeleteAtColumn
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.
@@ -345,13 +350,13 @@ func (s *SoftDeletesMaxDate) RestoreValue() any {
 // SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
 func (s *SoftDeletesMaxDate) SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
-	return quoteIdentifier("soft_deleted_at") + " <= ?", []any{time.Now()}
+	return quoteIdentifier(constants.SoftDeleteAtColumn) + " <= ?", []any{time.Now()}
 }
 
 // NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
 func (s *SoftDeletesMaxDate) NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
-	return quoteIdentifier("soft_deleted_at") + " > ?", []any{time.Now()}
+	return quoteIdentifier(constants.SoftDeleteAtColumn) + " > ?", []any{time.Now()}
 }
 
 // DeletedAtMaxDate provides soft delete functionality using a max-date sentinel
@@ -375,7 +380,7 @@ type DeletedAtMaxDate struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (s *DeletedAtMaxDate) SoftDeletedAtColumn() string {
-	return "deleted_at"
+	return constants.DeletedAtColumnName
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.
@@ -449,11 +454,11 @@ func (s *DeletedAtMaxDate) RestoreValue() any {
 // SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
 func (s *DeletedAtMaxDate) SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
-	return quoteIdentifier("deleted_at") + " <= ?", []any{time.Now()}
+	return quoteIdentifier(constants.DeletedAtColumnName) + " <= ?", []any{time.Now()}
 }
 
 // NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
 func (s *DeletedAtMaxDate) NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
-	return quoteIdentifier("deleted_at") + " > ?", []any{time.Now()}
+	return quoteIdentifier(constants.DeletedAtColumnName) + " > ?", []any{time.Now()}
 }

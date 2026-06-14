@@ -44,12 +44,16 @@ type Product struct {
 ### Schema Definition
 
 ```go
+import "github.com/dracory/neat/database/schema/constants"
+
 db.Schema().Create("products", func(blueprint schema.Blueprint) {
     blueprint.ID()
     blueprint.String("name")
     blueprint.Float("price", 10, 2)
-    // For max-date strategy, set default to the sentinel value
-    blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+    // Option 1: Use the helper method (recommended)
+    blueprint.SoftDeletesMaxDate(constants.SoftDeleteAtColumn)
+    // Option 2: Use the constant directly
+    // blueprint.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
 })
 ```
 

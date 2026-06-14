@@ -105,7 +105,7 @@ SELECT * FROM users WHERE soft_deleted_at > NOW();</code></pre>
 
     <p><strong>1. NOT NULL Compatible</strong></p>
     <pre><code>// Schema definition
-blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+blueprint.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
 // No .Nullable() needed - column can be NOT NULL</code></pre>
 
     <p><strong>2. Better Index Performance</strong></p>
@@ -316,7 +316,7 @@ ALTER TABLE posts ADD COLUMN deleted_at DATETIME NULL;</code></pre>
 
     <p>Or using the schema builder:</p>
 
-    <pre><code>table.Timestamp("soft_deleted_at").Nullable()
+    <pre><code>table.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 table.Timestamp("deleted_at").Nullable()</code></pre>
 
     <h4>For Max-Date Sentinel Strategy:</h4>
@@ -328,15 +328,26 @@ ALTER TABLE posts ADD COLUMN deleted_at DATETIME NOT NULL DEFAULT '9999-12-31 23
 
     <p>Or using the schema builder:</p>
 
-    <pre><code>table.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
-table.Timestamp("deleted_at").Default("9999-12-31 23:59:59")</code></pre>
+    <pre><code>import "github.com/dracory/neat/database/schema/constants"
+
+// Option 1: Use the helper method (recommended)
+table.SoftDeletesMaxDate(constants.SoftDeleteAtColumn)
+table.SoftDeletesMaxDateTz(constants.SoftDeleteAtColumn)  // with timezone support
+
+// Option 2: Use the constant directly
+table.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
+table.Timestamp("deleted_at").Default(constants.MaxSoftDeletedAtDefault)</code></pre>
 
     <p><strong>Note:</strong> The max-date sentinel value is available as a constant:</p>
 
     <pre><code>import "github.com/dracory/neat/database/soft_delete"
+import "github.com/dracory/neat/database/schema/constants"
 
-// MaxSoftDeletedAt = 9999-12-31 23:59:59 UTC
-fmt.Println(soft_delete.MaxSoftDeletedAt)</code></pre>
+// MaxSoftDeletedAt = 9999-12-31 23:59:59 UTC (time.Time)
+fmt.Println(soft_delete.MaxSoftDeletedAt)
+
+// MaxSoftDeletedAtDefault = constants.MaxSoftDeletedAtDefault (string for schema builder)
+fmt.Println(constants.MaxSoftDeletedAtDefault)</code></pre>
 
     <hr>
 

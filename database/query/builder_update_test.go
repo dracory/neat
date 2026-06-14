@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 // updateTestSoftModel is a package-level type used by builder_update tests.
@@ -15,7 +17,7 @@ type updateTestSoftModel struct {
 	DeletedAt *time.Time
 }
 
-func (m *updateTestSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
+func (m *updateTestSoftModel) SoftDeletedAtColumn() string { return constants.DeletedAtColumnName }
 
 func TestBuildUpdate(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
@@ -107,7 +109,7 @@ func TestBuildUpdateWithSoftDelete(t *testing.T) {
 	b := NewBuilder(q)
 
 	// Test soft delete operation (updating deleted_at column)
-	data := map[string]any{"deleted_at": "2024-01-01"}
+	data := map[string]any{constants.DeletedAtColumnName: "2024-01-01"}
 	sql, _ := b.BuildUpdate(data)
 
 	if sql == "" {
@@ -353,7 +355,7 @@ func TestBuildUpdateSoftDeleteOperation(t *testing.T) {
 	b := NewBuilder(q)
 
 	// Soft delete operation: updating deleted_at column
-	data := map[string]any{"deleted_at": "2024-01-01"}
+	data := map[string]any{constants.DeletedAtColumnName: "2024-01-01"}
 	sql, args := b.BuildUpdate(data)
 
 	if sql == "" {

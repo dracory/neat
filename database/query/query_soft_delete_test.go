@@ -6,18 +6,19 @@ import (
 	"time"
 
 	"github.com/dracory/neat/database/query"
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 // softModel has a *time.Time DeletedAt and implements SoftDeleteColumnNamer.
 type softModel struct {
-	ID        int
-	Name      string
+	ID            int
+	Name          string
 	DeletedAt *time.Time
 }
 
 // DeletedAtColumn implements SoftDeleteColumnNamer so the query builder applies
-// soft-delete filtering using the "deleted_at" column.
-func (m *softModel) SoftDeletedAtColumn() string { return "deleted_at" }
+// soft-delete filtering using the "soft_deleted_at" column.
+func (m *softModel) SoftDeletedAtColumn() string { return constants.DeletedAtColumnName }
 
 // hardModel has no DeletedAt — not soft-deletable.
 type hardModel struct {
@@ -51,7 +52,7 @@ func TestBuildSelectWithTrashedSkipsFilter(t *testing.T) {
 
 	if whereIdx := strings.Index(sqlStr, "WHERE"); whereIdx != -1 {
 		whereClause := sqlStr[whereIdx:]
-		if strings.Contains(whereClause, "deleted_at") {
+		if strings.Contains(whereClause, constants.DeletedAtColumnName) {
 			t.Errorf("expected no 'deleted_at' filter in WHERE clause with WithTrashed, got: %s", sqlStr)
 		}
 	}
@@ -75,7 +76,7 @@ func TestBuildSelectNoFilterForNonSoftDeleteModel(t *testing.T) {
 	w.SetModel(&hardModel{})
 	sqlStr, _ := w.BuildSelectSQL()
 
-	if strings.Contains(sqlStr, "deleted_at") {
+	if strings.Contains(sqlStr, constants.DeletedAtColumnName) {
 		t.Errorf("expected no 'deleted_at' clause for non-soft-delete model, got: %s", sqlStr)
 	}
 }
@@ -86,7 +87,7 @@ func TestBuildSelectNoFilterWhenModelNil(t *testing.T) {
 	w.SetTable("users")
 	sqlStr, _ := w.BuildSelectSQL()
 
-	if strings.Contains(sqlStr, "deleted_at") {
+	if strings.Contains(sqlStr, constants.DeletedAtColumnName) {
 		t.Errorf("expected no 'deleted_at' clause when model is nil, got: %s", sqlStr)
 	}
 }

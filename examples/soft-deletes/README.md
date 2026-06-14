@@ -44,12 +44,14 @@ type Product struct {
 ### Schema Definition
 
 ```go
+import "github.com/dracory/neat/database/schema/constants"
+
 db.Schema().Create("products", func(blueprint schema.Blueprint) {
     blueprint.ID()
     blueprint.String("name")
     blueprint.Float("price", 10, 2)
     // For NULL-based strategy, soft_deleted_at should be nullable
-    blueprint.Timestamp("soft_deleted_at").Nullable()
+    blueprint.Timestamp(constants.SoftDeleteAtColumn).Nullable()
 })
 ```
 
@@ -92,6 +94,24 @@ if product.IsSoftDeleted() {
     fmt.Println("This product is soft deleted")
     fmt.Printf("Soft deleted at: %v\n", product.SoftDeletedAt)
 }
+```
+
+
+## Using Constants
+
+The neat package provides constants for all default column names to avoid hardcoding:
+
+- `constants.SoftDeleteAtColumn` - Default soft delete column name ("soft_deleted_at")
+- `constants.DeletedAtColumnName` - Laravel-compatible column name ("deleted_at")  
+- `constants.MaxSoftDeletedAtDefault` - Max-date sentinel value ("9999-12-31 23:59:59")
+- `constants.DefaultIDColumn` - Default ID column name ("id")
+- `constants.DefaultCreatedAtColumn` - Default created_at column name ("created_at")
+- `constants.DefaultUpdatedAtColumn` - Default updated_at column name ("updated_at")
+
+Import the constants package to use them:
+
+```go
+import "github.com/dracory/neat/database/schema/constants"
 ```
 
 ## Alternative: DeletedAt

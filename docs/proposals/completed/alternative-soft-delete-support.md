@@ -66,7 +66,7 @@ func getSoftDeleteColumn(model any) string {
     if namer, ok := model.(contractsorm.SoftDeleteColumnNamer); ok {
         return namer.SoftDeletedAtColumn()
     }
-    return "soft_deleted_at"  // default fallback
+    return constants.SoftDeleteAtColumn  // default fallback
 }
 ```
 
@@ -157,21 +157,21 @@ are provided — one per supported column name:
 var MaxSoftDeletedAt = time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
 
 // SoftDeletesMaxDate provides soft delete functionality using a max-date sentinel
-// instead of NULL. The column used is "soft_deleted_at".
+// instead of NULL. The column used is constants.SoftDeleteAtColumn.
 // Embed this in models where the schema enforces NOT NULL on timestamp columns.
 //
 // Example:
 //
 //  type User struct {
-//      soft_delete.SoftDeletesMaxDate  // uses "soft_deleted_at" with sentinel
+//      soft_delete.SoftDeletesMaxDate  // uses constants.SoftDeleteAtColumn with sentinel
 //      ID   uint
 //      Name string
 //  }
 type SoftDeletesMaxDate struct {
-    SoftDeletedAt time.Time `json:"soft_deleted_at,omitempty" db:"soft_deleted_at"`
+    SoftDeletedAt time.Time `json:"soft_deleted_at,omitempty" db:constants.SoftDeleteAtColumn`
 }
 
-func (s *SoftDeletesMaxDate) SoftDeletedAtColumn() string { return "soft_deleted_at" }
+func (s *SoftDeletesMaxDate) SoftDeletedAtColumn() string { return constants.SoftDeleteAtColumn }
 func (s *SoftDeletesMaxDate) IsSoftDeleted() bool         { return !s.SoftDeletedAt.After(time.Now()) }
 func (s *SoftDeletesMaxDate) SoftDelete()                 { s.SoftDeletedAt = time.Now() }
 func (s *SoftDeletesMaxDate) RestoreSoftDeleted()         { s.SoftDeletedAt = MaxSoftDeletedAt }
@@ -184,21 +184,21 @@ func (s *SoftDeletesMaxDate) Restore()                { s.RestoreSoftDeleted() }
 func (s *SoftDeletesMaxDate) DeletedAtColumn() string { return s.SoftDeletedAtColumn() }
 
 // DeletedAtMaxDate provides soft delete functionality using a max-date sentinel
-// with the "deleted_at" column name (Laravel-compatible).
-// Use this when your schema uses "deleted_at" and enforces NOT NULL.
+// with the constants.DeletedAtColumnName column name (Laravel-compatible).
+// Use this when your schema uses constants.DeletedAtColumnName and enforces NOT NULL.
 //
 // Example:
 //
 //  type Post struct {
-//      soft_delete.DeletedAtMaxDate  // uses "deleted_at" with sentinel
+//      soft_delete.DeletedAtMaxDate  // uses constants.DeletedAtColumnName with sentinel
 //      ID    uint
 //      Title string
 //  }
 type DeletedAtMaxDate struct {
-    DeletedAt time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+    DeletedAt time.Time `json:"deleted_at,omitempty" db:constants.DeletedAtColumnName`
 }
 
-func (s *DeletedAtMaxDate) SoftDeletedAtColumn() string { return "deleted_at" }
+func (s *DeletedAtMaxDate) SoftDeletedAtColumn() string { return constants.DeletedAtColumnName }
 func (s *DeletedAtMaxDate) IsSoftDeleted() bool         { return !s.DeletedAt.After(time.Now()) }
 func (s *DeletedAtMaxDate) SoftDelete()                 { s.DeletedAt = time.Now() }
 func (s *DeletedAtMaxDate) RestoreSoftDeleted()         { s.DeletedAt = MaxSoftDeletedAt }
@@ -263,10 +263,10 @@ func (s *SoftDeletesMaxDate) SoftDeleteValue() any { return time.Now() }
 func (s *SoftDeletesMaxDate) RestoreValue() any     { return MaxSoftDeletedAt }
 
 func (s *SoftDeletesMaxDate) IsDeletedCondition(q func(string) string) (string, []any) {
-    return q("soft_deleted_at") + " <= ?", []any{time.Now()}
+    return q(constants.SoftDeleteAtColumn) + " <= ?", []any{time.Now()}
 }
 func (s *SoftDeletesMaxDate) IsActiveCondition(q func(string) string) (string, []any) {
-    return q("soft_deleted_at") + " > ?", []any{time.Now()}
+    return q(constants.SoftDeleteAtColumn) + " > ?", []any{time.Now()}
 }
 ```
 
@@ -355,7 +355,7 @@ must be incremented by 1 before the remaining WHERE args.
 
 ### 7. Update `isSoftDeleteOperation` detection in `builder_update.go`
 
-Currently checks `m["deleted_at"]` hardcoded. Already partially fixed by the
+Currently checks `m[constants.DeletedAtColumnName]` hardcoded. Already partially fixed by the
 column-naming work (uses `getSoftDeleteColumn`). Confirm it reads:
 
 ```go
@@ -372,7 +372,7 @@ No additional change needed if `getSoftDeleteColumn` already handles this.
 The `soft_deleted_at` column must be `NOT NULL` with a sentinel default:
 
 ```go
-table.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59").NotNullable()
+table.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault).NotNullable()
 ```
 
 New records must arrive with `soft_deleted_at = MaxSoftDeletedAt`. Options:
@@ -421,10 +421,10 @@ type Post struct {
 
 ```go
 // SoftDeletesMaxDate
-table.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59").NotNullable()
+table.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault).NotNullable()
 
 // DeletedAtMaxDate
-table.Timestamp("deleted_at").Default("9999-12-31 23:59:59").NotNullable()
+table.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDeletedAtDefault).NotNullable()
 ```
 
 ### Soft deleting

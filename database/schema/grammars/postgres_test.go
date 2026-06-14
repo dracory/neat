@@ -6,6 +6,7 @@ import (
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 	"github.com/dracory/neat/database/schema/grammars"
 )
 
@@ -219,10 +220,10 @@ func (b *stubBlueprint) SmallInteger(col string) contractsschema.ColumnDefinitio
 	return b.col(col, "smallInteger")
 }
 func (b *stubBlueprint) SoftDeletes(_ ...string) contractsschema.ColumnDefinition {
-	return b.col("deleted_at", "timestamp")
+	return b.col(constants.DeletedAtColumnName, "timestamp")
 }
 func (b *stubBlueprint) SoftDeletesTz(_ ...string) contractsschema.ColumnDefinition {
-	return b.col("deleted_at", "timestampTz")
+	return b.col(constants.DeletedAtColumnName, "timestampTz")
 }
 func (b *stubBlueprint) String(col string, length ...int) contractsschema.ColumnDefinition {
 	c := b.col(col, "string")

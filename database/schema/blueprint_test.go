@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 // MockGrammar is a test double for the Grammar interface
@@ -460,11 +461,11 @@ func TestBlueprint_SoftDeletes(t *testing.T) {
 		if column == nil {
 			t.Fatal("expected non-nil column")
 		}
-		if column.GetName() != "deleted_at" {
-			t.Errorf("expected deleted_at, got %s", column.GetName())
+		if column.GetName() != constants.SoftDeleteAtColumn {
+			t.Errorf("expected soft_deleted_at, got %s", column.GetName())
 		}
 		if !column.GetNullable() {
-			t.Error("expected deleted_at to be nullable")
+			t.Error("expected soft_deleted_at to be nullable")
 		}
 	})
 
@@ -1976,8 +1977,8 @@ func TestBlueprint_SoftDeletesVariants(t *testing.T) {
 		if column.GetType() != "timestampTz" {
 			t.Errorf("expected timestampTz, got %s", column.GetType())
 		}
-		if column.GetName() != "deleted_at" {
-			t.Errorf("expected deleted_at, got %s", column.GetName())
+		if column.GetName() != constants.SoftDeleteAtColumn {
+			t.Errorf("expected soft_deleted_at, got %s", column.GetName())
 		}
 	})
 
@@ -2002,8 +2003,8 @@ func TestBlueprint_DropSoftDeletesVariants(t *testing.T) {
 		if bp.commands[0].Name != "dropColumn" {
 			t.Errorf("expected dropColumn command, got %s", bp.commands[0].Name)
 		}
-		if len(bp.commands[0].Columns) != 1 || bp.commands[0].Columns[0] != "deleted_at" {
-			t.Errorf("expected [deleted_at], got %v", bp.commands[0].Columns)
+		if len(bp.commands[0].Columns) != 1 || bp.commands[0].Columns[0] != constants.SoftDeleteAtColumn {
+			t.Errorf("expected [soft_deleted_at], got %v", bp.commands[0].Columns)
 		}
 	})
 
@@ -2020,8 +2021,8 @@ func TestBlueprint_DropSoftDeletesVariants(t *testing.T) {
 		bp := &Blueprint{table: "test_table"}
 		bp.DropSoftDeletesTz()
 
-		if len(bp.commands[0].Columns) != 1 || bp.commands[0].Columns[0] != "deleted_at" {
-			t.Errorf("expected [deleted_at], got %v", bp.commands[0].Columns)
+		if len(bp.commands[0].Columns) != 1 || bp.commands[0].Columns[0] != constants.SoftDeleteAtColumn {
+			t.Errorf("expected [soft_deleted_at], got %v", bp.commands[0].Columns)
 		}
 	})
 

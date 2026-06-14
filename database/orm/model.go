@@ -3,6 +3,8 @@ package orm
 import (
 	"database/sql"
 	"time"
+
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 // Model represents a base model with ID and timestamps.
@@ -27,7 +29,7 @@ type SoftDeletes struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (sd *SoftDeletes) SoftDeletedAtColumn() string {
-	return "soft_deleted_at"
+	return constants.SoftDeleteAtColumn
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.
@@ -46,7 +48,7 @@ type DeletedAt struct {
 // SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
 func (sd *DeletedAt) SoftDeletedAtColumn() string {
-	return "deleted_at"
+	return constants.DeletedAtColumnName
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.

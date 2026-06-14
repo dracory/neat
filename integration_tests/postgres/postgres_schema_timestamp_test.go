@@ -1,10 +1,10 @@
-
 package postgres_test
 
 import (
 	"testing"
 
 	"github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema/constants"
 )
 
 func TestPostgreSQLSchemaTimestamp(t *testing.T) {
@@ -124,13 +124,13 @@ func TestPostgreSQLSchemaTimestamp(t *testing.T) {
 		hasDeletedAt := false
 		hasDeletedAtTz := false
 		for _, col := range columns {
-			if col.Name == "deleted_at" {
+			if col.Name == constants.SoftDeleteAtColumn {
 				hasDeletedAt = true
 				if col.TypeName != "timestamp" {
 					t.Errorf("Expected type 'timestamp', got '%s'", col.TypeName)
 				}
 				if !col.Nullable {
-					t.Error("deleted_at should be nullable")
+					t.Error("soft_deleted_at should be nullable")
 				}
 			}
 			if col.Name == "deleted_at_tz" {
@@ -144,7 +144,7 @@ func TestPostgreSQLSchemaTimestamp(t *testing.T) {
 			}
 		}
 		if !hasDeletedAt {
-			t.Error("deleted_at column should exist")
+			t.Error("soft_deleted_at column should exist")
 		}
 		if !hasDeletedAtTz {
 			t.Error("deleted_at_tz column should exist")
@@ -180,7 +180,7 @@ func TestPostgreSQLSchemaTimestamp(t *testing.T) {
 		if db.Schema().HasColumn(tableName, "updated_at") {
 			t.Error("updated_at should not exist after drop")
 		}
-		if db.Schema().HasColumn(tableName, "deleted_at") {
+		if db.Schema().HasColumn(tableName, constants.SoftDeleteAtColumn) {
 			t.Error("deleted_at should not exist after drop")
 		}
 
@@ -226,7 +226,7 @@ func TestPostgreSQLSchemaTimestamp(t *testing.T) {
 		err := db.Schema().Create(tableName, func(table schema.Blueprint) {
 			table.ID()
 			table.Timestamps(3)
-			table.Timestamp("deleted_at", 3).Nullable()
+			table.Timestamp(constants.SoftDeleteAtColumn, 3).Nullable()
 		})
 		if err != nil {
 			t.Fatalf("Failed to create table: %v", err)
@@ -238,7 +238,7 @@ func TestPostgreSQLSchemaTimestamp(t *testing.T) {
 		}
 
 		for _, col := range columns {
-			if col.Name == "created_at" || col.Name == "updated_at" || col.Name == "deleted_at" {
+			if col.Name == "created_at" || col.Name == "updated_at" || col.Name == constants.SoftDeleteAtColumn {
 				if col.TypeName != "timestamp" {
 					t.Errorf("Expected type 'timestamp', got '%s'", col.TypeName)
 				}
