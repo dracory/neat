@@ -25,9 +25,18 @@ const (
 	EventForceDeleting EventType = "force_deleting"
 	EventForceDeleted  EventType = "force_deleted"
 
-	// Restore events
-	EventRestoring EventType = "restoring"
-	EventRestored  EventType = "restored"
+	// Soft-delete restore events
+	EventSoftDeleteRestoring EventType = "restoring"
+	EventSoftDeleteRestored  EventType = "restored"
+
+	// EventRestoring is the event type for restoring a soft-deleted model.
+	//
+	// Deprecated: Use EventSoftDeleteRestoring instead.
+	EventRestoring EventType = EventSoftDeleteRestoring
+	// EventRestored is the event type for a soft-deleted model that has been restored.
+	//
+	// Deprecated: Use EventSoftDeleteRestored instead.
+	EventRestored EventType = EventSoftDeleteRestored
 
 	// Retrieve events
 	EventRetrieved EventType = "retrieved"

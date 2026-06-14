@@ -48,7 +48,7 @@ func TestSoftDeletesRestore(t *testing.T) {
 	}
 
 	// Then restore
-	sd.Restore()
+	sd.RestoreSoftDeleted()
 	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false after Restore")
 	}
@@ -176,7 +176,7 @@ func TestSoftDeletedAtRestore(t *testing.T) {
 		t.Error("Expected IsDeleted to return true after SoftDelete")
 	}
 
-	sd.Restore()
+	sd.RestoreSoftDeleted()
 	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false after Restore")
 	}

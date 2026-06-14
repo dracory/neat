@@ -156,8 +156,8 @@ func (q *Query) Omit(columns ...string) contractsorm.Query {
 	return newQ
 }
 
-// Restore restores a soft-deleted record.
-func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
+// RestoreSoftDeleted restores a soft-deleted record.
+func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
 		attributes := observer.ExtractModelAttributes(model[0])
@@ -245,6 +245,13 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	return &contractsorm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
+}
+
+// Restore restores a soft-deleted record.
+//
+// Deprecated: Use RestoreSoftDeleted() instead.
+func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
+	return q.RestoreSoftDeleted(model...)
 }
 
 // ForceDelete permanently deletes a record (bypasses soft delete).

@@ -151,7 +151,7 @@ func TestSoftDeletedAtRestoreExecution(t *testing.T) {
 	}
 
 	// Restore
-	res, err := w.Q.WithTrashed().Where("name = ?", "bob").Restore()
+	res, err := w.Q.WithTrashed().Where("name = ?", "bob").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Restore: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestSoftDeletedAtMethods(t *testing.T) {
 		t.Error("expected GetDeletedAt() to be non-nil after SoftDelete()")
 	}
 
-	sd.Restore()
+	sd.RestoreSoftDeleted()
 	if sd.IsSoftDeleted() {
 		t.Error("expected IsDeleted() to be false after Restore()")
 	}

@@ -518,12 +518,16 @@ type Query interface {
 	// Example:
 	//   query.Raw("SELECT * FROM users WHERE status = ?", "active")
 	Raw(sql string, values ...any) Query
-	// Restore restores a soft deleted model.
-	// Sets the deleted_at timestamp to NULL for the specified model(s).
+	// RestoreSoftDeleted restores a soft-deleted model.
+	// Sets the soft-delete timestamp column to NULL for the specified model(s).
 	// Returns the number of rows affected and any error.
 	//
 	// Example:
-	//   result, err := query.Where("id = ?", 1).Restore()
+	//   result, err := query.Where("id = ?", 1).RestoreSoftDeleted()
+	RestoreSoftDeleted(model ...any) (*Result, error)
+	// Restore restores a soft-deleted model.
+	//
+	// Deprecated: Use RestoreSoftDeleted() instead.
 	Restore(model ...any) (*Result, error)
 	// Rollback rolls back the current transaction.
 	// All changes made in the transaction are discarded.

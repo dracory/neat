@@ -183,7 +183,7 @@ func TestRestoreExecution(t *testing.T) {
 	}
 
 	// Restore the record with WithTrashed and where condition
-	res, err = w.Q.WithTrashed().Where("name = ?", "user1").Restore()
+	res, err = w.Q.WithTrashed().Where("name = ?", "user1").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user1: %v", err)
 	}
