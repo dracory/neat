@@ -29,6 +29,13 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 go get github.com/dracory/neat
 ```
 
+## Documentation
+
+- **[HTML Documentation](https://html-preview.github.io/?url=https://github.com/dracory/neat/blob/main/docs/index.html)** - Browse documentation in your browser
+- **[Examples](./examples)** - Practical examples for various features
+- **[API Reference](./docs/api-reference.md)** - Complete API documentation
+```
+
 ## Quick Start
 
 ```go
