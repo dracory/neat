@@ -3,6 +3,7 @@ package migration
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dracory/neat/contracts/config"
@@ -20,6 +21,13 @@ type Repository struct {
 // NewRepository creates a new Repository instance.
 func NewRepository(config config.Config, orm contractsorm.Orm) *Repository {
 	table := config.GetString("database.migrations.table", "migrations")
+
+	// Validate table name to prevent SQL injection
+	// Security: Ensure table name is a simple identifier without SQL injection vectors
+	if !isValidMigrationTableName(table) {
+		panic(fmt.Sprintf("invalid migration table name: '%s' - must contain only letters, numbers, and underscores, and cannot be an SQL keyword", table))
+	}
+
 	return &Repository{
 		config: config,
 		orm:    orm,
@@ -228,4 +236,61 @@ func (r *Repository) RepositoryExists() bool {
 	countSQL := "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?"
 	err = databaseConn.QueryRow(countSQL, r.table).Scan(&count)
 	return err == nil && count > 0
+}
+
+// isValidMigrationTableName validates that a table name is safe to use in SQL queries.
+// It checks for:
+// - Only alphanumeric characters and underscores
+// - Does not start with a number
+// - Not empty
+// - Not an SQL keyword
+// This prevents SQL injection attacks through malicious table names.
+func isValidMigrationTableName(tableName string) bool {
+	if tableName == "" {
+		return false
+	}
+
+	// Must start with a letter or underscore (not a number)
+	first := tableName[0]
+	if !((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || first == '_') {
+		return false
+	}
+
+	// Must contain only alphanumeric characters and underscores
+	for _, char := range tableName {
+		isLetter := (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')
+		isDigit := char >= '0' && char <= '9'
+		isUnderscore := char == '_'
+		if !isLetter && !isDigit && !isUnderscore {
+			return false
+		}
+	}
+
+	// Reject SQL keywords to prevent injection attempts
+	upperTableName := strings.ToUpper(tableName)
+	sqlKeywords := []string{
+		"SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "CREATE",
+		"ALTER", "TRUNCATE", "REPLACE", "MERGE", "UNION", "EXCEPT",
+		"INTERSECT", "WHERE", "FROM", "JOIN", "INNER", "OUTER",
+		"LEFT", "RIGHT", "FULL", "CROSS", "ON", "USING", "AND",
+		"OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS",
+		"NULL", "TRUE", "FALSE", "CASE", "WHEN", "THEN", "ELSE",
+		"END", "GROUP", "HAVING", "ORDER", "BY", "LIMIT", "OFFSET",
+		"DISTINCT", "ALL", "AS", "TABLE", "VIEW", "INDEX", "TRIGGER",
+		"PROCEDURE", "FUNCTION", "DATABASE", "SCHEMA", "GRANT", "REVOKE",
+		"EXEC", "EXECUTE",
+	}
+
+	for _, keyword := range sqlKeywords {
+		if upperTableName == keyword {
+			return false
+		}
+	}
+
+	// Reasonable length limit (most databases support 64 chars, we allow up to 128)
+	if len(tableName) > 128 {
+		return false
+	}
+
+	return true
 }
