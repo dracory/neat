@@ -212,9 +212,11 @@ func (s *DeletedAtMaxDate) DeletedAtColumn() string { return s.SoftDeletedAtColu
 ```
 
 > **Note**: `GetSoftDeletedAt()` returns `time.Time` (not `*time.Time`) because
-> the field is always set — the zero value `0001-01-01` would incorrectly
-> report `IsSoftDeleted() == true`, so new records must be initialized with
-> `MaxSoftDeletedAt`. See [Open Questions](#open-questions).
+> the field is always set. The zero value `0001-01-01` would incorrectly report
+> `IsSoftDeleted() == true`, so the ORM automatically sets the field to
+> `MaxSoftDeletedAt` before executing INSERT on any model that implements
+> `SoftDeleteStrategy`. A database-level `DEFAULT` is still recommended as a
+> safety net for rows inserted outside the ORM.
 
 ### 2. Extend `SoftDeleteColumnNamer` with a restore-value method — OR — add `SoftDeleteStrategy`
 
@@ -549,18 +551,21 @@ if user.IsSoftDeleted() {
    - `WithSoftDeleted`, `OnlySoftDeleted`, `WithoutSoftDeleted` WHERE filters
      for both embeds
    - `buildWheresWithSoftDeleteIndex` placeholder index correctness with bind arg
-9. Decide new-record initialization (database DEFAULT vs. BeforeCreate hook)
+9. Auto-initialize new records: during `Insert`, if the model implements
+   `SoftDeleteStrategy`, set the soft delete field to `RestoreValue()` before
+   executing the INSERT (so in-memory state is correct without a re-fetch)
 10. Update `docs/soft-deletes.md` to document the max-date strategy
 
 ---
 
 ## Open Questions
 
-1. **New record initialization** — should the ORM automatically set
-   `SoftDeletedAt = MaxSoftDeletedAt` during `Insert` when the model embeds
-   `SoftDeletesMaxDate`? Or is a database-level `DEFAULT` sufficient?
-   A missing default causes the zero `time.Time` (year 0001) to be stored,
-   which `IsSoftDeleted()` would immediately treat as deleted.
+1. **New record initialization** — **Resolved: the ORM should automatically set
+   `SoftDeletedAt = MaxSoftDeletedAt` during `Insert`** when the model implements
+   `SoftDeleteStrategy`. A database-level `DEFAULT` alone is insufficient — it
+   does not populate the in-memory struct after insert, leaving `IsSoftDeleted()`
+   in an incorrect state until the record is re-fetched. The ORM will detect the
+   interface and set the sentinel before executing the INSERT.
 
 2. **Placeholder index in `buildWheresWithSoftDeleteIndex`** — the max-date
    conditions (`soft_deleted_at > ?`) add a bind parameter. The index-tracking
