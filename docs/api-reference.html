@@ -76,50 +76,254 @@ type PoolConfig struct {
 
     <h2>Query Builder</h2>
 
-    <h3>Selection</h3>
+    <h3>Selection Methods</h3>
 
     <ul class="method-list">
-        <li><code>Get(dest any) error</code> - Execute query and populate dest</li>
-        <li><code>First(dest any) error</code> - Get first matching record</li>
-        <li><code>Find(dest any, id any) error</code> - Find record by ID</li>
-        <li><code>Select(columns ...string) Query</code> - Select specific columns</li>
+        <li><code>Select(query any, args ...any) Query</code> - Select specific columns (supports subqueries, raw expressions)</li>
+        <li><code>Distinct(args ...any) Query</code> - Return distinct rows</li>
+        <li><code>Pluck(column string, dest any) error</code> - Retrieve single column values</li>
+        <li><code>Value(column string, dest any) error</code> - Retrieve single value from first row</li>
+    </ul>
+
+    <h3>Retrieval Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Get(dest any) error</code> - Retrieve all rows</li>
+        <li><code>All(dest any) error</code> - Alias for Get (Django-style)</li>
+        <li><code>FindAll(dest any) error</code> - Alias for All (Sequelize-style)</li>
+        <li><code>First(dest any) error</code> - Retrieve first row</li>
+        <li><code>FindOne(dest any) error</code> - Alias for First (Sequelize-style)</li>
+        <li><code>Find(dest any, conds ...any) error</code> - Retrieve rows with optional conditions</li>
+        <li><code>FirstOrFail(dest any) error</code> - First or error</li>
+        <li><code>FindOrFail(dest any, conds ...any) error</code> - Find or error</li>
+        <li><code>FirstOr(dest any, callback func() error) error</code> - First or execute callback</li>
+        <li><code>FirstOrCreate(dest any, conds ...any) error</code> - First or create</li>
+        <li><code>FirstOrNew(dest any, attributes any, values ...any) error</code> - First or new instance</li>
+        <li><code>Scan(dest any) error</code> - Scan raw query results</li>
     </ul>
 
     <h3>Where Clauses</h3>
 
     <ul class="method-list">
-        <li><code>Where(column string, value ...any) Query</code> - Add WHERE clause</li>
-        <li><code>OrWhere(column string, value ...any) Query</code> - Add OR WHERE clause</li>
-        <li><code>WhereIn(column string, values []any) Query</code> - Add WHERE IN clause</li>
-        <li><code>WhereBetween(column string, min, max any) Query</code> - Add WHERE BETWEEN clause</li>
-        <li><code>WhereNull(column string) Query</code> - Add WHERE NULL clause</li>
+        <li><code>Where(query any, args ...any) Query</code> - Add WHERE clause (Laravel-style)</li>
+        <li><code>Filter(query any, args ...any) Query</code> - Alias for Where (Django-style)</li>
+        <li><code>OrWhere(query any, args ...any) Query</code> - Add OR WHERE clause</li>
+        <li><code>WhereIn(column string, values []any) Query</code> - WHERE column IN (...)</li>
+        <li><code>WhereNotIn(column string, values []any) Query</code> - WHERE column NOT IN (...)</li>
+        <li><code>OrWhereIn(column string, values []any) Query</code> - OR WHERE column IN (...)</li>
+        <li><code>OrWhereNotIn(column string, values []any) Query</code> - OR WHERE column NOT IN (...)</li>
+        <li><code>WhereBetween(column string, x, y any) Query</code> - WHERE column BETWEEN x AND y</li>
+        <li><code>WhereNotBetween(column string, x, y any) Query</code> - WHERE column NOT BETWEEN x AND y</li>
+        <li><code>OrWhereBetween(column string, x, y any) Query</code> - OR WHERE column BETWEEN x AND y</li>
+        <li><code>OrWhereNotBetween(column string, x, y any) Query</code> - OR WHERE column NOT BETWEEN x AND y</li>
+        <li><code>WhereNull(column string) Query</code> - WHERE column IS NULL</li>
+        <li><code>WhereNotNull(column string) Query</code> - WHERE column IS NOT NULL</li>
+        <li><code>OrWhereNull(column string) Query</code> - OR WHERE column IS NULL</li>
+        <li><code>WhereColumn(first, operator, second string) Query</code> - WHERE column1 operator column2</li>
+        <li><code>OrWhereColumn(first, operator, second string) Query</code> - OR WHERE column1 operator column2</li>
+        <li><code>WhereExists(callback func(orm.Query) orm.Query) Query</code> - WHERE EXISTS (subquery)</li>
+        <li><code>WhereNot(query any, args ...any) Query</code> - WHERE NOT (condition)</li>
+        <li><code>Exclude(query any, args ...any) Query</code> - Alias for WhereNot (Django-style)</li>
+        <li><code>OrWhereNot(query any, args ...any) Query</code> - OR WHERE NOT (condition)</li>
+        <li><code>WhereAny(columns []string, operator string, value any) Query</code> - WHERE (col1 op ? OR col2 op ? OR ...)</li>
+        <li><code>WhereAll(columns []string, operator string, value any) Query</code> - WHERE (col1 op ? AND col2 op ? AND ...)</li>
+        <li><code>WhereNone(columns []string, operator string, value any) Query</code> - WHERE NOT (col1 op ? OR col2 op ? OR ...)</li>
+    </ul>
+
+    <h3>JSON Where Methods</h3>
+
+    <ul class="method-list">
+        <li><code>WhereJsonContains(column string, value any) Query</code> - WHERE JSON column contains value</li>
+        <li><code>OrWhereJsonContains(column string, value any) Query</code> - OR WHERE JSON column contains value</li>
+        <li><code>WhereJsonDoesntContain(column string, value any) Query</code> - WHERE JSON column doesn't contain value</li>
+        <li><code>OrWhereJsonDoesntContain(column string, value any) Query</code> - OR WHERE JSON column doesn't contain value</li>
+        <li><code>WhereJsonContainsKey(column string) Query</code> - WHERE JSON column contains key</li>
+        <li><code>OrWhereJsonContainsKey(column string) Query</code> - OR WHERE JSON column contains key</li>
+        <li><code>WhereJsonDoesntContainKey(column string) Query</code> - WHERE JSON column doesn't contain key</li>
+        <li><code>OrWhereJsonDoesntContainKey(column string) Query</code> - OR WHERE JSON column doesn't contain key</li>
+        <li><code>WhereJsonLength(column string, operator string, value any) Query</code> - WHERE JSON column length operator value</li>
     </ul>
 
     <h3>Ordering and Limiting</h3>
 
     <ul class="method-list">
-        <li><code>OrderBy(column string, direction string) Query</code> - Add ORDER BY clause</li>
+        <li><code>Order(value any) Query</code> - Add ORDER BY clause (supports DESC/ASC suffix)</li>
+        <li><code>OrderBy(column string, direction ...string) Query</code> - ORDER BY column [ASC|DESC]</li>
+        <li><code>OrderByDesc(column string) Query</code> - ORDER BY column DESC</li>
+        <li><code>InRandomOrder() Query</code> - ORDER BY RAND() or RANDOM()</li>
         <li><code>Limit(limit int) Query</code> - Set result limit</li>
         <li><code>Offset(offset int) Query</code> - Set result offset</li>
     </ul>
 
-    <h3>Aggregations</h3>
+    <h3>Join Methods</h3>
 
     <ul class="method-list">
-        <li><code>Count() (int64, error)</code> - Count matching records</li>
-        <li><code>Sum(column string) (float64, error)</code> - Sum column values</li>
-        <li><code>Avg(column string) (float64, error)</code> - Average column values</li>
-        <li><code>Min(column string) (float64, error)</code> - Minimum column value</li>
-        <li><code>Max(column string) (float64, error)</code> - Maximum column value</li>
+        <li><code>Join(query string, args ...any) Query</code> - INNER JOIN</li>
+        <li><code>LeftJoin(query string, args ...any) Query</code> - LEFT JOIN</li>
+        <li><code>RightJoin(query string, args ...any) Query</code> - RIGHT JOIN</li>
+        <li><code>CrossJoin(query string, args ...any) Query</code> - CROSS JOIN</li>
     </ul>
 
-    <h3>CRUD Operations</h3>
+    <h3>Grouping and Aggregation</h3>
+
+    <ul class="method-list">
+        <li><code>Group(name string) Query</code> - GROUP BY clause</li>
+        <li><code>Having(query any, args ...any) Query</code> - HAVING clause</li>
+        <li><code>Count(count *int64) error</code> - COUNT(*) aggregate</li>
+        <li><code>Sum(column string, dest any) error</code> - SUM(column) aggregate</li>
+        <li><code>Avg(column string, dest any) error</code> - AVG(column) aggregate</li>
+        <li><code>Min(column string, dest any) error</code> - MIN(column) aggregate</li>
+        <li><code>Max(column string, dest any) error</code> - MAX(column) aggregate</li>
+        <li><code>Exists(exists *bool) error</code> - EXISTS check</li>
+    </ul>
+
+    <h3>Create/Insert Methods</h3>
 
     <ul class="method-list">
         <li><code>Create(value any) error</code> - Insert new record</li>
-        <li><code>Update(column string, value any) error</code> - Update records</li>
-        <li><code>UpdateMany(updates map[string]any) error</code> - Update multiple columns</li>
-        <li><code>Delete() (sql.Result, error)</code> - Delete records</li>
+        <li><code>InsertGetId(values any) (int64, error)</code> - Insert and return ID</li>
+        <li><code>UpdateOrInsert(attributes any, values any) error</code> - Update or insert</li>
+    </ul>
+
+    <h3>Update Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Update(column any, value ...any) error</code> - Update records (supports map or column/value)</li>
+        <li><code>UpdateOrCreate(dest any, attributes any, values any) error</code> - Update or create</li>
+        <li><code>Increment(column string, amount ...any) error</code> - Increment column value</li>
+        <li><code>Decrement(column string, amount ...any) error</code> - Decrement column value</li>
+    </ul>
+
+    <h3>Delete Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Delete(value ...any) (sql.Result, error)</code> - Soft delete records (if enabled)</li>
+        <li><code>Destroy(value ...any) (sql.Result, error)</code> - Alias for Delete (Sequelize-style)</li>
+        <li><code>ForceDelete(value ...any) (sql.Result, error)</code> - Permanently delete records</li>
+    </ul>
+
+    <h3>Soft Delete Operations</h3>
+
+    <ul class="method-list">
+        <li><code>WithSoftDeleted() Query</code> - Include soft-deleted records</li>
+        <li><code>WithTrashed() Query</code> - Deprecated alias for WithSoftDeleted</li>
+        <li><code>OnlySoftDeleted() Query</code> - Query only soft-deleted records</li>
+        <li><code>OnlyTrashed() Query</code> - Deprecated alias for OnlySoftDeleted</li>
+        <li><code>WithoutSoftDeleted() Query</code> - Exclude soft-deleted records (default)</li>
+        <li><code>WithoutTrashed() Query</code> - Deprecated alias for WithoutSoftDeleted</li>
+        <li><code>RestoreSoftDeleted(model ...any) (sql.Result, error)</code> - Restore soft-deleted records</li>
+        <li><code>Restore(model ...any) (sql.Result, error)</code> - Deprecated alias for RestoreSoftDeleted</li>
+    </ul>
+
+    <h3>Relationship Methods</h3>
+
+    <ul class="method-list">
+        <li><code>With(query string, args ...any) Query</code> - Eager load relationships</li>
+        <li><code>Without(relations ...string) Query</code> - Exclude relationships from loading</li>
+        <li><code>Load(dest any, relation string, args ...any) error</code> - Load relationship for model</li>
+        <li><code>LoadMissing(dest any, relation string, args ...any) error</code> - Load missing relationships</li>
+        <li><code>WithCount(relation string, args ...any) Query</code> - Eager load relationship count</li>
+        <li><code>WithExists(relation string, args ...any) Query</code> - Filter by relationship existence</li>
+        <li><code>Association(assocName string) Association</code> - Get association instance</li>
+    </ul>
+
+    <h3>Chunking and Cursor</h3>
+
+    <ul class="method-list">
+        <li><code>Chunk(size int, callback any) error</code> - Process records in chunks</li>
+        <li><code>Cursor() (Cursor, error)</code> - Return cursor for efficient iteration</li>
+    </ul>
+
+    <h3>Transaction Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Transaction(txFunc func(tx Query) error, opts ...*sql.TxOptions) error</code> - Execute within transaction</li>
+        <li><code>Begin(opts ...*sql.TxOptions) (Query, error)</code> - Begin transaction</li>
+        <li><code>Commit() error</code> - Commit transaction</li>
+        <li><code>Rollback() error</code> - Rollback transaction</li>
+        <li><code>RollbackTo(level string) error</code> - Rollback to savepoint</li>
+        <li><code>SavePoint(name string) error</code> - Create savepoint</li>
+        <li><code>BeforeCommit(callback func() error) Query</code> - Register pre-commit callback</li>
+        <li><code>AfterCommit(callback func() error) Query</code> - Register post-commit callback</li>
+        <li><code>BeforeRollback(callback func() error) Query</code> - Register pre-rollback callback</li>
+        <li><code>AfterRollback(callback func() error) Query</code> - Register post-rollback callback</li>
+        <li><code>InTransaction() bool</code> - Check if in transaction</li>
+    </ul>
+
+    <h3>Advanced Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Raw(sql string, values ...any) Query</code> - Set raw SQL</li>
+        <li><code>Exec(sql string, values ...any) (sql.Result, error)</code> - Execute raw SQL</li>
+        <li><code>Omit(columns ...string) Query</code> - Omit columns from INSERT/UPDATE</li>
+        <li><code>LockForUpdate() Query</code> - FOR UPDATE lock</li>
+        <li><code>SharedLock() Query</code> - Shared lock</li>
+        <li><code>Scopes(funcs ...func(Query) Query) Query</code> - Apply query scopes</li>
+    </ul>
+
+    <h3>Configuration Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Table(name string, args ...any) Query</code> - Specify table name</li>
+        <li><code>Model(value any) Query</code> - Set model for query</li>
+        <li><code>Connection(name string) Query</code> - Set connection name</li>
+        <li><code>WithContext(ctx context.Context) Query</code> - Set context</li>
+        <li><code>Clone() Query</code> - Clone query</li>
+        <li><code>DB() *sql.DB</code> - Get database connection</li>
+        <li><code>ReadDB() *sql.DB</code> - Get read database connection</li>
+        <li><code>Driver() Driver</code> - Get database driver</li>
+        <li><code>Observe(model any, observer Observer) Query</code> - Register observer</li>
+        <li><code>WithoutEvents() Query</code> - Disable events</li>
+    </ul>
+
+    <h3>Query Logging and Debugging</h3>
+
+    <ul class="method-list">
+        <li><code>EnableDebug() Query</code> - Enable debug mode</li>
+        <li><code>DisableDebug() Query</code> - Disable debug mode</li>
+        <li><code>IsDebug() bool</code> - Check if debug mode enabled</li>
+        <li><code>EnableQueryLog() Query</code> - Enable query logging</li>
+        <li><code>DisableQueryLog() Query</code> - Disable query logging</li>
+        <li><code>FlushQueryLog() Query</code> - Clear query log</li>
+        <li><code>GetQueryLog() []QueryLogEntry</code> - Retrieve query log</li>
+    </ul>
+
+    <h3>SQL Generation</h3>
+
+    <ul class="method-list">
+        <li><code>ToSql() ToSql</code> - Return ToSql interface for SQL generation</li>
+        <li><code>ToRawSql() ToRawSql</code> - Return raw SQL interface</li>
+    </ul>
+
+    <h2>Soft Delete Embeds</h2>
+
+    <p>Neat provides multiple soft delete embeds in the <code>github.com/dracory/neat/database/soft_delete</code> package. For detailed usage examples and strategy comparisons, see the <a href="soft-deletes.html">Soft Deletes documentation</a>.</p>
+
+    <h3>NULL-Based Strategy</h3>
+
+    <ul class="method-list">
+        <li><code>SoftDeletes</code> - Uses <code>soft_deleted_at</code> column (NULL = active)</li>
+        <li><code>SoftDeletedAt</code> - Uses <code>soft_deleted_at</code> column (explicit naming)</li>
+        <li><code>DeletedAt</code> - Uses <code>deleted_at</code> column (Laravel-compatible)</li>
+    </ul>
+
+    <h3>Max-Date Sentinel Strategy</h3>
+
+    <ul class="method-list">
+        <li><code>SoftDeletesMaxDate</code> - Uses <code>soft_deleted_at</code> with NOT NULL support</li>
+        <li><code>DeletedAtMaxDate</code> - Uses <code>deleted_at</code> with NOT NULL support</li>
+    </ul>
+
+    <h3>Model Methods</h3>
+
+    <p>When using soft delete embeds, models gain these methods:</p>
+
+    <ul class="method-list">
+        <li><code>IsSoftDeleted() bool</code> - Check if record is soft deleted</li>
+        <li><code>SoftDelete()</code> - Mark record as soft deleted (in-memory)</li>
+        <li><code>RestoreSoftDeleted()</code> - Mark record as not soft deleted (in-memory)</li>
+        <li><code>SoftDeletedAtColumn() string</code> - Get the soft delete column name</li>
+        <li><code>GetSoftDeletedAt() *time.Time</code> - Get the soft delete timestamp</li>
     </ul>
 
     <h2>Schema Builder</h2>
@@ -136,36 +340,292 @@ type PoolConfig struct {
         <li><code>HasColumn(table, column string) bool</code> - Check if column exists</li>
     </ul>
 
-    <h3>Blueprint Column Methods</h3>
+    <h3>Integer Column Types</h3>
 
     <ul class="method-list">
-        <li><code>ID()</code> - Add auto-incrementing ID column</li>
-        <li><code>Integer(name string)</code> - Add INTEGER column</li>
-        <li><code>BigInteger(name string)</code> - Add BIGINT column</li>
-        <li><code>String(name string, length ...int)</code> - Add VARCHAR column</li>
-        <li><code>Text(name string)</code> - Add TEXT column</li>
-        <li><code>DateTime(name string)</code> - Add DATETIME column</li>
-        <li><code>Timestamp(name string)</code> - Add TIMESTAMP column</li>
-        <li><code>Boolean(name string)</code> - Add BOOLEAN column</li>
-        <li><code>Decimal(name string, precision, scale int)</code> - Add DECIMAL column</li>
-        <li><code>JSON(name string)</code> - Add JSON column</li>
+        <li><code>Increments(column string)</code> - Auto-incrementing 4-byte integer</li>
+        <li><code>IntegerIncrements(column string)</code> - Alias for Increments</li>
+        <li><code>Integer(column string)</code> - 4-byte integer</li>
+        <li><code>BigIncrements(column string)</code> - Auto-incrementing 8-byte integer</li>
+        <li><code>BigInteger(column string)</code> - 8-byte integer</li>
+        <li><code>MediumIncrements(column string)</code> - Auto-incrementing 3-byte integer</li>
+        <li><code>MediumInteger(column string)</code> - 3-byte integer</li>
+        <li><code>SmallIncrements(column string)</code> - Auto-incrementing 2-byte integer</li>
+        <li><code>SmallInteger(column string)</code> - 2-byte integer</li>
+        <li><code>TinyIncrements(column string)</code> - Auto-incrementing 1-byte integer</li>
+        <li><code>TinyInteger(column string)</code> - 1-byte integer</li>
+        <li><code>UnsignedInteger(column string)</code> - Unsigned 4-byte integer</li>
+        <li><code>UnsignedBigInteger(column string)</code> - Unsigned 8-byte integer</li>
+        <li><code>UnsignedMediumInteger(column string)</code> - Unsigned 3-byte integer</li>
+        <li><code>UnsignedSmallInteger(column string)</code> - Unsigned 2-byte integer</li>
+        <li><code>UnsignedTinyInteger(column string)</code> - Unsigned 1-byte integer</li>
     </ul>
 
-    <h3>Blueprint Modifiers</h3>
+    <h3>String Column Types</h3>
 
     <ul class="method-list">
+        <li><code>String(column string, length ...int)</code> - VARCHAR column</li>
+        <li><code>Char(column string, length ...int)</code> - CHAR column</li>
+        <li><code>Text(column string)</code> - TEXT column</li>
+        <li><code>TinyText(column string)</code> - TINYTEXT column</li>
+        <li><code>MediumText(column string)</code> - MEDIUMTEXT column</li>
+        <li><code>LongText(column string)</code> - LONGTEXT column</li>
+    </ul>
+
+    <h3>Numeric Column Types</h3>
+
+    <ul class="method-list">
+        <li><code>Float(column string, precision ...int)</code> - FLOAT column</li>
+        <li><code>Double(column string)</code> - DOUBLE column</li>
+        <li><code>Decimal(column string)</code> - DECIMAL column</li>
+    </ul>
+
+    <h3>Date/Time Column Types</h3>
+
+    <ul class="method-list">
+        <li><code>Date(column string)</code> - DATE column</li>
+        <li><code>DateTime(column string, precision ...int)</code> - DATETIME column</li>
+        <li><code>DateTimeTz(column string, precision ...int)</code> - DATETIME with timezone</li>
+        <li><code>Time(column string, precision ...int)</code> - TIME column</li>
+        <li><code>TimeTz(column string, precision ...int)</code> - TIME with timezone</li>
+        <li><code>Timestamp(column string, precision ...int)</code> - TIMESTAMP column</li>
+        <li><code>TimestampTz(column string, precision ...int)</code> - TIMESTAMP with timezone</li>
+        <li><code>Timestamps(precision ...int)</code> - created_at and updated_at columns</li>
+        <li><code>TimestampsTz(precision ...int)</code> - Timestamps with timezone</li>
+    </ul>
+
+    <h3>Special Column Types</h3>
+
+    <ul class="method-list">
+        <li><code>Boolean(column string)</code> - BOOLEAN column</li>
+        <li><code>Enum(column string, allowed []any)</code> - ENUM column</li>
+        <li><code>Json(column string)</code> - JSON column</li>
+        <li><code>Jsonb(column string)</code> - JSONB column (PostgreSQL)</li>
+        <li><code>Geometry(column string)</code> - GEOMETRY column</li>
+        <li><code>GeometryCollection(column string)</code> - GEOMETRYCOLLECTION column</li>
+        <li><code>Point(column string)</code> - POINT column</li>
+        <li><code>LineString(column string)</code> - LINESTRING column</li>
+        <li><code>Polygon(column string)</code> - POLYGON column</li>
+        <li><code>MultiPoint(column string)</code> - MULTIPOINT column</li>
+        <li><code>MultiLineString(column string)</code> - MULTILINESTRING column</li>
+        <li><code>MultiPolygon(column string)</code> - MULTIPOLYGON column</li>
+    </ul>
+
+    <h3>ID Columns</h3>
+
+    <ul class="method-list">
+        <li><code>ID(column ...string)</code> - Auto-incrementing big integer primary key (default "id")</li>
+        <li><code>ShortID(column ...string)</code> - String primary key</li>
+    </ul>
+
+    <h3>Soft Delete Columns</h3>
+
+    <ul class="method-list">
+        <li><code>SoftDeletes(column ...string)</code> - Soft delete column (default "soft_deleted_at")</li>
+        <li><code>SoftDeletesTz(column ...string)</code> - Soft delete with timezone</li>
+    </ul>
+
+    <h3>Custom Column Types</h3>
+
+    <ul class="method-list">
+        <li><code>Column(column string, ttype string)</code> - Custom column type</li>
+    </ul>
+
+    <h3>Column Modifiers</h3>
+
+    <ul class="method-list">
+        <li><code>After(column string)</code> - Place column after another column</li>
+        <li><code>AutoIncrement()</code> - Auto-increment flag</li>
+        <li><code>Change()</code> - Mark column for modification</li>
+        <li><code>Collation(collation string)</code> - Set collation</li>
+        <li><code>Comment(comment string)</code> - Add column comment</li>
+        <li><code>Default(def any)</code> - Set default value</li>
+        <li><code>First()</code> - Place column first</li>
         <li><code>Nullable()</code> - Allow NULL values</li>
-        <li><code>Unique()</code> - Add unique constraint</li>
-        <li><code>Default(value any)</code> - Set default value</li>
-        <li><code>Index()</code> - Add index</li>
-        <li><code>Primary()</code> - Set as primary key</li>
+        <li><code>OnUpdate(value any)</code> - ON UPDATE value</li>
+        <li><code>Srid(srid int)</code> - Set SRID for geometry columns</li>
+        <li><code>Places(places int)</code> - Decimal places</li>
+        <li><code>Total(total int)</code> - Total digits for decimal</li>
+        <li><code>Unsigned()</code> - Unsigned flag</li>
+        <li><code>UseCurrent()</code> - Use current timestamp</li>
+        <li><code>UseCurrentOnUpdate()</code> - Use current timestamp on update</li>
     </ul>
 
-    <h3>Blueprint Helper Methods</h3>
+    <h3>Index Methods</h3>
 
     <ul class="method-list">
-        <li><code>Timestamps()</code> - Add created_at and updated_at timestamps</li>
-        <li><code>SoftDeletes()</code> - Add deleted_at timestamp for soft deletes</li>
+        <li><code>Primary(column ...string)</code> - Define primary key</li>
+        <li><code>Unique(column ...string)</code> - Define unique index</li>
+        <li><code>Index(column ...string)</code> - Define regular index</li>
+        <li><code>FullText(column ...string)</code> - Define fulltext index</li>
+        <li><code>Foreign(column ...string)</code> - Define foreign key</li>
+    </ul>
+
+    <h3>Drop Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Drop()</code> - Drop table</li>
+        <li><code>DropIfExists()</code> - Drop table if exists</li>
+        <li><code>DropColumn(column ...string)</code> - Drop columns</li>
+        <li><code>DropPrimary(column ...string)</code> - Drop primary key</li>
+        <li><code>DropUnique(column ...string)</code> - Drop unique index</li>
+        <li><code>DropUniqueByName(name string)</code> - Drop unique index by name</li>
+        <li><code>DropIndex(column ...string)</code> - Drop index</li>
+        <li><code>DropIndexByName(name string)</code> - Drop index by name</li>
+        <li><code>DropForeign(column ...string)</code> - Drop foreign key</li>
+        <li><code>DropForeignByName(name string)</code> - Drop foreign key by name</li>
+        <li><code>DropFullText(column ...string)</code> - Drop fulltext index</li>
+        <li><code>DropFullTextByName(name string)</code> - Drop fulltext index by name</li>
+        <li><code>DropSoftDeletes(column ...string)</code> - Drop soft delete column</li>
+        <li><code>DropSoftDeletesTz(column ...string)</code> - Drop soft delete with timezone column</li>
+        <li><code>DropTimestamps()</code> - Drop timestamp columns</li>
+        <li><code>DropTimestampsTz()</code> - Drop timestamp with timezone columns</li>
+    </ul>
+
+    <h3>Modification Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Rename(to string)</code> - Rename table</li>
+        <li><code>RenameColumn(from, to string)</code> - Rename column</li>
+        <li><code>RenameIndex(from, to string)</code> - Rename index</li>
+        <li><code>Create()</code> - Mark table for creation</li>
+        <li><code>Change()</code> - Mark column for modification</li>
+    </ul>
+
+    <h3>Soft Delete Column Setup</h3>
+
+    <p>For NULL-based strategy:</p>
+    <pre><code>blueprint.Timestamp("soft_deleted_at").Nullable()
+// or
+blueprint.Timestamp("deleted_at").Nullable()</code></pre>
+
+    <p>For Max-Date sentinel strategy:</p>
+    <pre><code>blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+// or
+blueprint.Timestamp("deleted_at").Default("9999-12-31 23:59:59")</code></pre>
+
+    <h2>Association Methods</h2>
+
+    <p>Association methods handle model relationships (BelongsTo, HasOne, HasMany, Polymorphic):</p>
+
+    <ul class="method-list">
+        <li><code>Find(out any, conds ...any) error</code> - Find related records</li>
+        <li><code>Append(values ...any) error</code> - Append model to association</li>
+        <li><code>Replace(values ...any) error</code> - Replace association</li>
+        <li><code>Delete(values ...any) error</code> - Delete from association</li>
+        <li><code>Clear() error</code> - Clear association</li>
+        <li><code>Count() (int64, error)</code> - Return association count</li>
+        <li><code>Query() Query</code> - Get association query</li>
+        <li><code>Model() any</code> - Get associated model</li>
+        <li><code>AssociationName() string</code> - Get association name</li>
+    </ul>
+
+    <h2>ORM Methods</h2>
+
+    <p>ORM interface methods for database connection management:</p>
+
+    <ul class="method-list">
+        <li><code>Connection(name string) Orm</code> - Get Orm instance from connection pool</li>
+        <li><code>DB() *sql.DB</code> - Get underlying database connection</li>
+        <li><code>DisableQueryLog() Orm</code> - Disable query logging</li>
+        <li><code>EnableQueryLog() Orm</code> - Enable query logging</li>
+        <li><code>FlushQueryLog() Orm</code> - Clear query log</li>
+        <li><code>GetQueryLog() []QueryLogEntry</code> - Retrieve query log</li>
+        <li><code>EnableDebug() Orm</code> - Enable debug mode</li>
+        <li><code>DisableDebug() Orm</code> - Disable debug mode</li>
+        <li><code>IsDebug() bool</code> - Check if debug mode enabled</li>
+        <li><code>Factory() Factory</code> - Get factory instance</li>
+        <li><code>DatabaseName() string</code> - Get current database name</li>
+        <li><code>Name() string</code> - Get current connection name</li>
+        <li><code>Observe(model any, observer Observer) Orm</code> - Register observer</li>
+        <li><code>Query() Query</code> - Get new query builder instance</li>
+        <li><code>Refresh() Orm</code> - Reset Orm instance</li>
+        <li><code>SetQuery(query Query) Orm</code> - Set query builder instance</li>
+        <li><code>Transaction(txFunc func(tx Query) error, opts ...*sql.TxOptions) error</code> - Execute within transaction</li>
+        <li><code>WithContext(ctx context.Context) Orm</code> - Set context</li>
+    </ul>
+
+    <h2>Model Embeds</h2>
+
+    <p>Common model embeds for standard functionality:</p>
+
+    <h3>Base Model</h3>
+
+    <ul class="method-list">
+        <li><code>Model</code> - Base model with ID and timestamps</li>
+    </ul>
+
+    <h3>ID Types</h3>
+
+    <ul class="method-list">
+        <li><code>ShortID</code> - String primary key</li>
+    </ul>
+
+    <h3>Timestamps</h3>
+
+    <ul class="method-list">
+        <li><code>Timestamps</code> - created_at and updated_at</li>
+        <li><code>CreatedAt</code> - Only created_at timestamp</li>
+        <li><code>UpdatedAt</code> - Only updated_at timestamp</li>
+    </ul>
+
+    <h3>Soft Deletes</h3>
+
+    <ul class="method-list">
+        <li><code>SoftDeletes</code> - Soft delete support (soft_deleted_at)</li>
+        <li><code>DeletedAt</code> - Laravel-compatible soft delete (deleted_at)</li>
+    </ul>
+
+    <h2>Migration Methods</h2>
+
+    <p>Migration methods for database schema management:</p>
+
+    <ul class="method-list">
+        <li><code>Create(name string) error</code> - Create new migration file</li>
+        <li><code>Fresh() error</code> - Drop all tables and re-run migrations</li>
+        <li><code>Reset() error</code> - Roll back all migrations</li>
+        <li><code>Rollback(step, batch int) error</code> - Roll back migrations</li>
+        <li><code>Run() error</code> - Run pending migrations</li>
+        <li><code>Status() error</code> - Get migration status</li>
+    </ul>
+
+    <h2>Key Interfaces</h2>
+
+    <h3>ToSql Interface</h3>
+
+    <p>Interface for SQL generation methods:</p>
+
+    <ul class="method-list">
+        <li><code>Count() string</code> - SQL for count query</li>
+        <li><code>Create(value any) string</code> - SQL for create</li>
+        <li><code>InsertGetId(values any) string</code> - SQL for insert with ID</li>
+        <li><code>Delete(value ...any) string</code> - SQL for delete</li>
+        <li><code>Find(dest any, conds ...any) string</code> - SQL for find</li>
+        <li><code>First(dest any) string</code> - SQL for first</li>
+        <li><code>ForceDelete(value ...any) string</code> - SQL for force delete</li>
+        <li><code>Get(dest any) string</code> - SQL for get</li>
+        <li><code>Pluck(column string, dest any) string</code> - SQL for pluck</li>
+        <li><code>Value(column string, dest any) string</code> - SQL for value</li>
+        <li><code>Save(value any) string</code> - SQL for save</li>
+        <li><code>Avg(column string, dest any) string</code> - SQL for avg</li>
+        <li><code>Max(column string, dest any) string</code> - SQL for max</li>
+        <li><code>Min(column string, dest any) string</code> - SQL for min</li>
+        <li><code>Sum(column string, dest any) string</code> - SQL for sum</li>
+        <li><code>Update(column any, value ...any) string</code> - SQL for update</li>
+        <li><code>Increment(column string, amount ...any) string</code> - SQL for increment</li>
+        <li><code>Decrement(column string, amount ...any) string</code> - SQL for decrement</li>
+    </ul>
+
+    <h3>Result Type</h3>
+
+    <ul class="method-list">
+        <li><code>RowsAffected int64</code> - Number of rows affected by operation</li>
+    </ul>
+
+    <h3>Cursor Interface</h3>
+
+    <ul class="method-list">
+        <li><code>Scan(value any) error</code> - Scan current row</li>
     </ul>
 
     <div class="footer">
