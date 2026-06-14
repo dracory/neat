@@ -59,7 +59,7 @@ func TestPostgreSQLIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt.IsZero() {
+	if foundUser.SoftDeletedAt.IsZero() {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }

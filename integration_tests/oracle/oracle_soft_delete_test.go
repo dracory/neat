@@ -59,7 +59,7 @@ func TestOracleIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt == nil {
+	if foundUser.SoftDeletedAt == nil {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }
@@ -164,7 +164,7 @@ func TestOracleIntegrationForceDelete(t *testing.T) {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
-	if softDeletedUser.DeletedAt == nil {
+	if softDeletedUser.SoftDeletedAt == nil {
 		t.Error("User should be soft deleted")
 	}
 

@@ -154,7 +154,7 @@ func createMySQLTestTables(t *testing.T, db *database.Database) {
 			avatar     VARCHAR(255) NOT NULL DEFAULT '',
 			bio        TEXT,
 			votes      INT NOT NULL DEFAULT 0,
-			deleted_at DATETIME,
+			soft_deleted_at DATETIME,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,

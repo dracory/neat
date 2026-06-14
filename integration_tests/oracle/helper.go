@@ -177,7 +177,7 @@ func createOracleTestTables(t *testing.T, db *database.Database) {
 			AVATAR     VARCHAR2(255) DEFAULT '',
 			BIO        CLOB,
 			VOTES      NUMBER(10) DEFAULT 0,
-			DELETED_AT TIMESTAMP,
+			soft_deleted_at TIMESTAMP,
 			CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,

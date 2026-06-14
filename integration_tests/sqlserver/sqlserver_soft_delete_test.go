@@ -7,8 +7,8 @@ import (
 )
 
 // TestSQLServerIntegrationSoftDelete verifies that deleting a model with a
-// deleted_at column performs a soft delete: the row is hidden from normal
-// queries but visible when WithTrashed() is used, and deleted_at is non-nil.
+// soft_deleted_at column performs a soft delete: the row is hidden from normal
+// queries but visible when WithSoftDeleted() is used, and SoftDeletedAt is non-nil.
 func TestSQLServerIntegrationSoftDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -56,7 +56,7 @@ func TestSQLServerIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt == nil {
+	if foundUser.SoftDeletedAt == nil {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }

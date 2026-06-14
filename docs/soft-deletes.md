@@ -1,111 +1,211 @@
 # Soft Deletes
 
-This document describes the soft delete functionality in Neat ORM.
+Soft deletes mark records as deleted without removing them from the database.
+The row remains in the table and can be restored. Normal queries automatically
+exclude soft-deleted records.
 
 ## What are Soft Deletes?
 
-Soft deletes allow you to mark records as deleted without actually removing them from the database. This is useful for:
-- Data recovery
-- Audit trails
-- Compliance requirements
+Soft deletes are useful for:
+- Data recovery and audit trails
+- Compliance requirements (data retention)
+- Undo / restore workflows
 
-## Adding Soft Delete Capability
+---
 
-Embed the SoftDeletes struct in your model:
+## Choosing an Embed
+
+Neat provides three built-in soft delete embeds. Pick the one that matches your schema:
+
+| Embed | Column | When to use |
+|---|---|---|
+| `soft_delete.SoftDeletes` | `soft_deleted_at` | Default — new projects |
+| `soft_delete.SoftDeletedAt` | `soft_deleted_at` | Explicit naming (mirrors `CreatedAt`/`UpdatedAt`) |
+| `soft_delete.DeletedAt` | `deleted_at` | Laravel-compatible or existing `deleted_at` schemas |
+
+All three embeds are in the `github.com/dracory/neat/database/soft_delete` package.
+Equivalent `sql.NullTime` variants exist in `github.com/dracory/neat/database/orm`.
+
+---
+
+## Setting Up
+
+### 1. Add the embed to your model
 
 ```go
+import "github.com/dracory/neat/database/soft_delete"
+
+// New project — default column soft_deleted_at
 type User struct {
-    neat.SoftDeletes
+    soft_delete.SoftDeletes
     ID   uint
     Name string
 }
+
+// Laravel-compatible — column deleted_at
+type Post struct {
+    soft_delete.DeletedAt
+    ID    uint
+    Title string
+}
 ```
 
-This adds a `deleted_at` timestamp column to your model.
+### 2. Add the column to your schema
+
+```sql
+-- SoftDeletes / SoftDeletedAt
+ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NULL;
+
+-- DeletedAt
+ALTER TABLE posts ADD COLUMN deleted_at DATETIME NULL;
+```
+
+Or using the schema builder:
+
+```go
+table.Timestamp("soft_deleted_at").Nullable()
+table.Timestamp("deleted_at").Nullable()
+```
+
+---
 
 ## Soft Deleting Records
 
-When you delete a record with soft deletes enabled, it sets the `deleted_at` timestamp instead of removing the record:
-
 ```go
-db.Query().Where("id", 1).Delete(&user)
+// Via query builder — sets soft_deleted_at = NOW() in the database
+db.Query().Model(&User{}).Where("id = ?", 1).SoftDelete()
+
+// Via struct method — sets the field in memory (does not hit the database)
+user.SoftDelete()
 ```
 
-## Querying with Soft Deletes
+---
 
-### Default Behavior (Excludes Soft-Deleted Records)
-
-By default, queries exclude soft-deleted records:
-
-```go
-var users []User
-db.Query().Get(&users) // Excludes soft-deleted records
-```
-
-### Including Soft-Deleted Records
-
-To include soft-deleted records in queries:
+## Querying
 
 ```go
 var users []User
-db.Query().WithTrashed().Get(&users)
+
+// Default — excludes soft-deleted records (soft_deleted_at IS NULL)
+db.Query().Model(&User{}).Get(&users)
+
+// Include all records (including soft-deleted)
+db.Query().Model(&User{}).WithSoftDeleted().Get(&users)
+
+// Only soft-deleted records
+db.Query().Model(&User{}).OnlySoftDeleted().Get(&users)
+
+// Explicitly exclude (reset a previous WithSoftDeleted)
+db.Query().Model(&User{}).WithoutSoftDeleted().Get(&users)
 ```
 
-### Querying Only Soft-Deleted Records
-
-To query only soft-deleted records:
-
-```go
-var users []User
-db.Query().OnlyTrashed().Get(&users)
-```
+---
 
 ## Restoring Soft-Deleted Records
 
-To restore a soft-deleted record:
-
 ```go
-db.Query().Restore(&user)
+// Restore by condition — sets soft_deleted_at = NULL
+res, err := db.Query().Model(&User{}).
+    WithSoftDeleted().
+    Where("id = ?", 1).
+    RestoreSoftDeleted()
+
+// Restore by model instance
+res, err := db.Query().Model(&User{}).
+    WithSoftDeleted().
+    RestoreSoftDeleted(&user)
 ```
 
-## Force Deleting (Permanent Deletion)
+---
 
-To permanently delete a record (bypass soft delete):
+## Force Deleting (Permanent)
 
 ```go
-db.Query().ForceDelete(&user)
+// Permanently removes the row — bypasses soft delete
+res, err := db.Query().Model(&User{}).Where("id = ?", 1).ForceDelete()
 ```
 
-## Checking if a Record is Soft-Deleted
+---
+
+## Checking Status on a Struct
 
 ```go
-if user.IsDeleted() {
+if user.IsSoftDeleted() {
     fmt.Println("User is soft-deleted")
 }
+
+ts := user.GetSoftDeletedAt()  // returns *time.Time (nil if not deleted)
 ```
 
-## Getting the Deleted At Timestamp
+---
+
+## Custom Column Name
+
+If none of the three built-in embeds match your column name, override
+`SoftDeletedAtColumn()` on the model:
 
 ```go
-deletedAt := user.GetDeletedAt()
+type Order struct {
+    soft_delete.SoftDeletes
+    ID uint
+}
+
+// Override — query builder will use "removed_at" instead of "soft_deleted_at"
+func (o *Order) SoftDeletedAtColumn() string { return "removed_at" }
 ```
 
-## Customizing the Soft Delete Column
+> **Note:** When overriding the column name, ensure the `db` struct tag on the
+> embedded field also matches, or scan/hydration will break. Using `SoftDeletedAt`
+> (which has `db:"soft_deleted_at"`) or `DeletedAt` (which has `db:"deleted_at"`)
+> avoids this mismatch entirely.
 
-You can customize the soft delete column name:
+---
+
+## Deprecated API
+
+The following identifiers still work but produce deprecation warnings from
+`golangci-lint` (SA1019). Migrate to the new names at your convenience.
+
+| Deprecated | Use instead |
+|---|---|
+| `user.Delete()` | `user.SoftDelete()` |
+| `user.IsDeleted()` | `user.IsSoftDeleted()` |
+| `user.GetDeletedAt()` | `user.GetSoftDeletedAt()` |
+| `user.DeletedAtColumn()` | `user.SoftDeletedAtColumn()` |
+| `user.Restore()` | `user.RestoreSoftDeleted()` |
+| `query.WithTrashed()` | `query.WithSoftDeleted()` |
+| `query.OnlyTrashed()` | `query.OnlySoftDeleted()` |
+| `query.WithoutTrashed()` | `query.WithoutSoftDeleted()` |
+| `query.Restore(...)` | `query.RestoreSoftDeleted(...)` |
+| `EventRestoring` | `EventSoftDeleteRestoring` |
+| `EventRestored` | `EventSoftDeleteRestored` |
+
+---
+
+## Migrating from `deleted_at` to `soft_deleted_at`
+
+If you were using `soft_delete.SoftDeletes` with a `deleted_at` column
+(the previous default), you have three options:
+
+**Option A — rename the column (recommended for new schemas):**
+
+```sql
+-- PostgreSQL / MySQL 8+
+ALTER TABLE users RENAME COLUMN deleted_at TO soft_deleted_at;
+```
+
+**Option B — swap the embed (zero schema change):**
 
 ```go
-type User struct {
-    neat.SoftDeletes
-    ID   uint
-    Name string
-}
+// Before
+type User struct { soft_delete.SoftDeletes ... }
 
-func (u *User) DeletedAtColumn() string {
-    return "archived_at"
-}
+// After
+type User struct { soft_delete.DeletedAt ... }  // keeps deleted_at column
 ```
 
-## Note
+**Option C — override the column name:**
 
-This documentation is a placeholder and will be expanded as the soft delete system is fully implemented.
+```go
+func (u *User) SoftDeletedAtColumn() string { return "deleted_at" }
+```

@@ -59,7 +59,7 @@ func TestTursoIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt == nil || foundUser.DeletedAt.IsZero() {
+	if foundUser.SoftDeletedAt == nil || foundUser.SoftDeletedAt.IsZero() {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }
@@ -152,7 +152,7 @@ func TestTursoIntegrationForceDelete(t *testing.T) {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
-	if softDeletedUser.DeletedAt == nil || softDeletedUser.DeletedAt.IsZero() {
+	if softDeletedUser.SoftDeletedAt == nil || softDeletedUser.SoftDeletedAt.IsZero() {
 		t.Error("User should be soft deleted")
 	}
 

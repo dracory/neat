@@ -1,139 +1,148 @@
-# Proposal: Alternative Soft Delete Column Naming
+# Proposal: Soft Delete Column Naming & Semantic API
 
-**Status**: Implemented
-**Date**: June 1, 2026
-**Implemented**: June 14, 2026
+**Status**: Implemented  
+**Date**: June 1, 2026  
+**Implemented**: June 14–15, 2026  
 **Author**: Neat ORM Team
+
+---
 
 ## Summary
 
-Add support for customizing the soft delete column name, allowing users to use
-`soft_deleted_at` (or any other name) instead of the hardcoded `deleted_at`.
-This provides better semantic clarity for teams that prefer explicit naming
-conventions, and fixes the gap between the existing documentation and the
-actual implementation.
+Redesign the soft delete surface of Neat ORM for semantic clarity:
+
+1. Change the **default soft delete column** from `deleted_at` to `soft_deleted_at`
+2. Provide three **built-in embeds** covering all common use-cases
+3. Rename all **methods and query builder verbs** to make the "soft" nature explicit
+4. Keep **deprecated aliases** for every renamed identifier so nothing breaks silently
+
+---
 
 ## Motivation
 
-The soft delete implementation hardcoded `deleted_at` throughout the query
-builder (`builder_where.go`). While this is a common convention (Laravel
-Eloquent, etc.), it created friction in three scenarios:
+The original implementation had three problems:
 
-1. **Semantic clarity**: `deleted_at` doesn't explicitly indicate soft deletion
-   vs. hard deletion
-2. **Legacy schemas**: Existing databases may already use `soft_deleted_at` or
-   another column name
-3. **Team conventions**: Some teams enforce explicit naming for all "soft"
-   operations
+1. **Semantic ambiguity** — `deleted_at`, `IsDeleted()`, `WithTrashed()` etc. did not indicate
+   *soft* deletion. A developer reading code could not tell whether a record was permanently
+   or soft-deleted.
 
-The existing `docs/soft-deletes.md` documented a `DeletedAtColumn() string`
-method override as the customization mechanism, but it was not implemented —
-`builder_where.go` hardcoded `"deleted_at"` regardless of any such method on
-the model.
+2. **Laravel coupling** — `WithTrashed()` / `OnlyTrashed()` / `WithoutTrashed()` are
+   Laravel Eloquent terms with no meaning outside that ecosystem.
+
+3. **Hardcoded column** — `builder_where.go` hardcoded `"deleted_at"` regardless of any
+   override, making the documented customization mechanism non-functional.
+
+---
 
 ## What Was Changed
 
-### 1. `SoftDeleteColumnNamer` interface — `contracts/database/orm/soft_delete.go`
+### 1. Default column: `deleted_at` → `soft_deleted_at`
 
-A single interface that any model can implement to override the column name:
+The fallback in `getSoftDeleteColumn()` (`database/query/query_delete.go`) now returns
+`"soft_deleted_at"`. The `SoftDeletes` embed also now uses `soft_deleted_at`.
+
+This is a **breaking change** for users migrating from a schema with `deleted_at`.
+See the [Migration Guide](#migration-guide) below.
+
+### 2. Three built-in embed structs
+
+| Struct | Column | Use case |
+|---|---|---|
+| `soft_delete.SoftDeletes` | `soft_deleted_at` | Default — new projects |
+| `soft_delete.SoftDeletedAt` | `soft_deleted_at` | Explicit naming (mirrors `CreatedAt`/`UpdatedAt`) |
+| `soft_delete.DeletedAt` | `deleted_at` | Laravel-compatible / existing `deleted_at` schemas |
+
+The same three structs exist in `database/orm` for the `sql.NullTime` variant.
+
+### 3. `SoftDeleteColumnNamer` interface — `contracts/database/orm/soft_delete.go`
+
+Any model can implement this interface to use any column name:
 
 ```go
-// SoftDeleteColumnNamer is implemented by models that customize the soft delete column name.
 type SoftDeleteColumnNamer interface {
-    DeletedAtColumn() string
+    SoftDeletedAtColumn() string
 }
 ```
 
-### 2. `DeletedAtColumn()` added to `SoftDeletes`
+### 4. Renamed methods (deprecated aliases kept)
 
-Both `SoftDeletes` implementations now implement the interface:
+**Struct methods** (on all three embeds):
 
-`database/soft_delete/soft_delete.go` (`*time.Time` variant — canonical):
-```go
-func (sd *SoftDeletes) DeletedAtColumn() string { return "deleted_at" }
-```
+| New (primary) | Old (deprecated alias) |
+|---|---|
+| `SoftDelete()` | `Delete()` |
+| `IsSoftDeleted() bool` | `IsDeleted() bool` |
+| `GetSoftDeletedAt() *time.Time` | `GetDeletedAt() *time.Time` |
+| `SoftDeletedAtColumn() string` | `DeletedAtColumn() string` |
+| `RestoreSoftDeleted()` | `Restore()` |
 
-`database/orm/model.go` (`sql.NullTime` variant):
-```go
-func (sd *SoftDeletes) DeletedAtColumn() string { return "deleted_at" }
-```
+**Query builder methods**:
 
-### 3. New `SoftDeletedAt` struct — `database/soft_delete/soft_delete.go`
+| New (primary) | Old (deprecated alias) |
+|---|---|
+| `WithSoftDeleted()` | `WithTrashed()` |
+| `OnlySoftDeleted()` | `OnlyTrashed()` |
+| `WithoutSoftDeleted()` | `WithoutTrashed()` |
+| `RestoreSoftDeleted(...)` | `Restore(...)` |
 
-A built-in alternative embed using `soft_deleted_at` as the column name.
-Named following the same convention as `CreatedAt` and `UpdatedAt` — the
-struct name matches the field it provides:
+**Event constants** (`contracts/database/orm/events.go`):
 
-```go
-// SoftDeletedAt provides soft delete functionality using the "soft_deleted_at" column name.
-// Follows the same naming convention as CreatedAt and UpdatedAt.
-type SoftDeletedAt struct {
-    SoftDeletedAt *time.Time `json:"soft_deleted_at,omitempty" db:"soft_deleted_at"`
-}
+| New (primary) | Old (deprecated alias) |
+|---|---|
+| `EventSoftDeleteRestoring` | `EventRestoring` |
+| `EventSoftDeleteRestored` | `EventRestored` |
 
-func (sd *SoftDeletedAt) DeletedAtColumn() string { return "soft_deleted_at" }
-func (sd *SoftDeletedAt) IsDeleted() bool         { return sd.SoftDeletedAt != nil }
-func (sd *SoftDeletedAt) Delete()                 { now := time.Now(); sd.SoftDeletedAt = &now }
-func (sd *SoftDeletedAt) Restore()                { sd.SoftDeletedAt = nil }
-func (sd *SoftDeletedAt) GetDeletedAt() *time.Time { return sd.SoftDeletedAt }
-```
+**Package-level constants** (`database/soft_delete`):
 
-### 4. `hasSoftDeleteCapability` — `database/query/query_delete.go`
+| New (primary) | Old (deprecated alias) |
+|---|---|
+| `SoftDeleteAtColumn = "soft_deleted_at"` | `DeletedAtColumn` (points to `SoftDeleteAtColumn`) |
+| `DeletedAtColumnName = "deleted_at"` | _(new, no alias needed)_ |
 
-Replaced the fragile reflection-based field-name check with a clean interface
-assertion:
+### 5. Internal query struct field renames
 
-```go
-// Before: reflected on field named "DeletedAt" of type *time.Time
-// After:
-func hasSoftDeleteCapability(model any) bool {
-    if model == nil {
-        return false
-    }
-    _, ok := model.(contractsorm.SoftDeleteColumnNamer)
-    return ok
-}
-```
+Private fields in the query struct — no API impact, purely internal clarity:
 
-### 5. `getSoftDeleteColumn` helper — `database/query/query_delete.go`
+| New | Old |
+|---|---|
+| `includeSoftDeleted` | `withTrashed` |
+| `onlySoftDeleted` | `onlyTrashed` |
+| `excludeSoftDeleted` | `withoutTrashed` |
 
-```go
-// getSoftDeleteColumn returns the soft delete column name for the given model,
-// falling back to "deleted_at" if the model does not implement SoftDeleteColumnNamer.
-func getSoftDeleteColumn(model any) string {
-    if namer, ok := model.(contractsorm.SoftDeleteColumnNamer); ok {
-        return namer.DeletedAtColumn()
-    }
-    return "deleted_at"
-}
-```
-
-### 6. Query builder updated to use `getSoftDeleteColumn`
-
-All hardcoded `"deleted_at"` references replaced in:
-
-- `builder_where.go` — `buildWheresWithSoftDelete()` and `buildWheresWithSoftDeleteIndex()`
-- `query_delete.go` — `Delete()`
-- `query_advanced.go` — `Restore()`
-- `builder_update.go` — `isSoftDeleteOperation` detection
+---
 
 ## Usage
 
-### Default `deleted_at` (unchanged)
+### Default — new projects (`soft_deleted_at`)
 
 ```go
 type User struct {
-    soft_delete.SoftDeletes  // uses "deleted_at"
+    soft_delete.SoftDeletes  // uses "soft_deleted_at"
     ID   uint
     Name string
 }
 ```
 
-### Built-in `SoftDeletedAt` embed
+Schema:
+```sql
+ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NULL;
+```
+
+### Explicit naming (identical behavior)
 
 ```go
 type User struct {
-    soft_delete.SoftDeletedAt  // uses "soft_deleted_at"
+    soft_delete.SoftDeletedAt  // also uses "soft_deleted_at"
+    ID   uint
+    Name string
+}
+```
+
+### Laravel-compatible (`deleted_at`)
+
+```go
+type User struct {
+    soft_delete.DeletedAt  // uses "deleted_at"
     ID   uint
     Name string
 }
@@ -147,13 +156,13 @@ type Order struct {
     ID uint
 }
 
-func (o *Order) DeletedAtColumn() string { return "removed_at" }
+func (o *Order) SoftDeletedAtColumn() string { return "removed_at" }
 ```
 
-> **Note**: When overriding `DeletedAtColumn()` on a model that embeds
-> `SoftDeletes`, the struct field tag (`db:"deleted_at"`) no longer matches
-> the column. The scan/hydration will break unless the `db` tag is also
-> updated. Using `SoftDeletedAt` avoids this inconsistency entirely.
+Schema:
+```sql
+ALTER TABLE orders ADD COLUMN removed_at DATETIME NULL;
+```
 
 ### Querying
 
@@ -163,129 +172,79 @@ db.Query().Model(&User{}).Get(&users)
 // WHERE soft_deleted_at IS NULL
 
 // Include all records
-db.Query().Model(&User{}).WithTrashed().Get(&users)
+db.Query().Model(&User{}).WithSoftDeleted().Get(&users)
 
-// Only deleted records
-db.Query().Model(&User{}).OnlyTrashed().Get(&users)
+// Only soft-deleted records
+db.Query().Model(&User{}).OnlySoftDeleted().Get(&users)
 // WHERE soft_deleted_at IS NOT NULL
-```
 
-### Soft deleting, restoring, checking status
-
-```go
 // Soft delete — sets soft_deleted_at to now
-db.Query().Model(&User{}).Where("id = ?", 1).Delete()
-
-if user.IsDeleted() {
-    fmt.Println("User is soft-deleted")
-}
+db.Query().Model(&User{}).Where("id = ?", 1).SoftDelete()
 
 // Restore — sets soft_deleted_at to nil
-db.Query().Model(&User{}).WithTrashed().Where("id = ?", 1).Restore()
-```
+db.Query().Model(&User{}).WithSoftDeleted().Where("id = ?", 1).RestoreSoftDeleted()
 
-### Schema
-
-No changes required to the schema builder — it already accepts any column name:
-
-```go
-table.Timestamp("soft_deleted_at").Nullable()
-```
-
-## Benefits
-
-1. **Naming consistency**: `SoftDeletedAt` follows the same convention as
-   `CreatedAt` and `UpdatedAt` — struct name matches the field it provides
-2. **Correctness**: Fixes the gap between existing docs and actual implementation
-3. **Interface-driven**: Clean Go idiom; no fragile reflection on field names
-4. **Backward compatible**: Existing `deleted_at` usage works unchanged;
-   `hasSoftDeleteCapability` falls back gracefully for models that don't
-   implement the interface
-5. **Extensible**: Any column name works via `DeletedAtColumn()` override
-
-## Drawbacks
-
-1. **Two structs to maintain**: `SoftDeletes` and `SoftDeletedAt` diverge in
-   field name, requiring parallel maintenance
-2. **Method-override inconsistency**: Overriding `DeletedAtColumn()` on a model
-   embedding `SoftDeletes` mismatches the `db:"deleted_at"` field tag —
-   developers must use `SoftDeletedAt` or update the tag manually
-3. **API surface grows**: `SoftDeleteColumnNamer` is a permanent addition to the
-   contracts package
-
-## Alternatives Considered
-
-### Alternative 1: Rename the default column globally
-
-Change the default from `deleted_at` to `soft_deleted_at` for all users.
-
-**Pros**: Consistent and self-documenting across all projects  
-**Cons**: Breaking change; all existing users must migrate schema and data  
-**Decision**: Rejected to maintain backward compatibility
-
-### Alternative 2: Struct tag configuration
-
-```go
-type SoftDeletes struct {
-    DeletedAt *time.Time `db:"soft_deleted_at"`
+// Check status on struct
+if user.IsSoftDeleted() {
+    fmt.Println("User is soft-deleted")
 }
 ```
 
-**Pros**: Standard Go convention; column name is co-located with the field  
-**Cons**: Does not signal to `hasSoftDeleteCapability` or the query builder
-what column to filter on at query-build time  
-**Decision**: Workable for scan/hydration but insufficient alone; can be
-combined with `DeletedAtColumn()` for a complete solution
+---
 
-### Alternative 3: Struct tag for the query builder column name
+## Migration Guide
+
+### From `deleted_at` (previous default) to `soft_deleted_at` (new default)
+
+**Option A — rename the column (recommended for new schemas):**
+
+```sql
+-- PostgreSQL / MySQL
+ALTER TABLE users RENAME COLUMN deleted_at TO soft_deleted_at;
+
+-- SQLite (no RENAME COLUMN before 3.25.0)
+ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME;
+UPDATE users SET soft_deleted_at = deleted_at;
+ALTER TABLE users DROP COLUMN deleted_at;
+```
+
+**Option B — use the `DeletedAt` embed (zero code change, keep schema as-is):**
 
 ```go
-type SoftDeletes struct {
-    DeletedAt *time.Time `db:"deleted_at" neat_soft_delete:"deleted_at"`
+// Before
+type User struct {
+    soft_delete.SoftDeletes  // was deleted_at, now soft_deleted_at — BREAKS
+    ID uint
+}
+
+// After (Option B)
+type User struct {
+    soft_delete.DeletedAt  // deleted_at, unchanged
+    ID uint
 }
 ```
 
-**Pros**: Declarative; no interface required  
-**Cons**: Requires reflection at query-build time; less idiomatic in Go;
-hard to override in embedding models  
-**Decision**: Rejected in favor of the interface-based method override pattern
+**Option C — override `SoftDeletedAtColumn()` on the model:**
 
-### Alternative 4: No changes
+```go
+type User struct {
+    soft_delete.SoftDeletes
+    ID uint
+}
 
-Keep the hardcoded `deleted_at` column name.
+func (u *User) SoftDeletedAtColumn() string { return "deleted_at" }
+```
 
-**Pros**: Zero maintenance cost  
-**Cons**: Contradicts the existing documentation; blocks legitimate use cases  
-**Decision**: Rejected
+---
 
-## Open Questions (resolved)
+## File Reference
 
-1. **Canonical soft delete type**: `*time.Time` (`database/soft_delete`) is the
-   canonical type. `sql.NullTime` (`database/orm`) is a secondary variant that
-   also received `DeletedAtColumn()` for consistency. Both implement
-   `SoftDeleteColumnNamer`.
-
-2. **Scan/hydration consistency**: When a user overrides `DeletedAtColumn()` on
-   a model embedding `SoftDeletes`, the `db:"deleted_at"` tag mismatch is the
-   user's responsibility. The recommended solution is to use `SoftDeletedAt`
-   instead, which has a matching field tag from the start.
-
-3. **More alternative structs**: The method-override pattern (`DeletedAtColumn()
-   string`) is sufficient for any arbitrary column name. No additional pre-built
-   structs are planned beyond `SoftDeletes` and `SoftDeletedAt`.
-
-4. **Global default override**: Not implemented. Per-model override via
-   `DeletedAtColumn()` is the supported mechanism.
-
-5. **Migration tooling**: Out of scope for this proposal.
-
-## References
-
-- Soft Deletes Documentation: `docs/soft-deletes.md`
-- `SoftDeletes` and `SoftDeletedAt` implementation: `database/soft_delete/soft_delete.go`
-- `SoftDeleteColumnNamer` interface: `contracts/database/orm/soft_delete.go`
-- ORM model structs: `database/orm/model.go`
-- Query builder soft delete logic: `database/query/builder_where.go`,
-  `database/query/query_delete.go`, `database/query/query_advanced.go`,
-  `database/query/builder_update.go`
-- Laravel Eloquent Soft Deletes: https://laravel.com/docs/eloquent#soft-deleting
+| Concern | File |
+|---|---|
+| Embed structs | `database/soft_delete/soft_delete.go` |
+| `sql.NullTime` variants | `database/orm/model.go` |
+| `SoftDeleteColumnNamer` interface | `contracts/database/orm/soft_delete.go` |
+| Query builder soft delete | `database/query/builder_where.go`, `query_delete.go`, `query_advanced.go`, `builder_update.go` |
+| Soft delete state methods | `database/query/query_soft_delete.go` |
+| Event constants | `contracts/database/orm/events.go` |
+| Query interface | `contracts/database/orm/orm.go` |

@@ -239,10 +239,10 @@ func TestSoftDeletedAtMethods(t *testing.T) {
 	}
 }
 
-// TestSoftDeletesDefaultColumnMethod verifies SoftDeletes.DeletedAtColumn() returns "deleted_at".
+// TestSoftDeletesDefaultColumnMethod verifies SoftDeletes.SoftDeletedAtColumn() returns "soft_deleted_at" (new default).
 func TestSoftDeletesDefaultColumnMethod(t *testing.T) {
 	sd := &soft_delete.SoftDeletes{}
-	if sd.SoftDeletedAtColumn() != "deleted_at" {
-		t.Errorf("expected 'deleted_at', got %q", sd.SoftDeletedAtColumn())
+	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+		t.Errorf("expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }
