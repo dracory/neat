@@ -62,7 +62,7 @@ func RunExample(dsn string) error {
 		}
 	}
 
-	fmt.Println("=== Sugar Methods Examples ===\n")
+	fmt.Println("=== Sugar Methods Examples ===")
 
 	// Example 1: CountAsVar - Count records
 	fmt.Println("1. CountAsVar - Count total users:")
@@ -126,13 +126,13 @@ func RunExample(dsn string) error {
 	}
 	fmt.Println()
 
-	// Example 8: ValueAsVar - Get single column value from first record
-	fmt.Println("8. ValueAsVar - Get email of first user:")
-	emailAny, err := db.Query().Table("users").Where("age = ?", 25).ValueAsVar("email")
+	// Example 8: Value - Get single column value from first record
+	fmt.Println("8. Value - Get email of first user:")
+	var email string
+	err = db.Query().Table("users").Where("age = ?", 25).Value("email", &email)
 	if err != nil {
-		return fmt.Errorf("ValueAsVar failed: %w", err)
+		return fmt.Errorf("Value failed: %w", err)
 	}
-	email := emailAny.(string)
 	fmt.Printf("   Email: %s\n\n", email)
 
 	// Example 9: FirstAsVar - Get first record
@@ -141,8 +141,8 @@ func RunExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("FirstAsVar failed: %w", err)
 	}
-	user := userAny.(User)
-	fmt.Printf("   User: %s (Age: %d)\n\n", user.Name, user.Age)
+	userMap := userAny.(map[string]any)
+	fmt.Printf("   User: %v (Age: %v)\n\n", userMap["name"], userMap["age"])
 
 	// Example 10: FindOneAsVar - Alias for FirstAsVar
 	fmt.Println("10. FindOneAsVar - Find one user (Sequelize-style):")
@@ -150,8 +150,8 @@ func RunExample(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("FindOneAsVar failed: %w", err)
 	}
-	user = userAny.(User)
-	fmt.Printf("    User: %s (Age: %d)\n\n", user.Name, user.Age)
+	userMap = userAny.(map[string]any)
+	fmt.Printf("    User: %v (Age: %v)\n\n", userMap["name"], userMap["age"])
 
 	// Example 11: GetAsVar - Get all records
 	fmt.Println("11. GetAsVar - Get all users over 28:")
@@ -161,8 +161,8 @@ func RunExample(dsn string) error {
 	}
 	fmt.Println("    Users:")
 	for _, userAny := range usersAny {
-		if user, ok := userAny.(User); ok {
-			fmt.Printf("    - %s (Age: %d)\n", user.Name, user.Age)
+		if userMap, ok := userAny.(map[string]any); ok {
+			fmt.Printf("    - %v (Age: %v)\n", userMap["name"], userMap["age"])
 		}
 	}
 	fmt.Println()
@@ -185,14 +185,14 @@ func RunExample(dsn string) error {
 
 	// Example 14: FindAsVar - Find with conditions
 	fmt.Println("14. FindAsVar - Find users with conditions:")
-	usersAny, err = db.Query().Table("users").FindAsVar("age BETWEEN ? AND ?", 28, 35)
+	usersAny, err = db.Query().Table("users").Where("age BETWEEN ? AND ?", 28, 35).FindAsVar()
 	if err != nil {
 		return fmt.Errorf("FindAsVar failed: %w", err)
 	}
 	fmt.Println("    Users aged 28-35:")
 	for _, userAny := range usersAny {
-		if user, ok := userAny.(User); ok {
-			fmt.Printf("    - %s (Age: %d)\n", user.Name, user.Age)
+		if userMap, ok := userAny.(map[string]any); ok {
+			fmt.Printf("    - %v (Age: %v)\n", userMap["name"], userMap["age"])
 		}
 	}
 	fmt.Println()

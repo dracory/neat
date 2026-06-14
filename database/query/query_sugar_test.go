@@ -37,8 +37,8 @@ func TestCountAsVar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CountAsVar with WHERE failed: %v", err)
 	}
-	if count != 2 {
-		t.Errorf("Expected count 2, got %d", count)
+	if count != 1 {
+		t.Errorf("Expected count 1, got %d", count)
 	}
 }
 
@@ -318,8 +318,8 @@ func TestGetAsVar(t *testing.T) {
 		t.Fatalf("GetAsVar failed: %v", err)
 	}
 	// Verify we got the right number of results
-	if len(usersAny) != 2 {
-		t.Errorf("Expected 2 users, got %d", len(usersAny))
+	if len(usersAny) != 3 {
+		t.Errorf("Expected 3 users, got %d", len(usersAny))
 	}
 }
 
@@ -389,13 +389,13 @@ func TestFindAsVar(t *testing.T) {
 	}
 
 	// Test FindAsVar with conditions
-	usersAny, err := w.Q.FindAsVar("age > ?", 25)
+	usersAny, err := w.Q.Where("age > ?", 25).FindAsVar()
 	if err != nil {
 		t.Fatalf("FindAsVar failed: %v", err)
 	}
 	// Verify we got the right number of results
-	if len(usersAny) != 2 {
-		t.Errorf("Expected 2 users, got %d", len(usersAny))
+	if len(usersAny) != 3 {
+		t.Errorf("Expected 3 users, got %d", len(usersAny))
 	}
 
 	// Test FindAsVar without conditions

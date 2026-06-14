@@ -54,6 +54,35 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 
 	destValue = destValue.Elem()
 
+	// Handle *interface{} destination (for AsVar methods)
+	if destValue.Kind() == reflect.Interface {
+		if !rows.Next() {
+			return fmt.Errorf("no rows found")
+		}
+
+		columns, err := rows.Columns()
+		if err != nil {
+			return fmt.Errorf("failed to get columns: %w", err)
+		}
+
+		values := make([]any, len(columns))
+		ptrs := make([]any, len(columns))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		m := make(map[string]any, len(columns))
+		for i, col := range columns {
+			m[col] = values[i]
+		}
+		destValue.Set(reflect.ValueOf(m))
+
+		return rows.Err()
+	}
+
 	// Handle slice destination
 	if destValue.Kind() == reflect.Slice {
 		sliceType := destValue.Type()
@@ -72,7 +101,21 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 			// Scan into element
 			values := make([]any, len(columns))
 
-			if elem.Kind() == reflect.Map {
+			if elem.Kind() == reflect.Interface {
+				// Scan into a map and set as interface value
+				ptrs := make([]any, len(columns))
+				for i := range values {
+					ptrs[i] = &values[i]
+				}
+				if err := rows.Scan(ptrs...); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
+				m := make(map[string]any, len(columns))
+				for i, col := range columns {
+					m[col] = values[i]
+				}
+				elem.Set(reflect.ValueOf(m))
+			} else if elem.Kind() == reflect.Map {
 				// Scan into a temporary []any then build the map
 				ptrs := make([]any, len(columns))
 				for i := range values {

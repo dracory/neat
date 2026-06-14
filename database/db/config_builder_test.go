@@ -58,7 +58,7 @@ func TestConfigBuilderBuildMySQLDSN(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	expected := "user:pass@tcp(localhost:3306)/testdb"
+	expected := "user:pass@tcp(localhost:3306)/testdb?charset=utf8mb4"
 	if dsn != expected {
 		t.Errorf("Expected DSN to be %s, got %s", expected, dsn)
 	}
