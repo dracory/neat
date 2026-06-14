@@ -26,10 +26,17 @@ func (sd *SoftDeletes) IsDeleted() bool {
 	return sd.DeletedAt != nil
 }
 
-// Delete marks the model as deleted by setting the deleted_at timestamp.
-func (sd *SoftDeletes) Delete() {
+// SoftDelete marks the model as soft-deleted by setting the deleted_at timestamp.
+func (sd *SoftDeletes) SoftDelete() {
 	now := time.Now()
 	sd.DeletedAt = &now
+}
+
+// Delete marks the model as soft-deleted by setting the deleted_at timestamp.
+//
+// Deprecated: Use SoftDelete() for clarity. Delete() will be removed in a future major version.
+func (sd *SoftDeletes) Delete() {
+	sd.SoftDelete()
 }
 
 // Restore marks the model as not deleted by setting deleted_at to nil.
@@ -67,10 +74,17 @@ func (sd *SoftDeletedAt) IsDeleted() bool {
 	return sd.SoftDeletedAt != nil
 }
 
-// Delete marks the model as deleted by setting the soft_deleted_at timestamp.
-func (sd *SoftDeletedAt) Delete() {
+// SoftDelete marks the model as soft-deleted by setting the soft_deleted_at timestamp.
+func (sd *SoftDeletedAt) SoftDelete() {
 	now := time.Now()
 	sd.SoftDeletedAt = &now
+}
+
+// Delete marks the model as soft-deleted by setting the soft_deleted_at timestamp.
+//
+// Deprecated: Use SoftDelete() for clarity. Delete() will be removed in a future major version.
+func (sd *SoftDeletedAt) Delete() {
+	sd.SoftDelete()
 }
 
 // Restore marks the model as not deleted by setting soft_deleted_at to nil.

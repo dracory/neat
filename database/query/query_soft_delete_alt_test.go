@@ -222,12 +222,12 @@ func TestSoftDeletedAtMethods(t *testing.T) {
 		t.Error("expected IsDeleted() to be false initially")
 	}
 
-	sd.Delete()
+	sd.SoftDelete()
 	if !sd.IsDeleted() {
-		t.Error("expected IsDeleted() to be true after Delete()")
+		t.Error("expected IsDeleted() to be true after SoftDelete()")
 	}
 	if sd.GetDeletedAt() == nil {
-		t.Error("expected GetDeletedAt() to be non-nil after Delete()")
+		t.Error("expected GetDeletedAt() to be non-nil after SoftDelete()")
 	}
 
 	sd.Restore()
