@@ -166,7 +166,7 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 		}
 	}
 
-	// Build UPDATE query to set deleted_at to NULL
+	// Build UPDATE query to restore soft-deleted record
 	// Clone the query to preserve WHERE clauses
 	clone := q.Clone().(*Query)
 	clone.includeSoftDeleted = true
@@ -203,7 +203,12 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 
 	builder := NewBuilder(clone)
 	col := getSoftDeleteColumn(q.model)
-	sql, args := builder.BuildUpdate(map[string]any{col: nil})
+	// Check if model implements SoftDeleteStrategy for custom restore value
+	var restoreValue any = nil // NULL-based default
+	if strat, ok := q.model.(contractsorm.SoftDeleteStrategy); ok {
+		restoreValue = strat.RestoreValue()
+	}
+	sql, args := builder.BuildUpdate(map[string]any{col: restoreValue})
 	if sql == "" {
 		return nil, fmt.Errorf("failed to build RESTORE query")
 	}

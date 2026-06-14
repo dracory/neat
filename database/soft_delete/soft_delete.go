@@ -241,3 +241,219 @@ func (sd *DeletedAt) GetSoftDeletedAt() *time.Time {
 func (sd *DeletedAt) GetDeletedAt() *time.Time {
 	return sd.GetSoftDeletedAt()
 }
+
+// MaxSoftDeletedAt is the sentinel "not deleted" value for the max-date strategy.
+// Records are considered active when soft_deleted_at > NOW(), and deleted when soft_deleted_at <= NOW().
+// Using a far-future date (9999-12-31 23:59:59 UTC) instead of NULL allows:
+//   - NOT NULL column constraints
+//   - Better partial index support (range scans vs IS NULL)
+//   - Simpler query conditions without NULL handling
+var MaxSoftDeletedAt = time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+
+// SoftDeletesMaxDate provides soft delete functionality using a max-date sentinel
+// instead of NULL. The column used is "soft_deleted_at".
+// Embed this in models where the schema enforces NOT NULL on timestamp columns.
+//
+// Records are soft-deleted when soft_deleted_at is in the past (<= NOW()),
+// and active when soft_deleted_at is in the future (e.g., MaxSoftDeletedAt).
+//
+// Example:
+//
+//	type User struct {
+//	    soft_delete.SoftDeletesMaxDate  // uses "soft_deleted_at" with sentinel
+//	    ID   uint
+//	    Name string
+//	}
+type SoftDeletesMaxDate struct {
+	SoftDeletedAt time.Time `json:"soft_deleted_at,omitempty" db:"soft_deleted_at"`
+}
+
+// SoftDeletedAtColumn returns the soft delete column name used in database queries.
+// Implements the SoftDeleteColumnNamer interface.
+func (s *SoftDeletesMaxDate) SoftDeletedAtColumn() string {
+	return "soft_deleted_at"
+}
+
+// DeletedAtColumn returns the soft delete column name used in database queries.
+//
+// Deprecated: Use SoftDeletedAtColumn() instead.
+func (s *SoftDeletesMaxDate) DeletedAtColumn() string {
+	return s.SoftDeletedAtColumn()
+}
+
+// IsSoftDeleted returns true if the model has been soft deleted.
+// A record is soft-deleted when soft_deleted_at <= NOW().
+func (s *SoftDeletesMaxDate) IsSoftDeleted() bool {
+	return !s.SoftDeletedAt.After(time.Now())
+}
+
+// IsDeleted returns true if the model has been soft deleted.
+//
+// Deprecated: Use IsSoftDeleted() instead.
+func (s *SoftDeletesMaxDate) IsDeleted() bool {
+	return s.IsSoftDeleted()
+}
+
+// SoftDelete marks the model as soft-deleted by setting soft_deleted_at to NOW().
+func (s *SoftDeletesMaxDate) SoftDelete() {
+	s.SoftDeletedAt = time.Now()
+}
+
+// Delete marks the model as soft-deleted by setting soft_deleted_at to NOW().
+//
+// Deprecated: Use SoftDelete() instead.
+func (s *SoftDeletesMaxDate) Delete() {
+	s.SoftDelete()
+}
+
+// RestoreSoftDeleted marks the model as not soft-deleted by setting soft_deleted_at to MaxSoftDeletedAt.
+func (s *SoftDeletesMaxDate) RestoreSoftDeleted() {
+	s.SoftDeletedAt = MaxSoftDeletedAt
+}
+
+// Restore marks the model as not soft-deleted by setting soft_deleted_at to MaxSoftDeletedAt.
+//
+// Deprecated: Use RestoreSoftDeleted() instead.
+func (s *SoftDeletesMaxDate) Restore() {
+	s.RestoreSoftDeleted()
+}
+
+// GetSoftDeletedAt returns the soft_deleted_at timestamp.
+func (s *SoftDeletesMaxDate) GetSoftDeletedAt() time.Time {
+	return s.SoftDeletedAt
+}
+
+// GetDeletedAt returns the soft_deleted_at timestamp.
+//
+// Deprecated: Use GetSoftDeletedAt() instead.
+func (s *SoftDeletesMaxDate) GetDeletedAt() time.Time {
+	return s.GetSoftDeletedAt()
+}
+
+// SoftDeleteValue returns the value to write on soft delete.
+// Implements the SoftDeleteStrategy interface.
+func (s *SoftDeletesMaxDate) SoftDeleteValue() any {
+	return time.Now()
+}
+
+// RestoreValue returns the value to write on restore.
+// Implements the SoftDeleteStrategy interface.
+func (s *SoftDeletesMaxDate) RestoreValue() any {
+	return MaxSoftDeletedAt
+}
+
+// SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
+// Implements the SoftDeleteStrategy interface.
+func (s *SoftDeletesMaxDate) SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
+	return quoteIdentifier("soft_deleted_at") + " <= ?", []any{time.Now()}
+}
+
+// NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
+// Implements the SoftDeleteStrategy interface.
+func (s *SoftDeletesMaxDate) NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
+	return quoteIdentifier("soft_deleted_at") + " > ?", []any{time.Now()}
+}
+
+// DeletedAtMaxDate provides soft delete functionality using a max-date sentinel
+// with the "deleted_at" column name (Laravel-compatible).
+// Use this when your schema uses "deleted_at" and enforces NOT NULL.
+//
+// Records are soft-deleted when deleted_at is in the past (<= NOW()),
+// and active when deleted_at is in the future (e.g., MaxSoftDeletedAt).
+//
+// Example:
+//
+//	type Post struct {
+//	    soft_delete.DeletedAtMaxDate  // uses "deleted_at" with sentinel
+//	    ID    uint
+//	    Title string
+//	}
+type DeletedAtMaxDate struct {
+	DeletedAt time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+}
+
+// SoftDeletedAtColumn returns the soft delete column name used in database queries.
+// Implements the SoftDeleteColumnNamer interface.
+func (s *DeletedAtMaxDate) SoftDeletedAtColumn() string {
+	return "deleted_at"
+}
+
+// DeletedAtColumn returns the soft delete column name used in database queries.
+//
+// Deprecated: Use SoftDeletedAtColumn() instead.
+func (s *DeletedAtMaxDate) DeletedAtColumn() string {
+	return s.SoftDeletedAtColumn()
+}
+
+// IsSoftDeleted returns true if the model has been soft deleted.
+// A record is soft-deleted when deleted_at <= NOW().
+func (s *DeletedAtMaxDate) IsSoftDeleted() bool {
+	return !s.DeletedAt.After(time.Now())
+}
+
+// IsDeleted returns true if the model has been soft deleted.
+//
+// Deprecated: Use IsSoftDeleted() instead.
+func (s *DeletedAtMaxDate) IsDeleted() bool {
+	return s.IsSoftDeleted()
+}
+
+// SoftDelete marks the model as soft-deleted by setting deleted_at to NOW().
+func (s *DeletedAtMaxDate) SoftDelete() {
+	s.DeletedAt = time.Now()
+}
+
+// Delete marks the model as soft-deleted by setting deleted_at to NOW().
+//
+// Deprecated: Use SoftDelete() instead.
+func (s *DeletedAtMaxDate) Delete() {
+	s.SoftDelete()
+}
+
+// RestoreSoftDeleted marks the model as not soft-deleted by setting deleted_at to MaxSoftDeletedAt.
+func (s *DeletedAtMaxDate) RestoreSoftDeleted() {
+	s.DeletedAt = MaxSoftDeletedAt
+}
+
+// Restore marks the model as not soft-deleted by setting deleted_at to MaxSoftDeletedAt.
+//
+// Deprecated: Use RestoreSoftDeleted() instead.
+func (s *DeletedAtMaxDate) Restore() {
+	s.RestoreSoftDeleted()
+}
+
+// GetSoftDeletedAt returns the deleted_at timestamp.
+func (s *DeletedAtMaxDate) GetSoftDeletedAt() time.Time {
+	return s.DeletedAt
+}
+
+// GetDeletedAt returns the deleted_at timestamp.
+//
+// Deprecated: Use GetSoftDeletedAt() instead.
+func (s *DeletedAtMaxDate) GetDeletedAt() time.Time {
+	return s.GetSoftDeletedAt()
+}
+
+// SoftDeleteValue returns the value to write on soft delete.
+// Implements the SoftDeleteStrategy interface.
+func (s *DeletedAtMaxDate) SoftDeleteValue() any {
+	return time.Now()
+}
+
+// RestoreValue returns the value to write on restore.
+// Implements the SoftDeleteStrategy interface.
+func (s *DeletedAtMaxDate) RestoreValue() any {
+	return MaxSoftDeletedAt
+}
+
+// SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
+// Implements the SoftDeleteStrategy interface.
+func (s *DeletedAtMaxDate) SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
+	return quoteIdentifier("deleted_at") + " <= ?", []any{time.Now()}
+}
+
+// NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
+// Implements the SoftDeleteStrategy interface.
+func (s *DeletedAtMaxDate) NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
+	return quoteIdentifier("deleted_at") + " > ?", []any{time.Now()}
+}

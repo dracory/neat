@@ -304,3 +304,236 @@ func TestDeletedAtSoftDeletedAtColumn(t *testing.T) {
 		t.Errorf("Expected 'deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }
+
+// ── SoftDeletesMaxDate tests (max-date sentinel: soft_deleted_at) ──────────────
+
+func TestSoftDeletesMaxDateIsDeleted(t *testing.T) {
+	sd := &SoftDeletesMaxDate{}
+
+	// Default state: SoftDeletedAt is zero time, which is in the past
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true when SoftDeletedAt is zero time (in the past)")
+	}
+
+	// Set to max date (in the future) - not deleted
+	sd.SoftDeletedAt = MaxSoftDeletedAt
+	if sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return false when SoftDeletedAt is MaxSoftDeletedAt")
+	}
+
+	// Set to now - deleted
+	sd.SoftDeletedAt = time.Now()
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true when SoftDeletedAt is now")
+	}
+}
+
+func TestSoftDeletesMaxDateSoftDelete(t *testing.T) {
+	sd := &SoftDeletesMaxDate{}
+	sd.SoftDeletedAt = MaxSoftDeletedAt
+
+	if sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return false before SoftDelete")
+	}
+
+	sd.SoftDelete()
+
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true after SoftDelete")
+	}
+}
+
+func TestSoftDeletesMaxDateRestore(t *testing.T) {
+	sd := &SoftDeletesMaxDate{}
+
+	sd.SoftDelete()
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true after SoftDelete")
+	}
+
+	sd.RestoreSoftDeleted()
+	if sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return false after RestoreSoftDeleted")
+	}
+
+	if !sd.SoftDeletedAt.Equal(MaxSoftDeletedAt) {
+		t.Error("Expected SoftDeletedAt to be MaxSoftDeletedAt after RestoreSoftDeleted")
+	}
+}
+
+func TestSoftDeletesMaxDateGetSoftDeletedAt(t *testing.T) {
+	sd := &SoftDeletesMaxDate{}
+
+	if !sd.GetSoftDeletedAt().IsZero() {
+		t.Error("Expected GetSoftDeletedAt to return zero time initially")
+	}
+
+	sd.SoftDeletedAt = MaxSoftDeletedAt
+
+	if !sd.GetSoftDeletedAt().Equal(MaxSoftDeletedAt) {
+		t.Error("Expected GetSoftDeletedAt to return MaxSoftDeletedAt")
+	}
+}
+
+func TestSoftDeletesMaxDateSoftDeletedAtColumn(t *testing.T) {
+	sd := &SoftDeletesMaxDate{}
+	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+		t.Errorf("Expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
+	}
+}
+
+func TestSoftDeletesMaxDateSoftDeleteStrategyInterface(t *testing.T) {
+	sd := &SoftDeletesMaxDate{}
+
+	// Test SoftDeleteValue
+	deleteValue := sd.SoftDeleteValue()
+	if deleteValue == nil {
+		t.Error("Expected SoftDeleteValue to return non-nil")
+	}
+
+	// Test RestoreValue
+	restoreValue := sd.RestoreValue()
+	if !restoreValue.(time.Time).Equal(MaxSoftDeletedAt) {
+		t.Error("Expected RestoreValue to return MaxSoftDeletedAt")
+	}
+
+	// Test SoftDeletedCondition
+	quoteFunc := func(s string) string { return "`" + s + "`" }
+	cond, args := sd.SoftDeletedCondition(quoteFunc)
+	if cond != "`soft_deleted_at` <= ?" {
+		t.Errorf("Expected SoftDeletedCondition to return '`soft_deleted_at` <= ?', got %q", cond)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+
+	// Test NotSoftDeletedCondition
+	cond, args = sd.NotSoftDeletedCondition(quoteFunc)
+	if cond != "`soft_deleted_at` > ?" {
+		t.Errorf("Expected NotSoftDeletedCondition to return '`soft_deleted_at` > ?', got %q", cond)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+}
+
+// ── DeletedAtMaxDate tests (max-date sentinel: deleted_at) ───────────────────────
+
+func TestDeletedAtMaxDateIsDeleted(t *testing.T) {
+	sd := &DeletedAtMaxDate{}
+
+	// Default state: DeletedAt is zero time, which is in the past
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true when DeletedAt is zero time (in the past)")
+	}
+
+	// Set to max date (in the future) - not deleted
+	sd.DeletedAt = MaxSoftDeletedAt
+	if sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return false when DeletedAt is MaxSoftDeletedAt")
+	}
+
+	// Set to now - deleted
+	sd.DeletedAt = time.Now()
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true when DeletedAt is now")
+	}
+}
+
+func TestDeletedAtMaxDateSoftDelete(t *testing.T) {
+	sd := &DeletedAtMaxDate{}
+	sd.DeletedAt = MaxSoftDeletedAt
+
+	if sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return false before SoftDelete")
+	}
+
+	sd.SoftDelete()
+
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true after SoftDelete")
+	}
+}
+
+func TestDeletedAtMaxDateRestore(t *testing.T) {
+	sd := &DeletedAtMaxDate{}
+
+	sd.SoftDelete()
+	if !sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return true after SoftDelete")
+	}
+
+	sd.RestoreSoftDeleted()
+	if sd.IsSoftDeleted() {
+		t.Error("Expected IsSoftDeleted to return false after RestoreSoftDeleted")
+	}
+
+	if !sd.DeletedAt.Equal(MaxSoftDeletedAt) {
+		t.Error("Expected DeletedAt to be MaxSoftDeletedAt after RestoreSoftDeleted")
+	}
+}
+
+func TestDeletedAtMaxDateGetSoftDeletedAt(t *testing.T) {
+	sd := &DeletedAtMaxDate{}
+
+	if !sd.GetSoftDeletedAt().IsZero() {
+		t.Error("Expected GetSoftDeletedAt to return zero time initially")
+	}
+
+	sd.DeletedAt = MaxSoftDeletedAt
+
+	if !sd.GetSoftDeletedAt().Equal(MaxSoftDeletedAt) {
+		t.Error("Expected GetSoftDeletedAt to return MaxSoftDeletedAt")
+	}
+}
+
+func TestDeletedAtMaxDateSoftDeletedAtColumn(t *testing.T) {
+	sd := &DeletedAtMaxDate{}
+	if sd.SoftDeletedAtColumn() != "deleted_at" {
+		t.Errorf("Expected 'deleted_at', got %q", sd.SoftDeletedAtColumn())
+	}
+}
+
+func TestDeletedAtMaxDateSoftDeleteStrategyInterface(t *testing.T) {
+	sd := &DeletedAtMaxDate{}
+
+	// Test SoftDeleteValue
+	deleteValue := sd.SoftDeleteValue()
+	if deleteValue == nil {
+		t.Error("Expected SoftDeleteValue to return non-nil")
+	}
+
+	// Test RestoreValue
+	restoreValue := sd.RestoreValue()
+	if !restoreValue.(time.Time).Equal(MaxSoftDeletedAt) {
+		t.Error("Expected RestoreValue to return MaxSoftDeletedAt")
+	}
+
+	// Test SoftDeletedCondition
+	quoteFunc := func(s string) string { return "`" + s + "`" }
+	cond, args := sd.SoftDeletedCondition(quoteFunc)
+	if cond != "`deleted_at` <= ?" {
+		t.Errorf("Expected SoftDeletedCondition to return '`deleted_at` <= ?', got %q", cond)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+
+	// Test NotSoftDeletedCondition
+	cond, args = sd.NotSoftDeletedCondition(quoteFunc)
+	if cond != "`deleted_at` > ?" {
+		t.Errorf("Expected NotSoftDeletedCondition to return '`deleted_at` > ?', got %q", cond)
+	}
+	if len(args) != 1 {
+		t.Errorf("Expected 1 arg, got %d", len(args))
+	}
+}
+
+// ── MaxSoftDeletedAt constant test ─────────────────────────────────────────────
+
+func TestMaxSoftDeletedAt(t *testing.T) {
+	expected := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+	if !MaxSoftDeletedAt.Equal(expected) {
+		t.Errorf("Expected MaxSoftDeletedAt to be %v, got %v", expected, MaxSoftDeletedAt)
+	}
+}

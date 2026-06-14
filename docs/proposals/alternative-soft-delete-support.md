@@ -1,6 +1,6 @@
 # Proposal: Alternative Soft Delete Support (Max-Date Sentinel)
 
-**Status**: Proposed  
+**Status**: Implemented  
 **Date**: June 1, 2026  
 **Author**: Neat ORM Team
 

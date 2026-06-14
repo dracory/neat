@@ -56,9 +56,13 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 		clone := q.Clone().(*Query)
 		clone.includeSoftDeleted = true
 		builder := NewBuilder(clone)
-		now := time.Now()
 		col := getSoftDeleteColumn(q.model)
-		deleteSQL, args = builder.BuildUpdate(map[string]any{col: now})
+		// Check if model implements SoftDeleteStrategy for custom delete value
+		var deleteValue any = time.Now()
+		if strat, ok := q.model.(contractsorm.SoftDeleteStrategy); ok {
+			deleteValue = strat.SoftDeleteValue()
+		}
+		deleteSQL, args = builder.BuildUpdate(map[string]any{col: deleteValue})
 		if deleteSQL == "" {
 			return nil, fmt.Errorf("failed to build SOFT DELETE query")
 		}

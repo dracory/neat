@@ -3,33 +3,50 @@ package query
 import (
 	"fmt"
 	"strings"
+
+	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
 // buildWheresWithSoftDelete prepends the soft-delete condition when the model implements
 // SoftDeleteColumnNamer and neither includeSoftDeleted nor onlySoftDeleted is set.
 func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 	var prefix string
+	var prefixArgs []any
+
 	if hasSoftDeleteCapability(b.query.model) {
-		col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
-		switch {
-		case b.query.onlySoftDeleted:
-			prefix = fmt.Sprintf("%s IS NOT NULL", col)
-		case b.query.includeSoftDeleted:
-			// include all rows — no filter
-		default:
-			prefix = fmt.Sprintf("%s IS NULL", col)
+		// Check if model implements SoftDeleteStrategy for custom WHERE conditions
+		if strat, ok := b.query.model.(contractsorm.SoftDeleteStrategy); ok {
+			switch {
+			case b.query.onlySoftDeleted:
+				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)
+			case b.query.includeSoftDeleted:
+				// include all rows — no filter
+			default:
+				prefix, prefixArgs = strat.NotSoftDeletedCondition(b.quoteIdentifier)
+			}
+		} else {
+			// NULL-based strategy (default)
+			col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
+			switch {
+			case b.query.onlySoftDeleted:
+				prefix = fmt.Sprintf("%s IS NOT NULL", col)
+			case b.query.includeSoftDeleted:
+				// include all rows — no filter
+			default:
+				prefix = fmt.Sprintf("%s IS NULL", col)
+			}
 		}
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, []any{}
+		return prefix, prefixArgs
 	}
 
 	base, args := b.buildWheres()
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, args
+	return prefix + " AND " + base, append(prefixArgs, args...)
 }
 
 // buildWheres builds the WHERE clause from where clauses.
@@ -136,25 +153,50 @@ func (b *Builder) buildWheresWithIndex(startIndex int) (string, []any) {
 // SoftDeleteColumnNamer and neither includeSoftDeleted nor onlySoftDeleted is set, with a starting placeholder index.
 func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any) {
 	var prefix string
+	var prefixArgs []any
+
 	if hasSoftDeleteCapability(b.query.model) {
-		col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
-		switch {
-		case b.query.onlySoftDeleted:
-			prefix = fmt.Sprintf("%s IS NOT NULL", col)
-		case b.query.includeSoftDeleted:
-			// include all rows — no filter
-		default:
-			prefix = fmt.Sprintf("%s IS NULL", col)
+		// Check if model implements SoftDeleteStrategy for custom WHERE conditions
+		if strat, ok := b.query.model.(contractsorm.SoftDeleteStrategy); ok {
+			switch {
+			case b.query.onlySoftDeleted:
+				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)
+			case b.query.includeSoftDeleted:
+				// include all rows — no filter
+			default:
+				prefix, prefixArgs = strat.NotSoftDeletedCondition(b.quoteIdentifier)
+			}
+			// For max-date strategy, we have 1 bind parameter, so startIndex needs adjustment
+			if prefix != "" {
+				// Replace ? with proper placeholder for the soft delete condition
+				placeholderFunc := func(n int) string { return "?" }
+				if b.query.driver != nil {
+					placeholderFunc = b.query.driver.Placeholder
+				}
+				prefix = strings.Replace(prefix, "?", placeholderFunc(startIndex), 1)
+				startIndex++
+			}
+		} else {
+			// NULL-based strategy (default)
+			col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
+			switch {
+			case b.query.onlySoftDeleted:
+				prefix = fmt.Sprintf("%s IS NOT NULL", col)
+			case b.query.includeSoftDeleted:
+				// include all rows — no filter
+			default:
+				prefix = fmt.Sprintf("%s IS NULL", col)
+			}
 		}
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, []any{}
+		return prefix, prefixArgs
 	}
 
 	base, args := b.buildWheresWithIndex(startIndex)
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, args
+	return prefix + " AND " + base, append(prefixArgs, args...)
 }
