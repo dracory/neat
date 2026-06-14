@@ -78,9 +78,9 @@ type Query struct {
 	omitColumns []string
 
 	// Soft delete state
-	withTrashed    bool
-	onlyTrashed    bool
-	withoutTrashed bool
+	includeSoftDeleted    bool
+	onlySoftDeleted    bool
+	excludeSoftDeleted bool
 
 	// Eager loading state
 	withRelations       []string

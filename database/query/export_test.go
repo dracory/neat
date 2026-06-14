@@ -59,8 +59,8 @@ func (w *TestQuery) SetWriteDB(d *sql.DB)           { w.Q.writeDB = d }
 func (w *TestQuery) SetTx(tx *sql.Tx)               { w.Q.tx = tx }
 func (w *TestQuery) SetTable(t string)              { w.Q.table = t }
 func (w *TestQuery) SetModel(m any)                 { w.Q.model = m }
-func (w *TestQuery) SetWithTrashed(v bool)          { w.Q.withTrashed = v }
-func (w *TestQuery) SetOnlyTrashed(v bool)          { w.Q.onlyTrashed = v }
+func (w *TestQuery) SetIncludeSoftDeleted(v bool)          { w.Q.includeSoftDeleted = v }
+func (w *TestQuery) SetOnlySoftDeleted(v bool)          { w.Q.onlySoftDeleted = v }
 func (w *TestQuery) SetDBConfig(cfg *db.DBConfig)   { w.Q.dbConfig = cfg }
 func (w *TestQuery) SetContext(ctx context.Context) { w.Q.ctx = ctx }
 func (w *TestQuery) Context() context.Context       { return w.Q.ctx }

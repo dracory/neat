@@ -50,7 +50,7 @@ func TestPostgreSQLIntegrationSoftDelete(t *testing.T) {
 
 	// Verify the user is found with WithTrashed
 	var foundUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&foundUser)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&foundUser)
 	if err != nil {
 		t.Fatalf("Failed to find soft deleted user with WithTrashed: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestPostgreSQLIntegrationWithTrashed(t *testing.T) {
 
 	// With WithTrashed, should find all users including deleted
 	var allUsers []models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers)
 	if err != nil {
 		t.Fatalf("Failed to find all users with WithTrashed: %v", err)
 	}

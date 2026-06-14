@@ -88,7 +88,7 @@ func TestSQLiteIntegrationQueryToSqlValue(t *testing.T) {
 	db := SetupSQLiteTest(t)
 
 	var name string
-	sql := db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", 1).ToSql().Value("name", &name)
+	sql := db.Query().Model(&models.User{}).WithSoftDeleted().Where("id = ?", 1).ToSql().Value("name", &name)
 	sql = strings.ReplaceAll(sql, "`", "\"")
 	if !strings.Contains(sql, "SELECT name FROM \"users\"") {
 		t.Error("Expected SELECT name FROM \"users\"")

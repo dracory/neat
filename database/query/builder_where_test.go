@@ -286,11 +286,11 @@ func TestBuildWheresWithSoftDelete(t *testing.T) {
 	}
 }
 
-func TestBuildWheresWithSoftDeleteOnlyTrashed(t *testing.T) {
+func TestBuildWheresWithSoftDeleteOnlySoftDeleted(t *testing.T) {
 	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.model = model
-	q = q.OnlyTrashed().(*Query)
+	q = q.OnlySoftDeleted().(*Query)
 	q.Where("name = ?", "Alice")
 	b := NewBuilder(q)
 
@@ -308,11 +308,11 @@ func TestBuildWheresWithSoftDeleteOnlyTrashed(t *testing.T) {
 	}
 }
 
-func TestBuildWheresWithSoftDeleteWithTrashed(t *testing.T) {
+func TestBuildWheresWithSoftDeleteWithSoftDeleted(t *testing.T) {
 	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.model = model
-	q = q.WithTrashed().(*Query)
+	q = q.WithSoftDeleted().(*Query)
 	q.Where("name = ?", "Alice")
 	b := NewBuilder(q)
 

@@ -68,7 +68,7 @@ func TestMySQLIntegrationUpdateOrInsert(t *testing.T) {
 	}
 
 	var user3 models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "insert_struct").First(&user3)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("name = ?", "insert_struct").First(&user3)
 	if err != nil {
 		t.Fatalf("Failed to find inserted struct user: %v", err)
 	}

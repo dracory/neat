@@ -43,10 +43,10 @@ func TestBuildSelectInjectsSoftDeleteFilter(t *testing.T) {
 	}
 }
 
-// TestBuildSelectWithTrashedSkipsFilter verifies WithTrashed() suppresses the filter.
+// TestBuildSelectWithTrashedSkipsFilter verifies WithSoftDeleted() suppresses the filter.
 func TestBuildSelectWithTrashedSkipsFilter(t *testing.T) {
 	w := newSoftQuery(&softModel{})
-	w.SetWithTrashed(true)
+	w.SetIncludeSoftDeleted(true)
 	sqlStr, _ := w.BuildSelectSQL()
 
 	if whereIdx := strings.Index(sqlStr, "WHERE"); whereIdx != -1 {
@@ -57,10 +57,10 @@ func TestBuildSelectWithTrashedSkipsFilter(t *testing.T) {
 	}
 }
 
-// TestBuildSelectOnlyTrashedFilter verifies OnlyTrashed() uses IS NOT NULL.
+// TestBuildSelectOnlyTrashedFilter verifies OnlySoftDeleted() uses IS NOT NULL.
 func TestBuildSelectOnlyTrashedFilter(t *testing.T) {
 	w := newSoftQuery(&softModel{})
-	w.SetOnlyTrashed(true)
+	w.SetOnlySoftDeleted(true)
 	sqlStr, _ := w.BuildSelectSQL()
 
 	if !strings.Contains(sqlStr, "deleted_at IS NOT NULL") {
@@ -136,18 +136,18 @@ func TestSoftDeleteExecution(t *testing.T) {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
-	// Verify record is not found without WithTrashed
+	// Verify record is not found without WithSoftDeleted
 	var notFound softModel
 	err = w.Q.Where("id = ?", created.ID).First(&notFound)
 	if err == nil {
-		t.Error("Expected error when finding soft deleted record without WithTrashed")
+		t.Error("Expected error when finding soft deleted record without WithSoftDeleted")
 	}
 
-	// Verify record is found with WithTrashed
+	// Verify record is found with WithSoftDeleted
 	var found softModel
-	err = w.Q.WithTrashed().Where("id = ?", created.ID).First(&found)
+	err = w.Q.WithSoftDeleted().Where("id = ?", created.ID).First(&found)
 	if err != nil {
-		t.Fatalf("Failed to find soft deleted record with WithTrashed: %v", err)
+		t.Fatalf("Failed to find soft deleted record with WithSoftDeleted: %v", err)
 	}
 
 	if found.ID != created.ID {
@@ -182,8 +182,8 @@ func TestRestoreExecution(t *testing.T) {
 		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
 	}
 
-	// Restore the record with WithTrashed and where condition
-	res, err = w.Q.WithTrashed().Where("name = ?", "user1").RestoreSoftDeleted()
+	// Restore the record with WithSoftDeleted and where condition
+	res, err = w.Q.WithSoftDeleted().Where("name = ?", "user1").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user1: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestForceDeleteExecution(t *testing.T) {
 
 	// Verify record is soft deleted
 	var softDeleted softModel
-	err = w.Q.WithTrashed().Where("id = ?", created.ID).First(&softDeleted)
+	err = w.Q.WithSoftDeleted().Where("id = ?", created.ID).First(&softDeleted)
 	if err != nil {
 		t.Fatalf("Failed to find soft deleted record: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestForceDeleteExecution(t *testing.T) {
 
 	// Verify record is permanently deleted (not found even with WithTrashed)
 	var permanentlyDeleted softModel
-	err = w.Q.WithTrashed().Where("id = ?", created.ID).First(&permanentlyDeleted)
+	err = w.Q.WithSoftDeleted().Where("id = ?", created.ID).First(&permanentlyDeleted)
 	if err == nil {
 		t.Error("Expected error when finding permanently deleted record")
 	}
@@ -313,7 +313,7 @@ func TestSoftDeleteWithRelations(t *testing.T) {
 
 	// Verify parent is soft deleted
 	var deletedParent softModel
-	err = w.Q.WithTrashed().Where("id = ?", parent.ID).First(&deletedParent)
+	err = w.Q.WithSoftDeleted().Where("id = ?", parent.ID).First(&deletedParent)
 	if err != nil {
 		t.Fatalf("Failed to find soft deleted parent: %v", err)
 	}

@@ -169,7 +169,7 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 	// Build UPDATE query to set deleted_at to NULL
 	// Clone the query to preserve WHERE clauses
 	clone := q.Clone().(*Query)
-	clone.withTrashed = true
+	clone.includeSoftDeleted = true
 
 	// If a model instance is provided, extract its ID and add WHERE clause
 	// Clear existing WHERE clauses if model has a non-zero ID to use ID-based restore
@@ -265,9 +265,9 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Build DELETE query (permanent delete, not soft delete)
-	// Use WithTrashed to include soft-deleted records
+	// Use includeSoftDeleted to include soft-deleted records
 	clone := q.Clone().(*Query)
-	clone.withTrashed = true
+	clone.includeSoftDeleted = true
 	builder := NewBuilder(clone)
 	sql, args := builder.BuildDelete()
 	if sql == "" {

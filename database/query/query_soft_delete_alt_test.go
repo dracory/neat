@@ -45,10 +45,10 @@ func TestSoftDeletedAtInjectsSoftDeleteFilter(t *testing.T) {
 	}
 }
 
-// TestSoftDeletedAtWithTrashedSkipsFilter verifies WithTrashed() suppresses the filter.
+// TestSoftDeletedAtWithTrashedSkipsFilter verifies WithSoftDeleted() suppresses the filter.
 func TestSoftDeletedAtWithTrashedSkipsFilter(t *testing.T) {
 	w := newAltSoftQuery(&altSoftModel{})
-	w.SetWithTrashed(true)
+	w.SetIncludeSoftDeleted(true)
 	sqlStr, _ := w.BuildSelectSQL()
 
 	if whereIdx := strings.Index(sqlStr, "WHERE"); whereIdx != -1 {
@@ -59,10 +59,10 @@ func TestSoftDeletedAtWithTrashedSkipsFilter(t *testing.T) {
 	}
 }
 
-// TestSoftDeletedAtOnlyTrashedFilter verifies OnlyTrashed() uses IS NOT NULL.
+// TestSoftDeletedAtOnlyTrashedFilter verifies OnlySoftDeleted() uses IS NOT NULL.
 func TestSoftDeletedAtOnlyTrashedFilter(t *testing.T) {
 	w := newAltSoftQuery(&altSoftModel{})
-	w.SetOnlyTrashed(true)
+	w.SetOnlySoftDeleted(true)
 	sqlStr, _ := w.BuildSelectSQL()
 
 	if !strings.Contains(sqlStr, "soft_deleted_at IS NOT NULL") {
@@ -115,16 +115,16 @@ func TestSoftDeletedAtExecution(t *testing.T) {
 		t.Errorf("expected 1 row affected, got %d", res.RowsAffected)
 	}
 
-	// Record should not be visible without WithTrashed
+	// Record should not be visible without WithSoftDeleted
 	var notFound altSoftModel
 	if err := w.Q.Where("id = ?", before.ID).First(&notFound); err == nil {
 		t.Error("expected record to be hidden after soft delete")
 	}
 
-	// Record should be visible with WithTrashed
+	// Record should be visible with WithSoftDeleted
 	var found altSoftModel
-	if err := w.Q.WithTrashed().Where("id = ?", before.ID).First(&found); err != nil {
-		t.Fatalf("WithTrashed First: %v", err)
+	if err := w.Q.WithSoftDeleted().Where("id = ?", before.ID).First(&found); err != nil {
+		t.Fatalf("WithSoftDeleted First: %v", err)
 	}
 	if found.ID != before.ID {
 		t.Errorf("expected ID %d, got %d", before.ID, found.ID)
@@ -151,7 +151,7 @@ func TestSoftDeletedAtRestoreExecution(t *testing.T) {
 	}
 
 	// Restore
-	res, err := w.Q.WithTrashed().Where("name = ?", "bob").RestoreSoftDeleted()
+	res, err := w.Q.WithSoftDeleted().Where("name = ?", "bob").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Restore: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestSoftDeletedAtRestoreExecution(t *testing.T) {
 		t.Errorf("expected 1 row affected on restore, got %d", res.RowsAffected)
 	}
 
-	// Record should now be visible without WithTrashed
+	// Record should now be visible without WithSoftDeleted
 	var restored altSoftModel
 	if err := w.Q.Where("name = ?", "bob").First(&restored); err != nil {
 		t.Fatalf("First after restore: %v", err)
@@ -194,16 +194,16 @@ func TestCustomColumnExecution(t *testing.T) {
 		t.Errorf("expected 1 row affected, got %d", res.RowsAffected)
 	}
 
-	// Hidden without WithTrashed
+	// Hidden without WithSoftDeleted
 	var notFound customColumnModel
 	if err := w.Q.Where("id = ?", created.ID).First(&notFound); err == nil {
 		t.Error("expected record to be hidden after soft delete")
 	}
 
-	// Visible with OnlyTrashed
+	// Visible with OnlySoftDeleted
 	var trashed customColumnModel
-	if err := w.Q.OnlyTrashed().Where("id = ?", created.ID).First(&trashed); err != nil {
-		t.Fatalf("OnlyTrashed First: %v", err)
+	if err := w.Q.OnlySoftDeleted().Where("id = ?", created.ID).First(&trashed); err != nil {
+		t.Fatalf("OnlySoftDeleted First: %v", err)
 	}
 	if trashed.RemovedAt == nil {
 		t.Error("RemovedAt should be non-nil after soft delete")

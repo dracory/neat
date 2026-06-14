@@ -85,7 +85,7 @@ func TestPostgresIntegrationUpdateOrInsertWithStructInsert(t *testing.T) {
 	}
 
 	var user models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "insert_struct").First(&user)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("name = ?", "insert_struct").First(&user)
 	if err != nil {
 		t.Fatalf("Failed to find inserted struct user: %v", err)
 	}

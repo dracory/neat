@@ -50,11 +50,11 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	var args []any
 	var err error
 
-	if useSoftDelete && !q.withTrashed && !q.onlyTrashed {
+	if useSoftDelete && !q.includeSoftDeleted && !q.onlySoftDeleted {
 		// Use UPDATE to set the soft delete column instead of DELETE
 		// Clone the query to preserve WHERE clauses
 		clone := q.Clone().(*Query)
-		clone.withTrashed = true
+		clone.includeSoftDeleted = true
 		builder := NewBuilder(clone)
 		now := time.Now()
 		col := getSoftDeleteColumn(q.model)
