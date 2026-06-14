@@ -3,47 +3,30 @@ package query
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/observer"
 )
 
-// hasSoftDeleteCapability checks if the model has soft delete capability.
+// hasSoftDeleteCapability checks if the model implements SoftDeleteColumnNamer,
+// which is the interface used to detect soft delete support. Models that embed
+// SoftDeletes or SoftDeletesAlt satisfy this interface automatically via promoted methods.
 func hasSoftDeleteCapability(model any) bool {
 	if model == nil {
 		return false
 	}
+	_, ok := model.(contractsorm.SoftDeleteColumnNamer)
+	return ok
+}
 
-	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+// getSoftDeleteColumn returns the soft delete column name for the given model.
+// Falls back to "deleted_at" if the model does not implement SoftDeleteColumnNamer.
+func getSoftDeleteColumn(model any) string {
+	if namer, ok := model.(contractsorm.SoftDeleteColumnNamer); ok {
+		return namer.DeletedAtColumn()
 	}
-	if val.Kind() != reflect.Struct {
-		return false
-	}
-
-	// Check for DeletedAt field (including embedded fields)
-	deletedAtField := val.FieldByName("DeletedAt")
-	if deletedAtField.IsValid() && deletedAtField.Type() == reflect.TypeOf(&time.Time{}) {
-		return true
-	}
-
-	// Check embedded structs for DeletedAt
-	t := val.Type()
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		if field.Anonymous && field.Type.Kind() == reflect.Struct {
-			embeddedVal := val.Field(i)
-			embeddedDeletedAt := embeddedVal.FieldByName("DeletedAt")
-			if embeddedDeletedAt.IsValid() && embeddedDeletedAt.Type() == reflect.TypeOf(&time.Time{}) {
-				return true
-			}
-		}
-	}
-
-	return false
+	return "deleted_at"
 }
 
 // Delete deletes records from the database.
@@ -68,13 +51,14 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	var err error
 
 	if useSoftDelete && !q.withTrashed && !q.onlyTrashed {
-		// Use UPDATE to set deleted_at instead of DELETE
+		// Use UPDATE to set the soft delete column instead of DELETE
 		// Clone the query to preserve WHERE clauses
 		clone := q.Clone().(*Query)
 		clone.withTrashed = true
 		builder := NewBuilder(clone)
 		now := time.Now()
-		deleteSQL, args = builder.BuildUpdate(map[string]any{"deleted_at": now})
+		col := getSoftDeleteColumn(q.model)
+		deleteSQL, args = builder.BuildUpdate(map[string]any{col: now})
 		if deleteSQL == "" {
 			return nil, fmt.Errorf("failed to build SOFT DELETE query")
 		}

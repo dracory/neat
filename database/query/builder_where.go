@@ -5,18 +5,19 @@ import (
 	"strings"
 )
 
-// buildWheresWithSoftDelete prepends the soft-delete condition when the model has a
-// DeletedAt field and neither WithTrashed nor OnlyTrashed is set.
+// buildWheresWithSoftDelete prepends the soft-delete condition when the model implements
+// SoftDeleteColumnNamer and neither WithTrashed nor OnlyTrashed is set.
 func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 	var prefix string
 	if hasSoftDeleteCapability(b.query.model) {
+		col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
 		switch {
 		case b.query.onlyTrashed:
-			prefix = fmt.Sprintf("%s IS NOT NULL", b.quoteIdentifier("deleted_at"))
+			prefix = fmt.Sprintf("%s IS NOT NULL", col)
 		case b.query.withTrashed:
 			// include all rows — no filter
 		default:
-			prefix = fmt.Sprintf("%s IS NULL", b.quoteIdentifier("deleted_at"))
+			prefix = fmt.Sprintf("%s IS NULL", col)
 		}
 	}
 
@@ -131,18 +132,19 @@ func (b *Builder) buildWheresWithIndex(startIndex int) (string, []any) {
 	return strings.Join(parts, " "), args
 }
 
-// buildWheresWithSoftDeleteIndex prepends the soft-delete condition when the model has a
-// DeletedAt field and neither WithTrashed nor OnlyTrashed is set, with a starting placeholder index.
+// buildWheresWithSoftDeleteIndex prepends the soft-delete condition when the model implements
+// SoftDeleteColumnNamer and neither WithTrashed nor OnlyTrashed is set, with a starting placeholder index.
 func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any) {
 	var prefix string
 	if hasSoftDeleteCapability(b.query.model) {
+		col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
 		switch {
 		case b.query.onlyTrashed:
-			prefix = fmt.Sprintf("%s IS NOT NULL", b.quoteIdentifier("deleted_at"))
+			prefix = fmt.Sprintf("%s IS NOT NULL", col)
 		case b.query.withTrashed:
 			// include all rows — no filter
 		default:
-			prefix = fmt.Sprintf("%s IS NULL", b.quoteIdentifier("deleted_at"))
+			prefix = fmt.Sprintf("%s IS NULL", col)
 		}
 	}
 

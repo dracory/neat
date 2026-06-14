@@ -8,12 +8,16 @@ import (
 	"github.com/dracory/neat/database/query"
 )
 
-// softModel has a *time.Time DeletedAt — detected as soft-deletable.
+// softModel has a *time.Time DeletedAt and implements SoftDeleteColumnNamer.
 type softModel struct {
 	ID        int
 	Name      string
 	DeletedAt *time.Time
 }
+
+// DeletedAtColumn implements SoftDeleteColumnNamer so the query builder applies
+// soft-delete filtering using the "deleted_at" column.
+func (m *softModel) DeletedAtColumn() string { return "deleted_at" }
 
 // hardModel has no DeletedAt — not soft-deletable.
 type hardModel struct {

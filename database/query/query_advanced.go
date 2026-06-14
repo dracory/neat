@@ -202,7 +202,8 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildUpdate(map[string]any{"deleted_at": nil})
+	col := getSoftDeleteColumn(q.model)
+	sql, args := builder.BuildUpdate(map[string]any{col: nil})
 	if sql == "" {
 		return nil, fmt.Errorf("failed to build RESTORE query")
 	}

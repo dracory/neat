@@ -145,10 +145,11 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	}
 
 	// WHERE clauses (with automatic soft-delete filter)
-	// Skip soft-delete filter if we're updating deleted_at column (for soft delete operations)
+	// Skip soft-delete filter if we are updating the soft delete column (for soft delete/restore operations)
 	isSoftDeleteOperation := false
 	if m, ok := column.(map[string]any); ok {
-		if _, hasDeletedAt := m["deleted_at"]; hasDeletedAt {
+		softDeleteCol := getSoftDeleteColumn(b.query.model)
+		if _, hasSoftDeleteCol := m[softDeleteCol]; hasSoftDeleteCol {
 			isSoftDeleteOperation = true
 		}
 	}
