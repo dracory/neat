@@ -9,9 +9,9 @@ import (
 	"github.com/dracory/neat/database/soft_delete"
 )
 
-// altSoftModel embeds SoftDeletesAlt, using "soft_deleted_at" as the column name.
+// altSoftModel embeds SoftDeletedAt, using "soft_deleted_at" as the column name.
 type altSoftModel struct {
-	soft_delete.SoftDeletesAlt
+	soft_delete.SoftDeletedAt
 	ID   int
 	Name string
 }
@@ -34,9 +34,9 @@ func newAltSoftQuery(model any) *query.TestQuery {
 
 // ── SQL generation tests ──────────────────────────────────────────────────────
 
-// TestSoftDeletesAltInjectsSoftDeleteFilter verifies that "soft_deleted_at IS NULL"
-// is injected automatically for models embedding SoftDeletesAlt.
-func TestSoftDeletesAltInjectsSoftDeleteFilter(t *testing.T) {
+// TestSoftDeletedAtInjectsSoftDeleteFilter verifies that "soft_deleted_at IS NULL"
+// is injected automatically for models embedding SoftDeletedAt.
+func TestSoftDeletedAtInjectsSoftDeleteFilter(t *testing.T) {
 	w := newAltSoftQuery(&altSoftModel{})
 	sqlStr, _ := w.BuildSelectSQL()
 
@@ -45,8 +45,8 @@ func TestSoftDeletesAltInjectsSoftDeleteFilter(t *testing.T) {
 	}
 }
 
-// TestSoftDeletesAltWithTrashedSkipsFilter verifies WithTrashed() suppresses the filter.
-func TestSoftDeletesAltWithTrashedSkipsFilter(t *testing.T) {
+// TestSoftDeletedAtWithTrashedSkipsFilter verifies WithTrashed() suppresses the filter.
+func TestSoftDeletedAtWithTrashedSkipsFilter(t *testing.T) {
 	w := newAltSoftQuery(&altSoftModel{})
 	w.SetWithTrashed(true)
 	sqlStr, _ := w.BuildSelectSQL()
@@ -59,8 +59,8 @@ func TestSoftDeletesAltWithTrashedSkipsFilter(t *testing.T) {
 	}
 }
 
-// TestSoftDeletesAltOnlyTrashedFilter verifies OnlyTrashed() uses IS NOT NULL.
-func TestSoftDeletesAltOnlyTrashedFilter(t *testing.T) {
+// TestSoftDeletedAtOnlyTrashedFilter verifies OnlyTrashed() uses IS NOT NULL.
+func TestSoftDeletedAtOnlyTrashedFilter(t *testing.T) {
 	w := newAltSoftQuery(&altSoftModel{})
 	w.SetOnlyTrashed(true)
 	sqlStr, _ := w.BuildSelectSQL()
@@ -88,8 +88,8 @@ func TestCustomColumnModelInjectsFilter(t *testing.T) {
 
 // ── Execution tests (real SQLite) ─────────────────────────────────────────────
 
-// TestSoftDeletesAltExecution tests full soft delete lifecycle with SoftDeletesAlt.
-func TestSoftDeletesAltExecution(t *testing.T) {
+// TestSoftDeletedAtExecution tests full soft delete lifecycle with SoftDeletedAt.
+func TestSoftDeletedAtExecution(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE alt_soft_models (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, soft_deleted_at DATETIME)")
 	w.SetTable("alt_soft_models")
@@ -129,13 +129,13 @@ func TestSoftDeletesAltExecution(t *testing.T) {
 	if found.ID != before.ID {
 		t.Errorf("expected ID %d, got %d", before.ID, found.ID)
 	}
-	if found.SoftDeletedAt == nil {
+	if !found.IsDeleted() {
 		t.Error("SoftDeletedAt should be non-nil after soft delete")
 	}
 }
 
-// TestSoftDeletesAltRestoreExecution tests restoring a soft-deleted record with SoftDeletesAlt.
-func TestSoftDeletesAltRestoreExecution(t *testing.T) {
+// TestSoftDeletedAtRestoreExecution tests restoring a soft-deleted record with SoftDeletedAt.
+func TestSoftDeletedAtRestoreExecution(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE alt_soft_models (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, soft_deleted_at DATETIME)")
 	w.SetTable("alt_soft_models")
@@ -164,7 +164,7 @@ func TestSoftDeletesAltRestoreExecution(t *testing.T) {
 	if err := w.Q.Where("name = ?", "bob").First(&restored); err != nil {
 		t.Fatalf("First after restore: %v", err)
 	}
-	if restored.SoftDeletedAt != nil {
+	if restored.IsDeleted() {
 		t.Error("SoftDeletedAt should be nil after restore")
 	}
 }
@@ -210,10 +210,10 @@ func TestCustomColumnExecution(t *testing.T) {
 	}
 }
 
-// ── Unit tests for SoftDeletesAlt struct methods ──────────────────────────────
+// ── Unit tests for SoftDeletedAt struct methods ──────────────────────────────
 
-func TestSoftDeletesAltMethods(t *testing.T) {
-	sd := &soft_delete.SoftDeletesAlt{}
+func TestSoftDeletedAtMethods(t *testing.T) {
+	sd := &soft_delete.SoftDeletedAt{}
 
 	if sd.DeletedAtColumn() != "soft_deleted_at" {
 		t.Errorf("expected 'soft_deleted_at', got %q", sd.DeletedAtColumn())

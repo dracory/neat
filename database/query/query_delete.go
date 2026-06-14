@@ -11,7 +11,7 @@ import (
 
 // hasSoftDeleteCapability checks if the model implements SoftDeleteColumnNamer,
 // which is the interface used to detect soft delete support. Models that embed
-// SoftDeletes or SoftDeletesAlt satisfy this interface automatically via promoted methods.
+// SoftDeletes or SoftDeletedAt satisfy this interface automatically via promoted methods.
 func hasSoftDeleteCapability(model any) bool {
 	if model == nil {
 		return false

@@ -42,43 +42,43 @@ func (sd *SoftDeletes) GetDeletedAt() *time.Time {
 	return sd.DeletedAt
 }
 
-// SoftDeletesAlt provides soft delete functionality using the "soft_deleted_at" column name.
+// SoftDeletedAt provides soft delete functionality using the "soft_deleted_at" column name.
 // Use this instead of SoftDeletes when your schema uses "soft_deleted_at" for semantic clarity.
 //
 // Example:
 //
 //	type User struct {
-//	    soft_delete.SoftDeletesAlt
+//	    soft_delete.SoftDeletedAt
 //	    ID   uint
 //	    Name string
 //	}
-type SoftDeletesAlt struct {
+type SoftDeletedAt struct {
 	SoftDeletedAt *time.Time `json:"soft_deleted_at,omitempty" db:"soft_deleted_at"`
 }
 
 // DeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
-func (sd *SoftDeletesAlt) DeletedAtColumn() string {
+func (sd *SoftDeletedAt) DeletedAtColumn() string {
 	return "soft_deleted_at"
 }
 
 // IsDeleted returns true if the model has been soft deleted.
-func (sd *SoftDeletesAlt) IsDeleted() bool {
+func (sd *SoftDeletedAt) IsDeleted() bool {
 	return sd.SoftDeletedAt != nil
 }
 
 // Delete marks the model as deleted by setting the soft_deleted_at timestamp.
-func (sd *SoftDeletesAlt) Delete() {
+func (sd *SoftDeletedAt) Delete() {
 	now := time.Now()
 	sd.SoftDeletedAt = &now
 }
 
 // Restore marks the model as not deleted by setting soft_deleted_at to nil.
-func (sd *SoftDeletesAlt) Restore() {
+func (sd *SoftDeletedAt) Restore() {
 	sd.SoftDeletedAt = nil
 }
 
 // GetDeletedAt returns the soft_deleted_at timestamp.
-func (sd *SoftDeletesAlt) GetDeletedAt() *time.Time {
+func (sd *SoftDeletedAt) GetDeletedAt() *time.Time {
 	return sd.SoftDeletedAt
 }

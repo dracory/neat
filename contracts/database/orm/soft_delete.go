@@ -4,10 +4,10 @@ package orm
 // By default, neat uses "deleted_at" as the soft delete column. Implement this interface
 // to override the column name for a given model.
 //
-// Example — using SoftDeletesAlt (built-in soft_deleted_at):
+// Example — using SoftDeletedAt (built-in soft_deleted_at):
 //
 //	type User struct {
-//	    neat.SoftDeletesAlt
+//	    neat.SoftDeletedAt
 //	    ID   uint
 //	    Name string
 //	}
