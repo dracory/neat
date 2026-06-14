@@ -50,7 +50,7 @@ func TestOracleIntegrationSoftDelete(t *testing.T) {
 
 	// Verify the user is found with WithTrashed
 	var foundUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&foundUser)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&foundUser)
 	if err != nil {
 		t.Fatalf("Failed to find soft deleted user with WithTrashed: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestOracleIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt == nil {
+	if foundUser.SoftDeletedAt == nil {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }
@@ -116,7 +116,7 @@ func TestOracleIntegrationWithTrashed(t *testing.T) {
 
 	// With WithTrashed, should find all users including deleted
 	var allUsers []models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers)
 	if err != nil {
 		t.Fatalf("Failed to find all users with WithTrashed: %v", err)
 	}
@@ -159,12 +159,12 @@ func TestOracleIntegrationForceDelete(t *testing.T) {
 
 	// Verify user is soft deleted
 	var softDeletedUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&softDeletedUser)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&softDeletedUser)
 	if err != nil {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
-	if softDeletedUser.DeletedAt == nil {
+	if softDeletedUser.SoftDeletedAt == nil {
 		t.Error("User should be soft deleted")
 	}
 
@@ -180,7 +180,7 @@ func TestOracleIntegrationForceDelete(t *testing.T) {
 
 	// Verify user is permanently deleted (not found even with WithTrashed)
 	var permanentlyDeletedUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&permanentlyDeletedUser)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&permanentlyDeletedUser)
 	if err == nil {
 		t.Error("Expected error when finding permanently deleted user")
 	}
@@ -231,7 +231,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user1 with WithTrashed
-	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
+	res, err = query.Model(&models.User{}).WithSoftDeleted().Where("name = ?", "restore_user1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore user: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user2 using Model method
-	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
+	res, err = query.Model(&models.User{}).WithSoftDeleted().Where("name = ?", "restore_user2").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user with Model: %v", err)
 	}
@@ -251,7 +251,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user3 using model instance
-	res, err = query.Model(&models.User{}).WithTrashed().Restore(&users[2])
+	res, err = query.Model(&models.User{}).WithSoftDeleted().RestoreSoftDeleted(&users[2])
 	if err != nil {
 		t.Fatalf("Failed to restore user instance: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user4
-	res, err = query.Model(&models.User{}).WithTrashed().Restore(&users[3])
+	res, err = query.Model(&models.User{}).WithSoftDeleted().RestoreSoftDeleted(&users[3])
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}
@@ -358,7 +358,7 @@ func TestOracleIntegrationRestoreWithConditions(t *testing.T) {
 	}
 
 	// Restore only users with avatar1
-	res, err = query.Model(&models.User{}).WithTrashed().Where("avatar = ?", "avatar1").Restore(&models.User{})
+	res, err = query.Model(&models.User{}).WithSoftDeleted().Where("avatar = ?", "avatar1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore users: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestOracleIntegrationOnlyTrashed(t *testing.T) {
 
 	// Test OnlyTrashed - should only find the deleted user
 	var deletedUsers []models.User
-	err = query.Model(&models.User{}).OnlyTrashed().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers)
+	err = query.Model(&models.User{}).OnlySoftDeleted().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers)
 	if err != nil {
 		t.Fatalf("Failed to find users with OnlyTrashed: %v", err)
 	}
@@ -454,7 +454,7 @@ func TestOracleIntegrationWithoutTrashed(t *testing.T) {
 
 	// Test WithoutTrashed after WithTrashed
 	var activeUsers []models.User
-	err = query.Model(&models.User{}).WithTrashed().WithoutTrashed().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers)
+	err = query.Model(&models.User{}).WithSoftDeleted().WithoutSoftDeleted().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers)
 	if err != nil {
 		t.Fatalf("Failed to find users with WithoutTrashed: %v", err)
 	}

@@ -7,6 +7,16 @@ import (
 	"time"
 )
 
+// whereTestSoftModel is a package-level type used by builder_where tests.
+// It implements SoftDeleteColumnNamer so the query builder applies soft-delete filtering.
+type whereTestSoftModel struct {
+	ID        int
+	Name      string
+	DeletedAt *time.Time
+}
+
+func (m *whereTestSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
+
 func TestBuildWheres(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.wheres = []whereClause{
@@ -256,13 +266,7 @@ func TestWhereWithNilArgs(t *testing.T) {
 }
 
 func TestBuildWheresWithSoftDelete(t *testing.T) {
-	type SoftDeleteModel struct {
-		ID        int
-		Name      string
-		DeletedAt *time.Time
-	}
-
-	model := &SoftDeleteModel{}
+	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.model = model
 	q.Where("name = ?", "Alice")
@@ -282,17 +286,11 @@ func TestBuildWheresWithSoftDelete(t *testing.T) {
 	}
 }
 
-func TestBuildWheresWithSoftDeleteOnlyTrashed(t *testing.T) {
-	type SoftDeleteModel struct {
-		ID        int
-		Name      string
-		DeletedAt *time.Time
-	}
-
-	model := &SoftDeleteModel{}
+func TestBuildWheresWithSoftDeleteOnlySoftDeleted(t *testing.T) {
+	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.model = model
-	q = q.OnlyTrashed().(*Query)
+	q = q.OnlySoftDeleted().(*Query)
 	q.Where("name = ?", "Alice")
 	b := NewBuilder(q)
 
@@ -310,17 +308,11 @@ func TestBuildWheresWithSoftDeleteOnlyTrashed(t *testing.T) {
 	}
 }
 
-func TestBuildWheresWithSoftDeleteWithTrashed(t *testing.T) {
-	type SoftDeleteModel struct {
-		ID        int
-		Name      string
-		DeletedAt *time.Time
-	}
-
-	model := &SoftDeleteModel{}
+func TestBuildWheresWithSoftDeleteWithSoftDeleted(t *testing.T) {
+	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.model = model
-	q = q.WithTrashed().(*Query)
+	q = q.WithSoftDeleted().(*Query)
 	q.Where("name = ?", "Alice")
 	b := NewBuilder(q)
 
@@ -382,13 +374,7 @@ func TestBuildWheresWithIndex(t *testing.T) {
 }
 
 func TestBuildWheresWithSoftDeleteIndex(t *testing.T) {
-	type SoftDeleteModel struct {
-		ID        int
-		Name      string
-		DeletedAt *time.Time
-	}
-
-	model := &SoftDeleteModel{}
+	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.model = model
 	q.Where("name = ?", "Alice")

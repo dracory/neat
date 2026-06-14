@@ -231,7 +231,7 @@ func createSQLServerTestTables(t *testing.T, db *database.Database) {
 			avatar     NVARCHAR(255) NOT NULL DEFAULT '',
 			bio        NVARCHAR(MAX),
 			votes      INT NOT NULL DEFAULT 0,
-			deleted_at DATETIME2 NULL,
+			soft_deleted_at DATETIME2 NULL,
 			created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
 			updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
 		)`,

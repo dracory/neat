@@ -156,8 +156,8 @@ func (q *Query) Omit(columns ...string) contractsorm.Query {
 	return newQ
 }
 
-// Restore restores a soft-deleted record.
-func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
+// RestoreSoftDeleted restores a soft-deleted record.
+func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
 		attributes := observer.ExtractModelAttributes(model[0])
@@ -169,7 +169,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	// Build UPDATE query to set deleted_at to NULL
 	// Clone the query to preserve WHERE clauses
 	clone := q.Clone().(*Query)
-	clone.withTrashed = true
+	clone.includeSoftDeleted = true
 
 	// If a model instance is provided, extract its ID and add WHERE clause
 	// Clear existing WHERE clauses if model has a non-zero ID to use ID-based restore
@@ -202,7 +202,8 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}
 
 	builder := NewBuilder(clone)
-	sql, args := builder.BuildUpdate(map[string]any{"deleted_at": nil})
+	col := getSoftDeleteColumn(q.model)
+	sql, args := builder.BuildUpdate(map[string]any{col: nil})
 	if sql == "" {
 		return nil, fmt.Errorf("failed to build RESTORE query")
 	}
@@ -246,6 +247,13 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 	}, nil
 }
 
+// Restore restores a soft-deleted record.
+//
+// Deprecated: Use RestoreSoftDeleted() instead.
+func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
+	return q.RestoreSoftDeleted(model...)
+}
+
 // ForceDelete permanently deletes a record (bypasses soft delete).
 func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	// Fire ForceDeleting event if not disabled
@@ -257,9 +265,9 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Build DELETE query (permanent delete, not soft delete)
-	// Use WithTrashed to include soft-deleted records
+	// Use includeSoftDeleted to include soft-deleted records
 	clone := q.Clone().(*Query)
-	clone.withTrashed = true
+	clone.includeSoftDeleted = true
 	builder := NewBuilder(clone)
 	sql, args := builder.BuildDelete()
 	if sql == "" {

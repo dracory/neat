@@ -7,6 +7,16 @@ import (
 	"time"
 )
 
+// updateTestSoftModel is a package-level type used by builder_update tests.
+// It implements SoftDeleteColumnNamer so the query builder applies soft-delete filtering.
+type updateTestSoftModel struct {
+	ID        int
+	Name      string
+	DeletedAt *time.Time
+}
+
+func (m *updateTestSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
+
 func TestBuildUpdate(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	b := NewBuilder(q)
@@ -359,13 +369,7 @@ func TestBuildUpdateSoftDeleteOperation(t *testing.T) {
 }
 
 func TestBuildUpdateNonSoftDeleteOperation(t *testing.T) {
-	type SoftDeleteModel struct {
-		ID        int
-		Name      string
-		DeletedAt *time.Time
-	}
-
-	model := &SoftDeleteModel{}
+	model := &updateTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)
 	q.model = model
 	q.Where("id = ?", 1)

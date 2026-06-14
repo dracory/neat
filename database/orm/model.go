@@ -18,9 +18,42 @@ type ShortID struct {
 	ID string `json:"id" db:"id"`
 }
 
-// SoftDeletes represents a soft delete trait.
+// SoftDeletes represents a soft delete trait using the "soft_deleted_at" column.
+// This is the default — use DeletedAt for Laravel-compatible "deleted_at" column.
 type SoftDeletes struct {
-	DeletedAt sql.NullTime `json:"deleted_at,omitempty"`
+	SoftDeletedAt sql.NullTime `json:"soft_deleted_at,omitempty" db:"soft_deleted_at"`
+}
+
+// SoftDeletedAtColumn returns the soft delete column name used in database queries.
+// Implements the SoftDeleteColumnNamer interface.
+func (sd *SoftDeletes) SoftDeletedAtColumn() string {
+	return "soft_deleted_at"
+}
+
+// DeletedAtColumn returns the soft delete column name used in database queries.
+//
+// Deprecated: Use SoftDeletedAtColumn() instead.
+func (sd *SoftDeletes) DeletedAtColumn() string {
+	return sd.SoftDeletedAtColumn()
+}
+
+// DeletedAt represents a soft delete trait using the "deleted_at" column (Laravel-compatible).
+// Use this when your schema follows the Laravel Eloquent convention.
+type DeletedAt struct {
+	DeletedAt sql.NullTime `json:"deleted_at,omitempty" db:"deleted_at"`
+}
+
+// SoftDeletedAtColumn returns the soft delete column name used in database queries.
+// Implements the SoftDeleteColumnNamer interface.
+func (sd *DeletedAt) SoftDeletedAtColumn() string {
+	return "deleted_at"
+}
+
+// DeletedAtColumn returns the soft delete column name used in database queries.
+//
+// Deprecated: Use SoftDeletedAtColumn() instead.
+func (sd *DeletedAt) DeletedAtColumn() string {
+	return sd.SoftDeletedAtColumn()
 }
 
 // CreatedAt provides only the created timestamp for immutable models.

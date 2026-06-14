@@ -356,7 +356,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 	// Skip SharedLock for Oracle as it doesn't support LOCK IN SHARE MODE
 	if b.query.aggregate == "" && !b.query.isSQLite() {
 		// Oracle doesn't support FOR UPDATE with DISTINCT, GROUP BY, soft delete filters, or LIMIT
-		hasSoftDeleteFilter := hasSoftDeleteCapability(b.query.model) && !b.query.withTrashed && !b.query.onlyTrashed
+		hasSoftDeleteFilter := hasSoftDeleteCapability(b.query.model) && !b.query.includeSoftDeleted && !b.query.onlySoftDeleted
 		hasLimit := b.query.limit != nil
 		if b.query.isOracle() && (b.query.distinct || len(b.query.groups) > 0 || hasSoftDeleteFilter || hasLimit) {
 			// Skip locking clause for Oracle with DISTINCT/GROUP BY/soft delete filter/LIMIT

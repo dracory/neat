@@ -149,7 +149,7 @@ func createPostgresTestTables(t *testing.T, db *database.Database) {
 			avatar     VARCHAR(255) NOT NULL DEFAULT '',
 			bio        TEXT,
 			votes      INTEGER NOT NULL DEFAULT 0,
-			deleted_at TIMESTAMP,
+			soft_deleted_at TIMESTAMP,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,

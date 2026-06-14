@@ -54,9 +54,9 @@ func (q *Query) Clone() contractsorm.Query {
 		clone.offset = &offset
 	}
 
-	clone.withTrashed = q.withTrashed
-	clone.onlyTrashed = q.onlyTrashed
-	clone.withoutTrashed = q.withoutTrashed
+	clone.includeSoftDeleted = q.includeSoftDeleted
+	clone.onlySoftDeleted = q.onlySoftDeleted
+	clone.excludeSoftDeleted = q.excludeSoftDeleted
 	clone.queryLog = q.queryLog
 	clone.rawSQL = q.rawSQL
 	clone.rawArgs = append([]any{}, q.rawArgs...)

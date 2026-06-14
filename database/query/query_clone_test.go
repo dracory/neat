@@ -85,9 +85,9 @@ func TestClonePreservesAllFields(t *testing.T) {
 	q.distinct = true
 	q.lockForUpdate = true
 	q.sharedLock = false
-	q.withTrashed = true
-	q.onlyTrashed = false
-	q.withoutTrashed = false
+	q.includeSoftDeleted = true
+	q.onlySoftDeleted = false
+	q.excludeSoftDeleted = false
 
 	clone := q.Clone().(*Query)
 
@@ -118,13 +118,13 @@ func TestClonePreservesAllFields(t *testing.T) {
 	if clone.sharedLock != q.sharedLock {
 		t.Errorf("Clone sharedLock mismatch")
 	}
-	if clone.withTrashed != q.withTrashed {
-		t.Errorf("Clone withTrashed mismatch")
+	if clone.includeSoftDeleted != q.includeSoftDeleted {
+		t.Errorf("Clone includeSoftDeleted mismatch")
 	}
-	if clone.onlyTrashed != q.onlyTrashed {
-		t.Errorf("Clone onlyTrashed mismatch")
+	if clone.onlySoftDeleted != q.onlySoftDeleted {
+		t.Errorf("Clone onlySoftDeleted mismatch")
 	}
-	if clone.withoutTrashed != q.withoutTrashed {
-		t.Errorf("Clone withoutTrashed mismatch")
+	if clone.excludeSoftDeleted != q.excludeSoftDeleted {
+		t.Errorf("Clone excludeSoftDeleted mismatch")
 	}
 }

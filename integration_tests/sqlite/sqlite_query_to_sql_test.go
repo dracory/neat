@@ -117,8 +117,8 @@ func TestSQLiteIntegrationQueryToSqlDelete(t *testing.T) {
 	sql := query.Table("users").Where("id = ?", 1).ToSql().Delete()
 	sql = strings.ReplaceAll(sql, "`", "\"")
 	if strings.Contains(sql, "UPDATE") {
-		if !strings.Contains(sql, "UPDATE \"users\" SET \"deleted_at\"") {
-			t.Error("Expected UPDATE \"users\" SET \"deleted_at\"")
+		if !strings.Contains(sql, "UPDATE \"users\" SET \"soft_deleted_at\"") {
+			t.Error("Expected UPDATE \"users\" SET \"soft_deleted_at\"")
 		}
 	} else {
 		if !strings.Contains(sql, "DELETE FROM \"users\"") {

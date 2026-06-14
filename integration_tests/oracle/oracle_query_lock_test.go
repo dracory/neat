@@ -94,7 +94,7 @@ func TestOracleConcurrentAccess(t *testing.T) {
 			var result []models.User
 			// Use WithTrashed to bypass soft delete filter so FOR UPDATE works on Oracle
 			// Use Get() instead of First() to avoid LIMIT which Oracle doesn't support with FOR UPDATE
-			err := tx.Model(&models.User{}).WithTrashed().LockForUpdate().Where("id = ?", userID).Get(&result)
+			err := tx.Model(&models.User{}).WithSoftDeleted().LockForUpdate().Where("id = ?", userID).Get(&result)
 			if err != nil {
 				return err
 			}
@@ -105,7 +105,7 @@ func TestOracleConcurrentAccess(t *testing.T) {
 			// Hold the lock for a short duration
 			time.Sleep(200 * time.Millisecond)
 
-			_, err = tx.Model(&models.User{}).WithTrashed().Where("id = ?", userID).Update("name", "updated_by_tx1")
+			_, err = tx.Model(&models.User{}).WithSoftDeleted().Where("id = ?", userID).Update("name", "updated_by_tx1")
 			return err
 		})
 		if err != nil {
@@ -126,7 +126,7 @@ func TestOracleConcurrentAccess(t *testing.T) {
 			// This should block until Goroutine 1 commits
 			// Use WithTrashed to bypass soft delete filter so FOR UPDATE works on Oracle
 			// Use Get() instead of First() to avoid LIMIT which Oracle doesn't support with FOR UPDATE
-			err := tx.Model(&models.User{}).WithTrashed().LockForUpdate().Where("id = ?", userID).Get(&result)
+			err := tx.Model(&models.User{}).WithSoftDeleted().LockForUpdate().Where("id = ?", userID).Get(&result)
 			if err != nil {
 				return err
 			}
@@ -136,7 +136,7 @@ func TestOracleConcurrentAccess(t *testing.T) {
 			if result[0].Name != "updated_by_tx1" {
 				t.Errorf("Expected 'updated_by_tx1', got '%s'", result[0].Name)
 			}
-			_, err = tx.Model(&models.User{}).WithTrashed().Where("id = ?", userID).Update("name", "updated_by_tx2")
+			_, err = tx.Model(&models.User{}).WithSoftDeleted().Where("id = ?", userID).Update("name", "updated_by_tx2")
 			return err
 		})
 		if err != nil {

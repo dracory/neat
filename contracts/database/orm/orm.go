@@ -518,12 +518,16 @@ type Query interface {
 	// Example:
 	//   query.Raw("SELECT * FROM users WHERE status = ?", "active")
 	Raw(sql string, values ...any) Query
-	// Restore restores a soft deleted model.
-	// Sets the deleted_at timestamp to NULL for the specified model(s).
+	// RestoreSoftDeleted restores a soft-deleted model.
+	// Sets the soft-delete timestamp column to NULL for the specified model(s).
 	// Returns the number of rows affected and any error.
 	//
 	// Example:
-	//   result, err := query.Where("id = ?", 1).Restore()
+	//   result, err := query.Where("id = ?", 1).RestoreSoftDeleted()
+	RestoreSoftDeleted(model ...any) (*Result, error)
+	// Restore restores a soft-deleted model.
+	//
+	// Deprecated: Use RestoreSoftDeleted() instead.
 	Restore(model ...any) (*Result, error)
 	// Rollback rolls back the current transaction.
 	// All changes made in the transaction are discarded.
@@ -939,27 +943,38 @@ type Query interface {
 	// Example:
 	//   query.WithoutEvents().Save(&user)
 	WithoutEvents() Query
-	// OnlyTrashed includes only soft deleted models in the results.
-	// Filters results to only include records where deleted_at is not NULL.
+	// OnlySoftDeleted returns only soft-deleted records in the results.
+	// Filters results to only include records where the soft-delete column is not NULL.
 	// Returns the query instance for method chaining.
 	//
 	// Example:
-	//   query.OnlyTrashed().Find(&users)
+	//   query.OnlySoftDeleted().Find(&users)
+	OnlySoftDeleted() Query
+	// OnlyTrashed returns only soft-deleted records in the results.
+	//
+	// Deprecated: Use OnlySoftDeleted() instead.
 	OnlyTrashed() Query
-	// WithTrashed includes soft deleted models in the results.
-	// By default, soft deleted records are excluded.
-	// This method includes them in the results.
+	// WithSoftDeleted includes soft-deleted records in the results.
+	// By default, soft-deleted records are excluded.
 	// Returns the query instance for method chaining.
 	//
 	// Example:
-	//   query.WithTrashed().Find(&users)
+	//   query.WithSoftDeleted().Find(&users)
+	WithSoftDeleted() Query
+	// WithTrashed includes soft-deleted records in the results.
+	//
+	// Deprecated: Use WithSoftDeleted() instead.
 	WithTrashed() Query
-	// WithoutTrashed excludes soft deleted models from the results.
-	// This is the default behavior, but can be used to reset WithTrashed.
+	// WithoutSoftDeleted excludes soft-deleted records from the results (default behavior).
+	// Can be used to explicitly reset a previous WithSoftDeleted() call.
 	// Returns the query instance for method chaining.
 	//
 	// Example:
-	//   query.WithTrashed().WithoutTrashed().Find(&users)
+	//   query.WithSoftDeleted().WithoutSoftDeleted().Find(&users)
+	WithoutSoftDeleted() Query
+	// WithoutTrashed excludes soft-deleted records from the results.
+	//
+	// Deprecated: Use WithoutSoftDeleted() instead.
 	WithoutTrashed() Query
 	// With eager loads the specified relationships.
 	// The query parameter specifies the relationship name(s) to load.

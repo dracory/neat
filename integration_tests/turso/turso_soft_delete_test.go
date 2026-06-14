@@ -50,7 +50,7 @@ func TestTursoIntegrationSoftDelete(t *testing.T) {
 
 	// Verify the user is found with WithTrashed
 	var foundUser models.User
-	err = query.Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&foundUser)
+	err = query.Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&foundUser)
 	if err != nil {
 		t.Fatalf("Failed to find soft deleted user with WithTrashed: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestTursoIntegrationSoftDelete(t *testing.T) {
 		t.Errorf("Expected user ID %d, got %d", createdUser.ID, foundUser.ID)
 	}
 
-	if foundUser.DeletedAt == nil || foundUser.DeletedAt.IsZero() {
+	if foundUser.SoftDeletedAt == nil || foundUser.SoftDeletedAt.IsZero() {
 		t.Error("DeletedAt should be set for soft deleted user")
 	}
 }
@@ -107,7 +107,7 @@ func TestTursoIntegrationWithTrashed(t *testing.T) {
 
 	// With WithTrashed, should find all users including deleted
 	var allUsers []models.User
-	if err := db.Query().Model(&models.User{}).WithTrashed().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers); err != nil {
+	if err := db.Query().Model(&models.User{}).WithSoftDeleted().Where("name LIKE ?", "with_trashed_user%").Find(&allUsers); err != nil {
 		t.Fatalf("Failed to find all users with WithTrashed: %v", err)
 	}
 
@@ -148,11 +148,11 @@ func TestTursoIntegrationForceDelete(t *testing.T) {
 
 	// Verify user is soft deleted
 	var softDeletedUser models.User
-	if err := db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&softDeletedUser); err != nil {
+	if err := db.Query().Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&softDeletedUser); err != nil {
 		t.Fatalf("Failed to find soft deleted user: %v", err)
 	}
 
-	if softDeletedUser.DeletedAt == nil || softDeletedUser.DeletedAt.IsZero() {
+	if softDeletedUser.SoftDeletedAt == nil || softDeletedUser.SoftDeletedAt.IsZero() {
 		t.Error("User should be soft deleted")
 	}
 
@@ -168,7 +168,7 @@ func TestTursoIntegrationForceDelete(t *testing.T) {
 
 	// Verify user is permanently deleted (not found even with WithTrashed)
 	var permanentlyDeletedUser models.User
-	err = db.Query().Model(&models.User{}).WithTrashed().Where("id = ?", createdUser.ID).First(&permanentlyDeletedUser)
+	err = db.Query().Model(&models.User{}).WithSoftDeleted().Where("id = ?", createdUser.ID).First(&permanentlyDeletedUser)
 	if err == nil {
 		t.Error("Expected error when finding permanently deleted user")
 	}
@@ -218,7 +218,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user1 with WithTrashed
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
+	res, err = db.Query().Model(&models.User{}).WithSoftDeleted().Where("name = ?", "restore_user1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore user: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user2 using Model method
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
+	res, err = db.Query().Model(&models.User{}).WithSoftDeleted().Where("name = ?", "restore_user2").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user with Model: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user3 using model instance
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[2])
+	res, err = db.Query().Model(&models.User{}).WithSoftDeleted().RestoreSoftDeleted(&users[2])
 	if err != nil {
 		t.Fatalf("Failed to restore user instance: %v", err)
 	}
@@ -248,7 +248,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user4
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[3])
+	res, err = db.Query().Model(&models.User{}).WithSoftDeleted().RestoreSoftDeleted(&users[3])
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}
@@ -297,7 +297,7 @@ func TestTursoIntegrationOnlyTrashed(t *testing.T) {
 
 	// Test OnlyTrashed - should only find the deleted user
 	deletedUsers := make([]models.User, 0)
-	if err := db.Query().Model(&models.User{}).OnlyTrashed().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers); err != nil {
+	if err := db.Query().Model(&models.User{}).OnlySoftDeleted().Where("name LIKE ?", "only_trashed_user%").Find(&deletedUsers); err != nil {
 		t.Fatalf("Failed to find users with OnlyTrashed: %v", err)
 	}
 
@@ -339,7 +339,7 @@ func TestTursoIntegrationWithoutTrashed(t *testing.T) {
 
 	// Test WithoutTrashed after WithTrashed
 	activeUsers := make([]models.User, 0)
-	if err := db.Query().Model(&models.User{}).WithTrashed().WithoutTrashed().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers); err != nil {
+	if err := db.Query().Model(&models.User{}).WithSoftDeleted().WithoutSoftDeleted().Where("name LIKE ?", "without_trashed_user%").Find(&activeUsers); err != nil {
 		t.Fatalf("Failed to find users with WithoutTrashed: %v", err)
 	}
 

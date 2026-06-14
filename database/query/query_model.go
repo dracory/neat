@@ -31,9 +31,9 @@ func (q *Query) Model(value any) contractsorm.Query {
 	q.sharedLock = false
 	q.omitColumns = nil
 	// Don't reset soft delete state as it may be intentionally set
-	// q.withTrashed = false
-	// q.onlyTrashed = false
-	// q.withoutTrashed = false
+	// q.includeSoftDeleted = false
+	// q.onlySoftDeleted = false
+	// q.excludeSoftDeleted = false
 	q.withRelations = nil
 	q.relationConstraints = nil
 	q.withCountQueries = nil
