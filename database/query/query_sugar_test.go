@@ -381,13 +381,6 @@ func TestFindAsVar(t *testing.T) {
 
 	w.SetTable("users")
 
-	type User struct {
-		ID    int
-		Name  string
-		Email string
-		Age   int
-	}
-
 	// Test FindAsVar with conditions
 	usersAny, err := w.Q.Where("age > ?", 25).FindAsVar()
 	if err != nil {
