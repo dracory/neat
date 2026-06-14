@@ -342,15 +342,15 @@ func (s *SoftDeletesMaxDate) RestoreValue() any {
 	return MaxSoftDeletedAt
 }
 
-// IsDeletedCondition returns the SQL fragment + args for the "only deleted" filter.
+// SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
-func (s *SoftDeletesMaxDate) IsDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
+func (s *SoftDeletesMaxDate) SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
 	return quoteIdentifier("soft_deleted_at") + " <= ?", []any{time.Now()}
 }
 
-// IsActiveCondition returns the SQL fragment + args for the "not deleted" filter.
+// NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
-func (s *SoftDeletesMaxDate) IsActiveCondition(quoteIdentifier func(string) string) (string, []any) {
+func (s *SoftDeletesMaxDate) NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
 	return quoteIdentifier("soft_deleted_at") + " > ?", []any{time.Now()}
 }
 
@@ -446,14 +446,14 @@ func (s *DeletedAtMaxDate) RestoreValue() any {
 	return MaxSoftDeletedAt
 }
 
-// IsDeletedCondition returns the SQL fragment + args for the "only deleted" filter.
+// SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
-func (s *DeletedAtMaxDate) IsDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
+func (s *DeletedAtMaxDate) SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
 	return quoteIdentifier("deleted_at") + " <= ?", []any{time.Now()}
 }
 
-// IsActiveCondition returns the SQL fragment + args for the "not deleted" filter.
+// NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
 // Implements the SoftDeleteStrategy interface.
-func (s *DeletedAtMaxDate) IsActiveCondition(quoteIdentifier func(string) string) (string, []any) {
+func (s *DeletedAtMaxDate) NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any) {
 	return quoteIdentifier("deleted_at") + " > ?", []any{time.Now()}
 }

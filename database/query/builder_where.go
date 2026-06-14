@@ -18,11 +18,11 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 		if strat, ok := b.query.model.(contractsorm.SoftDeleteStrategy); ok {
 			switch {
 			case b.query.onlySoftDeleted:
-				prefix, prefixArgs = strat.IsDeletedCondition(b.quoteIdentifier)
+				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)
 			case b.query.includeSoftDeleted:
 				// include all rows — no filter
 			default:
-				prefix, prefixArgs = strat.IsActiveCondition(b.quoteIdentifier)
+				prefix, prefixArgs = strat.NotSoftDeletedCondition(b.quoteIdentifier)
 			}
 		} else {
 			// NULL-based strategy (default)
@@ -160,11 +160,11 @@ func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any)
 		if strat, ok := b.query.model.(contractsorm.SoftDeleteStrategy); ok {
 			switch {
 			case b.query.onlySoftDeleted:
-				prefix, prefixArgs = strat.IsDeletedCondition(b.quoteIdentifier)
+				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)
 			case b.query.includeSoftDeleted:
 				// include all rows — no filter
 			default:
-				prefix, prefixArgs = strat.IsActiveCondition(b.quoteIdentifier)
+				prefix, prefixArgs = strat.NotSoftDeletedCondition(b.quoteIdentifier)
 			}
 			// For max-date strategy, we have 1 bind parameter, so startIndex needs adjustment
 			if prefix != "" {

@@ -397,20 +397,20 @@ func TestSoftDeletesMaxDateSoftDeleteStrategyInterface(t *testing.T) {
 		t.Error("Expected RestoreValue to return MaxSoftDeletedAt")
 	}
 
-	// Test IsDeletedCondition
+	// Test SoftDeletedCondition
 	quoteFunc := func(s string) string { return "`" + s + "`" }
-	cond, args := sd.IsDeletedCondition(quoteFunc)
+	cond, args := sd.SoftDeletedCondition(quoteFunc)
 	if cond != "`soft_deleted_at` <= ?" {
-		t.Errorf("Expected IsDeletedCondition to return '`soft_deleted_at` <= ?', got %q", cond)
+		t.Errorf("Expected SoftDeletedCondition to return '`soft_deleted_at` <= ?', got %q", cond)
 	}
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg, got %d", len(args))
 	}
 
-	// Test IsActiveCondition
-	cond, args = sd.IsActiveCondition(quoteFunc)
+	// Test NotSoftDeletedCondition
+	cond, args = sd.NotSoftDeletedCondition(quoteFunc)
 	if cond != "`soft_deleted_at` > ?" {
-		t.Errorf("Expected IsActiveCondition to return '`soft_deleted_at` > ?', got %q", cond)
+		t.Errorf("Expected NotSoftDeletedCondition to return '`soft_deleted_at` > ?', got %q", cond)
 	}
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg, got %d", len(args))
@@ -509,20 +509,20 @@ func TestDeletedAtMaxDateSoftDeleteStrategyInterface(t *testing.T) {
 		t.Error("Expected RestoreValue to return MaxSoftDeletedAt")
 	}
 
-	// Test IsDeletedCondition
+	// Test SoftDeletedCondition
 	quoteFunc := func(s string) string { return "`" + s + "`" }
-	cond, args := sd.IsDeletedCondition(quoteFunc)
+	cond, args := sd.SoftDeletedCondition(quoteFunc)
 	if cond != "`deleted_at` <= ?" {
-		t.Errorf("Expected IsDeletedCondition to return '`deleted_at` <= ?', got %q", cond)
+		t.Errorf("Expected SoftDeletedCondition to return '`deleted_at` <= ?', got %q", cond)
 	}
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg, got %d", len(args))
 	}
 
-	// Test IsActiveCondition
-	cond, args = sd.IsActiveCondition(quoteFunc)
+	// Test NotSoftDeletedCondition
+	cond, args = sd.NotSoftDeletedCondition(quoteFunc)
 	if cond != "`deleted_at` > ?" {
-		t.Errorf("Expected IsActiveCondition to return '`deleted_at` > ?', got %q", cond)
+		t.Errorf("Expected NotSoftDeletedCondition to return '`deleted_at` > ?', got %q", cond)
 	}
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg, got %d", len(args))

@@ -31,7 +31,7 @@ type SoftDeleteColumnNamer interface {
 // The SoftDeleteStrategy interface extends SoftDeleteColumnNamer to provide
 // complete control over soft delete behavior, including the values used for
 // soft delete and restore operations, as well as the SQL conditions for
-// filtering active and deleted records.
+// filtering active and soft deleted records.
 //
 // This is used by the max-date sentinel strategy (SoftDeletesMaxDate) where
 // records are soft-deleted when their timestamp is in the past (<= current time),
@@ -41,10 +41,10 @@ type SoftDeleteColumnNamer interface {
 //
 //	func (s *MyModel) SoftDeleteValue() any { return time.Now() }
 //	func (s *MyModel) RestoreValue() any     { return MaxSoftDeletedAt }
-//	func (s *MyModel) IsDeletedCondition(q func(string) string) (string, []any) {
+//	func (s *MyModel) SoftDeletedCondition(q func(string) string) (string, []any) {
 //	    return q("soft_deleted_at") + " <= ?", []any{time.Now()}
 //	}
-//	func (s *MyModel) IsActiveCondition(q func(string) string) (string, []any) {
+//	func (s *MyModel) NotSoftDeletedCondition(q func(string) string) (string, []any) {
 //	    return q("soft_deleted_at") + " > ?", []any{time.Now()}
 //	}
 type SoftDeleteStrategy interface {
@@ -53,8 +53,8 @@ type SoftDeleteStrategy interface {
 	SoftDeleteValue() any
 	// RestoreValue returns the value to write on restore.
 	RestoreValue() any
-	// IsDeletedCondition returns the SQL fragment + args for the "only deleted" filter.
-	IsDeletedCondition(quoteIdentifier func(string) string) (string, []any)
-	// IsActiveCondition returns the SQL fragment + args for the "not deleted" filter.
-	IsActiveCondition(quoteIdentifier func(string) string) (string, []any)
+	// SoftDeletedCondition returns the SQL fragment + args for the "only soft deleted" filter.
+	SoftDeletedCondition(quoteIdentifier func(string) string) (string, []any)
+	// NotSoftDeletedCondition returns the SQL fragment + args for the "not soft deleted" filter.
+	NotSoftDeletedCondition(quoteIdentifier func(string) string) (string, []any)
 }
