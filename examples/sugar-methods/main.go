@@ -8,14 +8,26 @@ import (
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
-// This example demonstrates sugar methods for Django and Sequelize compatibility
+// User represents a user model
+type User struct {
+	ID    uint   `gorm:"primaryKey"`
+	Name  string `gorm:"size:255"`
+	Email string `gorm:"size:255;uniqueIndex"`
+	Age   int
+}
+
+// TableName specifies the table name for User model
+func (User) TableName() string {
+	return "users"
+}
+
 func main() {
-	if err := RunExample("sqlite://./sugar_methods.db"); err != nil {
+	if err := RunExample("sqlite://./sugar-methods-example.db"); err != nil {
 		log.Fatalf("Example failed: %v", err)
 	}
 }
 
-// RunExample demonstrates Django-style and Sequelize-style sugar methods
+// RunExample demonstrates all sugar methods
 func RunExample(dsn string) error {
 	db, err := neat.NewFromDSN(dsn)
 	if err != nil {
@@ -23,134 +35,168 @@ func RunExample(dsn string) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create products table for the example
-	err = db.Schema().Create("products", func(blueprint schema.Blueprint) {
+	// Create users table
+	err = db.Schema().Create("users", func(blueprint schema.Blueprint) {
 		blueprint.ID()
 		blueprint.String("name")
-		blueprint.String("category")
-		blueprint.Integer("price")
-		blueprint.String("status")
-		blueprint.Timestamp("created_at")
+		blueprint.String("email")
+		blueprint.Integer("age")
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create products table: %w", err)
+		return fmt.Errorf("failed to create users table: %w", err)
 	}
 
-	// Seed data
-	products := []map[string]any{
-		{"name": "Laptop", "category": "Electronics", "price": 1200, "status": "active", "created_at": "2026-01-01 10:00:00"},
-		{"name": "Mouse", "category": "Electronics", "price": 25, "status": "active", "created_at": "2026-01-02 10:00:00"},
-		{"name": "Desk", "category": "Furniture", "price": 300, "status": "active", "created_at": "2026-01-03 10:00:00"},
-		{"name": "Chair", "category": "Furniture", "price": 150, "status": "inactive", "created_at": "2026-01-04 10:00:00"},
-		{"name": "Monitor", "category": "Electronics", "price": 400, "status": "active", "created_at": "2026-01-05 10:00:00"},
+	// Create sample users
+	sampleUsers := []User{
+		{Name: "Alice", Email: "alice@example.com", Age: 25},
+		{Name: "Bob", Email: "bob@example.com", Age: 30},
+		{Name: "Charlie", Email: "charlie@example.com", Age: 35},
+		{Name: "Diana", Email: "diana@example.com", Age: 28},
+		{Name: "Eve", Email: "eve@example.com", Age: 32},
 	}
 
-	for _, product := range products {
-		if err := db.Query().Table("products").Create(product); err != nil {
-			return fmt.Errorf("failed to seed product: %w", err)
+	for _, user := range sampleUsers {
+		err := db.Query().Table("users").Create(user)
+		if err != nil {
+			return fmt.Errorf("failed to create user: %w", err)
 		}
 	}
-	fmt.Println("=== Seeded 5 products ===")
 
-	// ============================
-	// Django-style Sugar Methods
-	// ============================
+	fmt.Println("=== Sugar Methods Examples ===\n")
 
-	fmt.Println("\n=== Django-style: Filter() ===")
-	// Filter is an alias for Where
-	var electronics []map[string]any
-	err = db.Query().Table("products").Filter("category = ?", "Electronics").All(&electronics)
+	// Example 1: CountAsVar - Count records
+	fmt.Println("1. CountAsVar - Count total users:")
+	count, err := db.Query().Table("users").CountAsVar()
 	if err != nil {
-		return fmt.Errorf("Filter failed: %w", err)
+		return fmt.Errorf("CountAsVar failed: %w", err)
 	}
-	fmt.Printf("Found %d electronics using Filter():\n", len(electronics))
-	for _, p := range electronics {
-		fmt.Printf("  - %s ($%d)\n", p["name"], p["price"])
-	}
+	fmt.Printf("   Total users: %d\n\n", count)
 
-	fmt.Println("\n=== Django-style: Exclude() ===")
-	// Exclude is an alias for WhereNot
-	var nonFurniture []map[string]any
-	err = db.Query().Table("products").Exclude("category = ?", "Furniture").All(&nonFurniture)
+	// Example 2: SumAsVar - Sum column values
+	fmt.Println("2. SumAsVar - Sum of all ages:")
+	totalAge, err := db.Query().Table("users").SumAsVar("age")
 	if err != nil {
-		return fmt.Errorf("Exclude failed: %w", err)
+		return fmt.Errorf("SumAsVar failed: %w", err)
 	}
-	fmt.Printf("Found %d non-furniture products using Exclude():\n", len(nonFurniture))
-	for _, p := range nonFurniture {
-		fmt.Printf("  - %s (%s)\n", p["name"], p["category"])
-	}
+	fmt.Printf("   Total age: %.0f\n\n", totalAge)
 
-	fmt.Println("\n=== Django-style: All() ===")
-	// All is an alias for Get
-	var allProducts []map[string]any
-	err = db.Query().Table("products").All(&allProducts)
+	// Example 3: AvgAsVar - Average of column values
+	fmt.Println("3. AvgAsVar - Average age:")
+	avgAge, err := db.Query().Table("users").AvgAsVar("age")
 	if err != nil {
-		return fmt.Errorf("All failed: %w", err)
+		return fmt.Errorf("AvgAsVar failed: %w", err)
 	}
-	fmt.Printf("Found %d total products using All()\n", len(allProducts))
+	fmt.Printf("   Average age: %.1f\n\n", avgAge)
 
-	// ============================
-	// Sequelize-style Sugar Methods
-	// ============================
-
-	fmt.Println("\n=== Sequelize-style: FindAll() ===")
-	// FindAll is an alias for All/Get
-	var activeProducts []map[string]any
-	err = db.Query().Table("products").Filter("status = ?", "active").FindAll(&activeProducts)
+	// Example 4: MinAsVar - Minimum value
+	fmt.Println("4. MinAsVar - Minimum age:")
+	minAge, err := db.Query().Table("users").MinAsVar("age")
 	if err != nil {
-		return fmt.Errorf("FindAll failed: %w", err)
+		return fmt.Errorf("MinAsVar failed: %w", err)
 	}
-	fmt.Printf("Found %d active products using FindAll():\n", len(activeProducts))
-	for _, p := range activeProducts {
-		fmt.Printf("  - %s\n", p["name"])
-	}
+	fmt.Printf("   Minimum age: %.0f\n\n", minAge)
 
-	fmt.Println("\n=== Sequelize-style: FindOne() ===")
-	// FindOne is an alias for First
-	var firstProduct map[string]any
-	err = db.Query().Table("products").OrderBy("id").FindOne(&firstProduct)
+	// Example 5: MaxAsVar - Maximum value
+	fmt.Println("5. MaxAsVar - Maximum age:")
+	maxAge, err := db.Query().Table("users").MaxAsVar("age")
 	if err != nil {
-		return fmt.Errorf("FindOne failed: %w", err)
+		return fmt.Errorf("MaxAsVar failed: %w", err)
 	}
-	fmt.Printf("First product using FindOne(): %s\n", firstProduct["name"])
+	fmt.Printf("   Maximum age: %.0f\n\n", maxAge)
 
-	fmt.Println("\n=== Sequelize-style: Destroy() ===")
-	// Destroy is an alias for Delete
-	// First, let's add a product to destroy
-	err = db.Query().Table("products").Create(map[string]any{
-		"name": "Temporary", "category": "Test", "price": 1, "status": "inactive", "created_at": "2026-01-06 10:00:00",
-	})
+	// Example 6: ExistsAsVar - Check if records exist
+	fmt.Println("6. ExistsAsVar - Check if users over 30 exist:")
+	exists, err := db.Query().Table("users").Where("age > ?", 30).ExistsAsVar()
 	if err != nil {
-		return fmt.Errorf("failed to create temporary product: %w", err)
+		return fmt.Errorf("ExistsAsVar failed: %w", err)
 	}
+	fmt.Printf("   Users over 30 exist: %t\n\n", exists)
 
-	result, err := db.Query().Table("products").Where("name = ?", "Temporary").Destroy()
+	// Example 7: PluckAsVar - Get single column values
+	fmt.Println("7. PluckAsVar - Get all email addresses:")
+	emailsAny, err := db.Query().Table("users").PluckAsVar("email")
 	if err != nil {
-		return fmt.Errorf("Destroy failed: %w", err)
+		return fmt.Errorf("PluckAsVar failed: %w", err)
 	}
-	fmt.Printf("Destroyed %d product(s) using Destroy()\n", result.RowsAffected)
+	fmt.Println("   Emails:")
+	for _, emailAny := range emailsAny {
+		if email, ok := emailAny.(string); ok {
+			fmt.Printf("   - %s\n", email)
+		}
+	}
+	fmt.Println()
 
-	// ============================
-	// Chaining Example
-	// ============================
-
-	fmt.Println("\n=== Chaining Django + Sequelize Methods ===")
-	var expensiveElectronics []map[string]any
-	err = db.Query().
-		Table("products").
-		Filter("category = ?", "Electronics").      // Django-style
-		Filter("price > ?", 100).                    // Django-style
-		Filter("status = ?", "active").               // Django-style
-		OrderBy("price", "desc").
-		FindAll(&expensiveElectronics)               // Sequelize-style
+	// Example 8: ValueAsVar - Get single column value from first record
+	fmt.Println("8. ValueAsVar - Get email of first user:")
+	emailAny, err := db.Query().Table("users").Where("age = ?", 25).ValueAsVar("email")
 	if err != nil {
-		return fmt.Errorf("chained query failed: %w", err)
+		return fmt.Errorf("ValueAsVar failed: %w", err)
 	}
-	fmt.Printf("Found %d expensive active electronics:\n", len(expensiveElectronics))
-	for _, p := range expensiveElectronics {
-		fmt.Printf("  - %s ($%d)\n", p["name"], p["price"])
-	}
+	email := emailAny.(string)
+	fmt.Printf("   Email: %s\n\n", email)
 
-	fmt.Println("\n=== Sugar Methods Example Complete ===")
+	// Example 9: FirstAsVar - Get first record
+	fmt.Println("9. FirstAsVar - Get first user over 25:")
+	userAny, err := db.Query().Table("users").Where("age > ?", 25).FirstAsVar()
+	if err != nil {
+		return fmt.Errorf("FirstAsVar failed: %w", err)
+	}
+	user := userAny.(User)
+	fmt.Printf("   User: %s (Age: %d)\n\n", user.Name, user.Age)
+
+	// Example 10: FindOneAsVar - Alias for FirstAsVar
+	fmt.Println("10. FindOneAsVar - Find one user (Sequelize-style):")
+	userAny, err = db.Query().Table("users").Where("name = ?", "Bob").FindOneAsVar()
+	if err != nil {
+		return fmt.Errorf("FindOneAsVar failed: %w", err)
+	}
+	user = userAny.(User)
+	fmt.Printf("    User: %s (Age: %d)\n\n", user.Name, user.Age)
+
+	// Example 11: GetAsVar - Get all records
+	fmt.Println("11. GetAsVar - Get all users over 28:")
+	usersAny, err := db.Query().Table("users").Where("age > ?", 28).GetAsVar()
+	if err != nil {
+		return fmt.Errorf("GetAsVar failed: %w", err)
+	}
+	fmt.Println("    Users:")
+	for _, userAny := range usersAny {
+		if user, ok := userAny.(User); ok {
+			fmt.Printf("    - %s (Age: %d)\n", user.Name, user.Age)
+		}
+	}
+	fmt.Println()
+
+	// Example 12: AllAsVar - Alias for GetAsVar (Django-style)
+	fmt.Println("12. AllAsVar - Get all users (Django-style):")
+	usersAny, err = db.Query().Table("users").AllAsVar()
+	if err != nil {
+		return fmt.Errorf("AllAsVar failed: %w", err)
+	}
+	fmt.Printf("    Total users: %d\n\n", len(usersAny))
+
+	// Example 13: FindAllAsVar - Alias for GetAsVar (Sequelize-style)
+	fmt.Println("13. FindAllAsVar - Find all users (Sequelize-style):")
+	usersAny, err = db.Query().Table("users").FindAllAsVar()
+	if err != nil {
+		return fmt.Errorf("FindAllAsVar failed: %w", err)
+	}
+	fmt.Printf("    Total users: %d\n\n", len(usersAny))
+
+	// Example 14: FindAsVar - Find with conditions
+	fmt.Println("14. FindAsVar - Find users with conditions:")
+	usersAny, err = db.Query().Table("users").FindAsVar("age BETWEEN ? AND ?", 28, 35)
+	if err != nil {
+		return fmt.Errorf("FindAsVar failed: %w", err)
+	}
+	fmt.Println("    Users aged 28-35:")
+	for _, userAny := range usersAny {
+		if user, ok := userAny.(User); ok {
+			fmt.Printf("    - %s (Age: %d)\n", user.Name, user.Age)
+		}
+	}
+	fmt.Println()
+
+	fmt.Println("=== All Examples Completed Successfully ===")
 	return nil
 }

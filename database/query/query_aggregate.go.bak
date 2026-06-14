@@ -1,4 +1,4 @@
-package query
+﻿package query
 
 import (
 	"database/sql"
@@ -438,68 +438,4 @@ func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
 	}
 
 	return fmt.Errorf("unsupported destination type for PLUCK: %T", dest)
-}
-
-// CountAsVar returns the number of records matching the query as a variable.
-// This is a convenience method that wraps Count for improved usability.
-func (q *Query) CountAsVar() (int64, error) {
-	var count int64
-	err := q.Count(&count)
-	return count, err
-}
-
-// SumAsVar returns the sum of the specified column as a variable.
-// This is a convenience method that wraps Sum for improved usability.
-func (q *Query) SumAsVar(column string) (float64, error) {
-	var result float64
-	err := q.Sum(column, &result)
-	return result, err
-}
-
-// AvgAsVar returns the average of the specified column as a variable.
-// This is a convenience method that wraps Avg for improved usability.
-func (q *Query) AvgAsVar(column string) (float64, error) {
-	var result float64
-	err := q.Avg(column, &result)
-	return result, err
-}
-
-// MinAsVar returns the minimum value of the specified column as a variable.
-// This is a convenience method that wraps Min for improved usability.
-func (q *Query) MinAsVar(column string) (float64, error) {
-	var result float64
-	err := q.Min(column, &result)
-	return result, err
-}
-
-// MaxAsVar returns the maximum value of the specified column as a variable.
-// This is a convenience method that wraps Max for improved usability.
-func (q *Query) MaxAsVar(column string) (float64, error) {
-	var result float64
-	err := q.Max(column, &result)
-	return result, err
-}
-
-// ExistsAsVar checks if any records match the query and returns the result as a variable.
-// This is a convenience method that wraps Exists for improved usability.
-func (q *Query) ExistsAsVar() (bool, error) {
-	var exists bool
-	err := q.Exists(&exists)
-	return exists, err
-}
-
-// PluckAsVar retrieves a single column's values from the query results as a variable.
-// This is a convenience method that wraps Pluck for improved usability.
-func (q *Query) PluckAsVar(column string) ([]any, error) {
-	var result []any
-	err := q.Pluck(column, &result)
-	return result, err
-}
-
-// ValueAsVar retrieves a single column's value from the first result as a variable.
-// This is a convenience method that wraps Value for improved usability.
-func (q *Query) ValueAsVar(column string) (any, error) {
-	var result any
-	err := q.Value(column, &result)
-	return result, err
 }

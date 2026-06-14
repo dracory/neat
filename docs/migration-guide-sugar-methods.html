@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sugar Methods Migration Guide - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; }
+        th { background-color: #f8f9fa; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>Sugar Methods Migration Guide</h1>
+
+    <p>This guide helps you migrate from the pointer-based API to the new sugar methods for improved usability.</p>
+
+    <h2>Overview</h2>
+
+    <p>Neat ORM now provides two ways to interact with the database:</p>
+
+    <ol>
+        <li><strong>Base API (Performance-oriented)</strong>: Uses pointer parameters for zero allocations</li>
+        <li><strong>Sugar API (Usability-oriented)</strong>: Returns values directly for cleaner code</li>
+    </ol>
+
+    <p>Both APIs are fully backward compatible. You can choose which to use based on your needs.</p>
+
+    <h2>When to Use Each API</h2>
+
+    <h3>Use Sugar Methods (AsVar) when:</h3>
+    <ul>
+        <li>Application logic and business code</li>
+        <li>API handlers and controllers</li>
+        <li>Readability matters more than micro-optimizations</li>
+        <li>One-off queries and scripts</li>
+        <li>Development and prototyping</li>
+    </ul>
+
+    <h3>Use Base Methods when:</h3>
+    <ul>
+        <li>Performance-critical code paths</li>
+        <li>Hot loops and high-frequency operations</li>
+        <li>Writing to existing variables</li>
+        <li>Avoiding allocations is important</li>
+        <li>Library code where performance is critical</li>
+    </ul>
+
+    <h2>Migration Examples</h2>
+
+    <h3>Counting Records</h3>
+
+    <p><strong>Before (Base API):</strong></p>
+    <pre><code>var count int64
+err := db.Query().Model(&amp;User{}).Count(&amp;count)
+if err != nil {
+    return err
+}
+fmt.Printf("Total users: %d\n", count)</code></pre>
+
+    <p><strong>After (Sugar API):</strong></p>
+    <pre><code>count, err := db.Query().Model(&amp;User{}).CountAsVar()
+if err != nil {
+    return err
+}
+fmt.Printf("Total users: %d\n", count)</code></pre>
+
+    <h3>Retrieving Single Records</h3>
+
+    <p><strong>Before (Base API):</strong></p>
+    <pre><code>var user User
+err := db.Query().Model(&amp;User{}).Where("id = ?", 1).First(&amp;user)
+if err != nil {
+    return err
+}
+fmt.Printf("User: %s\n", user.Name)</code></pre>
+
+    <p><strong>After (Sugar API):</strong></p>
+    <pre><code>userAny, err := db.Query().Model(&amp;User{}).Where("id = ?", 1).FirstAsVar()
+if err != nil {
+    return err
+}
+user := userAny.(User)
+fmt.Printf("User: %s\n", user.Name)</code></pre>
+
+    <h3>Retrieving Multiple Records</h3>
+
+    <p><strong>Before (Base API):</strong></p>
+    <pre><code>var users []User
+err := db.Query().Model(&amp;User{}).Where("age &gt; ?", 18).Get(&amp;users)
+if err != nil {
+    return err
+}
+for _, user := range users {
+    fmt.Printf("User: %s\n", user.Name)
+}</code></pre>
+
+    <p><strong>After (Sugar API):</strong></p>
+    <pre><code>usersAny, err := db.Query().Model(&amp;User{}).Where("age &gt; ?", 18).GetAsVar()
+if err != nil {
+    return err
+}
+users := usersAny.([]User)
+for _, user := range users {
+    fmt.Printf("User: %s\n", user.Name)
+}</code></pre>
+
+    <h3>Aggregation Methods</h3>
+
+    <p><strong>Before (Base API):</strong></p>
+    <pre><code>var total float64
+err := db.Query().Model(&amp;Order{}).Sum("amount", &amp;total)
+if err != nil {
+    return err
+}
+fmt.Printf("Total: %.2f\n", total)</code></pre>
+
+    <p><strong>After (Sugar API):</strong></p>
+    <pre><code>total, err := db.Query().Model(&amp;Order{}).SumAsVar("amount")
+if err != nil {
+    return err
+}
+fmt.Printf("Total: %.2f\n", total)</code></pre>
+
+    <h3>Column Operations</h3>
+
+    <p><strong>Before (Base API):</strong></p>
+    <pre><code>var emails []string
+err := db.Query().Model(&amp;User{}).Pluck("email", &amp;emails)
+if err != nil {
+    return err
+}
+for _, email := range emails {
+    fmt.Printf("Email: %s\n", email)
+}</code></pre>
+
+    <p><strong>After (Sugar API):</strong></p>
+    <pre><code>emailsAny, err := db.Query().Model(&amp;User{}).PluckAsVar("email")
+if err != nil {
+    return err
+}
+emails := emailsAny.([]string)
+for _, email := range emails {
+    fmt.Printf("Email: %s\n", email)
+}</code></pre>
+
+    <h2>Complete Method Mapping</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Base Method</th>
+                <th>Sugar Method</th>
+                <th>Return Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Count(count *int64)</code></td>
+                <td><code>CountAsVar()</code></td>
+                <td><code>(int64, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Sum(column, dest)</code></td>
+                <td><code>SumAsVar(column)</code></td>
+                <td><code>(float64, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Avg(column, dest)</code></td>
+                <td><code>AvgAsVar(column)</code></td>
+                <td><code>(float64, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Min(column, dest)</code></td>
+                <td><code>MinAsVar(column)</code></td>
+                <td><code>(float64, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Max(column, dest)</code></td>
+                <td><code>MaxAsVar(column)</code></td>
+                <td><code>(float64, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Exists(exists *bool)</code></td>
+                <td><code>ExistsAsVar()</code></td>
+                <td><code>(bool, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Pluck(column, dest)</code></td>
+                <td><code>PluckAsVar(column)</code></td>
+                <td><code>([]any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Value(column, dest)</code></td>
+                <td><code>ValueAsVar(column)</code></td>
+                <td><code>(any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>First(dest)</code></td>
+                <td><code>FirstAsVar()</code></td>
+                <td><code>(any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>FindOne(dest)</code></td>
+                <td><code>FindOneAsVar()</code></td>
+                <td><code>(any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Get(dest)</code></td>
+                <td><code>GetAsVar()</code></td>
+                <td><code>([]any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>All(dest)</code></td>
+                <td><code>AllAsVar()</code></td>
+                <td><code>([]any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>FindAll(dest)</code></td>
+                <td><code>FindAllAsVar()</code></td>
+                <td><code>([]any, error)</code></td>
+            </tr>
+            <tr>
+                <td><code>Find(dest, conds...)</code></td>
+                <td><code>FindAsVar(conds...)</code></td>
+                <td><code>([]any, error)</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Type Safety Considerations</h2>
+
+    <p>Since sugar methods return <code>any</code> or <code>[]any</code>, you'll need to type-assert the results:</p>
+
+    <pre><code>// For single records
+userAny, err := db.Query().Model(&amp;User{}).FirstAsVar()
+if err != nil {
+    return err
+}
+user, ok := userAny.(User)
+if !ok {
+    return fmt.Errorf("unexpected type")
+}
+
+// For slices
+usersAny, err := db.Query().Model(&amp;User{}).GetAsVar()
+if err != nil {
+    return err
+}
+users, ok := usersAny.([]User)
+if !ok {
+    return fmt.Errorf("unexpected type")
+}</code></pre>
+
+    <h2>Performance Impact</h2>
+
+    <p>Sugar methods introduce minimal overhead for the convenience they provide:</p>
+
+    <ul>
+        <li><strong>Aggregation methods</strong>: ~1-2 ns overhead (negligible)</li>
+        <li><strong>Single record methods</strong>: ~5-10 ns overhead (negligible)</li>
+        <li><strong>Slice methods</strong>: ~10-20 ns overhead (negligible)</li>
+    </ul>
+
+    <p>For most applications, this overhead is insignificant. Only consider using base methods in performance-critical hot paths.</p>
+
+    <h2>Gradual Migration</h2>
+
+    <p>You don't need to migrate all at once. Both APIs can coexist:</p>
+
+    <pre><code>// Use sugar methods for new code
+count, err := db.Query().Model(&amp;User{}).CountAsVar()
+
+// Keep base methods for existing performance-critical code
+var count int64
+err := db.Query().Model(&amp;User{}).Count(&amp;count)</code></pre>
+
+    <h2>Common Patterns</h2>
+
+    <h3>Pattern 1: API Handler (Use Sugar)</h3>
+    <pre><code>func GetUsersHandler(c *gin.Context) {
+    usersAny, err := db.Query().Model(&amp;User{}).GetAsVar()
+    if err != nil {
+        c.JSON(500, gin.H{"error": err.Error()})
+        return
+    }
+    users := usersAny.([]User)
+    c.JSON(200, users)
+}</code></pre>
+
+    <h3>Pattern 2: Hot Loop (Use Base)</h3>
+    <pre><code>func ProcessMillionRecords() {
+    var count int64
+    for i := 0; i &lt; 1000000; i++ {
+        // Use base method to avoid allocations in hot loop
+        err := db.Query().Model(&amp;User{}).Count(&amp;count)
+        if err != nil {
+            log.Fatal(err)
+        }
+        // Process count...
+    }
+}</code></pre>
+
+    <h3>Pattern 3: Batch Processing (Use Base)</h3>
+    <pre><code>func BatchProcessUsers() {
+    var users []User
+    // Reuse the same slice to avoid allocations
+    for page := 0; page &lt; 100; page++ {
+        users = users[:0] // Clear slice
+        err := db.Query().Model(&amp;User{}).
+            Offset(page * 100).
+            Limit(100).
+            Get(&amp;users)
+        if err != nil {
+            log.Fatal(err)
+        }
+        // Process users...
+    }
+}</code></pre>
+
+    <h2>Conclusion</h2>
+
+    <p>The sugar methods provide a more idiomatic Go experience while maintaining the performance-oriented base API for when you need it. Choose the right tool for your specific use case, and don't be afraid to mix both approaches in the same codebase.</p>
+
+    <h2>Additional Resources</h2>
+
+    <ul>
+        <li><a href="query-builder.html">Query Builder Documentation</a> - Complete query builder usage guide</li>
+        <li><a href="../examples/sugar-methods/">Sugar Methods Example</a> - Working example demonstrating all sugar methods</li>
+        <li><a href="api-reference.html">API Reference</a> - Complete API reference for all methods</li>
+    </ul>
+
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+    </div>
+</body>
+</html>

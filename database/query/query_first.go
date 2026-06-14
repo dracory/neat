@@ -160,3 +160,17 @@ func (q *Query) FirstOrNew(dest any, attributes any, values ...any) error {
 
 	return nil
 }
+
+// FirstAsVar retrieves the first record matching the query as a variable.
+// This is a convenience method that wraps First for improved usability.
+func (q *Query) FirstAsVar() (any, error) {
+	var result any
+	err := q.First(&result)
+	return result, err
+}
+
+// FindOneAsVar is an alias for FirstAsVar, providing Sequelize-style syntax.
+// Retrieves the first record matching the query as a variable.
+func (q *Query) FindOneAsVar() (any, error) {
+	return q.FirstAsVar()
+}

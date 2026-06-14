@@ -19,6 +19,7 @@ This directory contains examples demonstrating various use cases of the neat Go 
 - **[json-queries](./json-queries/)** - JSON column querying capabilities
 - **[seeders](./seeders/)** - Database seeding examples
 - **[transactions](./transactions/)** - Transaction handling patterns
+- **[sugar-methods](./sugar-methods/)** - Convenience methods for improved API usability (AsVar methods)
 
 ## Soft Delete Strategies
 

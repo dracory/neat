@@ -92,3 +92,23 @@ func (q *Query) All(dest any) error {
 func (q *Query) FindAll(dest any) error {
 	return q.All(dest)
 }
+
+// GetAsVar retrieves all records matching the query as a variable.
+// This is a convenience method that wraps Get for improved usability.
+func (q *Query) GetAsVar() ([]any, error) {
+	var result []any
+	err := q.Get(&result)
+	return result, err
+}
+
+// AllAsVar is an alias for GetAsVar, providing Django-style syntax.
+// Retrieves all records matching the query as a variable.
+func (q *Query) AllAsVar() ([]any, error) {
+	return q.GetAsVar()
+}
+
+// FindAllAsVar is an alias for GetAsVar, providing Sequelize-style syntax.
+// Retrieves all records matching the query as a variable.
+func (q *Query) FindAllAsVar() ([]any, error) {
+	return q.GetAsVar()
+}

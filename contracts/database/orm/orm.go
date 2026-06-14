@@ -219,6 +219,13 @@ type Query interface {
 	//   err := query.Find(&users, "age > ?", 18)
 	Find(dest any, conds ...any) error
 
+	// FindAsVar retrieves records matching the given conditions as a variable.
+	// This is a convenience method that wraps Find for improved usability.
+	//
+	// Example:
+	//   users, err := query.FindAsVar[User]("age > ?", 18)
+	FindAsVar(conds ...any) ([]any, error)
+
 	// FindOrFail finds records that match given conditions or returns an error.
 	// Similar to Find, but returns an error if no records are found.
 	// The dest parameter must be a pointer to a slice (e.g., *[]User).
@@ -249,6 +256,19 @@ type Query interface {
 	//   var user User
 	//   err := query.Where("email = ?", "test@example.com").FindOne(&user)
 	FindOne(dest any) error
+
+	// FirstAsVar retrieves the first record matching the query as a variable.
+	// This is a convenience method that wraps First for improved usability.
+	//
+	// Example:
+	//   user, err := query.Where("email = ?", "test@example.com").FirstAsVar[User]()
+	FirstAsVar() (any, error)
+	// FindOneAsVar is an alias for FirstAsVar, providing Sequelize-style syntax.
+	// Retrieves the first record matching the query as a variable.
+	//
+	// Example:
+	//   user, err := query.Where("email = ?", "test@example.com").FindOneAsVar[User]()
+	FindOneAsVar() (any, error)
 
 	// FirstOrCreate finds the first record matching the given attributes,
 	// or creates a new one with those attributes if none was found.
@@ -335,6 +355,25 @@ type Query interface {
 	//   var users []User
 	//   err := query.FindAll(&users)
 	FindAll(dest any) error
+
+	// GetAsVar retrieves all records matching the query as a variable.
+	// This is a convenience method that wraps Get for improved usability.
+	//
+	// Example:
+	//   users, err := query.Where("age > ?", 18).GetAsVar[User]()
+	GetAsVar() ([]any, error)
+	// AllAsVar is an alias for GetAsVar, providing Django-style syntax.
+	// Retrieves all records matching the query as a variable.
+	//
+	// Example:
+	//   users, err := query.Filter("age > ?", 18).AllAsVar[User]()
+	AllAsVar() ([]any, error)
+	// FindAllAsVar is an alias for GetAsVar, providing Sequelize-style syntax.
+	// Retrieves all records matching the query as a variable.
+	//
+	// Example:
+	//   users, err := query.FindAllAsVar[User]()
+	FindAllAsVar() ([]any, error)
 
 	// Group specifies a GROUP BY clause for the query.
 	// Groups results by the specified column or expression.
@@ -718,6 +757,54 @@ type Query interface {
 	//   var total float64
 	//   err := query.Sum("price", &total)
 	Sum(column string, dest any) error
+	// CountAsVar returns the number of records matching the query as a variable.
+	// This is a convenience method that wraps Count for improved usability.
+	//
+	// Example:
+	//   count, err := query.CountAsVar()
+	CountAsVar() (int64, error)
+	// SumAsVar returns the sum of the specified column as a variable.
+	// This is a convenience method that wraps Sum for improved usability.
+	//
+	// Example:
+	//   total, err := query.SumAsVar("price")
+	SumAsVar(column string) (float64, error)
+	// AvgAsVar returns the average of the specified column as a variable.
+	// This is a convenience method that wraps Avg for improved usability.
+	//
+	// Example:
+	//   avg, err := query.AvgAsVar("price")
+	AvgAsVar(column string) (float64, error)
+	// MinAsVar returns the minimum value of the specified column as a variable.
+	// This is a convenience method that wraps Min for improved usability.
+	//
+	// Example:
+	//   min, err := query.MinAsVar("price")
+	MinAsVar(column string) (float64, error)
+	// MaxAsVar returns the maximum value of the specified column as a variable.
+	// This is a convenience method that wraps Max for improved usability.
+	//
+	// Example:
+	//   max, err := query.MaxAsVar("price")
+	MaxAsVar(column string) (float64, error)
+	// ExistsAsVar checks if any records match the query and returns the result as a variable.
+	// This is a convenience method that wraps Exists for improved usability.
+	//
+	// Example:
+	//   exists, err := query.Where("email = ?", "test@example.com").ExistsAsVar()
+	ExistsAsVar() (bool, error)
+	// PluckAsVar retrieves a single column's values from the query results as a variable.
+	// This is a convenience method that wraps Pluck for improved usability.
+	//
+	// Example:
+	//   emails, err := query.PluckAsVar[string]("email")
+	PluckAsVar(column string) ([]any, error)
+	// ValueAsVar retrieves a single column's value from the first result as a variable.
+	// This is a convenience method that wraps Value for improved usability.
+	//
+	// Example:
+	//   email, err := query.ValueAsVar[string]("email")
+	ValueAsVar(column string) (any, error)
 	// Table specifies the table name for the query.
 	// If the model is set via Model(), this is typically not needed.
 	// Args can be used for table aliases or dynamic table names.

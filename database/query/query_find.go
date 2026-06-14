@@ -65,3 +65,11 @@ func (q *Query) FindOrFail(dest any, conds ...any) error {
 	}
 	return nil
 }
+
+// FindAsVar retrieves records matching the given conditions as a variable.
+// This is a convenience method that wraps Find for improved usability.
+func (q *Query) FindAsVar(conds ...any) ([]any, error) {
+	var result []any
+	err := q.Find(&result, conds...)
+	return result, err
+}

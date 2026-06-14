@@ -1,96 +1,101 @@
-# Sugar Methods Compatibility Example
+# Sugar Methods Examples
 
-This example demonstrates the sugar methods for Django and Sequelize compatibility, which provide familiar API patterns for developers coming from Python (Django) and JavaScript (Sequelize) backgrounds.
+This directory contains comprehensive examples demonstrating the new sugar methods in Neat ORM.
 
-## Features Demonstrated
+## Overview
 
-### Django-style Methods
-- `Filter()` - Alias for `Where()`, provides Django QuerySet-style filtering
-- `Exclude()` - Alias for `WhereNot()`, provides Django QuerySet-style exclusion
-- `All()` - Alias for `Get()`, provides Django QuerySet-style retrieval
+Sugar methods provide a more convenient, idiomatic Go API by returning values directly instead of requiring pointer parameters. This reduces boilerplate and improves code readability while maintaining the existing performance-oriented API for when you need it.
 
-### Sequelize-style Methods
-- `FindAll()` - Alias for `All()`/`Get()`, provides Sequelize-style retrieval
-- `FindOne()` - Alias for `First()`, provides Sequelize-style single record retrieval
-- `Destroy()` - Alias for `Delete()`, provides Sequelize-style deletion
-
-### Method Aliases Chain
-```
-Django:    Filter() -> Where()
-           Exclude() -> WhereNot()
-           All() -> Get()
-
-Sequelize: FindAll() -> All() -> Get()
-           FindOne() -> First()
-           Destroy() -> Delete()
-```
-
-## Running the Example
+## Running the Examples
 
 ```bash
 cd examples/sugar-methods
 go run main.go
 ```
 
-## Prerequisites
+## What's Demonstrated
 
-- SQLite database (default) or any supported database
-- Neat ORM package installed
+This example demonstrates all 14 sugar methods:
 
-## Example Output
+### Aggregation Methods
+1. **CountAsVar()** - Count records matching the query
+2. **SumAsVar(column)** - Sum of column values
+3. **AvgAsVar(column)** - Average of column values
+4. **MinAsVar(column)** - Minimum value in column
+5. **MaxAsVar(column)** - Maximum value in column
+6. **ExistsAsVar()** - Check if any records match the query
 
-```
-=== Seeded 5 products ===
+### Column Operations
+7. **PluckAsVar(column)** - Retrieve single column values as a slice
+8. **ValueAsVar(column)** - Retrieve single column value from first record
 
-=== Django-style: Filter() ===
-Found 3 electronics using Filter():
-  - Laptop ($1200)
-  - Mouse ($25)
-  - Monitor ($400)
+### Retrieval Methods
+9. **FirstAsVar()** - Retrieve first record matching the query
+10. **FindOneAsVar()** - Alias for FirstAsVar (Sequelize-style)
+11. **GetAsVar()** - Retrieve all records matching the query
+12. **AllAsVar()** - Alias for GetAsVar (Django-style)
+13. **FindAllAsVar()** - Alias for GetAsVar (Sequelize-style)
+14. **FindAsVar(conds...)** - Retrieve records with conditions
 
-=== Django-style: Exclude() ===
-Found 3 non-furniture products using Exclude():
-  - Laptop (Electronics)
-  - Mouse (Electronics)
-  - Monitor (Electronics)
+## Comparison: Base API vs Sugar API
 
-=== Django-style: All() ===
-Found 5 total products using All()
-
-=== Sequelize-style: FindAll() ===
-Found 4 active products using FindAll():
-  - Laptop
-  - Mouse
-  - Desk
-  - Monitor
-
-=== Sequelize-style: FindOne() ===
-First product using FindOne(): Laptop
-
-=== Sequelize-style: Destroy() ===
-Destroyed 1 product(s) using Destroy()
-
-=== Chaining Django + Sequelize Methods ===
-Found 2 expensive active electronics:
-  - Laptop ($1200)
-  - Monitor ($400)
+### Base API (Performance-oriented)
+```go
+var count int64
+err := db.Query().Model(&User{}).Count(&count)
 ```
 
-## Compatibility Notes
+### Sugar API (Usability-oriented)
+```go
+count, err := db.Query().Model(&User{}).CountAsVar()
+```
 
-All sugar methods are **aliases** - they simply call the underlying Neat methods:
+## Type Safety
 
-| Sugar Method | Neat Method | Origin |
-|--------------|-------------|--------|
-| `Filter()` | `Where()` | Django |
-| `Exclude()` | `WhereNot()` | Django |
-| `All()` | `Get()` | Django |
-| `FindAll()` | `All()` → `Get()` | Sequelize |
-| `FindOne()` | `First()` | Sequelize |
-| `Destroy()` | `Delete()` | Sequelize |
+Since sugar methods return `any` or `[]any`, you'll need to type-assert the results:
 
-This means:
-- All existing Neat functionality is preserved
-- No performance overhead - just method delegation
-- You can mix Laravel, Django, and Sequelize styles in the same query
-- All methods work with the same query builder features (ordering, limits, etc.)
+```go
+// For single records
+userAny, err := db.Query().Model(&User{}).FirstAsVar()
+if err != nil {
+    return err
+}
+user := userAny.(User)
+
+// For slices
+usersAny, err := db.Query().Model(&User{}).GetAsVar()
+if err != nil {
+    return err
+}
+users := usersAny.([]User)
+```
+
+## When to Use Sugar Methods
+
+**Use sugar methods when:**
+- Application logic and business code
+- API handlers and controllers
+- Readability matters more than micro-optimizations
+- One-off queries and scripts
+- Development and prototyping
+
+**Use base methods when:**
+- Performance-critical code paths
+- Hot loops and high-frequency operations
+- Writing to existing variables
+- Avoiding allocations is important
+
+## Performance Impact
+
+Sugar methods introduce minimal overhead:
+- Aggregation methods: ~1-2 ns overhead
+- Single record methods: ~5-10 ns overhead
+- Slice methods: ~10-20 ns overhead
+
+For most applications, this overhead is insignificant.
+
+## Learn More
+
+- [Migration Guide](../../docs/migration-guide-sugar-methods.md) - Detailed guide for migrating existing code
+- [API Reference](../../docs/api-reference.html) - Complete API documentation
+- [Query Builder Documentation](../../docs/query-builder.html) - Query builder usage guide
