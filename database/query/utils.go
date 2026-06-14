@@ -492,6 +492,7 @@ func applyAttributes(dest any, attributes any) error {
 // - Identifiers with parentheses (function calls)
 // - Identifiers starting with numbers
 // - Empty strings
+// - SQL keywords (to prevent injection attempts)
 func isSimpleIdentifier(s string) bool {
 	if s == "" {
 		return false
@@ -513,6 +514,29 @@ func isSimpleIdentifier(s string) bool {
 		isDigit := r >= '0' && r <= '9'
 		isUnderscore := r == '_'
 		if !isLetter && !isDigit && !isUnderscore {
+			return false
+		}
+	}
+
+	// Reject SQL keywords to prevent injection attempts
+	// This is especially important for Oracle ID retrieval where table names
+	// are extracted from SQL strings and used in subsequent queries
+	upperS := strings.ToUpper(s)
+	sqlKeywords := []string{
+		"SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "CREATE",
+		"ALTER", "TRUNCATE", "REPLACE", "MERGE", "UNION", "EXCEPT",
+		"INTERSECT", "WHERE", "FROM", "JOIN", "INNER", "OUTER",
+		"LEFT", "RIGHT", "FULL", "CROSS", "ON", "USING", "AND",
+		"OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS",
+		"NULL", "TRUE", "FALSE", "CASE", "WHEN", "THEN", "ELSE",
+		"END", "GROUP", "HAVING", "ORDER", "BY", "LIMIT", "OFFSET",
+		"DISTINCT", "ALL", "AS", "TABLE", "VIEW", "INDEX", "TRIGGER",
+		"PROCEDURE", "FUNCTION", "DATABASE", "SCHEMA", "GRANT", "REVOKE",
+		"EXEC", "EXECUTE", "DUAL", "SYSDATE", "SYSTIMESTAMP",
+	}
+
+	for _, keyword := range sqlKeywords {
+		if upperS == keyword {
 			return false
 		}
 	}
