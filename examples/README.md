@@ -10,6 +10,14 @@ This directory contains examples demonstrating various use cases of the neat Go 
 - **[configuration](./configuration/)** - Various configuration options for database connections
 - **[migrations](./migrations/)** - Database migration examples with relationships and constraints
 - **[advanced-queries](./advanced-queries/)** - Advanced query builder features (joins, aggregations, subqueries)
+- **[soft-deletes](./soft-deletes/)** - NULL-based soft delete functionality
+- **[max-date-soft-delete](./max-date-soft-delete/)** - Max-date sentinel soft delete strategy for NOT NULL compatibility
+- **[associations](./associations/)** - Model relationships (BelongsTo, HasMany, HasOne)
+- **[observers](./observers/)** - Model lifecycle event observers
+- **[factory](./factory/)** - Model factory patterns for testing
+- **[json-queries](./json-queries/)** - JSON column querying capabilities
+- **[seeders](./seeders/)** - Database seeding examples
+- **[transactions](./transactions/)** - Transaction handling patterns
 
 ## Running Examples
 
