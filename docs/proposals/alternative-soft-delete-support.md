@@ -569,43 +569,39 @@ if user.IsSoftDeleted() {
 
 ---
 
-## Open Questions
+## Design Decisions
 
-1. **New record initialization** — **Resolved: the ORM should automatically set
-   `SoftDeletedAt = MaxSoftDeletedAt` during `Insert`** when the model implements
+All questions raised during proposal review are resolved.
+
+1. **New record initialization** — The ORM automatically sets
+   `SoftDeletedAt = MaxSoftDeletedAt` during `Insert` when the model implements
    `SoftDeleteStrategy`. A database-level `DEFAULT` alone is insufficient — it
    does not populate the in-memory struct after insert, leaving `IsSoftDeleted()`
-   in an incorrect state until the record is re-fetched. The ORM will detect the
-   interface and set the sentinel before executing the INSERT.
+   in an incorrect state until the record is re-fetched. The ORM detects the
+   interface and sets the sentinel before executing the INSERT. A database-level
+   `DEFAULT '9999-12-31 23:59:59'` is still recommended as a safety net for
+   rows inserted outside the ORM.
 
-2. **`time.Now()` inside `IsActiveCondition`/`IsDeletedCondition`** — **Resolved:
-   call `time.Now().UTC()` internally.** Two reasons:
-
-   - **UTC consistency with the sentinel** — `MaxSoftDeletedAt` is defined as
-     `time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)`. Comparing it against
-     a local-time `time.Now()` produces a correct result in Go (both are
-     converted to UTC internally for comparison), but the value stored in the
-     database and the value sent in bind parameters must also be UTC so that
-     the database-side comparison is timezone-safe. Always storing and querying
-     in UTC is the only safe guarantee across all supported databases.
-   - **Codebase gap** — the existing `time.Now()` calls (struct `SoftDelete()`
-     methods, `query_delete.go`) do not call `.UTC()`. As part of implementing
-     this feature, **all soft-delete-related `time.Now()` calls should be
-     updated to `time.Now().UTC()`** to be consistent with the UTC sentinel.
-     This is a small correctness fix bundled into the implementation.
-
-   Tests should assert the bound arg using `time.Since(arg.UTC()) < time.Second`,
+2. **`time.Now()` in condition methods** — All soft-delete timestamps and bind
+   parameters use `time.Now().UTC()`. Two reasons:
+   - `MaxSoftDeletedAt` is defined in `time.UTC`; stored values and bind
+     parameters must also be UTC for timezone-safe database comparisons across
+     all supported databases.
+   - The existing bare `time.Now()` calls in `soft_delete.go` and
+     `query_delete.go` are a pre-existing gap; they will be updated to
+     `time.Now().UTC()` as part of this implementation (step 7b).
+   Tests assert the bound arg using `time.Since(arg.UTC()) < time.Second`,
    matching the window-based pattern in `query_helpers_test.go`.
 
-3. **Interface placement** — **Resolved: `SoftDeleteStrategy` goes in
-   `contracts/database/orm/soft_delete.go`** alongside `SoftDeleteColumnNamer`.
+3. **Interface placement** — `SoftDeleteStrategy` is defined in
+   `contracts/database/orm/soft_delete.go` alongside `SoftDeleteColumnNamer`.
    Both interfaces govern soft delete behavior at the contract layer; keeping
    them in the same file makes the relationship explicit.
 
-4. **`DeletedAt`-column max-date variant** — ~~should a `DeletedAtMaxDate` embed
-   also be provided?~~ **Resolved: yes.** `DeletedAtMaxDate` is included in the
-   proposal. The pattern is consistent: every NULL-based embed has a max-date
-   counterpart with the same column name.
+4. **`DeletedAt`-column max-date variant** — `DeletedAtMaxDate` is included.
+   Every NULL-based embed (`SoftDeletes`, `SoftDeletedAt`, `DeletedAt`) has a
+   max-date counterpart with the same column name, giving users a consistent
+   choice matrix regardless of which strategy or column name they prefer.
 
 ---
 
