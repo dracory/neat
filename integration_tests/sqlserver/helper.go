@@ -2,6 +2,8 @@ package sqlserver_test
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -16,6 +18,48 @@ var (
 	tablesCreated bool
 	tablesMutex   sync.Mutex
 )
+
+// isValidDatabaseName validates that a database name is safe for use in SQL queries.
+// This prevents SQL injection in test code and ensures database names follow SQL Server naming rules.
+// Returns true if the name contains only alphanumeric characters and underscores,
+// does not start with a number, is not empty, is not longer than 128 characters,
+// and is not an SQL keyword.
+func isValidDatabaseName(name string) bool {
+	if name == "" || len(name) > 128 {
+		return false
+	}
+
+	// Must start with letter or underscore (not number)
+	first := name[0]
+	if !((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || first == '_') {
+		return false
+	}
+
+	// Must contain only alphanumeric and underscores
+	matched, _ := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_]*$`, name)
+	if !matched {
+		return false
+	}
+
+	// Reject SQL keywords
+	upperName := strings.ToUpper(name)
+	sqlKeywords := []string{
+		"SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "CREATE",
+		"ALTER", "TRUNCATE", "MASTER", "MODEL", "MSDB", "TEMPDB",
+		"DATABASE", "TABLE", "VIEW", "INDEX", "PROCEDURE", "FUNCTION",
+		"TRIGGER", "SCHEMA", "GRANT", "REVOKE", "EXEC", "EXECUTE",
+		// SQL Server specific system objects and dangerous procedures
+		"XP_CMDSHELL", "SP_EXECUTESQL", "SP_CONFIGURE", "SP_ADDEXTENDEDPROC",
+	}
+
+	for _, keyword := range sqlKeywords {
+		if upperName == keyword {
+			return false
+		}
+	}
+
+	return true
+}
 
 // GetSQLServerConfig builds a neat.DBConfig for SQL Server from environment variables.
 // It reads the following variables with the shown defaults:
@@ -82,6 +126,11 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	username := common.GetEnv("SQLSERVER_USER", "sa")
 	password := common.GetEnv("SQLSERVER_PASS", "YourStrong@Passw0rd")
 
+	// Validate database name to prevent SQL injection in test code
+	if !isValidDatabaseName(db) {
+		t.Fatalf("Invalid database name: '%s' - must contain only letters, numbers, and underscores", db)
+	}
+
 	// First connect to master to create the test database if it doesn't exist
 	masterDSN := fmt.Sprintf("sqlserver://%s:%s@%s:%d/master?encrypt=disable",
 		username, password, host, port)
@@ -97,7 +146,11 @@ func SetupSQLServerTest(t *testing.T) *database.Database {
 	}
 
 	// Create the test database if it doesn't exist
-	_, err = sqlDB.Exec(fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE %s", db, db))
+	// Use parameterized check and quoted identifier for database creation
+	createSQL := fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE [%s]",
+		strings.ReplaceAll(db, "'", "''"), // Escape single quotes
+		db)                                // Use bracket quoting for identifiers
+	_, err = sqlDB.Exec(createSQL)
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -139,6 +192,11 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	username := common.GetEnv("SQLSERVER_USER", "sa")
 	password := common.GetEnv("SQLSERVER_PASS", "YourStrong@Passw0rd")
 
+	// Validate database name to prevent SQL injection in test code
+	if !isValidDatabaseName(dbName) {
+		t.Fatalf("Invalid database name: '%s' - must contain only letters, numbers, and underscores", dbName)
+	}
+
 	// First connect to master to create the test database if it doesn't exist
 	masterDSN := fmt.Sprintf("sqlserver://%s:%s@%s:%d/master?encrypt=disable",
 		username, password, host, port)
@@ -154,7 +212,11 @@ func SetupSQLServerConnection(t *testing.T) *database.Database {
 	}
 
 	// Create the test database if it doesn't exist
-	_, err = sqlDB.Exec(fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE %s", dbName, dbName))
+	// Use parameterized check and quoted identifier for database creation
+	createSQL := fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '%s') CREATE DATABASE [%s]",
+		strings.ReplaceAll(dbName, "'", "''"), // Escape single quotes
+		dbName)                                // Use bracket quoting for identifiers
+	_, err = sqlDB.Exec(createSQL)
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
