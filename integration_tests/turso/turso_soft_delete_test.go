@@ -218,7 +218,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user1 with WithTrashed
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore user: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user2 using Model method
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user with Model: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user3 using model instance
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[2])
+	res, err = db.Query().Model(&models.User{}).WithTrashed().RestoreSoftDeleted(&users[2])
 	if err != nil {
 		t.Fatalf("Failed to restore user instance: %v", err)
 	}
@@ -248,7 +248,7 @@ func TestTursoIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user4
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Restore(&users[3])
+	res, err = db.Query().Model(&models.User{}).WithTrashed().RestoreSoftDeleted(&users[3])
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}

@@ -104,11 +104,11 @@ func (d *Dispatcher) dispatchToObserver(event *Event, observer contractsorm.Obse
 		}
 	case contractsorm.EventForceDeleted:
 		return observer.ForceDeleted(event)
-	case contractsorm.EventRestoring:
+	case contractsorm.EventSoftDeleteRestoring:
 		if obs, ok := observer.(contractsorm.ObserverWithRestoring); ok {
 			return obs.Restoring(event)
 		}
-	case contractsorm.EventRestored:
+	case contractsorm.EventSoftDeleteRestored:
 		if obs, ok := observer.(contractsorm.ObserverWithRestored); ok {
 			return obs.Restored(event)
 		}
@@ -263,7 +263,7 @@ func (d *Dispatcher) DispatchRestoring(
 	dirty map[string]bool,
 	query contractsorm.Query,
 ) error {
-	return d.Dispatch(ctx, model, observers, original, attributes, dirty, query, contractsorm.EventRestoring)
+	return d.Dispatch(ctx, model, observers, original, attributes, dirty, query, contractsorm.EventSoftDeleteRestoring)
 }
 
 // DispatchRestored dispatches the restored event.
@@ -276,7 +276,7 @@ func (d *Dispatcher) DispatchRestored(
 	dirty map[string]bool,
 	query contractsorm.Query,
 ) error {
-	return d.Dispatch(ctx, model, observers, original, attributes, dirty, query, contractsorm.EventRestored)
+	return d.Dispatch(ctx, model, observers, original, attributes, dirty, query, contractsorm.EventSoftDeleteRestored)
 }
 
 // DispatchRetrieved dispatches the retrieved event.

@@ -208,7 +208,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user1 with WithTrashed
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore user: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user2 using Model method
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user with Model: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user3 using explicit WHERE clause (ID is zero from bulk insert)
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user3").Restore()
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user3").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user3: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestSQLiteIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user4 using explicit WHERE clause
-	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user4").Restore()
+	res, err = db.Query().Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user4").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}

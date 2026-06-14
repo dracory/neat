@@ -231,7 +231,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user1 with WithTrashed
-	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").Restore(&models.User{})
+	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore user: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user2 using Model method
-	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").Restore()
+	res, err = query.Model(&models.User{}).WithTrashed().Where("name = ?", "restore_user2").RestoreSoftDeleted()
 	if err != nil {
 		t.Fatalf("Failed to restore user with Model: %v", err)
 	}
@@ -251,7 +251,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user3 using model instance
-	res, err = query.Model(&models.User{}).WithTrashed().Restore(&users[2])
+	res, err = query.Model(&models.User{}).WithTrashed().RestoreSoftDeleted(&users[2])
 	if err != nil {
 		t.Fatalf("Failed to restore user instance: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestOracleIntegrationRestore(t *testing.T) {
 	}
 
 	// Restore user4
-	res, err = query.Model(&models.User{}).WithTrashed().Restore(&users[3])
+	res, err = query.Model(&models.User{}).WithTrashed().RestoreSoftDeleted(&users[3])
 	if err != nil {
 		t.Fatalf("Failed to restore user4: %v", err)
 	}
@@ -358,7 +358,7 @@ func TestOracleIntegrationRestoreWithConditions(t *testing.T) {
 	}
 
 	// Restore only users with avatar1
-	res, err = query.Model(&models.User{}).WithTrashed().Where("avatar = ?", "avatar1").Restore(&models.User{})
+	res, err = query.Model(&models.User{}).WithTrashed().Where("avatar = ?", "avatar1").RestoreSoftDeleted(&models.User{})
 	if err != nil {
 		t.Fatalf("Failed to restore users: %v", err)
 	}
