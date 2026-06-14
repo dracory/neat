@@ -73,6 +73,73 @@
 
     <p>This strategy offers better compatibility with NOT NULL constraints and improved index performance through range scans instead of NULL checks.</p>
 
+    <h3>Why Max-Date Sentinel Strategy?</h3>
+
+    <p>The Max-Date Sentinel Strategy exists to solve specific problems that NULL-based soft deletes can't handle well:</p>
+
+    <h4>Problems with NULL-Based Soft Deletes</h4>
+
+    <p><strong>1. NOT NULL Constraints</strong></p>
+    <p>Many database schemas enforce NOT NULL constraints on timestamp columns for data integrity. NULL-based soft deletes can't work with these constraints:</p>
+    <pre><code>-- This won't work with NULL-based strategy
+ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NOT NULL;</code></pre>
+
+    <p><strong>2. Index Performance</strong></p>
+    <p>NULL handling varies significantly between databases:</p>
+    <ul>
+        <li><strong>PostgreSQL:</strong> NULLs are not included in standard B-tree indexes by default</li>
+        <li><strong>MySQL:</strong> NULLs are included in indexes but can cause performance issues</li>
+        <li><strong>SQL Server:</strong> NULLs are included but can affect index statistics</li>
+    </ul>
+    <p>With NULL-based strategy, queries like <code>WHERE soft_deleted_at IS NULL</code> may not use indexes efficiently.</p>
+
+    <p><strong>3. Query Complexity</strong></p>
+    <p>NULL handling adds complexity to queries:</p>
+    <pre><code>-- NULL-based: Need special NULL handling
+SELECT * FROM users WHERE soft_deleted_at IS NULL;
+
+-- Max-date: Simple range scan (more index-friendly)
+SELECT * FROM users WHERE soft_deleted_at > NOW();</code></pre>
+
+    <h4>Benefits of Max-Date Sentinel Strategy</h4>
+
+    <p><strong>1. NOT NULL Compatible</strong></p>
+    <pre><code>// Schema definition
+blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+// No .Nullable() needed - column can be NOT NULL</code></pre>
+
+    <p><strong>2. Better Index Performance</strong></p>
+    <p>Range scans (<code>> NOW()</code>) are generally more efficient than NULL checks:</p>
+    <pre><code>-- This can use a range scan on the index
+WHERE soft_deleted_at > NOW()
+
+-- This may not use the index efficiently in some databases
+WHERE soft_deleted_at IS NULL</code></pre>
+
+    <p><strong>3. Simpler Query Logic</strong></p>
+    <p>No special NULL handling needed:</p>
+    <pre><code>// Active: soft_deleted_at > NOW()
+// Deleted: soft_deleted_at <= NOW()</code></pre>
+
+    <p><strong>4. Database Portability</strong></p>
+    <p>Consistent behavior across different database engines since all databases handle date comparisons the same way, but NULL handling varies.</p>
+
+    <h4>Real-World Performance Example</h4>
+
+    <p>Consider a table with 10 million records:</p>
+
+    <p><strong>NULL-based:</strong></p>
+    <pre><code>-- May require full table scan or inefficient index usage
+SELECT * FROM users WHERE soft_deleted_at IS NULL;
+-- Performance: Slow on some databases</code></pre>
+
+    <p><strong>Max-date sentinel:</strong></p>
+    <pre><code>-- Efficient range scan using index
+SELECT * FROM users WHERE soft_deleted_at > NOW();
+-- Performance: Fast, uses index effectively</code></pre>
+
+    <p>The max-date strategy is essentially a performance and constraint-compatibility optimization over the traditional NULL-based approach.</p>
+
     <h3>Strategy Comparison</h3>
 
     <table>
