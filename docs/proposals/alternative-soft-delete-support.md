@@ -544,17 +544,24 @@ if user.IsSoftDeleted() {
    `SoftDeleteStrategy` models
 7. Confirm `isSoftDeleteOperation` in `builder_update.go` uses
    `getSoftDeleteColumn` (already done)
-8. Add tests:
+8. Fix `buildWheresWithSoftDeleteIndex` in `builder_where.go` — the max-date
+   conditions (`soft_deleted_at > ?`) add one bind parameter ahead of any user
+   WHERE args; the placeholder counter must be incremented by 1 before the
+   remaining clauses so numbered placeholders (e.g. `$2`, `$3` in PostgreSQL)
+   are generated correctly
+9. Add tests:
    - `SoftDeletesMaxDate` and `DeletedAtMaxDate`: `IsSoftDeleted()` with past,
      now, and sentinel timestamps
    - `SoftDelete()` and `RestoreSoftDeleted()` SQL generation for both embeds
    - `WithSoftDeleted`, `OnlySoftDeleted`, `WithoutSoftDeleted` WHERE filters
      for both embeds
-   - `buildWheresWithSoftDeleteIndex` placeholder index correctness with bind arg
-9. Auto-initialize new records: during `Insert`, if the model implements
-   `SoftDeleteStrategy`, set the soft delete field to `RestoreValue()` before
-   executing the INSERT (so in-memory state is correct without a re-fetch)
-10. Update `docs/soft-deletes.md` to document the max-date strategy
+   - `buildWheresWithSoftDeleteIndex` placeholder index correctness: verify
+     subsequent WHERE args receive the correct `$N` / `?` index when a
+     max-date prefix arg is present
+10. Auto-initialize new records: during `Insert`, if the model implements
+    `SoftDeleteStrategy`, set the soft delete field to `RestoreValue()` before
+    executing the INSERT (so in-memory state is correct without a re-fetch)
+11. Update `docs/soft-deletes.md` to document the max-date strategy
 
 ---
 
@@ -567,20 +574,15 @@ if user.IsSoftDeleted() {
    in an incorrect state until the record is re-fetched. The ORM will detect the
    interface and set the sentinel before executing the INSERT.
 
-2. **Placeholder index in `buildWheresWithSoftDeleteIndex`** — the max-date
-   conditions (`soft_deleted_at > ?`) add a bind parameter. The index-tracking
-   variant must correctly advance the placeholder counter for the remaining
-   WHERE args. This deserves its own test matrix.
-
-3. **`time.Now()` inside `IsActiveCondition`/`IsDeletedCondition`** — should
+2. **`time.Now()` inside `IsActiveCondition`/`IsDeletedCondition`** — should
    these methods accept a `time.Time` argument for testability, rather than
    calling `time.Now()` internally?
 
-4. **Interface placement** — `SoftDeleteStrategy` in
+3. **Interface placement** — `SoftDeleteStrategy` in
    `contracts/database/orm/soft_delete.go` alongside `SoftDeleteColumnNamer` is
    the natural home; confirm before implementation.
 
-5. **`DeletedAt`-column max-date variant** — ~~should a `DeletedAtMaxDate` embed
+4. **`DeletedAt`-column max-date variant** — ~~should a `DeletedAtMaxDate` embed
    also be provided?~~ **Resolved: yes.** `DeletedAtMaxDate` is included in the
    proposal. The pattern is consistent: every NULL-based embed has a max-date
    counterpart with the same column name.
