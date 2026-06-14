@@ -16,33 +16,35 @@
         .badge { display: inline-block; background: #27ae60; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; }
         .badge.core { background: #3498db; }
         .badge.advanced { background: #e74c3c; }
+        .badge.data { background: #9b59b6; }
+        .badge.technical { background: #f39c12; }
         .section-title { color: #7f8c8d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin: 2rem 0 1rem 0; font-weight: 600; }
-        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
         .footer a { color: #3498db; text-decoration: none; }
     </style>
 </head>
 <body>
     <h1>Neat ORM Documentation</h1>
     <p class="subtitle">A powerful and elegant ORM library for Go with Laravel Eloquent-inspired syntax</p>
-    
+
     <div class="section-title">Core Documentation</div>
     <div class="grid">
-        <a href="https://github.com/dracory/neat/blob/main/docs/models.md" class="card">
+        <a href="models.html" class="card">
             <span class="badge core">Core</span>
             <h2>Models</h2>
             <p>Understanding table names, column names, struct tags, and model configuration.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/query-builder.md" class="card">
+        <a href="query-builder.html" class="card">
             <span class="badge core">Core</span>
             <h2>Query Builder</h2>
             <p>Fluent interface for building database queries with method chaining.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/schema-builder.md" class="card">
+        <a href="schema-builder.html" class="card">
             <span class="badge core">Core</span>
             <h2>Schema Builder</h2>
             <p>Database schema creation and modification using a fluent API.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/api-reference.md" class="card">
+        <a href="api-reference.html" class="card">
             <span class="badge core">Core</span>
             <h2>API Reference</h2>
             <p>Complete API reference for all available methods and functions.</p>
@@ -51,22 +53,22 @@
 
     <div class="section-title">Advanced Features</div>
     <div class="grid">
-        <a href="https://github.com/dracory/neat/blob/main/docs/associations.md" class="card">
+        <a href="associations.html" class="card">
             <span class="badge advanced">Advanced</span>
             <h2>Associations</h2>
             <p>BelongsTo, HasMany, HasOne relationships with eager and lazy loading.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/soft-deletes.md" class="card">
+        <a href="soft-deletes.html" class="card">
             <span class="badge advanced">Advanced</span>
             <h2>Soft Deletes</h2>
             <p>Soft delete functionality with restore and force delete support.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/observers.md" class="card">
+        <a href="observers.html" class="card">
             <span class="badge advanced">Advanced</span>
             <h2>Observers</h2>
             <p>Model lifecycle event system for creating, updating, and deleting records.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/transactions.md" class="card">
+        <a href="transactions.html" class="card">
             <span class="badge advanced">Advanced</span>
             <h2>Transactions</h2>
             <p>Database transaction support with savepoints and rollback.</p>
@@ -75,18 +77,18 @@
 
     <div class="section-title">Data Management</div>
     <div class="grid">
-        <a href="https://github.com/dracory/neat/blob/main/docs/migrations.md" class="card">
-            <span class="badge">Data</span>
+        <a href="migrations.html" class="card">
+            <span class="badge data">Data</span>
             <h2>Migrations</h2>
             <p>Database migration system for version control of your schema.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/seeder.md" class="card">
-            <span class="badge">Data</span>
+        <a href="seeder.html" class="card">
+            <span class="badge data">Data</span>
             <h2>Seeders</h2>
             <p>Database seeding for test data and initial data population.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/factory.md" class="card">
-            <span class="badge">Data</span>
+        <a href="factory.html" class="card">
+            <span class="badge data">Data</span>
             <h2>Factories</h2>
             <p>Test data generation using the factory pattern.</p>
         </a>
@@ -94,28 +96,28 @@
 
     <div class="section-title">Technical & Operations</div>
     <div class="grid">
-        <a href="https://github.com/dracory/neat/blob/main/docs/performance.md" class="card">
-            <span class="badge">Technical</span>
+        <a href="performance.html" class="card">
+            <span class="badge technical">Technical</span>
             <h2>Performance</h2>
             <p>Performance optimization tips and best practices.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/testing.md" class="card">
-            <span class="badge">Technical</span>
+        <a href="testing.html" class="card">
+            <span class="badge technical">Technical</span>
             <h2>Testing</h2>
             <p>Testing strategies and utilities for database operations.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/security.md" class="card">
-            <span class="badge">Technical</span>
+        <a href="security.html" class="card">
+            <span class="badge technical">Technical</span>
             <h2>Security</h2>
             <p>Security considerations and best practices.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/dependencies.md" class="card">
-            <span class="badge">Technical</span>
+        <a href="dependencies.html" class="card">
+            <span class="badge technical">Technical</span>
             <h2>Dependencies</h2>
             <p>External dependencies and their requirements.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/driver-registration.md" class="card">
-            <span class="badge">Technical</span>
+        <a href="driver-registration.html" class="card">
+            <span class="badge technical">Technical</span>
             <h2>Driver Registration</h2>
             <p>Database driver registration and configuration.</p>
         </a>
@@ -123,12 +125,12 @@
 
     <div class="section-title">Additional Resources</div>
     <div class="grid">
-        <a href="https://github.com/dracory/neat/blob/main/docs/security-review.md" class="card">
+        <a href="security-review.html" class="card">
             <span class="badge">Review</span>
             <h2>Security Review</h2>
             <p>Comprehensive security review and vulnerability assessment.</p>
         </a>
-        <a href="https://github.com/dracory/neat/blob/main/docs/comparison" class="card">
+        <a href="comparison/index.html" class="card">
             <span class="badge">Review</span>
             <h2>Comparisons</h2>
             <p>Comparison with other ORMs and database libraries.</p>
@@ -137,7 +139,7 @@
 
     <div class="footer">
         <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
-        <p>Documentation generated from markdown files in the <code>docs/</code> directory.</p>
+        <p>Generated HTML documentation from markdown sources</p>
     </div>
 </body>
 </html>

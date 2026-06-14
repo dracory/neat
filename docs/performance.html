@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Guide - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>Performance Guide</h1>
+
+    <p>This guide covers performance optimization strategies and best practices for Neat ORM.</p>
+
+    <h2>Overview</h2>
+
+    <p>Neat ORM is designed for performance, but like any ORM, it requires careful usage to achieve optimal results. This guide covers connection pooling, query optimization, eager loading, batch operations, and benchmarking.</p>
+
+    <h2>Connection Pooling</h2>
+
+    <h3>Understanding Connection Pooling</h3>
+
+    <p>Connection pooling reuses database connections instead of creating a new one for each query, significantly improving performance.</p>
+
+    <h3>Configuring Connection Pool</h3>
+
+    <pre><code>config := neat.DBConfig{
+    Default: "default",
+    Connections: map[string]neat.ConnectionConfig{
+        "default": {
+            Driver:   "mysql",
+            Host:     "localhost",
+            Port:     3306,
+            Database: "mydb",
+            Username: "user",
+            Password: "password",
+            Pool: neat.PoolConfig{
+                MaxOpenConns: 25,    // Maximum open connections
+                MaxIdleConns: 10,    // Maximum idle connections
+                MaxLifetime:  300,  // Connection lifetime in seconds
+            },
+        },
+    },
+}
+
+db, err := neat.New(config)</code></pre>
+
+    <h3>Connection Pool Best Practices</h3>
+
+    <ol>
+        <li><strong>Set appropriate MaxOpenConns</strong>: Start with <code>CPU cores * 2</code> and adjust based on load</li>
+        <li><strong>Set MaxIdleConns</strong>: Usually 50-75% of MaxOpenConns</li>
+        <li><strong>Set MaxLifetime</strong>: Prevents stale connections (typically 5-10 minutes)</li>
+        <li><strong>Monitor pool metrics</strong>: Check for connection exhaustion</li>
+        <li><strong>Use context with timeout</strong>: Prevent long-running queries from holding connections</li>
+    </ol>
+
+    <h3>Monitoring Connection Pool</h3>
+
+    <pre><code>stats := db.Stats()
+fmt.Printf("Open connections: %d\n", stats.OpenConnections)
+fmt.Printf("In use: %d\n", stats.InUse)
+fmt.Printf("Idle: %d\n", stats.Idle)</code></pre>
+
+    <h2>Query Optimization</h2>
+
+    <h3>Select Only Needed Columns</h3>
+
+    <p>Avoid selecting all columns when you only need a few:</p>
+
+    <pre><code>// Bad - selects all columns
+var users []User
+db.Query().Get(&amp;users)
+
+// Good - selects only needed columns
+var users []User
+db.Query().Select("id", "name").Get(&amp;users)</code></pre>
+
+    <h3>Use Indexes</h3>
+
+    <p>Ensure columns used in WHERE, JOIN, and ORDER BY clauses are indexed:</p>
+
+    <pre><code>// Create index on frequently queried column
+db.Schema().Table("users", func(table neat.Blueprint) {
+    table.String("email").Index()
+})</code></pre>
+
+    <h3>Limit Results</h3>
+
+    <p>Always use LIMIT when you don't need all records:</p>
+
+    <pre><code>// Bad - could return millions of records
+var users []User
+db.Query().Get(&amp;users)
+
+// Good - limits results
+var users []User
+db.Query().Limit(100).Get(&amp;users)</code></pre>
+
+    <h2>Eager Loading</h2>
+
+    <p>Use eager loading to avoid N+1 query problems:</p>
+
+    <pre><code>// Bad - N+1 query problem
+var users []User
+db.Query().Get(&amp;users)
+for _, user := range users {
+    db.Query().Load(&amp;user, "posts") // Additional query for each user
+}
+
+// Good - eager loading
+var users []User
+db.Query().With("posts").Get(&amp;users) // Single query with JOIN</code></pre>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        .method-list { background: #f8f9fa; padding: 1rem; border-radius: 4px; }
+        .method-list li { margin: 0.5rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>API Reference</h1>
+
+    <p>This document provides a comprehensive reference for the Neat ORM API. For detailed usage examples and best practices, see the specific documentation for each component.</p>
+
+    <h2>Database</h2>
+
+    <h3>Configuration</h3>
+
+    <pre><code>type DBConfig struct {
+    Default     string
+    Connections map[string]ConnectionConfig
+    Migrations  MigrationConfig
+}
+
+type ConnectionConfig struct {
+    Driver   string
+    Host     string
+    Port     int
+    Database string
+    Username string
+    Password string
+    Options  map[string]string
+    Pool     PoolConfig
+}
+
+type PoolConfig struct {
+    MaxOpenConns int
+    MaxIdleConns int
+    MaxLifetime  int
+}</code></pre>
+
+    <h3>Methods</h3>
+
+    <ul class="method-list">
+        <li><code>New(config DBConfig) (*Database, error)</code> - Create database from config</li>
+        <li><code>NewFromDSN(dsn string) (*Database, error)</code> - Create database from DSN string</li>
+        <li><code>Close() error</code> - Close database connection</li>
+        <li><code>Query() Query</code> - Get query builder instance</li>
+        <li><code>Schema() Schema</code> - Get schema builder instance</li>
+        <li><code>Orm() Orm</code> - Get ORM instance</li>
+        <li><code>Factory() Factory</code> - Get factory instance</li>
+        <li><code>Transaction(fn func(Query) error) error</code> - Execute transaction</li>
+        <li><code>Migrate(paths ...string) error</code> - Run migrations</li>
+        <li><code>Seed(seeders []Seeder) error</code> - Run seeders</li>
+    </ul>
+
+    <h2>Query Builder</h2>
+
+    <h3>Selection</h3>
+
+    <ul class="method-list">
+        <li><code>Get(dest any) error</code> - Execute query and populate dest</li>
+        <li><code>First(dest any) error</code> - Get first matching record</li>
+        <li><code>Find(dest any, id any) error</code> - Find record by ID</li>
+        <li><code>Select(columns ...string) Query</code> - Select specific columns</li>
+    </ul>
+
+    <h3>Where Clauses</h3>
+
+    <ul class="method-list">
+        <li><code>Where(column string, value ...any) Query</code> - Add WHERE clause</li>
+        <li><code>OrWhere(column string, value ...any) Query</code> - Add OR WHERE clause</li>
+        <li><code>WhereIn(column string, values []any) Query</code> - Add WHERE IN clause</li>
+        <li><code>WhereBetween(column string, min, max any) Query</code> - Add WHERE BETWEEN clause</li>
+        <li><code>WhereNull(column string) Query</code> - Add WHERE NULL clause</li>
+    </ul>
+
+    <h3>Ordering and Limiting</h3>
+
+    <ul class="method-list">
+        <li><code>OrderBy(column string, direction string) Query</code> - Add ORDER BY clause</li>
+        <li><code>Limit(limit int) Query</code> - Set result limit</li>
+        <li><code>Offset(offset int) Query</code> - Set result offset</li>
+    </ul>
+
+    <h3>Aggregations</h3>
+
+    <ul class="method-list">
+        <li><code>Count() (int64, error)</code> - Count matching records</li>
+        <li><code>Sum(column string) (float64, error)</code> - Sum column values</li>
+        <li><code>Avg(column string) (float64, error)</code> - Average column values</li>
+        <li><code>Min(column string) (float64, error)</code> - Minimum column value</li>
+        <li><code>Max(column string) (float64, error)</code> - Maximum column value</li>
+    </ul>
+
+    <h3>CRUD Operations</h3>
+
+    <ul class="method-list">
+        <li><code>Create(value any) error</code> - Insert new record</li>
+        <li><code>Update(column string, value any) error</code> - Update records</li>
+        <li><code>UpdateMany(updates map[string]any) error</code> - Update multiple columns</li>
+        <li><code>Delete() (sql.Result, error)</code> - Delete records</li>
+    </ul>
+
+    <h2>Schema Builder</h2>
+
+    <h3>Schema Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Create(table string, callback func(Blueprint)) error</code> - Create a new table</li>
+        <li><code>Table(table string, callback func(Blueprint)) error</code> - Modify an existing table</li>
+        <li><code>Drop(table string) error</code> - Drop a table</li>
+        <li><code>DropIfExists(table string) error</code> - Drop a table if it exists</li>
+        <li><code>Rename(from, to string) error</code> - Rename a table</li>
+        <li><code>HasTable(table string) bool</code> - Check if table exists</li>
+        <li><code>HasColumn(table, column string) bool</code> - Check if column exists</li>
+    </ul>
+
+    <h3>Blueprint Column Methods</h3>
+
+    <ul class="method-list">
+        <li><code>ID()</code> - Add auto-incrementing ID column</li>
+        <li><code>Integer(name string)</code> - Add INTEGER column</li>
+        <li><code>BigInteger(name string)</code> - Add BIGINT column</li>
+        <li><code>String(name string, length ...int)</code> - Add VARCHAR column</li>
+        <li><code>Text(name string)</code> - Add TEXT column</li>
+        <li><code>DateTime(name string)</code> - Add DATETIME column</li>
+        <li><code>Timestamp(name string)</code> - Add TIMESTAMP column</li>
+        <li><code>Boolean(name string)</code> - Add BOOLEAN column</li>
+        <li><code>Decimal(name string, precision, scale int)</code> - Add DECIMAL column</li>
+        <li><code>JSON(name string)</code> - Add JSON column</li>
+    </ul>
+
+    <h3>Blueprint Modifiers</h3>
+
+    <ul class="method-list">
+        <li><code>Nullable()</code> - Allow NULL values</li>
+        <li><code>Unique()</code> - Add unique constraint</li>
+        <li><code>Default(value any)</code> - Set default value</li>
+        <li><code>Index()</code> - Add index</li>
+        <li><code>Primary()</code> - Set as primary key</li>
+    </ul>
+
+    <h3>Blueprint Helper Methods</h3>
+
+    <ul class="method-list">
+        <li><code>Timestamps()</code> - Add created_at and updated_at timestamps</li>
+        <li><code>SoftDeletes()</code> - Add deleted_at timestamp for soft deletes</li>
+    </ul>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

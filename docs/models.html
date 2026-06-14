@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Models and Struct Tags - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        h4 { color: #666; margin-top: 1.2rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin-left: 0; color: #666; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+        th { background: #f8f9fa; font-weight: 600; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>Models and Struct Tags</h1>
+
+    <p>This document explains how Neat ORM maps Go structs to database tables and columns.</p>
+
+    <h2>Important: Two Separate Concepts</h2>
+
+    <p>Neat has <strong>two separate systems</strong> for working with database tables:</p>
+
+    <ol>
+        <li><strong>Struct Tags</strong> - Map existing database columns to Go struct fields</li>
+        <li><strong>Schema Builder</strong> - Define and create database table structures</li>
+    </ol>
+
+    <p><strong>Struct tags do NOT define database types.</strong> They only tell Neat which database column maps to which struct field.</p>
+
+    <p>To create tables with specific column types (VARCHAR, TEXT, INT, etc.), use the <strong>Schema Builder</strong> in migrations.</p>
+
+    <h2>Table Names</h2>
+
+    <p>Neat determines table names in the following order:</p>
+
+    <ol>
+        <li><strong>TableName() method</strong> - If your model implements <code>TableName() string</code>, that method is used</li>
+        <li><strong>Automatic naming</strong> - The struct name is converted to snake_case and pluralized</li>
+    </ol>
+
+    <h3>Custom Table Name</h3>
+
+    <pre><code>type User struct {
+    ID   uint
+    Name string
+}
+
+func (User) TableName() string {
+    return "app_users"
+}</code></pre>
+
+    <h3>Automatic Table Name</h3>
+
+    <pre><code>type User struct {
+    ID   uint
+    Name string
+}
+// Maps to table: "users"
+
+type UserProfile struct {
+    ID     uint
+    UserID uint
+    Bio    string
+}
+// Maps to table: "user_profiles"</code></pre>
+
+    <h2>Column Names</h2>
+
+    <p>Neat determines column names by checking struct tags in this priority order:</p>
+
+    <ol>
+        <li><code>db</code> tag - used directly as column name</li>
+        <li><code>neat</code> tag - used directly as column name</li>
+        <li><code>gorm</code> tag - parses <code>column:name</code> format for GORM compatibility</li>
+        <li><strong>Automatic naming</strong> - field name converted to snake_case</li>
+    </ol>
+
+    <h3>Using db Tags (Recommended)</h3>
+
+    <pre><code>type User struct {
+    ID        uint      `db:"id"`
+    Name      string    `db:"name"`
+    Email     string    `db:"email"`
+    CreatedAt time.Time `db:"created_at"`
+    UpdatedAt time.Time `db:"updated_at"`
+}</code></pre>
+
+    <h3>Using neat Tags</h3>
+
+    <pre><code>type User struct {
+    ID        uint      `neat:"id"`
+    Name      string    `neat:"name"`
+    Email     string    `neat:"email"`
+}</code></pre>
+
+    <h3>Using gorm Tags (For Compatibility)</h3>
+
+    <pre><code>type User struct {
+    ID        uint      `gorm:"primaryKey;column:id"`
+    Name      string    `gorm:"size:255;column:name"`
+    Email     string    `gorm:"uniqueIndex;column:email"`
+}</code></pre>
+
+    <h3>Automatic Column Names (No Tags)</h3>
+
+    <pre><code>type User struct {
+    ID        uint      // maps to "id"
+    Name      string    // maps to "name"
+    Email     string    // maps to "email"
+    CreatedAt time.Time // maps to "created_at"
+    UpdatedAt time.Time // maps to "updated_at"
+    IsActive  bool      // maps to "is_active"
+}</code></pre>
+
+    <h2>How They Work Together</h2>
+
+    <h3>Step 1: Create the Table (Schema Builder)</h3>
+
+    <p>First, use a migration to define the table structure with explicit database types:</p>
+
+    <pre><code>// migration file
+db.Schema().Create("users", func(table neat.Blueprint) {
+    table.ID()                    // BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+    table.String("name", 255)     // VARCHAR(255)
+    table.String("email", 500)    // VARCHAR(500)
+    table.Text("bio")             // TEXT
+    table.Integer("age")          // INT
+    table.Boolean("active")       // BOOLEAN
+    table.DateTime("created_at")  // DATETIME
+    table.DateTime("updated_at")  // DATETIME
+})</code></pre>
+
+    <h3>Step 2: Define the Struct (Struct Tags)</h3>
+
+    <p>Then, create a Go struct that maps to those columns:</p>
+
+    <pre><code>type User struct {
+    ID        uint      `db:"id"`         // maps to "id" column (BIGINT)
+    Name      string    `db:"name"`       // maps to "name" column (VARCHAR)
+    Email     string    `db:"email"`      // maps to "email" column (VARCHAR)
+    Bio       string    `db:"bio"`        // maps to "bio" column (TEXT)
+    Age       int       `db:"age"`        // maps to "age" column (INT)
+    Active    bool      `db:"active"`     // maps to "active" column (BOOLEAN)
+    CreatedAt time.Time `db:"created_at"` // maps to "created_at" column (DATETIME)
+    UpdatedAt time.Time `db:"updated_at"` // maps to "updated_at" column (DATETIME)
+}</code></pre>
+
+    <h3>Key Points</h3>
+
+    <ul>
+        <li><strong>Go types</strong> (<code>uint</code>, <code>string</code>, <code>int</code>, <code>bool</code>, <code>time.Time</code>) are for Go code only</li>
+        <li><strong>Database types</strong> (<code>BIGINT</code>, <code>VARCHAR</code>, <code>TEXT</code>, <code>INT</code>, <code>BOOLEAN</code>, <code>DATETIME</code>) are defined in Schema Builder</li>
+        <li><strong>Struct tags</strong> (<code>db:"name"</code>) just connect the two - they don't define types</li>
+        <li>Neat handles type conversion between Go and database types automatically</li>
+    </ul>
+
+    <h2>Primary Keys</h2>
+
+    <p>Neat automatically looks for fields named <code>ID</code> or <code>Id</code> as the primary key.</p>
+
+    <h3>Integer Primary Keys (Default)</h3>
+
+    <p>By default, Neat expects <code>uint</code> or <code>int</code> primary keys that are auto-incremented by the database.</p>
+
+    <pre><code>type User struct {
+    ID    uint // Primary key
+    Name  string
+    Email string
+}</code></pre>
+
+    <h3>Short String Primary Keys (Opt-In)</h3>
+
+    <p>For URL-friendly, client-generated primary keys, embed <code>orm.ShortID</code> instead of <code>orm.Model</code>. The ID is generated automatically before insert using a Crockford Base32-encoded microsecond timestamp (11 lowercase characters, e.g., <code>1jkne4e0jv0</code>).</p>
+
+    <pre><code>import "github.com/dracory/neat/database/orm"
+
+type Product struct {
+    orm.ShortID      // ID string — generated client-side
+    orm.Timestamps   // optional — add only if you need it
+    Name  string     `db:"name"`
+    Price float64    `db:"price"`
+}</code></pre>
+
+    <p>Use <code>table.ShortID()</code> in migrations for string-primary-key tables:</p>
+
+    <pre><code>db.Schema().Create("products", func(table neat.Blueprint) {
+    table.ShortID()            // VARCHAR(21) PRIMARY KEY
+    table.String("name", 255)
+    table.Decimal("price", 10, 2)
+    table.Timestamps()
+})</code></pre>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

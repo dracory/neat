@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Guide - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>Security Guide</h1>
+
+    <p>This document outlines security best practices and considerations when using Neat ORM.</p>
+
+    <h2>Parameterized Queries</h2>
+
+    <p>Neat ORM uses parameterized queries by default, which protects against SQL injection attacks.</p>
+
+    <h3>Safe Usage</h3>
+
+    <pre><code>// SAFE: Parameterized query
+db.Table("users").Where("email = ?", userInput).Find(&amp;users)
+
+// SAFE: Multiple parameters
+db.Table("users").Where("name = ? AND age &gt; ?", name, age).Find(&amp;users)
+
+// SAFE: IN clause with parameters
+db.Table("users").Where("id IN ?", ids).Find(&amp;users)</code></pre>
+
+    <h3>Why This Is Safe</h3>
+
+    <p>Parameterized queries separate the SQL statement from the data values. The database driver automatically escapes and quotes the parameters, preventing SQL injection regardless of the input content.</p>
+
+    <h2>DSN Redaction</h2>
+
+    <p>Neat ORM automatically redacts sensitive credentials from Data Source Names (DSN) in log messages and error reports to prevent accidental credential leakage.</p>
+
+    <pre><code>// Original DSN: postgres://admin:secret123@localhost:5432/mydb
+// Redacted DSN: postgres://[REDACTED]@localhost:5432/mydb</code></pre>
+
+    <p>All error messages and log output that include DSN information use this function automatically.</p>
+
+    <h2>Raw SQL Usage</h2>
+
+    <p>The <code>Raw()</code> method allows you to execute raw SQL, but this comes with security risks if not used carefully.</p>
+
+    <h3>Dangerous Usage</h3>
+
+    <pre><code>// DANGEROUS: SQL injection vulnerability
+userInput := "users; DROP TABLE users; --"
+db.Raw("SELECT * FROM " + userInput).Find(&amp;results)
+
+// DANGEROUS: Direct string concatenation
+db.Raw("SELECT * FROM " + tableName).Find(&amp;results)</code></pre>
+
+    <h3>Safe Usage</h3>
+
+    <pre><code>// SAFE: Using parameterized values
+db.Raw("SELECT * FROM users WHERE name = ?", userInput).Find(&amp;results)
+
+// SAFE: Using parameterized values with multiple placeholders
+db.Raw("SELECT * FROM users WHERE name = ? AND age &gt; ?", name, age).Find(&amp;results)</code></pre>
+
+    <h3>When to Use Raw SQL</h3>
+
+    <p>Use <code>Raw()</code> only when:</p>
+    <ul>
+        <li>You need database-specific features not supported by Neat's query builder</li>
+        <li>You need complex queries that are difficult to express with the ORM</li>
+        <li>You need to execute stored procedures or database functions</li>
+    </ul>
+
+    <p>Always use parameterized values with <code>Raw()</code> - never concatenate user input into the SQL string.</p>
+
+    <h2>User-Supplied Identifiers</h2>
+
+    <p>When user input is used as table names, column names, or other SQL identifiers, special care is required because identifiers cannot be parameterized in most databases.</p>
+
+    <h3>Dangerous Usage</h3>
+
+    <pre><code>// DANGEROUS: User input in identifier
+tableName := userInput
+db.Table(tableName).Find(&amp;results)</code></pre>
+
+    <h3>Safe Usage</h3>
+
+    <pre><code>// SAFE: Whitelist allowed tables
+allowedTables := map[string]bool{"users": true, "posts": true}
+if !allowedTables[userInput] {
+    return error.New("invalid table name")
+}
+db.Table(userInput).Find(&amp;results)</code></pre>
+
+    <h2>Connection Security</h2>
+
+    <ul>
+        <li>Use SSL/TLS for database connections in production</li>
+        <li>Store credentials in environment variables, not in code</li>
+        <li>Use strong, unique passwords for database accounts</li>
+        <li>Limit database user privileges to only what's needed</li>
+        <li>Enable database audit logging</li>
+    </ul>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

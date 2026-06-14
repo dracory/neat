@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Guide - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>Testing Guide</h1>
+
+    <p>This guide covers testing strategies and best practices for Neat ORM.</p>
+
+    <h2>Overview</h2>
+
+    <p>Neat ORM provides comprehensive testing support including:</p>
+    <ul>
+        <li>Unit tests for individual components</li>
+        <li>Integration tests with real databases</li>
+        <li>Test database setup with Docker Compose</li>
+        <li>Factory pattern for test data generation</li>
+        <li>Seeder support for test data</li>
+    </ul>
+
+    <h2>Running Tests</h2>
+
+    <h3>Running Unit Tests</h3>
+
+    <p>Unit tests test individual components without requiring a database connection:</p>
+
+    <pre><code># Run all unit tests
+go test ./...
+
+# Run unit tests with verbose output
+go test -v ./...
+
+# Run unit tests for a specific package
+go test ./database/...
+
+# Run unit tests with coverage
+go test -cover ./...</code></pre>
+
+    <h3>Running Integration Tests</h3>
+
+    <p>Integration tests require real database connections. The project includes Docker Compose configurations for MySQL and PostgreSQL:</p>
+
+    <pre><code># Start the database containers
+docker-compose up -d
+
+# Run MySQL integration tests
+go test -v -tags=integration ./integration_tests/mysql/...
+
+# Run PostgreSQL integration tests
+go test -v -tags=integration ./integration_tests/postgres/...
+
+# Stop the containers when done
+docker-compose down</code></pre>
+
+    <p>The Docker Compose setup includes:</p>
+    <ul>
+        <li><strong>MySQL 8.0</strong> on port <code>3306</code> (user: <code>root</code>, password: <code>root</code>, database: <code>test</code>)</li>
+        <li><strong>PostgreSQL 15</strong> on port <code>55432</code> (user: <code>test</code>, password: <code>test</code>, database: <code>test</code>)</li>
+    </ul>
+
+    <h2>Test Database Setup</h2>
+
+    <h3>Using SQLite for Testing</h3>
+
+    <p>SQLite is ideal for testing as it doesn't require a separate server:</p>
+
+    <pre><code>db, err := neat.NewFromDSN("sqlite://file::memory:?cache=shared")
+if err != nil {
+    t.Fatal(err)
+}
+defer db.Close()</code></pre>
+
+    <h3>Using MySQL for Testing</h3>
+
+    <pre><code>db, err := neat.NewFromDSN("mysql://root:root@localhost:3306/test")
+if err != nil {
+    t.Fatal(err)
+}
+defer db.Close()</code></pre>
+
+    <h3>Using PostgreSQL for Testing</h3>
+
+    <pre><code>db, err := neat.NewFromDSN("postgres://test:test@localhost:55432/test?sslmode=disable")
+if err != nil {
+    t.Fatal(err)
+}
+defer db.Close()</code></pre>
+
+    <h2>Writing Unit Tests</h2>
+
+    <pre><code>func TestQueryBuilder(t *testing.T) {
+    // Setup test database
+    db, err := neat.NewFromDSN("sqlite://file::memory:?cache=shared")
+    if err != nil {
+        t.Fatal(err)
+    }
+    defer db.Close()
+
+    // Create test table
+    db.Schema().Create("users", func(table neat.Blueprint) {
+        table.ID()
+        table.String("name")
+        table.String("email")
+    })
+
+    // Test insert
+    user := User{Name: "Test", Email: "test@example.com"}
+    err = db.Query().Create(&amp;user)
+    if err != nil {
+        t.Errorf("Failed to create user: %v", err)
+    }
+
+    // Test query
+    var found User
+    err = db.Query().Where("id", user.ID).First(&amp;found)
+    if err != nil {
+        t.Errorf("Failed to find user: %v", err)
+    }
+
+    if found.Name != "Test" {
+        t.Errorf("Expected name 'Test', got '%s'", found.Name)
+    }
+}</code></pre>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>
