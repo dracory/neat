@@ -23,10 +23,17 @@ type SoftDeletes struct {
 	DeletedAt sql.NullTime `json:"deleted_at,omitempty"`
 }
 
-// DeletedAtColumn returns the soft delete column name used in database queries.
+// SoftDeletedAtColumn returns the soft delete column name used in database queries.
 // Implements the SoftDeleteColumnNamer interface.
-func (sd *SoftDeletes) DeletedAtColumn() string {
+func (sd *SoftDeletes) SoftDeletedAtColumn() string {
 	return "deleted_at"
+}
+
+// DeletedAtColumn returns the soft delete column name used in database queries.
+//
+// Deprecated: Use SoftDeletedAtColumn() instead.
+func (sd *SoftDeletes) DeletedAtColumn() string {
+	return sd.SoftDeletedAtColumn()
 }
 
 // CreatedAt provides only the created timestamp for immutable models.

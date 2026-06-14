@@ -8,14 +8,14 @@ import (
 func TestSoftDeletesIsDeleted(t *testing.T) {
 	sd := &SoftDeletes{}
 
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false when DeletedAt is nil")
 	}
 
 	now := time.Now()
 	sd.DeletedAt = &now
 
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true when DeletedAt is set")
 	}
 }
@@ -23,13 +23,13 @@ func TestSoftDeletesIsDeleted(t *testing.T) {
 func TestSoftDeletesDelete(t *testing.T) {
 	sd := &SoftDeletes{}
 
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false before Delete")
 	}
 
 	sd.Delete()
 
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true after Delete")
 	}
 
@@ -43,13 +43,13 @@ func TestSoftDeletesRestore(t *testing.T) {
 
 	// First delete
 	sd.Delete()
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true after Delete")
 	}
 
 	// Then restore
 	sd.Restore()
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false after Restore")
 	}
 
@@ -61,25 +61,25 @@ func TestSoftDeletesRestore(t *testing.T) {
 func TestSoftDeletesGetDeletedAt(t *testing.T) {
 	sd := &SoftDeletes{}
 
-	if sd.GetDeletedAt() != nil {
+	if sd.GetSoftDeletedAt() != nil {
 		t.Error("Expected GetDeletedAt to return nil when DeletedAt is nil")
 	}
 
 	now := time.Now()
 	sd.DeletedAt = &now
 
-	if sd.GetDeletedAt() == nil {
+	if sd.GetSoftDeletedAt() == nil {
 		t.Error("Expected GetDeletedAt to return non-nil when DeletedAt is set")
 	}
 
-	if !sd.GetDeletedAt().Equal(now) {
+	if !sd.GetSoftDeletedAt().Equal(now) {
 		t.Error("Expected GetDeletedAt to return the correct timestamp")
 	}
 }
 
 func TestDeletedAtColumn(t *testing.T) {
-	if DeletedAtColumn != "deleted_at" {
-		t.Errorf("Expected DeletedAtColumn to be 'deleted_at', got '%s'", DeletedAtColumn)
+	if SoftDeleteAtColumn != "deleted_at" {
+		t.Errorf("Expected SoftDeleteAtColumn to be 'deleted_at', got '%s'", SoftDeleteAtColumn)
 	}
 }
 
@@ -87,13 +87,13 @@ func TestDeletedAtColumn(t *testing.T) {
 func TestSoftDeletesSoftDelete(t *testing.T) {
 	sd := &SoftDeletes{}
 
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false before SoftDelete")
 	}
 
 	sd.SoftDelete()
 
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true after SoftDelete")
 	}
 	if sd.DeletedAt == nil {
@@ -110,7 +110,7 @@ func TestSoftDeletesDeleteIsAlias(t *testing.T) {
 	sd2 := &SoftDeletes{}
 	sd2.Delete()
 
-	if sd1.IsDeleted() != sd2.IsDeleted() {
+	if sd1.IsSoftDeleted() != sd2.IsSoftDeleted() {
 		t.Error("Expected Delete() and SoftDelete() to produce the same IsDeleted() result")
 	}
 	if (sd1.DeletedAt == nil) != (sd2.DeletedAt == nil) {
@@ -123,14 +123,14 @@ func TestSoftDeletesDeleteIsAlias(t *testing.T) {
 func TestSoftDeletedAtIsDeleted(t *testing.T) {
 	sd := &SoftDeletedAt{}
 
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false when SoftDeletedAt is nil")
 	}
 
 	now := time.Now()
 	sd.SoftDeletedAt = &now
 
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true when SoftDeletedAt is set")
 	}
 }
@@ -138,13 +138,13 @@ func TestSoftDeletedAtIsDeleted(t *testing.T) {
 func TestSoftDeletedAtSoftDelete(t *testing.T) {
 	sd := &SoftDeletedAt{}
 
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false before SoftDelete")
 	}
 
 	sd.SoftDelete()
 
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true after SoftDelete")
 	}
 	if sd.SoftDeletedAt == nil {
@@ -160,7 +160,7 @@ func TestSoftDeletedAtDeleteIsAlias(t *testing.T) {
 	sd2 := &SoftDeletedAt{}
 	sd2.Delete()
 
-	if sd1.IsDeleted() != sd2.IsDeleted() {
+	if sd1.IsSoftDeleted() != sd2.IsSoftDeleted() {
 		t.Error("Expected Delete() and SoftDelete() to produce the same IsDeleted() result")
 	}
 	if (sd1.SoftDeletedAt == nil) != (sd2.SoftDeletedAt == nil) {
@@ -172,12 +172,12 @@ func TestSoftDeletedAtRestore(t *testing.T) {
 	sd := &SoftDeletedAt{}
 
 	sd.SoftDelete()
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return true after SoftDelete")
 	}
 
 	sd.Restore()
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("Expected IsDeleted to return false after Restore")
 	}
 	if sd.SoftDeletedAt != nil {
@@ -188,20 +188,20 @@ func TestSoftDeletedAtRestore(t *testing.T) {
 func TestSoftDeletedAtGetDeletedAt(t *testing.T) {
 	sd := &SoftDeletedAt{}
 
-	if sd.GetDeletedAt() != nil {
+	if sd.GetSoftDeletedAt() != nil {
 		t.Error("Expected GetDeletedAt to return nil initially")
 	}
 
 	sd.SoftDelete()
 
-	if sd.GetDeletedAt() == nil {
+	if sd.GetSoftDeletedAt() == nil {
 		t.Error("Expected GetDeletedAt to return non-nil after SoftDelete")
 	}
 }
 
 func TestSoftDeletedAtDeletedAtColumn(t *testing.T) {
 	sd := &SoftDeletedAt{}
-	if sd.DeletedAtColumn() != "soft_deleted_at" {
-		t.Errorf("Expected 'soft_deleted_at', got %q", sd.DeletedAtColumn())
+	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+		t.Errorf("Expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }

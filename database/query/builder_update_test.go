@@ -15,7 +15,7 @@ type updateTestSoftModel struct {
 	DeletedAt *time.Time
 }
 
-func (m *updateTestSoftModel) DeletedAtColumn() string { return "deleted_at" }
+func (m *updateTestSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
 
 func TestBuildUpdate(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "users", nil, nil)

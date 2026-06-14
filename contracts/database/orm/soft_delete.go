@@ -20,10 +20,10 @@ package orm
 //	    Name string
 //	}
 //
-//	func (u *User) DeletedAtColumn() string {
+//	func (u *User) SoftDeletedAtColumn() string {
 //	    return "removed_at"
 //	}
 type SoftDeleteColumnNamer interface {
-	// DeletedAtColumn returns the database column name used for soft deletes.
-	DeletedAtColumn() string
+	// SoftDeletedAtColumn returns the database column name used for soft deletes.
+	SoftDeletedAtColumn() string
 }

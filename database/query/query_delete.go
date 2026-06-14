@@ -24,7 +24,7 @@ func hasSoftDeleteCapability(model any) bool {
 // Falls back to "deleted_at" if the model does not implement SoftDeleteColumnNamer.
 func getSoftDeleteColumn(model any) string {
 	if namer, ok := model.(contractsorm.SoftDeleteColumnNamer); ok {
-		return namer.DeletedAtColumn()
+		return namer.SoftDeletedAtColumn()
 	}
 	return "deleted_at"
 }

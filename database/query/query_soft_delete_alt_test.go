@@ -23,7 +23,7 @@ type customColumnModel struct {
 	RemovedAt *time.Time
 }
 
-func (m *customColumnModel) DeletedAtColumn() string { return "removed_at" }
+func (m *customColumnModel) SoftDeletedAtColumn() string { return "removed_at" }
 
 func newAltSoftQuery(model any) *query.TestQuery {
 	w := query.WrapQuery(query.NewTestQuery(nil, nil, query.MakeDBConfig(), nil))
@@ -129,7 +129,7 @@ func TestSoftDeletedAtExecution(t *testing.T) {
 	if found.ID != before.ID {
 		t.Errorf("expected ID %d, got %d", before.ID, found.ID)
 	}
-	if !found.IsDeleted() {
+	if !found.IsSoftDeleted() {
 		t.Error("SoftDeletedAt should be non-nil after soft delete")
 	}
 }
@@ -164,7 +164,7 @@ func TestSoftDeletedAtRestoreExecution(t *testing.T) {
 	if err := w.Q.Where("name = ?", "bob").First(&restored); err != nil {
 		t.Fatalf("First after restore: %v", err)
 	}
-	if restored.IsDeleted() {
+	if restored.IsSoftDeleted() {
 		t.Error("SoftDeletedAt should be nil after restore")
 	}
 }
@@ -215,26 +215,26 @@ func TestCustomColumnExecution(t *testing.T) {
 func TestSoftDeletedAtMethods(t *testing.T) {
 	sd := &soft_delete.SoftDeletedAt{}
 
-	if sd.DeletedAtColumn() != "soft_deleted_at" {
-		t.Errorf("expected 'soft_deleted_at', got %q", sd.DeletedAtColumn())
+	if sd.SoftDeletedAtColumn() != "soft_deleted_at" {
+		t.Errorf("expected 'soft_deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("expected IsDeleted() to be false initially")
 	}
 
 	sd.SoftDelete()
-	if !sd.IsDeleted() {
+	if !sd.IsSoftDeleted() {
 		t.Error("expected IsDeleted() to be true after SoftDelete()")
 	}
-	if sd.GetDeletedAt() == nil {
+	if sd.GetSoftDeletedAt() == nil {
 		t.Error("expected GetDeletedAt() to be non-nil after SoftDelete()")
 	}
 
 	sd.Restore()
-	if sd.IsDeleted() {
+	if sd.IsSoftDeleted() {
 		t.Error("expected IsDeleted() to be false after Restore()")
 	}
-	if sd.GetDeletedAt() != nil {
+	if sd.GetSoftDeletedAt() != nil {
 		t.Error("expected GetDeletedAt() to be nil after Restore()")
 	}
 }
@@ -242,7 +242,7 @@ func TestSoftDeletedAtMethods(t *testing.T) {
 // TestSoftDeletesDefaultColumnMethod verifies SoftDeletes.DeletedAtColumn() returns "deleted_at".
 func TestSoftDeletesDefaultColumnMethod(t *testing.T) {
 	sd := &soft_delete.SoftDeletes{}
-	if sd.DeletedAtColumn() != "deleted_at" {
-		t.Errorf("expected 'deleted_at', got %q", sd.DeletedAtColumn())
+	if sd.SoftDeletedAtColumn() != "deleted_at" {
+		t.Errorf("expected 'deleted_at', got %q", sd.SoftDeletedAtColumn())
 	}
 }

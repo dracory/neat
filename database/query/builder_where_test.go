@@ -15,7 +15,7 @@ type whereTestSoftModel struct {
 	DeletedAt *time.Time
 }
 
-func (m *whereTestSoftModel) DeletedAtColumn() string { return "deleted_at" }
+func (m *whereTestSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
 
 func TestBuildWheres(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
