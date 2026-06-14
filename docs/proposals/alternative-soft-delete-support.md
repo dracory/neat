@@ -544,6 +544,10 @@ if user.IsSoftDeleted() {
    `SoftDeleteStrategy` models
 7. Confirm `isSoftDeleteOperation` in `builder_update.go` uses
    `getSoftDeleteColumn` (already done)
+7b. Update all soft-delete-related `time.Now()` calls in
+    `database/soft_delete/soft_delete.go` and `database/query/query_delete.go`
+    to `time.Now().UTC()` — ensures stored timestamps and bind parameters are
+    timezone-safe and consistent with the UTC sentinel value
 8. Fix `buildWheresWithSoftDeleteIndex` in `builder_where.go` — the max-date
    conditions (`soft_deleted_at > ?`) add one bind parameter ahead of any user
    WHERE args; the placeholder counter must be incremented by 1 before the
@@ -575,13 +579,23 @@ if user.IsSoftDeleted() {
    interface and set the sentinel before executing the INSERT.
 
 2. **`time.Now()` inside `IsActiveCondition`/`IsDeletedCondition`** — **Resolved:
-   call `time.Now()` internally**, consistent with every other `time.Now()` call
-   in the codebase (query builder, soft delete structs, observers). No clock
-   abstraction exists anywhere in Neat ORM and introducing one here would be
-   inconsistent. Tests that need a fixed timestamp should construct the condition
-   SQL directly and assert the bound arg falls within an acceptable window
-   (e.g. `time.Since(arg) < time.Second`), the same pattern already used in
-   `query_helpers_test.go` and `query_accessors_test.go`.
+   call `time.Now().UTC()` internally.** Two reasons:
+
+   - **UTC consistency with the sentinel** — `MaxSoftDeletedAt` is defined as
+     `time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)`. Comparing it against
+     a local-time `time.Now()` produces a correct result in Go (both are
+     converted to UTC internally for comparison), but the value stored in the
+     database and the value sent in bind parameters must also be UTC so that
+     the database-side comparison is timezone-safe. Always storing and querying
+     in UTC is the only safe guarantee across all supported databases.
+   - **Codebase gap** — the existing `time.Now()` calls (struct `SoftDelete()`
+     methods, `query_delete.go`) do not call `.UTC()`. As part of implementing
+     this feature, **all soft-delete-related `time.Now()` calls should be
+     updated to `time.Now().UTC()`** to be consistent with the UTC sentinel.
+     This is a small correctness fix bundled into the implementation.
+
+   Tests should assert the bound arg using `time.Since(arg.UTC()) < time.Second`,
+   matching the window-based pattern in `query_helpers_test.go`.
 
 3. **Interface placement** — **Resolved: `SoftDeleteStrategy` goes in
    `contracts/database/orm/soft_delete.go`** alongside `SoftDeleteColumnNamer`.
