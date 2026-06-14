@@ -266,9 +266,7 @@ func TestMaxDateSoftDelete_MaxSoftDeletedAtValue(t *testing.T) {
 	}
 
 	// Verify a product with SoftDeletedAt = MaxSoftDeletedAt is NOT soft deleted
-	product := Product{
-		Name: "Test",
-	}
+	product := Product{}
 	product.SoftDeletedAt = soft_delete.MaxSoftDeletedAt
 	if product.IsSoftDeleted() {
 		t.Error("product with SoftDeletedAt = MaxSoftDeletedAt should NOT be soft deleted")
