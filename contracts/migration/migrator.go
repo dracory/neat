@@ -1,14 +1,19 @@
 package migration
 
+import "time"
+
 const (
 	MigratorDefault = "default"
 	MigratorSql     = "sql"
 )
 
 type Status struct {
-	Name  string
-	Batch int
-	Ran   bool
+	Name        string
+	Batch       int
+	Ran         bool
+	Description string
+	Duration    time.Duration
+	LastRun     time.Time
 }
 
 type Migrator interface {

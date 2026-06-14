@@ -8,6 +8,7 @@ import (
 
 	"github.com/dracory/neat/contracts/config"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/contracts/migration"
 )
 
@@ -15,11 +16,12 @@ import (
 type Repository struct {
 	config config.Config
 	orm    contractsorm.Orm
+	schema contractsschema.Schema
 	table  string
 }
 
 // NewRepository creates a new Repository instance.
-func NewRepository(config config.Config, orm contractsorm.Orm) *Repository {
+func NewRepository(config config.Config, orm contractsorm.Orm, schema contractsschema.Schema) *Repository {
 	table := config.GetString("database.migrations.table", "migrations")
 
 	// Validate table name to prevent SQL injection
@@ -31,65 +33,33 @@ func NewRepository(config config.Config, orm contractsorm.Orm) *Repository {
 	return &Repository{
 		config: config,
 		orm:    orm,
+		schema: schema,
 		table:  table,
 	}
 }
 
 func (r *Repository) CreateRepository() error {
-	query := r.orm.Query()
-	if query == nil {
-		return fmt.Errorf("query not initialized")
-	}
-
 	// Check if table already exists
 	if r.RepositoryExists() {
-		return nil
+		// Upgrade schema if needed
+		return r.upgradeRepositorySchema()
 	}
 
-	// Create migrations table
-	createSQL := fmt.Sprintf(`
-		CREATE TABLE %s (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			migration VARCHAR(255) NOT NULL,
-			batch INTEGER NOT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)
-	`, r.table)
+	// Create migrations table using schema builder
+	return r.schema.Create(r.table, func(table contractsschema.Blueprint) {
+		table.ID()
+		table.String("migration", 255)
+		table.Integer("batch")
+		table.Text("description").Nullable()
+		table.DateTime("started_at").Nullable()
+		table.DateTime("completed_at").Nullable()
+		table.Timestamps()
+	})
+}
 
-	// Adjust SQL for different databases
-	driver := r.config.GetString(fmt.Sprintf("database.connections.%s.driver", r.orm.Name()))
-	switch driver {
-	case "postgres":
-		createSQL = fmt.Sprintf(`
-			CREATE TABLE %s (
-				id SERIAL PRIMARY KEY,
-				migration VARCHAR(255) NOT NULL,
-				batch INTEGER NOT NULL,
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			)
-		`, r.table)
-	case "mysql":
-		createSQL = fmt.Sprintf(`
-			CREATE TABLE %s (
-				id INT AUTO_INCREMENT PRIMARY KEY,
-				migration VARCHAR(255) NOT NULL,
-				batch INT NOT NULL,
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			)
-		`, r.table)
-	case "sqlserver":
-		createSQL = fmt.Sprintf(`
-			CREATE TABLE %s (
-				id INT IDENTITY(1,1) PRIMARY KEY,
-				migration NVARCHAR(255) NOT NULL,
-				batch INT NOT NULL,
-				created_at DATETIME DEFAULT GETDATE()
-			)
-		`, r.table)
-	}
-
-	_, err := query.Exec(createSQL)
-	return err
+// getSchema returns a schema instance
+func (r *Repository) getSchema() contractsschema.Schema {
+	return r.schema
 }
 
 func (r *Repository) Delete(migrationName string) error {
@@ -203,14 +173,14 @@ func (r *Repository) GetRan() ([]string, error) {
 	return migrations, err
 }
 
-func (r *Repository) Log(migrationName string, batch int) error {
+func (r *Repository) Log(migrationName string, batch int, description string, startedAt, completedAt time.Time) error {
 	query := r.orm.Query()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
 
-	insertSQL := fmt.Sprintf("INSERT INTO %s (migration, batch, created_at) VALUES (?, ?, ?)", r.table)
-	_, err := query.Exec(insertSQL, migrationName, batch, time.Now())
+	insertSQL := fmt.Sprintf("INSERT INTO %s (migration, batch, description, started_at, completed_at, created_at) VALUES (?, ?, ?, ?, ?, ?)", r.table)
+	_, err := query.Exec(insertSQL, migrationName, batch, description, startedAt, completedAt, time.Now())
 	return err
 }
 
@@ -236,6 +206,110 @@ func (r *Repository) RepositoryExists() bool {
 	countSQL := "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?"
 	err = databaseConn.QueryRow(countSQL, r.table).Scan(&count)
 	return err == nil && count > 0
+}
+
+// upgradeRepositorySchema adds new columns to existing migration table if they don't exist
+func (r *Repository) upgradeRepositorySchema() error {
+	// Use schema builder to add columns
+	// Check if columns exist first to avoid errors
+	if !r.columnExists("description") {
+		if err := r.schema.Table(r.table, func(table contractsschema.Blueprint) {
+			table.Text("description").Nullable()
+		}); err != nil {
+			// Ignore error if column already exists (race condition)
+		}
+	}
+
+	if !r.columnExists("started_at") {
+		if err := r.schema.Table(r.table, func(table contractsschema.Blueprint) {
+			table.DateTime("started_at").Nullable()
+		}); err != nil {
+			// Ignore error if column already exists
+		}
+	}
+
+	if !r.columnExists("completed_at") {
+		if err := r.schema.Table(r.table, func(table contractsschema.Blueprint) {
+			table.DateTime("completed_at").Nullable()
+		}); err != nil {
+			// Ignore error if column already exists
+		}
+	}
+
+	return nil
+}
+
+// columnExists checks if a column exists in the migration table
+func (r *Repository) columnExists(columnName string) bool {
+	databaseConn, err := r.orm.DB()
+	if err != nil {
+		return false
+	}
+
+	driver := r.config.GetString(fmt.Sprintf("database.connections.%s.driver", r.orm.Name()))
+
+	switch driver {
+	case "sqlite", "turso":
+		// SQLite: use PRAGMA table_info
+		rows, err := databaseConn.Query(fmt.Sprintf("PRAGMA table_info(%s)", r.table))
+		if err != nil {
+			return false
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var cid int
+			var name string
+			var ctype string
+			var notnull int
+			var dfltValue interface{}
+			var pk int
+			if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
+				continue
+			}
+			if name == columnName {
+				return true
+			}
+		}
+		return false
+
+	case "postgres":
+		var count int
+		query := `SELECT COUNT(*) FROM information_schema.columns 
+		          WHERE table_name = $1 AND column_name = $2`
+		err := databaseConn.QueryRow(query, r.table, columnName).Scan(&count)
+		return err == nil && count > 0
+
+	case "mysql":
+		var count int
+		query := `SELECT COUNT(*) FROM information_schema.columns 
+		          WHERE table_name = ? AND column_name = ?`
+		err := databaseConn.QueryRow(query, r.table, columnName).Scan(&count)
+		return err == nil && count > 0
+
+	case "sqlserver":
+		var count int
+		query := `SELECT COUNT(*) FROM information_schema.columns 
+		          WHERE table_name = @p1 AND column_name = @p2`
+		err := databaseConn.QueryRow(query, r.table, columnName).Scan(&count)
+		return err == nil && count > 0
+
+	default:
+		return false
+	}
+}
+
+// GetHistory returns the migration execution history from the database
+func (r *Repository) GetHistory() ([]migration.File, error) {
+	query := r.orm.Query()
+	if query == nil {
+		return nil, fmt.Errorf("query not initialized")
+	}
+
+	var files []migration.File
+	selectSQL := fmt.Sprintf("SELECT id, migration, batch, description, started_at, completed_at FROM %s ORDER BY id ASC", r.table)
+	err := query.Raw(selectSQL).Scan(&files)
+	return files, err
 }
 
 // isValidMigrationTableName validates that a table name is safe to use in SQL queries.

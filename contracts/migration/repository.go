@@ -1,9 +1,14 @@
 package migration
 
+import "time"
+
 type File struct {
-	ID        uint
-	Migration string
-	Batch     int
+	ID          uint
+	Migration   string
+	Batch       int
+	Description string
+	StartedAt   time.Time
+	CompletedAt time.Time
 }
 
 type Repository interface {
@@ -26,7 +31,9 @@ type Repository interface {
 	// GetRan Get the completed migrations.
 	GetRan() ([]string, error)
 	// Log that a migration was run.
-	Log(file string, batch int) error
+	Log(file string, batch int, description string, startedAt, completedAt time.Time) error
 	// RepositoryExists Determine if the migration repository exists.
 	RepositoryExists() bool
+	// GetHistory Get the migration execution history from the database.
+	GetHistory() ([]File, error)
 }
