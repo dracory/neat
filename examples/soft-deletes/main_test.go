@@ -7,12 +7,12 @@ import (
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/soft_delete"
-	mainpkg "github.com/dracory/neat/examples/max-date-soft-delete"
+	mainpkg "github.com/dracory/neat/examples/soft-deletes"
 )
 
-// Product model using max-date sentinel soft delete strategy
+// Product model using NULL-based soft delete strategy
 type Product struct {
-	soft_delete.SoftDeletesMaxDate
+	soft_delete.SoftDeletes
 	ID          uint      `json:"id" db:"id"`
 	Name        string    `json:"name" db:"name"`
 	Price       float64   `json:"price" db:"price"`
@@ -27,7 +27,7 @@ func TestRunExample(t *testing.T) {
 	}
 }
 
-func TestMaxDateSoftDelete_CreateAndSoftDelete(t *testing.T) {
+func TestSoftDelete_CreateAndSoftDelete(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
@@ -40,7 +40,7 @@ func TestMaxDateSoftDelete_CreateAndSoftDelete(t *testing.T) {
 		blueprint.Float("price", 10, 2)
 		blueprint.Text("description")
 		blueprint.Timestamp("created_at")
-		blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+		blueprint.Timestamp("soft_deleted_at").Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -92,7 +92,7 @@ func TestMaxDateSoftDelete_CreateAndSoftDelete(t *testing.T) {
 	}
 }
 
-func TestMaxDateSoftDelete_Restore(t *testing.T) {
+func TestSoftDelete_Restore(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
@@ -103,7 +103,7 @@ func TestMaxDateSoftDelete_Restore(t *testing.T) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
-		blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+		blueprint.Timestamp("soft_deleted_at").Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -149,13 +149,13 @@ func TestMaxDateSoftDelete_Restore(t *testing.T) {
 		t.Error("expected product to be restored (not soft deleted)")
 	}
 
-	// Verify SoftDeletedAt is set to MaxSoftDeletedAt
-	if !restored.SoftDeletedAt.Equal(soft_delete.MaxSoftDeletedAt) {
-		t.Errorf("expected SoftDeletedAt to be MaxSoftDeletedAt, got %v", restored.SoftDeletedAt)
+	// Verify SoftDeletedAt is NULL (nil)
+	if restored.SoftDeletedAt != nil {
+		t.Errorf("expected SoftDeletedAt to be nil, got %v", restored.SoftDeletedAt)
 	}
 }
 
-func TestMaxDateSoftDelete_ForceDelete(t *testing.T) {
+func TestSoftDelete_ForceDelete(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
@@ -166,7 +166,7 @@ func TestMaxDateSoftDelete_ForceDelete(t *testing.T) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
-		blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+		blueprint.Timestamp("soft_deleted_at").Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -198,7 +198,7 @@ func TestMaxDateSoftDelete_ForceDelete(t *testing.T) {
 	}
 }
 
-func TestMaxDateSoftDelete_OnlySoftDeleted(t *testing.T) {
+func TestSoftDelete_OnlySoftDeleted(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
@@ -209,7 +209,7 @@ func TestMaxDateSoftDelete_OnlySoftDeleted(t *testing.T) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.Float("price", 10, 2)
-		blueprint.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+		blueprint.Timestamp("soft_deleted_at").Nullable()
 	})
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
@@ -258,25 +258,32 @@ func TestMaxDateSoftDelete_OnlySoftDeleted(t *testing.T) {
 	}
 }
 
-func TestMaxDateSoftDelete_MaxSoftDeletedAtValue(t *testing.T) {
-	// Verify the sentinel value
-	expected := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
-	if !soft_delete.MaxSoftDeletedAt.Equal(expected) {
-		t.Errorf("MaxSoftDeletedAt should be %v, got %v", expected, soft_delete.MaxSoftDeletedAt)
-	}
+func TestSoftDelete_IsSoftDeleted(t *testing.T) {
+	// Verify IsSoftDeleted logic for NULL-based strategy
+	product := Product{}
 
-	// Verify a product with SoftDeletedAt = MaxSoftDeletedAt is NOT soft deleted
-	product := Product{
-		Name: "Test",
-	}
-	product.SoftDeletedAt = soft_delete.MaxSoftDeletedAt
+	// NULL (nil) means NOT soft deleted
 	if product.IsSoftDeleted() {
-		t.Error("product with SoftDeletedAt = MaxSoftDeletedAt should NOT be soft deleted")
+		t.Error("product with nil SoftDeletedAt should not be soft deleted")
 	}
 
-	// Verify a product with SoftDeletedAt = now IS soft deleted
-	product.SoftDeletedAt = time.Now()
+	// Non-NULL timestamp means soft deleted
+	now := time.Now()
+	product.SoftDeletedAt = &now
 	if !product.IsSoftDeleted() {
-		t.Error("product with SoftDeletedAt = now should be soft deleted")
+		t.Error("product with non-nil SoftDeletedAt should be soft deleted")
+	}
+}
+
+func TestSoftDelete_SoftDeletedAtField(t *testing.T) {
+	// Verify the SoftDeletedAt field exists and is properly named
+	product := Product{}
+
+	// Set SoftDeletedAt to a specific time
+	testTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	product.SoftDeletedAt = &testTime
+
+	if product.SoftDeletedAt == nil || !product.SoftDeletedAt.Equal(testTime) {
+		t.Errorf("expected SoftDeletedAt to be %v, got %v", testTime, product.SoftDeletedAt)
 	}
 }
