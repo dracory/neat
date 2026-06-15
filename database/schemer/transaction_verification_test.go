@@ -1,6 +1,7 @@
 package schemer
 
 import (
+	"fmt"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -34,30 +35,99 @@ func TestSchemaTransactionDetection(t *testing.T) {
 		}
 	})
 
-	// Test 2: Schema operation inside transaction
+	// Test 2: Schema operation inside transaction using WithTransaction
 	t.Run("SchemaInsideTransaction", func(t *testing.T) {
 		err := db.Transaction(func(tx contractsorm.Query) error {
-			// Check if schema's internal ORM detects transaction state
-			query := db.Schema().Orm().Query()
+			schema := db.Schema().WithTransaction(tx)
+
+			// Schema operations should now use the transaction query
+			query := schema.Orm().Query()
 			if query.InTransaction() {
-				t.Log("Schema ORM detects transaction state")
+				t.Log("Schema ORM query detects transaction state")
 			} else {
-				t.Log("Schema ORM does NOT detect transaction state (expected)")
+				t.Log("Schema ORM query does NOT detect transaction state (tx is stored separately)")
 			}
+
+			// Create within transaction
+			createErr := schema.Create("test_table_2", func(blueprint contractsschema.Blueprint) {
+				blueprint.ID()
+				blueprint.String("name")
+			})
+			if createErr != nil {
+				t.Fatalf("failed to create table in transaction: %v", createErr)
+			}
+
+			if !schema.HasTable("test_table_2") {
+				t.Error("table should exist within transaction")
+			}
+
 			return nil
 		})
 		if err != nil {
 			t.Fatalf("transaction failed: %v", err)
 		}
+
+		// Table should exist after commit
+		if !db.Schema().HasTable("test_table_2") {
+			t.Error("table should exist after transaction commit")
+		}
 	})
 
 	// Test 3: Schema Create with transaction rollback
 	t.Run("SchemaCreateWithTransactionRollback", func(t *testing.T) {
-		t.Skip("Skipping schema create in transaction test - causes timeout")
+		err := db.Transaction(func(tx contractsorm.Query) error {
+			schema := db.Schema().WithTransaction(tx)
+
+			createErr := schema.Create("test_table_rollback", func(blueprint contractsschema.Blueprint) {
+				blueprint.ID()
+				blueprint.String("name")
+			})
+			if createErr != nil {
+				t.Fatalf("failed to create table in transaction: %v", createErr)
+			}
+
+			if !schema.HasTable("test_table_rollback") {
+				t.Error("table should exist within transaction")
+			}
+
+			// Return error to trigger rollback
+			return fmt.Errorf("intentional rollback")
+		})
+		if err == nil {
+			t.Fatal("expected transaction to roll back")
+		}
+
+		// Table should NOT exist after rollback
+		if db.Schema().HasTable("test_table_rollback") {
+			t.Error("table should not exist after transaction rollback")
+		}
 	})
 }
 
 // TestSchemerWithRealTransactions tests schemer with actual transaction wrapping enabled
 func TestSchemerWithRealTransactions(t *testing.T) {
-	t.Skip("Skipping - schema does not detect outer transaction context, so transaction wrapping won't work without schema package changes")
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	schema := db.Schema()
+
+	// Test that WithTransaction returns a schema that can be used for migrations
+	txSchema := schema.WithTransaction(db.Schema().Orm().Query())
+	if txSchema == nil {
+		t.Fatal("WithTransaction should return a valid schema")
+	}
+
+	// The transaction-aware schema should be able to perform operations
+	err = txSchema.Create("test_migrations", func(blueprint contractsschema.Blueprint) {
+		blueprint.ID()
+		blueprint.String("name")
+	})
+	if err != nil {
+		// This might fail because the query is not actually in a transaction
+		// but it should not panic and should behave gracefully
+		t.Logf("Schema operation on WithTransaction query: %v", err)
+	}
 }

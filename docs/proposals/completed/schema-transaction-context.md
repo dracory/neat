@@ -1,7 +1,7 @@
 # Schema Transaction Context Support
 
 **Date**: June 15, 2026
-**Status**: Proposed
+**Status**: Implemented
 **Priority**: High
 **Author**: Neat ORM Team
 
@@ -48,7 +48,7 @@ db.Transaction(func(tx orm.Query) error {
 
 ## Proposed Solutions
 
-### Solution 1: Transaction-Aware Schema Methods (Recommended)
+### Solution 1: Transaction-Aware Schema Methods
 
 Add transaction-aware methods to the Schema interface that accept a transaction context:
 
@@ -99,7 +99,7 @@ db.Transaction(func(tx orm.Query) error {
 - ⚠️ Method duplication (WithTx variants)
 - ⚠️ Users must remember to use WithTx methods
 
-### Solution 2: Transaction-Aware Schema Instance
+### Solution 2: Transaction-Aware Schema Instance  (Recommended)
 
 Create a method to get a transaction-aware schema instance:
 

@@ -189,8 +189,10 @@ func TestUp_SchemaInjection(t *testing.T) {
 	if migration.schema == nil {
 		t.Error("Expected schema to be injected")
 	}
-	if migration.schema != schema {
-		t.Error("Expected injected schema to match db schema")
+	// With transactions enabled by default, the injected schema is a WithTransaction wrapper.
+	// Verify it works by checking the injected schema can perform operations.
+	if migration.schema.Orm() == nil {
+		t.Error("Expected injected schema to have a valid ORM")
 	}
 }
 
@@ -589,13 +591,124 @@ func TestSetTransactionIsolationLevel(t *testing.T) {
 }
 
 func TestUpWithTransactionsEnabled(t *testing.T) {
-	t.Skip("Skipping transaction tests - schema transaction detection needs investigation")
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Pre-create migration_tracker so runUp doesn't need to create it
+	schema := db.Schema()
+	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration_tracker table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+	migrations := []contractsschema.MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
+	}
+	schemer.AddMigrations(migrations)
+
+	// With transactions enabled (default), Up should fail and roll back tracker entries
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err == nil {
+		t.Fatal("Expected error from failing migration")
+	}
+
+	var trackers []MigrationTracker
+	query := db.Schema().Orm().Query().Table("migration_tracker")
+	if err := query.Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 0 {
+		t.Errorf("Expected 0 tracker entries after rollback, got %d", len(trackers))
+	}
 }
 
 func TestUpWithTransactionsDisabled(t *testing.T) {
-	t.Skip("Skipping transaction tests - schema transaction detection needs investigation")
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Pre-create migration_tracker
+	schema := db.Schema()
+	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration_tracker table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+	impl := schemer.(*SchemerImplementation)
+	impl.SetTransactionsEnabled(false)
+
+	migrations := []contractsschema.MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
+	}
+	schemer.AddMigrations(migrations)
+
+	// With transactions disabled, Up should fail but prior tracker entries persist
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err == nil {
+		t.Fatal("Expected error from failing migration")
+	}
+
+	var trackers []MigrationTracker
+	query := db.Schema().Orm().Query().Table("migration_tracker")
+	if err := query.Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 1 {
+		t.Errorf("Expected 1 tracker entry after failed migration, got %d", len(trackers))
+	}
+	if len(trackers) > 0 && trackers[0].ID != "migration_1" {
+		t.Errorf("Expected tracker ID 'migration_1', got '%s'", trackers[0].ID)
+	}
 }
 
 func TestTransactionRollbackOnFailure(t *testing.T) {
-	t.Skip("Skipping transaction tests - schema transaction detection needs investigation")
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Do NOT pre-create migration_tracker - runUp will create it inside the transaction
+	schemer := NewSchemer(db)
+	migrations := []contractsschema.MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
+	}
+	schemer.AddMigrations(migrations)
+
+	// Up should fail; the entire transaction (including tracker table creation) should roll back
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err == nil {
+		t.Fatal("Expected Up to return error when migration fails")
+	}
+
+	if db.Schema().HasTable("migration_tracker") {
+		t.Error("Expected migration_tracker table to be rolled back when transaction fails")
+	}
 }

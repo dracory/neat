@@ -79,6 +79,9 @@ type Schema interface {
 
 	// Table Modify a table on the schema.
 	Table(table string, callback func(table Blueprint)) error
+
+	// WithTransaction creates a transaction-aware schema instance.
+	WithTransaction(tx orm.Query) Schema
 }
 
 type CommonSchema interface {

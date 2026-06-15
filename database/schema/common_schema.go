@@ -11,6 +11,7 @@ type CommonSchema struct {
 	grammar   schema.Grammar
 	orm       orm.Orm
 	processor schema.Processor
+	tx        orm.Query
 }
 
 func NewCommonSchema(grammar schema.Grammar, orm orm.Orm) *CommonSchema {
@@ -20,9 +21,25 @@ func NewCommonSchema(grammar schema.Grammar, orm orm.Orm) *CommonSchema {
 	}
 }
 
+func (r *CommonSchema) WithTransaction(tx orm.Query) *CommonSchema {
+	return &CommonSchema{
+		grammar:   r.grammar,
+		orm:       r.orm,
+		processor: r.processor,
+		tx:        tx,
+	}
+}
+
+func (r *CommonSchema) getQuery() orm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
+}
+
 func (r *CommonSchema) GetTables() ([]schema.Table, error) {
 	var tables []schema.Table
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -39,7 +56,7 @@ func (r *CommonSchema) GetTables() ([]schema.Table, error) {
 
 func (r *CommonSchema) GetViews() ([]schema.View, error) {
 	var views []schema.View
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}

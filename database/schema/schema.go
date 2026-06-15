@@ -30,6 +30,7 @@ type Schema struct {
 	prefix     string
 	processor  contractsschema.Processor
 	schema     string
+	tx         contractsorm.Query
 }
 
 func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migrations []contractsschema.MigrationInterface) (*Schema, error) {
@@ -98,7 +99,7 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migratio
 
 func (r *Schema) GetTables() ([]contractsschema.Table, error) {
 	var tables []contractsschema.Table
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -203,7 +204,7 @@ func (r *Schema) GetForeignKeys(table string) ([]contractsschema.ForeignKey, err
 	table = r.prefix + table
 
 	var dbForeignKeys []contractsschema.DBForeignKey
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -363,10 +364,11 @@ func (r *Schema) RenameColumn(table, from, to string) error {
 
 func (r *Schema) SetConnection(name string) {
 	r.orm = r.orm.Connection(name)
+	r.tx = nil
 }
 
 func (r *Schema) Sql(sql string) error {
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
@@ -386,8 +388,47 @@ func (r *Schema) Table(table string, callback func(table contractsschema.Bluepri
 	return nil
 }
 
+func (r *Schema) WithTransaction(tx contractsorm.Query) contractsschema.Schema {
+	// Create new CommonSchema with tx
+	newCommon := NewCommonSchema(r.grammar, r.orm).WithTransaction(tx)
+
+	// Create new driver schema with tx
+	var newDriver contractsschema.DriverSchema
+	switch d := r.DriverSchema.(type) {
+	case *PostgresSchema:
+		newDriver = d.WithTransaction(tx)
+	case *MysqlSchema:
+		newDriver = d.WithTransaction(tx)
+	case *SqlserverSchema:
+		newDriver = d.WithTransaction(tx)
+	case *SqliteSchema:
+		newDriver = d.WithTransaction(tx)
+	case *OracleSchema:
+		newDriver = d.WithTransaction(tx)
+	default:
+		// Unknown driver type - keep original driver schema
+		// This shouldn't happen in practice as all supported drivers are covered
+		newDriver = r.DriverSchema
+	}
+
+	s := &Schema{
+		CommonSchema: newCommon,
+		DriverSchema: newDriver,
+		config:       r.config,
+		grammar:      r.grammar,
+		log:          r.log,
+		orm:          r.orm,
+		prefix:       r.prefix,
+		processor:    r.processor,
+		schema:       r.schema,
+		tx:           tx,
+	}
+
+	return s
+}
+
 func (r *Schema) build(blueprint contractsschema.Blueprint) error {
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
@@ -406,6 +447,13 @@ func (r *Schema) build(blueprint contractsschema.Blueprint) error {
 	return r.orm.Transaction(func(tx contractsorm.Query) error {
 		return blueprint.Build(tx, r.grammar)
 	})
+}
+
+func (r *Schema) getQuery() contractsorm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
 }
 
 func (r *Schema) createBlueprint(table string) contractsschema.Blueprint {

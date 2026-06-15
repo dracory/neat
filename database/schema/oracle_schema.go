@@ -16,6 +16,7 @@ type OracleSchema struct {
 	orm       orm.Orm
 	prefix    string
 	processor processors.Oracle
+	tx        orm.Query
 }
 
 func NewOracleSchema(grammar *grammars.Oracle, orm orm.Orm, prefix string) *OracleSchema {
@@ -28,6 +29,24 @@ func NewOracleSchema(grammar *grammars.Oracle, orm orm.Orm, prefix string) *Orac
 	}
 }
 
+func (r *OracleSchema) WithTransaction(tx orm.Query) *OracleSchema {
+	return &OracleSchema{
+		CommonSchema: NewCommonSchema(r.grammar, r.orm).WithTransaction(tx),
+		grammar:      r.grammar,
+		orm:          r.orm,
+		prefix:       r.prefix,
+		processor:    r.processor,
+		tx:           tx,
+	}
+}
+
+func (r *OracleSchema) getQuery() orm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
+}
+
 func (r *OracleSchema) DropAllTables() error {
 	tables, err := r.GetTables()
 	if err != nil {
@@ -38,6 +57,24 @@ func (r *OracleSchema) DropAllTables() error {
 		return nil
 	}
 
+	query := r.getQuery()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if query.InTransaction() {
+		// Already in transaction, use it directly
+		var dropTables []string
+		for _, table := range tables {
+			dropTables = append(dropTables, table.Name)
+		}
+		if _, execErr := query.Exec(r.grammar.CompileDropAllTables(dropTables)); execErr != nil {
+			return execErr
+		}
+
+		return nil
+	}
+
+	// Not in transaction, wrap in one
 	return r.orm.Transaction(func(tx orm.Query) error {
 		// Oracle doesn't support foreign key constraint toggling like MySQL
 		// Skip the disable/enable foreign key constraints steps
@@ -72,7 +109,7 @@ func (r *OracleSchema) DropAllViews() error {
 		dropViews = append(dropViews, view.Name)
 	}
 
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
@@ -85,7 +122,7 @@ func (r *OracleSchema) GetColumns(table string) ([]contractsschema.Column, error
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -101,7 +138,7 @@ func (r *OracleSchema) GetIndexes(table string) ([]contractsschema.Index, error)
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}

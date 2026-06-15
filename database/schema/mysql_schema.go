@@ -16,6 +16,7 @@ type MysqlSchema struct {
 	orm       orm.Orm
 	prefix    string
 	processor processors.Mysql
+	tx        orm.Query
 }
 
 func NewMysqlSchema(grammar *grammars.Mysql, orm orm.Orm, prefix string) *MysqlSchema {
@@ -28,6 +29,24 @@ func NewMysqlSchema(grammar *grammars.Mysql, orm orm.Orm, prefix string) *MysqlS
 	}
 }
 
+func (r *MysqlSchema) WithTransaction(tx orm.Query) *MysqlSchema {
+	return &MysqlSchema{
+		CommonSchema: NewCommonSchema(r.grammar, r.orm).WithTransaction(tx),
+		grammar:      r.grammar,
+		orm:          r.orm,
+		prefix:       r.prefix,
+		processor:    r.processor,
+		tx:           tx,
+	}
+}
+
+func (r *MysqlSchema) getQuery() orm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
+}
+
 func (r *MysqlSchema) DropAllTables() error {
 	tables, err := r.GetTables()
 	if err != nil {
@@ -38,6 +57,32 @@ func (r *MysqlSchema) DropAllTables() error {
 		return nil
 	}
 
+	query := r.getQuery()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if query.InTransaction() {
+		// Already in transaction, use it directly
+		if _, err = query.Exec(r.grammar.CompileDisableForeignKeyConstraints()); err != nil {
+			return err
+		}
+
+		var dropTables []string
+		for _, table := range tables {
+			dropTables = append(dropTables, table.Name)
+		}
+		if _, err = query.Exec(r.grammar.CompileDropAllTables(dropTables)); err != nil {
+			return err
+		}
+
+		if _, err = query.Exec(r.grammar.CompileEnableForeignKeyConstraints()); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	// Not in transaction, wrap in one
 	return r.orm.Transaction(func(tx orm.Query) error {
 		if _, err = tx.Exec(r.grammar.CompileDisableForeignKeyConstraints()); err != nil {
 			return err
@@ -77,7 +122,7 @@ func (r *MysqlSchema) DropAllViews() error {
 		dropViews = append(dropViews, view.Name)
 	}
 
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
@@ -90,7 +135,7 @@ func (r *MysqlSchema) GetColumns(table string) ([]contractsschema.Column, error)
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -105,7 +150,7 @@ func (r *MysqlSchema) GetIndexes(table string) ([]contractsschema.Index, error) 
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
