@@ -11,7 +11,8 @@ import (
 func TestMigrator_Create(t *testing.T) {
 	testDir := "./test_migrations"
 	migrator := &Migrator{
-		paths: []string{testDir},
+		paths:  []string{testDir},
+		config: &mockConfig{},
 	}
 
 	// Create directory before test
@@ -28,7 +29,8 @@ func TestMigrator_Create(t *testing.T) {
 
 func TestMigrator_Create_NoPaths(t *testing.T) {
 	migrator := &Migrator{
-		paths: []string{},
+		paths:  []string{},
+		config: &mockConfig{},
 	}
 
 	err := migrator.Create("test_migration")
@@ -40,7 +42,8 @@ func TestMigrator_Create_NoPaths(t *testing.T) {
 func TestMigrator_Create_WithSpaces(t *testing.T) {
 	testDir := "./test_migrations"
 	migrator := &Migrator{
-		paths: []string{testDir},
+		paths:  []string{testDir},
+		config: &mockConfig{},
 	}
 
 	// Create directory before test
@@ -101,4 +104,44 @@ func TestMigration_Struct(t *testing.T) {
 	if migration.Down == nil {
 		t.Error("Expected Down function to be set")
 	}
+}
+
+// mockConfig is a simple mock implementation of config.Config for testing
+type mockConfig struct{}
+
+func (m *mockConfig) Env(envName string, defaultValue ...any) any {
+	return nil
+}
+
+func (m *mockConfig) Add(name string, configuration any) {}
+
+func (m *mockConfig) Get(path string, defaultValue ...any) any {
+	return nil
+}
+
+func (m *mockConfig) GetString(path string, defaultValue ...any) string {
+	if len(defaultValue) > 0 {
+		if s, ok := defaultValue[0].(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func (m *mockConfig) GetInt(path string, defaultValue ...any) int {
+	if len(defaultValue) > 0 {
+		if i, ok := defaultValue[0].(int); ok {
+			return i
+		}
+	}
+	return 0
+}
+
+func (m *mockConfig) GetBool(path string, defaultValue ...any) bool {
+	if len(defaultValue) > 0 {
+		if b, ok := defaultValue[0].(bool); ok {
+			return b
+		}
+	}
+	return false
 }

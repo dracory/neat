@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -26,7 +27,12 @@ type Migrator struct {
 }
 
 // NewMigrator creates a new Migrator instance.
-func NewMigrator(config config.Config, orm contractsorm.Orm, schema *schema.Schema, paths []string) *Migrator {
+func NewMigrator(
+	config config.Config,
+	orm contractsorm.Orm,
+	schema *schema.Schema,
+	paths []string,
+) migration.MigratorInterface {
 	return &Migrator{
 		config:     config,
 		orm:        orm,
@@ -250,7 +256,7 @@ func (m *Migrator) Run() error {
 	// Run pending migrations
 	for _, name := range names {
 		// Skip if already ran
-		if contains(ran, name) {
+		if slices.Contains(ran, name) {
 			continue
 		}
 
@@ -380,7 +386,7 @@ func (m *Migrator) Status() ([]migration.Status, error) {
 	for name := range migrationFiles {
 		s := migration.Status{
 			Name:        name,
-			Ran:         contains(ran, name),
+			Ran:         slices.Contains(ran, name),
 			Description: descriptionLookup[name],
 		}
 		if s.Ran {
@@ -464,15 +470,6 @@ func (m *Migrator) getMigrations() (map[string]Migration, error) {
 	}
 
 	return migrations, nil
-}
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 // Migration represents a migration with Up and Down methods

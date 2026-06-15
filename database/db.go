@@ -675,7 +675,7 @@ func (d *Database) MigrationStatus(paths ...string) ([]contractsMigration.Status
 	return migrator.Status()
 }
 
-func (d *Database) getMigrator(paths []string) contractsMigration.Migrator {
+func (d *Database) getMigrator(paths []string) contractsMigration.MigratorInterface {
 	if len(paths) == 0 {
 		paths = []string{"./migrations"}
 	}

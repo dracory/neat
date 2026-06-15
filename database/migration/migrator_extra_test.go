@@ -3,6 +3,7 @@ package migration
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
@@ -110,7 +111,10 @@ func TestNewMigratorConstructor(t *testing.T) {
 
 // TestMigratorCreate_DirectoryDoesNotExist verifies Create returns error when dir missing.
 func TestMigratorCreate_DirectoryDoesNotExist(t *testing.T) {
-	m := &Migrator{paths: []string{"/nonexistent_migration_dir_xyz"}}
+	m := &Migrator{
+		paths:  []string{"/nonexistent_migration_dir_xyz"},
+		config: &mockConfig{},
+	}
 	err := m.Create("test")
 	if err == nil {
 		t.Error("expected error when migration dir does not exist")
@@ -120,7 +124,10 @@ func TestMigratorCreate_DirectoryDoesNotExist(t *testing.T) {
 // TestMigratorCreate_FileContents verifies the generated file has expected content.
 func TestMigratorCreate_FileContents(t *testing.T) {
 	dir := t.TempDir()
-	m := &Migrator{paths: []string{dir}}
+	m := &Migrator{
+		paths:  []string{dir},
+		config: &mockConfig{},
+	}
 
 	if err := m.Create("add_orders"); err != nil {
 		t.Fatalf("Create: %v", err)
@@ -141,18 +148,8 @@ func TestMigratorCreate_FileContents(t *testing.T) {
 	}
 	// Should contain a package declaration and Up/Down functions.
 	for _, substr := range []string{"package", "func Up", "func Down"} {
-		if !contains([]string{body}, substr) {
-			// use strings.Contains since contains() checks slice membership
-			found := false
-			for i := 0; i < len(body)-len(substr)+1; i++ {
-				if body[i:i+len(substr)] == substr {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Errorf("generated file missing %q", substr)
-			}
+		if !strings.Contains(body, substr) {
+			t.Errorf("generated file missing %q", substr)
 		}
 	}
 }
