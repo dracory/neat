@@ -883,6 +883,52 @@ func TestReset(t *testing.T) {
 	}
 }
 
+func TestReset_SafetyLimit(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+
+	// Seed the tracker with more than maxResetIterations entries
+	// to trigger the safety guard. We use raw query to bypass normal migration flow.
+	query := db.Schema().Orm().Query()
+	for i := 0; i < maxResetIterations+1; i++ {
+		tracker := MigrationTracker{
+			ID:    fmt.Sprintf("migration_%d", i),
+			Batch: 1,
+		}
+		if err := query.Table(defaultTableName).Create(&tracker); err != nil {
+			t.Fatalf("failed to seed tracker: %v", err)
+		}
+	}
+
+	ctx := context.Background()
+	err = schemer.Reset(ctx)
+	if err == nil {
+		t.Fatal("Expected Reset to fail with safety limit exceeded")
+	}
+	if !containsSubstringHelper(err.Error(), "too many migrations") {
+		t.Errorf("Expected 'too many migrations' error, got '%s'", err.Error())
+	}
+}
+
 func TestSetTransactionsEnabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {

@@ -98,19 +98,23 @@ type MigrationLogger interface {
 
 Or accept a simple callback `SetLogFunc(func(level, message string, fields map[string]any))`. At minimum, emit start, completion (with duration), and failure events.
 
-### 7. `Reset()` Safety Limit
+### 7. `Reset()` Safety Limit ✅
+
+**Status**: Implemented
 
 **Current state in schemer**: `Reset()` calls `runReset` which loops over all migrations with no upper bound.
 **Migrator approach**: `maxIterations := 1000` guard prevents infinite loops if tracker deletion fails.
 
-**Proposal**: Add `const maxResetIterations = 1000` and enforce it in `runReset`. Return an explicit error if the limit is reached.
+**Implementation**: Added `const maxResetIterations = 1000` in `schemer.go`. `runReset` checks if the number of tracked migrations exceeds this limit before starting rollback and returns an explicit error if so. This protects against pathological states with unexpectedly large migration histories.
 
-### 8. Sequential Batch Numbering
+### 8. Sequential Batch Numbering ✅
+
+**Status**: Implemented
 
 **Current state in schemer**: `getNextBatchNumber()` returns `int(time.Now().Unix())`.
 **Migrator approach**: `MAX(batch) + 1` — simple, monotonic, human-friendly.
 
-**Proposal**: Switch to sequential batch numbering (`MAX(batch) + 1`, starting at `1`). Unix timestamps are unwieldy for humans reading migration status. This is a minor behavioral change but improves DX.
+**Implementation**: Changed `getNextBatchNumber(query)` to query `SELECT MAX(batch) FROM <table>` using `sql.NullInt64` for safe NULL handling. Returns `1` when no migrations exist, otherwise `MAX(batch) + 1`. This produces clean sequential batch numbers (`1, 2, 3...`) instead of unwieldy Unix timestamps.
 
 ## What NOT to Port
 
@@ -130,7 +134,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 | ~~3~~ | ~~Repository schema upgrades~~ | ~~Small~~ | **Done** |
 | ~~4~~ | ~~Driver-aware `getAllTables()` + `Fresh()` fix~~ | ~~Medium~~ | **Done** |
 | 5 | Logging / observability hooks | Small |
-| 6 | Reset safety limit + sequential batch numbering | Small |
+| ~~6~~ | ~~Reset safety limit + sequential batch numbering~~ | ~~Small~~ | **Done** |
 | 7 | Delete `database/migrator` package | Small |
 
 ## Acceptance Criteria
@@ -139,8 +143,8 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 - [x] `schemer` can validate migration signatures in datetime/date/unix/custom formats
 - [x] `schemer` upgrades existing `migration_tracker` schemas on startup (adds missing columns)
 - [x] `Fresh()` correctly drops all user tables (not just the tracker) and re-runs migrations
-- [ ] `Reset()` has an iteration safety limit
-- [ ] Batch numbers are sequential (`1, 2, 3...`) instead of Unix timestamps
+- [x] `Reset()` has an iteration safety limit
+- [x] Batch numbers are sequential (`1, 2, 3...`) instead of Unix timestamps
 - [ ] `schemer` emits structured log events for migration start, completion, and failure
 - [ ] `database/migrator` is deleted without functional regression
 

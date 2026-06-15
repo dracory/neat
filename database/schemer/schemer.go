@@ -119,7 +119,7 @@ func (s *SchemerImplementation) runUp(ctx context.Context, schema contractsschem
 	}
 
 	// Get the next batch number
-	batch, err := s.getNextBatchNumber()
+	batch, err := s.getNextBatchNumber(query)
 	if err != nil {
 		return fmt.Errorf("failed to get next batch number: %w", err)
 	}
@@ -349,12 +349,19 @@ func (s *SchemerImplementation) Reset(ctx context.Context) error {
 	return s.runReset(ctx, schema, query)
 }
 
+const maxResetIterations = 1000
+
 // runReset contains the shared reset logic
 func (s *SchemerImplementation) runReset(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query) error {
 	// Get all migrations
 	migrations, err := s.getMigrationsWithQuery(query)
 	if err != nil {
 		return fmt.Errorf("failed to get migrations: %w", err)
+	}
+
+	// Safety guard against unexpectedly large rollback sets
+	if len(migrations) > maxResetIterations {
+		return fmt.Errorf("too many migrations to reset (%d > max %d)", len(migrations), maxResetIterations)
 	}
 
 	// Rollback in reverse order
@@ -379,9 +386,21 @@ func (s *SchemerImplementation) txOptions() *sql.TxOptions {
 	return nil
 }
 
-func (s *SchemerImplementation) getNextBatchNumber() (int, error) {
-	// Simple implementation: use current timestamp as batch number
-	return int(time.Now().Unix()), nil
+func (s *SchemerImplementation) getNextBatchNumber(query contractsorm.Query) (int, error) {
+	var maxBatch struct {
+		Max sql.NullInt64
+	}
+
+	batchSQL := fmt.Sprintf("SELECT MAX(batch) as max FROM %s", s.tableName)
+	if err := query.Raw(batchSQL).Scan(&maxBatch); err != nil {
+		return 0, fmt.Errorf("failed to get max batch: %w", err)
+	}
+
+	if !maxBatch.Max.Valid {
+		return 1, nil
+	}
+
+	return int(maxBatch.Max.Int64) + 1, nil
 }
 
 func (s *SchemerImplementation) getRanMigrations(query contractsorm.Query) ([]string, error) {
