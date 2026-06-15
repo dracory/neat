@@ -1,3 +1,8 @@
+// Package migrator provides file-based migration management.
+//
+// Deprecated: This package is deprecated in favor of the interface-based migration system.
+// Use the database/schemer package with MigrationInterface instead.
+// See: https://github.com/dracory/neat/docs/proposals/migrations-part-1.md
 package migrator
 
 import (

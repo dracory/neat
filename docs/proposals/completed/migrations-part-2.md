@@ -260,11 +260,11 @@ The schema builder automatically handles database-specific SQL generation, so th
 - ✅ MigrationTracker table structure defined
 - ✅ CreateMigrationTrackerTable migration implemented in examples
 - ✅ Migration tracking table schema specification
-- ⏳ MigrationManager service implementation
-- ⏳ Batch management for interface-based migrations
-- ⏳ Status monitoring for interface-based migrations
-- ⏳ Fresh and reset operations for interface-based migrations
-- ⏳ Integration with migration_tracker table operations
+- ✅ MigrationManager service implementation
+- ✅ Batch management for interface-based migrations
+- ✅ Status monitoring for interface-based migrations
+- ✅ Fresh and reset operations for interface-based migrations
+- ✅ Integration with migration_tracker table operations via ORM
 
 ## Usage Examples
 
@@ -333,14 +333,63 @@ if err != nil {
 9. **Database Agnostic**: Works across multiple database systems
 10. **Secure**: Built-in SQL injection prevention
 
+## Implementation Details
+
+### MigrationManager Service
+
+The MigrationManager service has been implemented in `database/schema/migration_manager.go` with the following features:
+
+1. **Run Method**: Executes pending migrations with automatic tracking
+   - Validates migration signatures before execution
+   - Skips already-run migrations
+   - Logs successful migrations to migration_tracker table
+   - Uses timestamp-based batch numbers
+
+2. **Rollback Method**: Reverts migrations with flexibility
+   - Rollback specific batch by batch number
+   - Rollback last N migrations
+   - Rollback last batch (default)
+   - Removes migration records from tracker
+
+3. **Status Method**: Returns migration status
+   - Retrieves all completed migrations from tracker
+   - Returns status with state information
+
+4. **Fresh Method**: Drops all tables and re-runs migrations
+   - Preserves migration_tracker table
+   - Clears migration_tracker after dropping tables
+
+5. **Reset Method**: Rolls back and re-runs all migrations
+   - Rolls back all migrations in reverse order
+   - Clears migration tracker
+
+### ORM Integration
+
+The MigrationManager uses the ORM for database operations on the migration_tracker table:
+
+- **Query**: Uses `orm.Query().Table("migration_tracker")` for all operations
+- **Create**: Inserts migration records via `Create(&tracker)`
+- **Delete**: Removes migration records via `Delete()`
+- **Get**: Retrieves migration records via `Get(&trackers)`
+
+### Migration Tracker Table Operations
+
+The migration_tracker table is managed through the ORM:
+
+- **ID**: Stores the migration signature (e.g., "2024_06_15_120000_create_users_table")
+- **Batch**: Timestamp-based batch number (YYYYMMDDHHMMSS)
+- **Description**: Human-readable description from `Description()` method
+- **StartedAt**: Timestamp when migration execution started
+- **CompletedAt**: Timestamp when migration execution completed
+
 ## Next Steps
 
-1. **Implement MigrationManager service** for interface-based migrations
-2. **Add migration locking** to prevent concurrent execution
-3. **Implement migration dependencies** between interface-based migrations
-4. **Add dry-run mode** for testing interface-based migrations
-5. **Enhance error reporting** and recovery for interface-based migrations
-6. **Add migration validation** before execution for interface-based migrations
+1. **Add migration locking** to prevent concurrent execution
+2. **Implement migration dependencies** between interface-based migrations
+3. **Add dry-run mode** for testing interface-based migrations
+4. **Enhance error reporting** and recovery for interface-based migrations
+5. **Add migration validation** before execution for interface-based migrations
+6. **Implement getAllTables()** for Fresh operation across different databases
 7. **Plan deprecation timeline** for the old `database/migration` package
 
 ## Related Documents
