@@ -72,6 +72,90 @@ func TestNewSchemer(t *testing.T) {
 	if len(impl.migrations) != 0 {
 		t.Error("Expected empty migrations list")
 	}
+	if impl.tableName != defaultTableName {
+		t.Errorf("Expected default table name '%s', got '%s'", defaultTableName, impl.tableName)
+	}
+}
+
+func TestSetTableName_Valid(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	schemer := NewSchemer(db)
+
+	validNames := []string{"migrations", "my_migrations", "schema_migrations", "_tracker"}
+	for _, name := range validNames {
+		err := schemer.SetTableName(name)
+		if err != nil {
+			t.Errorf("Expected SetTableName('%s') to succeed, got error: %v", name, err)
+		}
+
+		impl := schemer.(*SchemerImplementation)
+		if impl.tableName != name {
+			t.Errorf("Expected table name '%s', got '%s'", name, impl.tableName)
+		}
+	}
+}
+
+func TestSetTableName_Invalid(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	schemer := NewSchemer(db)
+
+	invalidNames := []string{"", "1migrations", "migration-tracker", "SELECT", "DROP", "TABLE"}
+	for _, name := range invalidNames {
+		err := schemer.SetTableName(name)
+		if err == nil {
+			t.Errorf("Expected SetTableName('%s') to fail, got nil", name)
+		}
+
+		// Table name should remain unchanged
+		impl := schemer.(*SchemerImplementation)
+		if impl.tableName != defaultTableName {
+			t.Errorf("Expected table name to remain '%s' after failed SetTableName, got '%s'", defaultTableName, impl.tableName)
+		}
+	}
+}
+
+func TestSetTableName_UsedForTracking(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	schemer := NewSchemer(db)
+	customTable := "my_migrations"
+	if err := schemer.SetTableName(customTable); err != nil {
+		t.Fatalf("SetTableName failed: %v", err)
+	}
+
+	migration := &MockMigration{
+		signature:   "test_migration",
+		description: "Test migration",
+	}
+	schemer.AddMigration(migration)
+
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// Verify the custom table was created, not the default one
+	if !db.Schema().HasTable(customTable) {
+		t.Errorf("Expected custom table '%s' to be created", customTable)
+	}
+	if db.Schema().HasTable(defaultTableName) {
+		t.Error("Expected default table NOT to be created when custom name is set")
+	}
 }
 
 func TestAddMigration(t *testing.T) {
@@ -143,9 +227,9 @@ func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 		t.Errorf("Up failed: %v", err)
 	}
 
-	// Verify migration_tracker table was created
-	if !db.Schema().HasTable("migration_tracker") {
-		t.Error("Expected migration_tracker table to be auto-created")
+	// Verify migration tracking table was created
+	if !db.Schema().HasTable(defaultTableName) {
+		t.Error("Expected migration tracking table to be auto-created")
 	}
 }
 
@@ -156,9 +240,9 @@ func TestUp_SchemaInjection(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -167,7 +251,7 @@ func TestUp_SchemaInjection(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -203,9 +287,9 @@ func TestUp_EmptySignature(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -214,7 +298,7 @@ func TestUp_EmptySignature(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -231,16 +315,16 @@ func TestUp_EmptySignature(t *testing.T) {
 	}
 }
 
-func TestUp_SkipAlreadyRun(t *testing.T) {
+func TestUp_SignatureValidation_DateTime(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -249,7 +333,131 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+	schemer.SetSignatureValidation(true, SignatureFormatDateTime)
+
+	// Valid datetime signature should pass
+	validMigration := &MockMigration{
+		signature:   "2026_06_15_1200_create_users_table",
+		description: "Valid datetime signature",
+	}
+	schemer.AddMigration(validMigration)
+
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err != nil {
+		t.Errorf("Expected valid datetime signature to pass, got error: %v", err)
+	}
+	if !validMigration.upCalled {
+		t.Error("Expected valid migration Up to be called")
+	}
+}
+
+func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+	schemer.SetSignatureValidation(true, SignatureFormatDateTime)
+
+	// Invalid signature should fail
+	invalidMigration := &MockMigration{
+		signature:   "test_migration",
+		description: "Invalid datetime signature",
+	}
+	schemer.AddMigration(invalidMigration)
+
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err == nil {
+		t.Error("Expected error for invalid signature format")
+	}
+	if invalidMigration.upCalled {
+		t.Error("Expected invalid migration Up NOT to be called")
+	}
+}
+
+func TestUp_SignatureValidation_Disabled(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+	// Validation is disabled by default, but explicitly set it
+	schemer.SetSignatureValidation(false, SignatureFormatDateTime)
+
+	// Arbitrary signature should pass when validation is disabled
+	migration := &MockMigration{
+		signature:   "totally_arbitrary_name",
+		description: "Arbitrary signature",
+	}
+	schemer.AddMigration(migration)
+
+	ctx := context.Background()
+	err = schemer.Up(ctx)
+	if err != nil {
+		t.Errorf("Expected arbitrary signature to pass when validation disabled, got error: %v", err)
+	}
+	if !migration.upCalled {
+		t.Error("Expected migration Up to be called when validation disabled")
+	}
+}
+
+func TestUp_SkipAlreadyRun(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -287,9 +495,9 @@ func TestDown(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -298,7 +506,7 @@ func TestDown(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -329,9 +537,9 @@ func TestRollbackSteps(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -340,7 +548,7 @@ func TestRollbackSteps(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -372,9 +580,9 @@ func TestRollbackToBatch(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -383,7 +591,7 @@ func TestRollbackToBatch(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -431,7 +639,7 @@ func TestStatus_NoMigrationTrackerTable(t *testing.T) {
 		t.Errorf("Status failed: %v", err)
 	}
 	if len(status) != 0 {
-		t.Errorf("Expected empty status when migration_tracker table does not exist, got %d", len(status))
+		t.Errorf("Expected empty status when migration tracking table does not exist, got %d", len(status))
 	}
 }
 
@@ -442,9 +650,9 @@ func TestStatus_WithMigrations(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -453,7 +661,7 @@ func TestStatus_WithMigrations(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -501,9 +709,9 @@ func TestReset(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration_tracker table first
+	// Create migration tracking table first
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -512,7 +720,7 @@ func TestReset(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -597,9 +805,9 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Pre-create migration_tracker so runUp doesn't need to create it
+	// Pre-create migration tracking table so runUp doesn't need to create it
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -608,7 +816,7 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -626,7 +834,7 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	}
 
 	var trackers []MigrationTracker
-	query := db.Schema().Orm().Query().Table("migration_tracker")
+	query := db.Schema().Orm().Query().Table(defaultTableName)
 	if err := query.Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
@@ -642,9 +850,9 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Pre-create migration_tracker
+	// Pre-create migration tracking table
 	schema := db.Schema()
-	err = schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
@@ -653,7 +861,7 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 		table.DateTime("completed_at")
 	})
 	if err != nil {
-		t.Fatalf("failed to create migration_tracker table: %v", err)
+		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
 	schemer := NewSchemer(db)
@@ -674,7 +882,7 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	}
 
 	var trackers []MigrationTracker
-	query := db.Schema().Orm().Query().Table("migration_tracker")
+	query := db.Schema().Orm().Query().Table(defaultTableName)
 	if err := query.Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
@@ -693,7 +901,7 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Do NOT pre-create migration_tracker - runUp will create it inside the transaction
+	// Do NOT pre-create migration tracking table - runUp will create it inside the transaction
 	schemer := NewSchemer(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
@@ -708,7 +916,7 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 		t.Fatal("Expected Up to return error when migration fails")
 	}
 
-	if db.Schema().HasTable("migration_tracker") {
-		t.Error("Expected migration_tracker table to be rolled back when transaction fails")
+	if db.Schema().HasTable(defaultTableName) {
+		t.Error("Expected migration tracking table to be rolled back when transaction fails")
 	}
 }

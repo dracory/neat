@@ -11,6 +11,8 @@ import (
 	"github.com/dracory/neat/database"
 )
 
+const defaultTableName = "migration_tracker"
+
 // SchemerInterface defines the contract for migration management
 type SchemerInterface interface {
 	AddMigration(migration contractsschema.MigrationInterface) error
@@ -24,14 +26,19 @@ type SchemerInterface interface {
 	Reset(ctx context.Context) error
 	SetTransactionsEnabled(enabled bool)
 	SetTransactionIsolationLevel(level string)
+	SetTableName(name string) error
+	SetSignatureValidation(enabled bool, format SignatureFormat)
 }
 
 // SchemerImplementation handles execution and tracking of interface-based migrations
 type SchemerImplementation struct {
-	db              *database.Database
-	migrations      []contractsschema.MigrationInterface
-	useTransactions bool
-	isolationLevel  string
+	db                  *database.Database
+	migrations          []contractsschema.MigrationInterface
+	useTransactions     bool
+	isolationLevel      string
+	tableName           string
+	sigValidation       bool
+	sigValidationFormat SignatureFormat
 }
 
 // NewSchemer creates a new SchemerImplementation instance
@@ -41,6 +48,7 @@ func NewSchemer(db *database.Database) SchemerInterface {
 		db:              db,
 		migrations:      []contractsschema.MigrationInterface{},
 		useTransactions: true, // Default to safe transaction behavior
+		tableName:       defaultTableName,
 	}
 }
 
@@ -66,6 +74,24 @@ func (s *SchemerImplementation) SetTransactionIsolationLevel(level string) {
 	s.isolationLevel = level
 }
 
+// SetTableName sets the name of the migration tracking table.
+// The name is validated to prevent SQL injection.
+func (s *SchemerImplementation) SetTableName(name string) error {
+	if !isValidTableName(name) {
+		return fmt.Errorf("invalid migration table name: '%s'", name)
+	}
+	s.tableName = name
+	return nil
+}
+
+// SetSignatureValidation enables or disables signature format validation.
+// When enabled, each migration signature is validated against the specified
+// format before execution. Default is disabled.
+func (s *SchemerImplementation) SetSignatureValidation(enabled bool, format SignatureFormat) {
+	s.sigValidation = enabled
+	s.sigValidationFormat = format
+}
+
 // Up runs all pending migrations
 // Automatically injects schema into each migration before execution
 func (s *SchemerImplementation) Up(ctx context.Context) error {
@@ -87,9 +113,9 @@ func (s *SchemerImplementation) up(ctx context.Context) error {
 
 // runUp contains the shared migration execution logic
 func (s *SchemerImplementation) runUp(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query) error {
-	// Create migration_tracker table if it doesn't exist
-	if !schema.HasTable("migration_tracker") {
-		err := schema.Create("migration_tracker", func(table contractsschema.Blueprint) {
+	// Create migration tracking table if it doesn't exist
+	if !schema.HasTable(s.tableName) {
+		err := schema.Create(s.tableName, func(table contractsschema.Blueprint) {
 			table.String("id")
 			table.Primary("id")
 			table.Integer("batch")
@@ -98,7 +124,7 @@ func (s *SchemerImplementation) runUp(ctx context.Context, schema contractsschem
 			table.DateTime("completed_at")
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create migration_tracker table: %w", err)
+			return fmt.Errorf("failed to create %s table: %w", s.tableName, err)
 		}
 	}
 
@@ -129,6 +155,13 @@ func (s *SchemerImplementation) runUp(ctx context.Context, schema contractsschem
 		}
 		if len(signature) > 255 {
 			return fmt.Errorf("migration signature too long (max 255 characters)")
+		}
+
+		// Validate signature format if enabled
+		if s.sigValidation {
+			if err := ValidateMigrationSignature(signature, s.sigValidationFormat); err != nil {
+				return fmt.Errorf("migration %s has invalid signature: %w", signature, err)
+			}
 		}
 
 		// Inject transaction-aware schema into migration
@@ -178,9 +211,9 @@ func (s *SchemerImplementation) RollbackSteps(ctx context.Context, steps int) er
 
 // runRollbackSteps contains the shared rollback logic
 func (s *SchemerImplementation) runRollbackSteps(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query, steps int) error {
-	// Ensure migration_tracker table exists
-	if !schema.HasTable("migration_tracker") {
-		return fmt.Errorf("migration_tracker table does not exist")
+	// Ensure migration tracking table exists
+	if !schema.HasTable(s.tableName) {
+		return fmt.Errorf("%s table does not exist", s.tableName)
 	}
 
 	// Rollback last N migrations
@@ -215,9 +248,9 @@ func (s *SchemerImplementation) RollbackToBatch(ctx context.Context, batch int) 
 
 // runRollbackToBatch contains the shared batch rollback logic
 func (s *SchemerImplementation) runRollbackToBatch(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query, batch int) error {
-	// Ensure migration_tracker table exists
-	if !schema.HasTable("migration_tracker") {
-		return fmt.Errorf("migration_tracker table does not exist")
+	// Ensure migration tracking table exists
+	if !schema.HasTable(s.tableName) {
+		return fmt.Errorf("%s table does not exist", s.tableName)
 	}
 
 	// Rollback specific batch
@@ -239,8 +272,8 @@ func (s *SchemerImplementation) runRollbackToBatch(ctx context.Context, schema c
 
 // Status returns migration status
 func (s *SchemerImplementation) Status() ([]MigrationStatus, error) {
-	// Ensure migration_tracker table exists
-	if !s.db.Schema().HasTable("migration_tracker") {
+	// Ensure migration tracking table exists
+	if !s.db.Schema().HasTable(s.tableName) {
 		return []MigrationStatus{}, nil
 	}
 
@@ -283,26 +316,26 @@ func (s *SchemerImplementation) Fresh(ctx context.Context) error {
 func (s *SchemerImplementation) runFresh(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query) error {
 	// Note: DDL operations (DROP TABLE) may cause implicit commits in some databases
 	// (MySQL, PostgreSQL). This means the transaction wrapper may not provide full atomicity
-	// for Fresh operations. However, it's still useful for the migration_tracker cleanup.
+	// for Fresh operations. However, it's still useful for the migration tracking table cleanup.
 
-	// Get all tables except migration_tracker
+	// Get all tables except the migration tracking table
 	tables, err := s.getAllTables()
 	if err != nil {
 		return fmt.Errorf("failed to get tables: %w", err)
 	}
 
-	// Drop all tables except migration_tracker
+	// Drop all tables except the migration tracking table
 	for _, table := range tables {
-		if table != "migration_tracker" {
+		if table != s.tableName {
 			if err := schema.DropIfExists(table); err != nil {
 				return fmt.Errorf("failed to drop table %s: %w", table, err)
 			}
 		}
 	}
 
-	// Clear migration_tracker table
+	// Clear migration tracking table
 	if err := s.clearMigrationTracker(query); err != nil {
-		return fmt.Errorf("failed to clear migration_tracker: %w", err)
+		return fmt.Errorf("failed to clear %s: %w", s.tableName, err)
 	}
 
 	// Re-run all migrations
@@ -363,7 +396,7 @@ func (s *SchemerImplementation) getNextBatchNumber() (int, error) {
 
 func (s *SchemerImplementation) getRanMigrations(query contractsorm.Query) ([]string, error) {
 	var trackers []MigrationTracker
-	if err := query.Table("migration_tracker").Get(&trackers); err != nil {
+	if err := query.Table(s.tableName).Get(&trackers); err != nil {
 		return nil, err
 	}
 
@@ -391,12 +424,12 @@ func (s *SchemerImplementation) logMigration(query contractsorm.Query, id, descr
 		StartedAt:   startedAt,
 		CompletedAt: completedAt,
 	}
-	return query.Table("migration_tracker").Create(&tracker)
+	return query.Table(s.tableName).Create(&tracker)
 }
 
 func (s *SchemerImplementation) getMigrationsByBatch(query contractsorm.Query, batch int) ([]MigrationTracker, error) {
 	var trackers []MigrationTracker
-	if err := query.Table("migration_tracker").Where("batch = ?", batch).Get(&trackers); err != nil {
+	if err := query.Table(s.tableName).Where("batch = ?", batch).Get(&trackers); err != nil {
 		return nil, err
 	}
 	return trackers, nil
@@ -404,7 +437,7 @@ func (s *SchemerImplementation) getMigrationsByBatch(query contractsorm.Query, b
 
 func (s *SchemerImplementation) getLastMigrations(query contractsorm.Query, step int) ([]MigrationTracker, error) {
 	var trackers []MigrationTracker
-	if err := query.Table("migration_tracker").OrderBy("id", "desc").Limit(step).Get(&trackers); err != nil {
+	if err := query.Table(s.tableName).OrderBy("id", "desc").Limit(step).Get(&trackers); err != nil {
 		return nil, err
 	}
 	return trackers, nil
@@ -433,7 +466,7 @@ func (s *SchemerImplementation) rollbackMigration(schema contractsschema.Schema,
 	}
 
 	// Delete the migration record from tracker
-	_, err := query.Table("migration_tracker").Where("id = ?", id).Delete()
+	_, err := query.Table(s.tableName).Where("id = ?", id).Delete()
 	if err != nil {
 		return err
 	}
@@ -441,12 +474,12 @@ func (s *SchemerImplementation) rollbackMigration(schema contractsschema.Schema,
 }
 
 func (s *SchemerImplementation) getMigrations() ([]MigrationTracker, error) {
-	return s.getMigrationsWithQuery(s.db.Schema().Orm().Query().Table("migration_tracker").OrderBy("id", "asc"))
+	return s.getMigrationsWithQuery(s.db.Schema().Orm().Query().Table(s.tableName).OrderBy("id", "asc"))
 }
 
 func (s *SchemerImplementation) getMigrationsWithQuery(query contractsorm.Query) ([]MigrationTracker, error) {
 	var trackers []MigrationTracker
-	if err := query.Table("migration_tracker").OrderBy("id", "asc").Get(&trackers); err != nil {
+	if err := query.Table(s.tableName).OrderBy("id", "asc").Get(&trackers); err != nil {
 		return nil, err
 	}
 	return trackers, nil
@@ -460,7 +493,7 @@ func (s *SchemerImplementation) getAllTables() ([]string, error) {
 }
 
 func (s *SchemerImplementation) clearMigrationTracker(query contractsorm.Query) error {
-	_, err := query.Table("migration_tracker").Delete()
+	_, err := query.Table(s.tableName).Delete()
 	return err
 }
 
