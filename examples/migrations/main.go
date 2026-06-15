@@ -6,7 +6,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/database/migration"
+	"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates both the schema builder approach and the migration system
@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("Schema builder example failed: %v", err)
 	}
 
-	if err := RunMigrationSystemExample("sqlite://./example_migration.db"); err != nil {
+	if err := RunMigrationSystemExample("sqlite://./example_migrator.db"); err != nil {
 		log.Fatalf("Migration system example failed: %v", err)
 	}
 }
@@ -117,7 +117,7 @@ func RunSchemaBuilderExample(dsn string) error {
 // Register migrations in init()
 func init() {
 	// Register migration 1: Create users table
-	migration.RegisterMigration("001_create_users_table", migration.Migration{
+	migrator.RegisterMigration("001_create_users_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("users", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -136,7 +136,7 @@ func init() {
 	})
 
 	// Register migration 2: Create posts table
-	migration.RegisterMigration("002_create_posts_table", migration.Migration{
+	migrator.RegisterMigration("002_create_posts_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("posts", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -153,7 +153,7 @@ func init() {
 	})
 
 	// Register migration 3: Create comments table
-	migration.RegisterMigration("003_create_comments_table", migration.Migration{
+	migrator.RegisterMigration("003_create_comments_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("comments", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -169,7 +169,7 @@ func init() {
 	})
 
 	// Register migration 4: Add indexes to posts table
-	migration.RegisterMigration("004_add_posts_indexes", migration.Migration{
+	migrator.RegisterMigration("004_add_posts_indexes", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Table("posts", func(blueprint contractsschema.Blueprint) {
 				blueprint.Index("user_id")
@@ -185,7 +185,7 @@ func init() {
 	})
 
 	// Register migration 5: Add published_at column to posts
-	migration.RegisterMigration("005_add_published_to_posts", migration.Migration{
+	migrator.RegisterMigration("005_add_published_to_posts", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Table("posts", func(blueprint contractsschema.Blueprint) {
 				blueprint.Timestamp("published_at")

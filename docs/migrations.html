@@ -111,13 +111,13 @@ func Down(schema schema.Schema) error {
     <p>To use migrations, you need to register them in the global registry:</p>
 
     <pre><code>import (
-    "github.com/dracory/neat/database/migration"
+    "github.com/dracory/neat/database/migrator"
     "github.com/dracory/neat/database/schema"
     contractsschema "github.com/dracory/neat/contracts/database/schema"
 )
 
 func init() {
-    migration.Register(&amp;Migration{
+    migrator.Register(&amp;Migration{
         Name: "create_users_table",
         Up: func(s contractsschema.Schema) error {
             return s.Create("users", func(table schema.Blueprint) {
@@ -172,7 +172,7 @@ if err != nil {
 }
 
 for _, migration := range status {
-    fmt.Printf("Migration: %s, Applied: %v\n", migration.Name, migration.Applied)
+    fmt.Printf("Migration: %s, Applied: %v\n", migrator.Name, migrator.Applied)
 }</code></pre>
 
     <div class="footer">

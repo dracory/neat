@@ -7,7 +7,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/database/migration"
+	"github.com/dracory/neat/database/migrator"
 	mainpkg "github.com/dracory/neat/examples/enhanced-migrations"
 )
 
@@ -56,74 +56,74 @@ func TestMigrationIDFormatValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		id        string
-		format    migration.MigrationIDFormat
+		format    migrator.MigrationIDFormat
 		wantError bool
 	}{
 		{
 			name:      "Valid datetime format",
 			id:        "2026_06_15_1200_create_users_table",
-			format:    migration.MigrationIDFormatDateTime,
+			format:    migrator.MigrationIDFormatDateTime,
 			wantError: false,
 		},
 		{
 			name:      "Invalid datetime format - missing time",
 			id:        "2026_06_15_create_users_table",
-			format:    migration.MigrationIDFormatDateTime,
+			format:    migrator.MigrationIDFormatDateTime,
 			wantError: true,
 		},
 		{
 			name:      "Invalid datetime format - invalid date",
 			id:        "2026_13_15_1200_create_users_table",
-			format:    migration.MigrationIDFormatDateTime,
+			format:    migrator.MigrationIDFormatDateTime,
 			wantError: true,
 		},
 		{
 			name:      "Valid date format",
 			id:        "2026_06_15_001_create_users_table",
-			format:    migration.MigrationIDFormatDate,
+			format:    migrator.MigrationIDFormatDate,
 			wantError: false,
 		},
 		{
 			name:      "Invalid date format - missing sequence",
 			id:        "2026_06_15_create_users_table",
-			format:    migration.MigrationIDFormatDate,
+			format:    migrator.MigrationIDFormatDate,
 			wantError: true,
 		},
 		{
 			name:      "Valid unix format",
 			id:        "1717080000_create_users_table",
-			format:    migration.MigrationIDFormatUnix,
+			format:    migrator.MigrationIDFormatUnix,
 			wantError: false,
 		},
 		{
 			name:      "Invalid unix format - non-numeric",
 			id:        "abc_create_users_table",
-			format:    migration.MigrationIDFormatUnix,
+			format:    migrator.MigrationIDFormatUnix,
 			wantError: true,
 		},
 		{
 			name:      "Custom format - always valid",
 			id:        "any_custom_name",
-			format:    migration.MigrationIDFormatCustom,
+			format:    migrator.MigrationIDFormatCustom,
 			wantError: false,
 		},
 		{
 			name:      "Empty ID",
 			id:        "",
-			format:    migration.MigrationIDFormatDateTime,
+			format:    migrator.MigrationIDFormatDateTime,
 			wantError: true,
 		},
 		{
 			name:      "ID too long",
 			id:        "2026_06_15_1200_" + string(make([]byte, 300)),
-			format:    migration.MigrationIDFormatDateTime,
+			format:    migrator.MigrationIDFormatDateTime,
 			wantError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := migration.ValidateMigrationID(tt.id, tt.format)
+			err := migrator.ValidateMigrationID(tt.id, tt.format)
 			if (err != nil) != tt.wantError {
 				t.Errorf("ValidateMigrationID() error = %v, wantError %v", err, tt.wantError)
 			}
@@ -141,7 +141,7 @@ func TestMigrationDescriptionExtraction(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Register a migration with a descriptive ID
-	migration.RegisterMigration("2026_06_15_1200_create_users_table_with_email", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_create_users_table_with_email", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("users", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -192,7 +192,7 @@ func TestPerformanceTracking(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Register a migration
-	migration.RegisterMigration("2026_06_15_1200_test_performance", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_test_performance", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("test_table", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -292,7 +292,7 @@ func TestDifferentIDFormats(t *testing.T) {
 			// Register migrations
 			for i, id := range formatTest.ids {
 				tableName := fmt.Sprintf("table_%d", i)
-				migration.RegisterMigration(id, migration.Migration{
+				migrator.RegisterMigration(id, migrator.Migration{
 					Up: func(schema contractsschema.Schema) error {
 						return schema.Create(tableName, func(blueprint contractsschema.Blueprint) {
 							blueprint.ID()
@@ -341,7 +341,7 @@ func TestTransactionSupport(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Register a migration
-	migration.RegisterMigration("2026_06_15_1200_test_transaction", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_test_transaction", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("transaction_test", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -373,7 +373,7 @@ func TestDuplicateDetection(t *testing.T) {
 	// should ideally detect this)
 
 	// Register a migration
-	migration.RegisterMigration("2026_06_15_1200_duplicate_test", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_duplicate_test", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("duplicate_test", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -389,7 +389,7 @@ func TestDuplicateDetection(t *testing.T) {
 	// Try to register the same migration ID again
 	// This should ideally be detected, but currently it's a silent overwrite
 	// The test documents this behavior
-	migration.RegisterMigration("2026_06_15_1200_duplicate_test", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_duplicate_test", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("duplicate_test2", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -417,7 +417,7 @@ func TestMigrationTableSchema(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Run a migration to create the migration table
-	migration.RegisterMigration("2026_06_15_1200_test_schema", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_test_schema", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("test_table", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -489,7 +489,7 @@ func TestTableNameValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := migration.ValidateTableName(tt.tableName)
+			err := migrator.ValidateTableName(tt.tableName)
 			if (err != nil) != tt.wantError {
 				t.Errorf("ValidateTableName() error = %v, wantError %v", err, tt.wantError)
 			}

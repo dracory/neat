@@ -7,7 +7,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/database/migration"
+	"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates the enhanced migration system features
@@ -51,7 +51,7 @@ func RunDateTimeFormatExample(dsn string) error {
 	defer func() { _ = db.Close() }()
 
 	// Register migrations with datetime format IDs
-	migration.RegisterMigration("2026_06_15_1200_create_users_table", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1200_create_users_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("users", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -67,7 +67,7 @@ func RunDateTimeFormatExample(dsn string) error {
 		},
 	})
 
-	migration.RegisterMigration("2026_06_15_1300_create_posts_table", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1300_create_posts_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("posts", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -117,7 +117,7 @@ func RunDateFormatExample(dsn string) error {
 	defer func() { _ = db.Close() }()
 
 	// Register migrations with date format IDs
-	migration.RegisterMigration("2026_06_15_001_create_products_table", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_001_create_products_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("products", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -132,7 +132,7 @@ func RunDateFormatExample(dsn string) error {
 		},
 	})
 
-	migration.RegisterMigration("2026_06_15_002_create_orders_table", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_002_create_orders_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("orders", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -182,7 +182,7 @@ func RunUnixFormatExample(dsn string) error {
 	defer func() { _ = db.Close() }()
 
 	// Register migrations with unix timestamp IDs
-	migration.RegisterMigration("1717080000_create_categories_table", migration.Migration{
+	migrator.RegisterMigration("1717080000_create_categories_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("categories", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -232,7 +232,7 @@ func RunCustomFormatExample(dsn string) error {
 	defer func() { _ = db.Close() }()
 
 	// Register migrations with custom IDs
-	migration.RegisterMigration("initial_setup", migration.Migration{
+	migrator.RegisterMigration("initial_setup", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Create("settings", func(blueprint contractsschema.Blueprint) {
 				blueprint.ID()
@@ -246,7 +246,7 @@ func RunCustomFormatExample(dsn string) error {
 		},
 	})
 
-	migration.RegisterMigration("add_indexes", migration.Migration{
+	migrator.RegisterMigration("add_indexes", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			return schema.Table("settings", func(blueprint contractsschema.Blueprint) {
 				blueprint.Index("key")
@@ -293,7 +293,7 @@ func RunPerformanceTrackingExample(dsn string) error {
 	defer func() { _ = db.Close() }()
 
 	// Register migrations with descriptions
-	migration.RegisterMigration("2026_06_15_1400_create_auth_tables", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1400_create_auth_tables", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			// Simulate a slow migration
 			time.Sleep(100 * time.Millisecond)
@@ -310,7 +310,7 @@ func RunPerformanceTrackingExample(dsn string) error {
 		},
 	})
 
-	migration.RegisterMigration("2026_06_15_1500_create_permissions_table", migration.Migration{
+	migrator.RegisterMigration("2026_06_15_1500_create_permissions_table", migrator.Migration{
 		Up: func(schema contractsschema.Schema) error {
 			// Simulate a faster migration
 			time.Sleep(50 * time.Millisecond)

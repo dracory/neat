@@ -1,4 +1,4 @@
-package migration
+package migrator
 
 import (
 	"fmt"
@@ -87,7 +87,7 @@ func (m *Migrator) Create(name string) error {
 	// Create migration file
 	filePath := filepath.Join(path, migrationName+".go")
 
-	content := `package migrations
+	content := `package migrators
 
 import (
 	contractsschema "github.com/dracory/neat/contracts/database/schema"

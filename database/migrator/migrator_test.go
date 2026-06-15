@@ -1,4 +1,4 @@
-package migration
+package migrator
 
 import (
 	"os"

@@ -15,7 +15,7 @@ import (
 	"github.com/dracory/neat/contracts/log"
 	contractsMigration "github.com/dracory/neat/contracts/migration"
 	"github.com/dracory/neat/database/db"
-	databaseMigration "github.com/dracory/neat/database/migration"
+	databaseMigration "github.com/dracory/neat/database/migrator"
 	databaseorm "github.com/dracory/neat/database/orm"
 	"github.com/dracory/neat/database/schema"
 	databaseseeder "github.com/dracory/neat/database/seeder"
