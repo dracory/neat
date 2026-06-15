@@ -113,19 +113,9 @@ func (s *SchemerImplementation) up(ctx context.Context) error {
 
 // runUp contains the shared migration execution logic
 func (s *SchemerImplementation) runUp(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query) error {
-	// Create migration tracking table if it doesn't exist
-	if !schema.HasTable(s.tableName) {
-		err := schema.Create(s.tableName, func(table contractsschema.Blueprint) {
-			table.String("id")
-			table.Primary("id")
-			table.Integer("batch")
-			table.String("description", 255)
-			table.DateTime("started_at")
-			table.DateTime("completed_at")
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create %s table: %w", s.tableName, err)
-		}
+	// Ensure migration tracking table exists and is up to date
+	if err := s.ensureMigrationTracker(schema); err != nil {
+		return fmt.Errorf("failed to ensure migration tracker: %w", err)
 	}
 
 	// Get the next batch number
@@ -483,6 +473,65 @@ func (s *SchemerImplementation) getMigrationsWithQuery(query contractsorm.Query)
 		return nil, err
 	}
 	return trackers, nil
+}
+
+// ensureMigrationTracker creates the migration tracking table if it doesn't exist,
+// and upgrades the schema by adding any missing columns.
+func (s *SchemerImplementation) ensureMigrationTracker(schema contractsschema.Schema) error {
+	// Create table if it doesn't exist
+	if !schema.HasTable(s.tableName) {
+		err := schema.Create(s.tableName, func(table contractsschema.Blueprint) {
+			table.String("id")
+			table.Primary("id")
+			table.Integer("batch")
+			table.String("description", 255)
+			table.DateTime("started_at")
+			table.DateTime("completed_at")
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create %s table: %w", s.tableName, err)
+		}
+		return nil
+	}
+
+	// Upgrade: add missing columns to existing table
+	// Each addition is independent — if one fails, we still try the others.
+	columnsToAdd := []struct {
+		name     string
+		add      func(table contractsschema.Blueprint)
+		nullable bool
+	}{
+		{
+			name: "description",
+			add: func(table contractsschema.Blueprint) {
+				table.String("description", 255)
+			},
+		},
+		{
+			name: "started_at",
+			add: func(table contractsschema.Blueprint) {
+				table.DateTime("started_at")
+			},
+		},
+		{
+			name: "completed_at",
+			add: func(table contractsschema.Blueprint) {
+				table.DateTime("completed_at")
+			},
+		},
+	}
+
+	for _, col := range columnsToAdd {
+		if !schema.HasColumn(s.tableName, col.name) {
+			_ = schema.Table(s.tableName, func(table contractsschema.Blueprint) {
+				col.add(table)
+			})
+			// Intentionally ignoring error: column may already exist
+			// (race condition or driver-specific behavior).
+		}
+	}
+
+	return nil
 }
 
 func (s *SchemerImplementation) getAllTables() ([]string, error) {

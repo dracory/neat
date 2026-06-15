@@ -63,12 +63,14 @@ schemer.SetTableName("my_migrations") // optional, validated
 schemer.SetSignatureValidation(true, schemer.SignatureFormatDateTime)
 ```
 
-### 4. Repository Schema Upgrades
+### 4. Repository Schema Upgrades ✅
+
+**Status**: Implemented
 
 **Current state in schemer**: `runUp` creates the table if `!HasTable`, but never evolves an existing schema.
 **Migrator approach**: `upgradeRepositorySchema()` checks for missing columns (`description`, `started_at`, `completed_at`) and adds them via `schema.Table`.
 
-**Proposal**: Extract an `ensureMigrationTracker(schema)` helper that both creates and upgrades the table. On every `Up`, after confirming the table exists, check if expected columns are present and add any missing ones. This makes `schemer` resilient to schema evolution.
+**Implementation**: Extracted `ensureMigrationTracker(schema)` helper in `schemer.go`. It creates the table if missing, then checks each expected column with `schema.HasColumn` and adds missing ones via `schema.Table`. Called at the start of every `runUp`. Each column addition is independent — if one fails, the others are still attempted.
 
 ### 5. Driver-Aware `getAllTables()` for `Fresh()`
 
@@ -126,7 +128,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 |-------|---------|----------------|
 | ~~1~~ | ~~Configurable table name + validation~~ | ~~Small~~ | **Done** |
 | ~~2~~ | ~~Signature format validation utility~~ | ~~Small~~ | **Done** |
-| 3 | Repository schema upgrades | Small |
+| ~~3~~ | ~~Repository schema upgrades~~ | ~~Small~~ | **Done** |
 | 4 | Driver-aware `getAllTables()` + `Fresh()` fix | Medium |
 | 5 | Logging / observability hooks | Small |
 | 6 | Reset safety limit + sequential batch numbering | Small |
@@ -136,7 +138,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 
 - [x] `schemer` supports configurable and validated tracker table names
 - [x] `schemer` can validate migration signatures in datetime/date/unix/custom formats
-- [ ] `schemer` upgrades existing `migration_tracker` schemas on startup (adds missing columns)
+- [x] `schemer` upgrades existing `migration_tracker` schemas on startup (adds missing columns)
 - [ ] `Fresh()` correctly drops all user tables (not just the tracker) and re-runs migrations
 - [ ] `Reset()` has an iteration safety limit
 - [ ] Batch numbers are sequential (`1, 2, 3...`) instead of Unix timestamps

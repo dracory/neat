@@ -439,6 +439,81 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 	}
 }
 
+func TestEnsureMigrationTracker_CreatesTable(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	schema := db.Schema()
+
+	// Table should not exist initially
+	if schema.HasTable(defaultTableName) {
+		t.Fatal("Expected table to NOT exist initially")
+	}
+
+	s := NewSchemer(db).(*SchemerImplementation)
+	if err := s.ensureMigrationTracker(schema); err != nil {
+		t.Fatalf("ensureMigrationTracker failed: %v", err)
+	}
+
+	// Table should now exist
+	if !schema.HasTable(defaultTableName) {
+		t.Fatal("Expected table to exist after ensureMigrationTracker")
+	}
+
+	// All columns should exist
+	expectedColumns := []string{"id", "batch", "description", "started_at", "completed_at"}
+	for _, col := range expectedColumns {
+		if !schema.HasColumn(defaultTableName, col) {
+			t.Errorf("Expected column '%s' to exist in '%s'", col, defaultTableName)
+		}
+	}
+}
+
+func TestEnsureMigrationTracker_UpgradesExistingTable(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	schema := db.Schema()
+
+	// Create an old-style table missing some columns
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		// Missing: description, started_at, completed_at
+	})
+	if err != nil {
+		t.Fatalf("failed to create old-style table: %v", err)
+	}
+
+	// Verify the missing columns are not present
+	missingColumns := []string{"description", "started_at", "completed_at"}
+	for _, col := range missingColumns {
+		if schema.HasColumn(defaultTableName, col) {
+			t.Fatalf("Expected column '%s' to NOT exist before upgrade", col)
+		}
+	}
+
+	s := NewSchemer(db).(*SchemerImplementation)
+	if err := s.ensureMigrationTracker(schema); err != nil {
+		t.Fatalf("ensureMigrationTracker failed: %v", err)
+	}
+
+	// All columns should now exist
+	allColumns := []string{"id", "batch", "description", "started_at", "completed_at"}
+	for _, col := range allColumns {
+		if !schema.HasColumn(defaultTableName, col) {
+			t.Errorf("Expected column '%s' to exist after upgrade", col)
+		}
+	}
+}
+
 func TestUp_SkipAlreadyRun(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
