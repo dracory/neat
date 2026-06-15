@@ -20,6 +20,18 @@ func TestGenerateShortID(t *testing.T) {
 	}
 }
 
+func TestGenerateShortIDNoDuplicates(t *testing.T) {
+	const count = 1000
+	seen := make(map[string]struct{}, count)
+	for i := 0; i < count; i++ {
+		id := GenerateShortID()
+		if _, exists := seen[id]; exists {
+			t.Fatalf("duplicate ID generated at iteration %d: %s", i, id)
+		}
+		seen[id] = struct{}{}
+	}
+}
+
 func TestEncodeCrockford(t *testing.T) {
 	tests := []struct {
 		input    int64
