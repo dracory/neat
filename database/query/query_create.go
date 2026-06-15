@@ -30,13 +30,13 @@ func (q *Query) Create(value any) error {
 	// Pre-generate short IDs for string-primary-key models
 	if isShortIDModel(value) {
 		v := reflect.ValueOf(value)
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
 		}
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 			for i := 0; i < v.Len(); i++ {
 				elem := v.Index(i)
-				if elem.Kind() == reflect.Ptr {
+				if elem.Kind() == reflect.Pointer {
 					elem = elem.Elem()
 				}
 				if elem.CanAddr() {
@@ -63,7 +63,7 @@ func (q *Query) Create(value any) error {
 		// For Oracle bulk inserts, BuildInsert returns empty to signal we should handle it differently
 		// Fall back to iterating and inserting one by one
 		v := reflect.ValueOf(value)
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
 		}
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
@@ -110,7 +110,7 @@ func (q *Query) Create(value any) error {
 
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
-			if v.Kind() == reflect.Ptr {
+			if v.Kind() == reflect.Pointer {
 				v = v.Elem()
 			}
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
@@ -123,7 +123,7 @@ func (q *Query) Create(value any) error {
 					}
 					if i < v.Len() {
 						elem := v.Index(i)
-						if elem.Kind() == reflect.Ptr {
+						if elem.Kind() == reflect.Pointer {
 							elem = elem.Elem()
 						}
 						if elem.CanAddr() {
@@ -168,7 +168,7 @@ func (q *Query) Create(value any) error {
 
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
-			if v.Kind() == reflect.Ptr {
+			if v.Kind() == reflect.Pointer {
 				v = v.Elem()
 			}
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
@@ -181,7 +181,7 @@ func (q *Query) Create(value any) error {
 					}
 					if i < v.Len() {
 						elem := v.Index(i)
-						if elem.Kind() == reflect.Ptr {
+						if elem.Kind() == reflect.Pointer {
 							elem = elem.Elem()
 						}
 						if elem.CanAddr() {
@@ -305,7 +305,7 @@ func (q *Query) Create(value any) error {
 		if lastID, err := result.LastInsertId(); err == nil && lastID > 0 {
 			// Handle bulk insert by setting IDs for each element
 			v := reflect.ValueOf(value)
-			if v.Kind() == reflect.Ptr {
+			if v.Kind() == reflect.Pointer {
 				v = v.Elem()
 			}
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {

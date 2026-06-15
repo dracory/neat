@@ -35,12 +35,24 @@ func RunSchemerBasedMigrations(dsn string) error {
 	schemerInstance := schemer.NewSchemer(db)
 
 	// Add migrations to schemer
-	schemerInstance.AddMigration(&CreateMigrationTrackerTable{})
-	schemerInstance.AddMigration(&CreateUsersTable{})
-	schemerInstance.AddMigration(&CreatePostsTable{})
-	schemerInstance.AddMigration(&CreateCommentsTable{})
-	schemerInstance.AddMigration(&AddPostsIndexes{})
-	schemerInstance.AddMigration(&AddPublishedToPosts{})
+	if err := schemerInstance.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&CreateUsersTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&CreatePostsTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&CreateCommentsTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&AddPostsIndexes{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&AddPublishedToPosts{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
 
 	// Run all migrations
 	fmt.Println("=== Running Migrations ===")

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/contracts/log"
+	"github.com/dracory/neat/database/db"
 )
 
 func TestDebugToggleIntegration(t *testing.T) {
@@ -15,7 +15,7 @@ func TestDebugToggleIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open mock database: %v", err)
 	}
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Create a Query instance
 	q := &Query{
@@ -50,7 +50,7 @@ func TestDebugToggleWithDbConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open mock database: %v", err)
 	}
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Test with dbConfig.Debug = true
 	cfg := &db.DBConfig{Debug: true}
@@ -81,7 +81,7 @@ func TestDebugToggleErrorSanitization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open mock database: %v", err)
 	}
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Create a Query instance with debug disabled
 	q := &Query{

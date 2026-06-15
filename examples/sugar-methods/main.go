@@ -131,7 +131,7 @@ func RunExample(dsn string) error {
 	var email string
 	err = db.Query().Table("users").Where("age = ?", 25).Value("email", &email)
 	if err != nil {
-		return fmt.Errorf("Value failed: %w", err)
+		return fmt.Errorf("value failed: %w", err)
 	}
 	fmt.Printf("   Email: %s\n\n", email)
 

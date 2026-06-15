@@ -82,7 +82,7 @@ type cursorWrapper struct {
 // Scan implements the orm.Cursor interface
 func (c *cursorWrapper) Scan(dest any) error {
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() != reflect.Ptr {
+	if destValue.Kind() != reflect.Pointer {
 		return fmt.Errorf("dest must be a pointer")
 	}
 	destValue = destValue.Elem()

@@ -42,13 +42,13 @@ func (d *Dispatcher) Dispatch(
 	// Find matching observers for this model
 	var matchingObservers []contractsorm.Observer
 	modelType := reflect.TypeOf(model)
-	if modelType.Kind() == reflect.Ptr {
+	if modelType.Kind() == reflect.Pointer {
 		modelType = modelType.Elem()
 	}
 
 	for _, mt := range observers {
 		observerType := reflect.TypeOf(mt.Model)
-		if observerType.Kind() == reflect.Ptr {
+		if observerType.Kind() == reflect.Pointer {
 			observerType = observerType.Elem()
 		}
 

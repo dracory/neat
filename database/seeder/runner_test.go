@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dracory/neat/contracts/database/seeder"
 	contractsseeder "github.com/dracory/neat/contracts/database/seeder"
 )
 
@@ -52,7 +51,7 @@ func TestRunnerGetSeeder(t *testing.T) {
 	runner := NewRunner()
 
 	seeder1 := &errorMockSeeder{signature: "test_seeder"}
-	runner.Register([]seeder.Seeder{seeder1})
+	runner.Register([]contractsseeder.Seeder{seeder1})
 
 	retrieved := runner.GetSeeder("test_seeder")
 	if retrieved == nil {
@@ -132,7 +131,7 @@ func TestCallOnce(t *testing.T) {
 	seeder2.runCalled = false
 
 	// Second call - should skip
-	err = runner.CallOnce([]seeder.Seeder{seeder1, seeder2})
+	err = runner.CallOnce([]contractsseeder.Seeder{seeder1, seeder2})
 	if err != nil {
 		t.Errorf("Expected no error on second call, got %v", err)
 	}

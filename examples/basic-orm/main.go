@@ -41,7 +41,7 @@ func RunExample(dsn string) error {
 	var results []map[string]any
 	err = db.Query().Table("users").Get(&results)
 	if err != nil {
-		return fmt.Errorf("Error getting records: %v", err)
+		return fmt.Errorf("error getting records: %v", err)
 	} else {
 		fmt.Printf("Found %d records\n", len(results))
 	}
@@ -51,7 +51,7 @@ func RunExample(dsn string) error {
 	var user map[string]any
 	err = db.Query().Table("users").Where("id = ?", 1).Get(&user)
 	if err != nil {
-		return fmt.Errorf("Error finding user: %v", err)
+		return fmt.Errorf("error finding user: %v", err)
 	} else {
 		fmt.Printf("Found user: %v\n", user)
 	}
@@ -67,7 +67,7 @@ func RunExample(dsn string) error {
 	}
 	err = db.Query().Table("users").Create(newUser)
 	if err != nil {
-		return fmt.Errorf("Error creating user: %v", err)
+		return fmt.Errorf("error creating user: %v", err)
 	} else {
 		fmt.Println("User created successfully")
 	}
@@ -78,7 +78,7 @@ func RunExample(dsn string) error {
 		"name": "Jane Doe",
 	})
 	if err != nil {
-		return fmt.Errorf("Error updating user: %v", err)
+		return fmt.Errorf("error updating user: %v", err)
 	} else {
 		fmt.Println("User updated successfully")
 	}
@@ -87,7 +87,7 @@ func RunExample(dsn string) error {
 	fmt.Println("\n=== Delete Record ===")
 	_, err = db.Query().Table("users").Where("id = ?", 1).Delete()
 	if err != nil {
-		return fmt.Errorf("Error deleting user: %v", err)
+		return fmt.Errorf("error deleting user: %v", err)
 	} else {
 		fmt.Println("User deleted successfully")
 	}
@@ -102,7 +102,7 @@ func RunExample(dsn string) error {
 		Limit(10).
 		Get(&advancedResults)
 	if err != nil {
-		return fmt.Errorf("Error in advanced query: %v", err)
+		return fmt.Errorf("error in advanced query: %v", err)
 	} else {
 		fmt.Printf("Found %d active users over 18\n", len(advancedResults))
 	}

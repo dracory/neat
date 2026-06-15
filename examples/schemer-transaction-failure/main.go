@@ -39,9 +39,15 @@ func RunTransactionFailureExample(dsn string) error {
 	schemerNoTx.SetTransactionsEnabled(false)
 	fmt.Println("Transactions enabled: false")
 
-	schemerNoTx.AddMigration(&CreateMigrationTrackerTable{})
-	schemerNoTx.AddMigration(&CreateUsersTable{})
-	schemerNoTx.AddMigration(&FailingMigration{})
+	if err := schemerNoTx.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerNoTx.AddMigration(&CreateUsersTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerNoTx.AddMigration(&FailingMigration{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
 
 	ctx := context.Background()
 	err = schemerNoTx.Up(ctx)
@@ -69,9 +75,15 @@ func RunTransactionFailureExample(dsn string) error {
 	schemerWithTx.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 
-	schemerWithTx.AddMigration(&CreateMigrationTrackerTable{})
-	schemerWithTx.AddMigration(&CreateUsersTable{})
-	schemerWithTx.AddMigration(&FailingMigration{})
+	if err := schemerWithTx.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerWithTx.AddMigration(&CreateUsersTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerWithTx.AddMigration(&FailingMigration{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
 
 	err = schemerWithTx.Up(ctx)
 	if err != nil {
@@ -114,8 +126,12 @@ func RunTransactionFailureExample(dsn string) error {
 	schemerSuccess.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 
-	schemerSuccess.AddMigration(&CreateUsersTable{})
-	schemerSuccess.AddMigration(&CreatePostsTable{})
+	if err := schemerSuccess.AddMigration(&CreateUsersTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerSuccess.AddMigration(&CreatePostsTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
 
 	err = schemerSuccess.Up(ctx)
 	if err != nil {

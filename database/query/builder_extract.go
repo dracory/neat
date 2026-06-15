@@ -9,7 +9,7 @@ import (
 // extractColumnsAndValues extracts column names and values from a struct, map, or slice.
 func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -50,7 +50,7 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 	var values []any
 
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -131,10 +131,10 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		}
 
 		// Skip slice/struct fields that are not handled as basic types
-		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Ptr) &&
+		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Pointer) &&
 			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
 			// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
-			if fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.Kind() == reflect.Pointer {
 				if fieldValue.IsNil() {
 					// For nil pointers, check if it's a pointer to a struct (association) or basic type
 					// Skip nil struct pointers (associations), include nil basic type pointers as NULL
@@ -172,7 +172,7 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		// For other nil pointers (like Bio), also include as NULL
 		// For strings, include empty strings as they are valid values
 		// For integers, include zero values as they are valid
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Ptr && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 {
+		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For Oracle, also skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For SQL Server, also skip zero time.Time values to use DEFAULT GETDATE()
@@ -201,7 +201,7 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 // This is used for SELECT clause generation where we want all columns regardless of their values.
 func (b *Builder) extractColumnNames(value any) []string {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -239,7 +239,7 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 		// Skip slice/struct fields that are not handled as basic types
 		// But allow pointers to basic types or time.Time
 		fieldType := field.Type
-		if fieldType.Kind() == reflect.Ptr {
+		if fieldType.Kind() == reflect.Pointer {
 			fieldType = fieldType.Elem()
 		}
 

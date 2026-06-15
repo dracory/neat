@@ -10,7 +10,7 @@ import (
 // getFieldByTagOrName finds a field in a struct by db tag first, then by name.
 // It tries multiple variations: db tag, PascalCase, snake_case, and handles "Id" -> "ID" suffix.
 func getFieldByTagOrName(val reflect.Value, fieldName string) (reflect.Value, error) {
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {

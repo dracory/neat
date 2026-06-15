@@ -374,7 +374,7 @@ func TestWithCountIntegration(t *testing.T) {
 	q.table = "users"
 	q = q.WithCount("Posts").(*Query)
 
-	var users []User = []User{}
+	var users = []User{}
 	err = q.Get(&users)
 	if err != nil {
 		t.Fatalf("Get with WithCount failed: %v", err)
@@ -430,7 +430,7 @@ func TestWithExistsIntegration(t *testing.T) {
 	q.table = "users"
 	q = q.WithExists("Posts").(*Query)
 
-	var users []User = []User{}
+	var users = []User{}
 	err = q.Get(&users)
 	if err != nil {
 		t.Fatalf("Get with WithExists failed: %v", err)
@@ -492,7 +492,7 @@ func TestWithCountWithConstraintIntegration(t *testing.T) {
 		return q.Where("published = ?", 1)
 	}).(*Query)
 
-	var users []User = []User{}
+	var users = []User{}
 	err = q.Get(&users)
 	if err != nil {
 		t.Fatalf("Get with WithCount and constraint failed: %v", err)

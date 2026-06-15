@@ -31,7 +31,7 @@ func isValidDatabaseName(name string) bool {
 
 	// Must start with letter or underscore (not number)
 	first := name[0]
-	if !((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || first == '_') {
+	if (first < 'a' || first > 'z') && (first < 'A' || first > 'Z') && first != '_' {
 		return false
 	}
 

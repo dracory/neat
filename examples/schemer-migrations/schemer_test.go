@@ -20,12 +20,24 @@ func TestSchemerPackage_AllMigrations(t *testing.T) {
 	schemerInstance := schemer.NewSchemer(db)
 
 	// Add migrations
-	schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{})
-	schemerInstance.AddMigration(&mainpkg.CreateUsersTable{})
-	schemerInstance.AddMigration(&mainpkg.CreatePostsTable{})
-	schemerInstance.AddMigration(&mainpkg.CreateCommentsTable{})
-	schemerInstance.AddMigration(&mainpkg.AddPostsIndexes{})
-	schemerInstance.AddMigration(&mainpkg.AddPublishedToPosts{})
+	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.CreatePostsTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.CreateCommentsTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.AddPostsIndexes{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.AddPublishedToPosts{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()
@@ -74,9 +86,15 @@ func TestSchemerPackage_RollbackSteps(t *testing.T) {
 	schemerInstance := schemer.NewSchemer(db)
 
 	// Add migrations
-	schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{})
-	schemerInstance.AddMigration(&mainpkg.CreateUsersTable{})
-	schemerInstance.AddMigration(&mainpkg.CreatePostsTable{})
+	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.CreatePostsTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()
@@ -101,8 +119,12 @@ func TestSchemerPackage_AddMigrations(t *testing.T) {
 	schemerInstance := schemer.NewSchemer(db)
 
 	// Add migrations individually
-	schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{})
-	schemerInstance.AddMigration(&mainpkg.CreateUsersTable{})
+	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := schemerInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()

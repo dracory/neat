@@ -42,7 +42,7 @@ func (q *Query) First(dest any) error {
 		// Load relations after rows are closed to avoid SQLite deadlock
 		if len(q.withRelations) > 0 {
 			destValue := reflect.ValueOf(dest)
-			if destValue.Kind() == reflect.Ptr {
+			if destValue.Kind() == reflect.Pointer {
 				destValue = destValue.Elem()
 			}
 			q.initializeRelations(destValue)
@@ -73,7 +73,7 @@ func (q *Query) First(dest any) error {
 	// Load relations after rows are closed to avoid SQLite deadlock
 	if len(q.withRelations) > 0 {
 		destValue := reflect.ValueOf(dest)
-		if destValue.Kind() == reflect.Ptr {
+		if destValue.Kind() == reflect.Pointer {
 			destValue = destValue.Elem()
 		}
 		q.initializeRelations(destValue)

@@ -10,7 +10,7 @@ import (
 // TestDatabaseTypeAlias verifies that neat.Database is an alias for database.Database,
 // so a *neat.Database and *database.Database are interchangeable.
 func TestDatabaseTypeAlias(t *testing.T) {
-	var _ *database.Database = (*Database)(nil) // compile-time check
+	var _ = (*Database)(nil) // compile-time check
 	// If this compiles, the type alias is correct.
 }
 

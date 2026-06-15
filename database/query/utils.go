@@ -21,7 +21,7 @@ func toCamelCase(s string) string {
 // getPrimaryKeyValue returns the primary key value (ID/Id) of a struct as int64, 0 if absent or zero.
 func getPrimaryKeyValue(value any) int64 {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return 0
 		}
@@ -80,7 +80,7 @@ func camelToSnake(s string) string {
 		if i > 0 && r >= 'A' && r <= 'Z' {
 			// Don't add underscore if previous char is also uppercase (acronym handling)
 			prev := s[i-1]
-			if !(prev >= 'A' && prev <= 'Z') {
+			if prev < 'A' || prev > 'Z' {
 				out = append(out, '_')
 			}
 		}
@@ -150,7 +150,7 @@ func structScanDests(v reflect.Value, columns []string) []any {
 			ft := field.Type()
 			// Use nullable wrappers for non-pointer value types so NULL doesn't
 			// cause "converting NULL to T is unsupported" scan errors.
-			if ft.Kind() != reflect.Ptr && ft.Kind() != reflect.Interface {
+			if ft.Kind() != reflect.Pointer && ft.Kind() != reflect.Interface {
 				if nd := nullableScanDest(ft); nd != nil {
 					dests[i] = nd
 					continue
@@ -230,7 +230,7 @@ func copyScanResults(v reflect.Value, columns []string, dests []any) {
 
 		// copy from the temporary pointer
 		ptrVal := reflect.ValueOf(dest)
-		if ptrVal.Kind() == reflect.Ptr && !ptrVal.IsNil() {
+		if ptrVal.Kind() == reflect.Pointer && !ptrVal.IsNil() {
 			val := ptrVal.Elem()
 			if val.Type().AssignableTo(field.Type()) {
 				field.Set(val)
@@ -243,7 +243,7 @@ func copyScanResults(v reflect.Value, columns []string, dests []any) {
 // Supports int64 for integer PKs and string for short-ID PKs.
 func setModelPrimaryKey(value any, id any) {
 	v := reflect.ValueOf(value)
-	if v.Kind() != reflect.Ptr || v.IsNil() {
+	if v.Kind() != reflect.Pointer || v.IsNil() {
 		return
 	}
 	v = v.Elem()
@@ -279,7 +279,7 @@ func setModelPrimaryKey(value any, id any) {
 // Returns the value and true if found, or nil and false if absent.
 func getPrimaryKeyValueAny(value any) (any, bool) {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil, false
 		}
@@ -313,7 +313,7 @@ func getPrimaryKeyValueAny(value any) (any, bool) {
 // For integers: zero value; for strings: empty string.
 func isPrimaryKeyZero(value any) bool {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return true
 		}
@@ -343,7 +343,7 @@ func isPrimaryKeyZero(value any) bool {
 // with a string ID field, indicating it uses client-generated short IDs.
 func isShortIDModel(value any) bool {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return false
 		}
@@ -354,7 +354,7 @@ func isShortIDModel(value any) bool {
 			return false
 		}
 		elem := v.Index(0)
-		if elem.Kind() == reflect.Ptr {
+		if elem.Kind() == reflect.Pointer {
 			elem = elem.Elem()
 		}
 		v = elem
@@ -386,7 +386,7 @@ func applyWhereConditions(q *Query, attributes any) error {
 
 	// Handle struct attributes
 	attrValue := reflect.ValueOf(attributes)
-	if attrValue.Kind() == reflect.Ptr {
+	if attrValue.Kind() == reflect.Pointer {
 		attrValue = attrValue.Elem()
 	}
 
@@ -413,7 +413,7 @@ func applyWhereConditions(q *Query, attributes any) error {
 // applyAttributes applies attributes from a map or struct to a destination struct.
 func applyAttributes(dest any, attributes any) error {
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() == reflect.Ptr {
+	if destValue.Kind() == reflect.Pointer {
 		destValue = destValue.Elem()
 	}
 
@@ -455,7 +455,7 @@ func applyAttributes(dest any, attributes any) error {
 
 	// Handle struct attributes
 	attrValue := reflect.ValueOf(attributes)
-	if attrValue.Kind() == reflect.Ptr {
+	if attrValue.Kind() == reflect.Pointer {
 		attrValue = attrValue.Elem()
 	}
 

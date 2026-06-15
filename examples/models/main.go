@@ -91,7 +91,7 @@ func RunExample(dsn string) error {
 	}
 	err = db.Query().Model(&User{}).Create(user)
 	if err != nil {
-		return fmt.Errorf("Error creating user: %v", err)
+		return fmt.Errorf("error creating user: %v", err)
 	} else {
 		fmt.Printf("User created with ID: %d\n", user.ID)
 	}
@@ -101,7 +101,7 @@ func RunExample(dsn string) error {
 	var foundUser User
 	err = db.Query().Model(&User{}).Where("id = ?", user.ID).First(&foundUser)
 	if err != nil {
-		return fmt.Errorf("Error finding user: %v", err)
+		return fmt.Errorf("error finding user: %v", err)
 	} else {
 		fmt.Printf("Found user: %+v\n", foundUser)
 	}
@@ -112,7 +112,7 @@ func RunExample(dsn string) error {
 	foundUser.Age = 31
 	_, err = db.Query().Model(&User{}).Where("id = ?", foundUser.ID).Update(&foundUser)
 	if err != nil {
-		return fmt.Errorf("Error updating user: %v", err)
+		return fmt.Errorf("error updating user: %v", err)
 	} else {
 		fmt.Println("User updated successfully")
 	}
@@ -122,7 +122,7 @@ func RunExample(dsn string) error {
 	var users []User
 	err = db.Query().Model(&User{}).Where("age > ?", 18).Get(&users)
 	if err != nil {
-		return fmt.Errorf("Error querying users: %v", err)
+		return fmt.Errorf("error querying users: %v", err)
 	} else {
 		fmt.Printf("Found %d users\n", len(users))
 	}
@@ -136,7 +136,7 @@ func RunExample(dsn string) error {
 	}
 	err = db.Query().Model(&Post{}).Create(post)
 	if err != nil {
-		return fmt.Errorf("Error creating post: %v", err)
+		return fmt.Errorf("error creating post: %v", err)
 	} else {
 		fmt.Printf("Post created with ID: %d\n", post.ID)
 	}
@@ -145,7 +145,7 @@ func RunExample(dsn string) error {
 	fmt.Println("\n=== Soft Delete User ===")
 	_, err = db.Query().Model(&User{}).Delete(&foundUser)
 	if err != nil {
-		return fmt.Errorf("Error deleting user: %v", err)
+		return fmt.Errorf("error deleting user: %v", err)
 	} else {
 		fmt.Println("User soft deleted successfully")
 	}

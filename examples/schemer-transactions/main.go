@@ -45,9 +45,15 @@ func RunTransactionExample(dsn string) error {
 	fmt.Println("Transaction isolation level: SERIALIZABLE")
 
 	// Add migrations
-	schemerInstance.AddMigration(&CreateMigrationTrackerTable{})
-	schemerInstance.AddMigration(&CreateUsersTable{})
-	schemerInstance.AddMigration(&CreatePostsTable{})
+	if err := schemerInstance.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&CreateUsersTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+	if err := schemerInstance.AddMigration(&CreatePostsTable{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
 
 	// Run migrations with transaction wrapping
 	fmt.Println("\n=== Running Migrations with Transaction Wrapping ===")
@@ -75,7 +81,9 @@ func RunTransactionExample(dsn string) error {
 	fmt.Println("Transactions enabled: false")
 
 	// Add a large migration
-	schemerInstance.AddMigration(&AddPostsIndexes{})
+	if err := schemerInstance.AddMigration(&AddPostsIndexes{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
 
 	// Run without transaction wrapping
 	if err := schemerInstance.Up(ctx); err != nil {

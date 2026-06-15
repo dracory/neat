@@ -132,7 +132,7 @@ func extractAttributes(value any) (map[string]any, error) {
 	result := make(map[string]any)
 
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -177,12 +177,12 @@ func extractAttributes(value any) (map[string]any, error) {
 func mergeAttributes(values any, attributes any) any {
 	// If both are structs, we need to merge them
 	vVal := reflect.ValueOf(values)
-	if vVal.Kind() == reflect.Ptr {
+	if vVal.Kind() == reflect.Pointer {
 		vVal = vVal.Elem()
 	}
 
 	vAttr := reflect.ValueOf(attributes)
-	if vAttr.Kind() == reflect.Ptr {
+	if vAttr.Kind() == reflect.Pointer {
 		vAttr = vAttr.Elem()
 	}
 

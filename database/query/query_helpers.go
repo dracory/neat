@@ -31,7 +31,7 @@ func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 func (q *Query) validateAggregate(column string) error {
 	// Validate column name: alphanumeric, underscores, dots or *
 	for _, r := range column {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '.' || r == '*') {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' && r != '.' && r != '*' {
 			return fmt.Errorf("invalid column name: %s", column)
 		}
 	}

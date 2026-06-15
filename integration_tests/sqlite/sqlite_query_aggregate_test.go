@@ -40,7 +40,7 @@ func seedAggregateTestData(t *testing.T, db *database.Database) aggregateTestDat
 
 	var expectedSum int64
 	var group1Sum, group2Sum int64
-	var minID, maxID int64 = int64(insertedUsers[0].ID), int64(insertedUsers[0].ID)
+	var minID, maxID = int64(insertedUsers[0].ID), int64(insertedUsers[0].ID)
 	for _, u := range insertedUsers {
 		expectedSum += int64(u.ID)
 		if u.Avatar == "group1" {
@@ -179,11 +179,12 @@ func TestSQLiteIntegrationQueryAggregateGroupBy(t *testing.T) {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
 	for _, res := range results {
-		if res.Avatar == "group1" {
+		switch res.Avatar {
+		case "group1":
 			if res.Total != data.group1Sum {
 				t.Errorf("Expected total %d for group1, got %d", data.group1Sum, res.Total)
 			}
-		} else if res.Avatar == "group2" {
+		case "group2":
 			if res.Total != data.group2Sum {
 				t.Errorf("Expected total %d for group2, got %d", data.group2Sum, res.Total)
 			}

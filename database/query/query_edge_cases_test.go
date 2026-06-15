@@ -760,9 +760,9 @@ func TestPointerToPointerFields(t *testing.T) {
 	active := true
 
 	// Create double pointers
-	var namePtr *string = &name
-	var agePtr *int = &age
-	var activePtr *bool = &active
+	var namePtr = &name
+	var agePtr = &age
+	var activePtr = &active
 
 	model := DoublePointerModel{
 		Name:   &namePtr,

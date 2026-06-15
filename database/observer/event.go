@@ -126,7 +126,7 @@ func (e *Event) EventType() contractsorm.EventType {
 func ExtractModelAttributes(model any) map[string]any {
 	attrs := make(map[string]any)
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {

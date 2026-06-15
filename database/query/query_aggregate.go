@@ -392,7 +392,7 @@ func (q *Query) Value(column string, dest any) error {
 // pluckRows scans a single column from database rows into the destination.
 func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() != reflect.Ptr {
+	if destValue.Kind() != reflect.Pointer {
 		return fmt.Errorf("dest must be a pointer")
 	}
 

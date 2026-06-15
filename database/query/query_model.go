@@ -48,7 +48,7 @@ func (q *Query) resolveTableName(model any) string {
 	}
 
 	v := reflect.ValueOf(model)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -68,7 +68,7 @@ func (q *Query) resolveTableName(model any) string {
 	t := v.Type()
 	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
 		t = t.Elem()
-		if t.Kind() == reflect.Ptr {
+		if t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
 	}

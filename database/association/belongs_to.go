@@ -217,7 +217,7 @@ func (b *BelongsTo) Count() int64 {
 // Returns an error if the field is not found or not accessible.
 func (b *BelongsTo) getForeignKeyValue() (any, error) {
 	val := reflect.ValueOf(b.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -247,7 +247,7 @@ func (b *BelongsTo) getForeignKeyValue() (any, error) {
 // Returns an error if the field is not found or not accessible.
 func (b *BelongsTo) getOtherKeyValue(model any) (any, error) {
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -279,7 +279,7 @@ func (b *BelongsTo) getOtherKeyValue(model any) (any, error) {
 // Returns an error if the field is not found or not settable.
 func (b *BelongsTo) setForeignKeyValue(value any) error {
 	val := reflect.ValueOf(b.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -321,7 +321,7 @@ func (b *BelongsTo) setForeignKeyValue(value any) error {
 func (b *BelongsTo) associationName() string {
 	// Get the field type to infer table name
 	val := reflect.ValueOf(b.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -334,7 +334,7 @@ func (b *BelongsTo) associationName() string {
 	}
 
 	relationType := field.Type()
-	if relationType.Kind() == reflect.Ptr {
+	if relationType.Kind() == reflect.Pointer {
 		relationType = relationType.Elem()
 	}
 

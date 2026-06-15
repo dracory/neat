@@ -173,7 +173,7 @@ func (h *HasMany) Delete(values ...any) error {
 	for _, value := range values {
 		// Get the ID of the model to update
 		val := reflect.ValueOf(value)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 		idField := val.FieldByName("ID")
@@ -252,7 +252,7 @@ func (h *HasMany) Count() int64 {
 // Returns an error if the field is not found or not accessible.
 func (h *HasMany) getLocalKeyValue() (any, error) {
 	val := reflect.ValueOf(h.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -285,7 +285,7 @@ func (h *HasMany) getLocalKeyValue() (any, error) {
 // Returns an error if the field is not found or not settable.
 func (h *HasMany) setForeignKeyValue(model any, value any) error {
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -353,7 +353,7 @@ func (h *HasMany) setForeignKeyValue(model any, value any) error {
 func (h *HasMany) associationName() string {
 	// Get the field type to infer table name
 	val := reflect.ValueOf(h.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -369,7 +369,7 @@ func (h *HasMany) associationName() string {
 	if relationType.Kind() == reflect.Slice {
 		relationType = relationType.Elem()
 	}
-	if relationType.Kind() == reflect.Ptr {
+	if relationType.Kind() == reflect.Pointer {
 		relationType = relationType.Elem()
 	}
 

@@ -82,14 +82,7 @@ func TestMigrationStatus_JSONTags(t *testing.T) {
 		State       string    `json:"state"`
 	}
 
-	_ = jsonTaggedStruct{
-		ID:          status.ID,
-		Description: status.Description,
-		Batch:       status.Batch,
-		StartedAt:   status.StartedAt,
-		CompletedAt: status.CompletedAt,
-		State:       status.State,
-	}
+	_ = jsonTaggedStruct(status)
 }
 
 func TestMigrationStatus_StateValues(t *testing.T) {

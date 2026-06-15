@@ -141,7 +141,9 @@ func TestSetTableName_UsedForTracking(t *testing.T) {
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -219,7 +221,9 @@ func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -259,7 +263,9 @@ func TestUp_SchemaInjection(t *testing.T) {
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -306,7 +312,9 @@ func TestUp_EmptySignature(t *testing.T) {
 		signature:   "",
 		description: "Test migration",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -344,7 +352,9 @@ func TestUp_SignatureValidation_DateTime(t *testing.T) {
 		signature:   "2026_06_15_1200_create_users_table",
 		description: "Valid datetime signature",
 	}
-	schemer.AddMigration(validMigration)
+	if err := schemer.AddMigration(validMigration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -385,7 +395,9 @@ func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 		signature:   "test_migration",
 		description: "Invalid datetime signature",
 	}
-	schemer.AddMigration(invalidMigration)
+	if err := schemer.AddMigration(invalidMigration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -427,7 +439,9 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 		signature:   "totally_arbitrary_name",
 		description: "Arbitrary signature",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 	err = schemer.Up(ctx)
@@ -540,7 +554,9 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	// Run migration first time
 	ctx := context.Background()
@@ -589,7 +605,9 @@ func TestDown(t *testing.T) {
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	schemer.AddMigration(migration)
+	if err := schemer.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	// Run migration first
 	ctx := context.Background()
@@ -632,7 +650,9 @@ func TestRollbackSteps(t *testing.T) {
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 		&MockMigration{signature: "migration_3", description: "Third migration"},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()
@@ -674,7 +694,9 @@ func TestRollbackToBatch(t *testing.T) {
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()
@@ -744,7 +766,9 @@ func TestStatus_WithMigrations(t *testing.T) {
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()
@@ -801,7 +825,9 @@ func TestFresh(t *testing.T) {
 		signature:   "2026_06_15_1200_create_users",
 		description: "Create users table",
 	}
-	schemer.AddMigration(userMigration)
+	if err := schemer.AddMigration(userMigration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
 
 	ctx := context.Background()
 
@@ -867,7 +893,9 @@ func TestReset(t *testing.T) {
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// Run migrations
 	ctx := context.Background()
@@ -1009,7 +1037,9 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// With transactions enabled (default), Up should fail and roll back tracker entries
 	ctx := context.Background()
@@ -1057,7 +1087,9 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// With transactions disabled, Up should fail but prior tracker entries persist
 	ctx := context.Background()
@@ -1092,7 +1124,9 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
-	schemer.AddMigrations(migrations)
+	if err := schemer.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
 
 	// Up should fail; the entire transaction (including tracker table creation) should roll back
 	ctx := context.Background()

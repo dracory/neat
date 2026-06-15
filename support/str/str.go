@@ -2,6 +2,7 @@ package str
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/rand"
 	"encoding/json"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"golang.org/x/exp/constraints"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -1089,7 +1089,7 @@ func fieldsFunc(s string, f func(rune) bool, preserveFunc ...func(rune) bool) []
 }
 
 // maximum returns the largest of x or y.
-func maximum[T constraints.Ordered](x T, y T) T {
+func maximum[T cmp.Ordered](x T, y T) T {
 	if x > y {
 		return x
 	}
