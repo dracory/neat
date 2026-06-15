@@ -30,7 +30,7 @@ func RunInterfaceBasedMigrations(dsn string) error {
 	defer func() { _ = db.Close() }()
 
 	// Create migration instances
-	migrations := []contractsschema.Migration{
+	migrations := []contractsschema.MigrationInterface{
 		&CreateUsersTable{},
 		&CreatePostsTable{},
 		&CreateCommentsTable{},

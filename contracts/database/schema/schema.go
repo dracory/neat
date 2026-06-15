@@ -40,11 +40,11 @@ type Schema interface {
 	// HasView Determine if the given view exists.
 	HasView(name string) bool
 	// Migrations Get the migrations.
-	Migrations() []Migration
+	Migrations() []MigrationInterface
 	// Orm Get the orm instance.
 	Orm() orm.Orm
 	// Register migrations.
-	Register([]Migration)
+	Register([]MigrationInterface)
 	// Rename a table on the schema.
 	Rename(from, to string) error
 	// RenameColumn Rename a column on the schema.
@@ -77,19 +77,6 @@ type DriverSchema interface {
 	GetIndexes(table string) ([]Index, error)
 	// GetTypes Get the types that belong to the database.
 	GetTypes() ([]Type, error)
-}
-
-type Migration interface {
-	// Signature Get the migration signature.
-	Signature() string
-	// Up Run the migrations.
-	Up() error
-	// Down Reverse the migrations.
-	Down() error
-	// SetSchema sets the schema for this migration
-	SetSchema(schema Schema)
-	// GetSchema returns the schema for this migration
-	GetSchema() Schema
 }
 
 type Connection interface {
