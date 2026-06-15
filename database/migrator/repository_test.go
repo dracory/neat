@@ -7,13 +7,6 @@ import (
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 )
 
-func TestGetTimestamp(t *testing.T) {
-	timestamp := getTimestamp()
-	if timestamp == 0 {
-		t.Error("Expected non-zero timestamp")
-	}
-}
-
 func TestContains(t *testing.T) {
 	slice := []string{"a", "b", "c"}
 

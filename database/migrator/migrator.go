@@ -1,3 +1,8 @@
+// Package migrator provides file-based migration management.
+//
+// Deprecated: This package is deprecated in favor of the interface-based migration system.
+// Use the database/schemer package with MigrationInterface instead.
+// See: https://github.com/dracory/neat/docs/proposals/migrations-part-1.md
 package migrator
 
 import (
@@ -27,6 +32,8 @@ type Migrator struct {
 }
 
 // NewMigrator creates a new Migrator instance.
+//
+// Deprecated: Use database/schemer.NewMigrationManager instead.
 func NewMigrator(
 	config config.Config,
 	orm contractsorm.Orm,
@@ -308,8 +315,8 @@ func (m *Migrator) Run() error {
 
 			m.log("info", "Migration completed", map[string]any{
 				"migration": name,
-				"duration":  duration.String(),
 				"batch":     batch,
+				"duration":  duration.Milliseconds(),
 			})
 		} else {
 			// Run migration without transaction
@@ -331,8 +338,8 @@ func (m *Migrator) Run() error {
 
 			m.log("info", "Migration completed", map[string]any{
 				"migration": name,
-				"duration":  duration.String(),
 				"batch":     batch,
+				"duration":  duration.Milliseconds(),
 			})
 		}
 	}
@@ -513,47 +520,18 @@ func ClearRegistry() {
 	migrationRegistry = make(map[string]Migration)
 }
 
-func getTimestamp() int64 {
-	return time.Now().Unix()
-}
-
-// extractDescription extracts description from migration name or file comments
-func (m *Migrator) extractDescription(migrationName string) string {
-	// Try to extract from migration name (everything after the prefix)
-	parts := strings.Split(migrationName, "_")
+func (m *Migrator) extractDescription(name string) string {
+	// Extract description from migration name
+	// Remove the timestamp prefix
+	parts := strings.Split(name, "_")
 	if len(parts) >= 5 {
-		// For datetime/date formats: YYYY_MM_DD_HHMM/NNN_description
-		return strings.Join(parts[4:], " ")
-	} else if len(parts) >= 2 {
-		// For unix format: timestamp_description
-		return strings.Join(parts[1:], " ")
+		return strings.Join(parts[4:], "_")
 	}
-	return ""
+	return name
 }
 
-// log logs a message if logging is enabled
-func (m *Migrator) log(level, message string, data map[string]any) {
-	if !m.config.GetBool("database.migrations.logging.enabled", false) {
-		return
-	}
-
-	configLevel := m.config.GetString("database.migrations.logging.level", "info")
-
-	// Build message with data
-	msg := message
-	if len(data) > 0 {
-		parts := []string{message}
-		for k, v := range data {
-			parts = append(parts, fmt.Sprintf("%s=%v", k, v))
-		}
-		msg = strings.Join(parts, " ")
-	}
-
-	// Get logger from config if available
-	// For now, we'll skip actual logging since we need to integrate with Neat's log system
-	// This can be enhanced later when log.Log is available in the migrator
-
-	_ = level
-	_ = configLevel
-	_ = msg
+func (m *Migrator) log(level, message string, fields map[string]any) {
+	// This is a simplified implementation
+	// In a real implementation, this would use a proper logger
+	fmt.Printf("[%s] %s: %v\n", level, message, fields)
 }
