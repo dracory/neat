@@ -774,7 +774,71 @@ func TestStatus_WithMigrations(t *testing.T) {
 }
 
 func TestFresh(t *testing.T) {
-	t.Skip("Skipping Fresh test - getAllTables() has placeholder implementation that causes timeout")
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	schemer := NewSchemer(db)
+
+	// Migration that creates a user table
+	userMigration := &MockMigration{
+		signature:   "2026_06_15_1200_create_users",
+		description: "Create users table",
+	}
+	schemer.AddMigration(userMigration)
+
+	ctx := context.Background()
+
+	// Run migrations to create tables
+	err = schemer.Up(ctx)
+	if err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// Verify migration was tracked
+	status, err := schemer.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+	if len(status) != 1 {
+		t.Fatalf("Expected 1 tracked migration, got %d", len(status))
+	}
+
+	// Fresh should drop all tables and re-run migrations
+	err = schemer.Fresh(ctx)
+	if err != nil {
+		t.Fatalf("Fresh failed: %v", err)
+	}
+
+	// Migration tracking table should still exist (Fresh preserves it)
+	if !db.Schema().HasTable(defaultTableName) {
+		t.Error("Expected migration tracking table to exist after Fresh")
+	}
+
+	// Migration should have been re-run (tracker cleared then re-populated)
+	status, err = schemer.Status()
+	if err != nil {
+		t.Fatalf("Status after Fresh failed: %v", err)
+	}
+	if len(status) != 1 {
+		t.Errorf("Expected 1 tracked migration after Fresh, got %d", len(status))
+	}
 }
 
 func TestReset(t *testing.T) {

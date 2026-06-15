@@ -72,15 +72,14 @@ schemer.SetSignatureValidation(true, schemer.SignatureFormatDateTime)
 
 **Implementation**: Extracted `ensureMigrationTracker(schema)` helper in `schemer.go`. It creates the table if missing, then checks each expected column with `schema.HasColumn` and adds missing ones via `schema.Table`. Called at the start of every `runUp`. Each column addition is independent — if one fails, the others are still attempted.
 
-### 5. Driver-Aware `getAllTables()` for `Fresh()`
+### 5. Driver-Aware `getAllTables()` for `Fresh()` ✅
+
+**Status**: Implemented
 
 **Current state in schemer**: `getAllTables()` is a stub returning `[]string{}`, so `Fresh()` drops nothing.
 **Migrator approach**: `Fresh()` uses `schema.GetTableListing()` and driver-specific `information_schema` / `sqlite_master` checks.
 
-**Proposal**: Replace the stub with `schema.GetTableListing()` if it returns reliable results, or implement driver-aware discovery using the same patterns from `migrator`:
-
-- **SQLite**: `SELECT name FROM sqlite_master WHERE type='table'`
-- **PostgreSQL/MySQL/SQLServer**: `information_schema.tables`
+**Implementation**: Replaced the stub with `schema.GetTableListing()` (delegated to driver-specific grammars). Changed `getAllTables()` to accept a `contractsschema.Schema` parameter so it uses the transaction-aware schema when called inside `Fresh()`, avoiding SQLite connection-locking issues. Filters out the migration tracking table. `TestFresh` was un-skipped and now passes.
 
 ### 6. Structured Logging / Observability
 
@@ -129,7 +128,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 | ~~1~~ | ~~Configurable table name + validation~~ | ~~Small~~ | **Done** |
 | ~~2~~ | ~~Signature format validation utility~~ | ~~Small~~ | **Done** |
 | ~~3~~ | ~~Repository schema upgrades~~ | ~~Small~~ | **Done** |
-| 4 | Driver-aware `getAllTables()` + `Fresh()` fix | Medium |
+| ~~4~~ | ~~Driver-aware `getAllTables()` + `Fresh()` fix~~ | ~~Medium~~ | **Done** |
 | 5 | Logging / observability hooks | Small |
 | 6 | Reset safety limit + sequential batch numbering | Small |
 | 7 | Delete `database/migrator` package | Small |
@@ -139,7 +138,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 - [x] `schemer` supports configurable and validated tracker table names
 - [x] `schemer` can validate migration signatures in datetime/date/unix/custom formats
 - [x] `schemer` upgrades existing `migration_tracker` schemas on startup (adds missing columns)
-- [ ] `Fresh()` correctly drops all user tables (not just the tracker) and re-runs migrations
+- [x] `Fresh()` correctly drops all user tables (not just the tracker) and re-runs migrations
 - [ ] `Reset()` has an iteration safety limit
 - [ ] Batch numbers are sequential (`1, 2, 3...`) instead of Unix timestamps
 - [ ] `schemer` emits structured log events for migration start, completion, and failure

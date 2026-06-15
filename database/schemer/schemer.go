@@ -309,7 +309,7 @@ func (s *SchemerImplementation) runFresh(ctx context.Context, schema contractssc
 	// for Fresh operations. However, it's still useful for the migration tracking table cleanup.
 
 	// Get all tables except the migration tracking table
-	tables, err := s.getAllTables()
+	tables, err := s.getAllTables(schema)
 	if err != nil {
 		return fmt.Errorf("failed to get tables: %w", err)
 	}
@@ -534,11 +534,18 @@ func (s *SchemerImplementation) ensureMigrationTracker(schema contractsschema.Sc
 	return nil
 }
 
-func (s *SchemerImplementation) getAllTables() ([]string, error) {
-	// Get all tables from database
-	// This is database-specific and would need to be implemented per driver
-	// For now, return empty slice
-	return []string{}, nil
+func (s *SchemerImplementation) getAllTables(schema contractsschema.Schema) ([]string, error) {
+	// Use schema.GetTableListing for driver-agnostic table discovery
+	tables := schema.GetTableListing()
+
+	// Filter out the migration tracking table
+	var result []string
+	for _, table := range tables {
+		if table != s.tableName {
+			result = append(result, table)
+		}
+	}
+	return result, nil
 }
 
 func (s *SchemerImplementation) clearMigrationTracker(query contractsorm.Query) error {
