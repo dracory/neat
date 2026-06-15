@@ -86,6 +86,10 @@ type Migration interface {
 	Up() error
 	// Down Reverse the migrations.
 	Down() error
+	// SetSchema sets the schema for this migration
+	SetSchema(schema Schema)
+	// GetSchema returns the schema for this migration
+	GetSchema() Schema
 }
 
 type Connection interface {

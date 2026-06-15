@@ -16,6 +16,7 @@ import (
 )
 
 var _ contractsschema.Schema = (*Schema)(nil)
+var _ contractsschema.Migration = (*BaseMigration)(nil)
 
 type Schema struct {
 	contractsschema.CommonSchema
@@ -332,6 +333,9 @@ func (r *Schema) Orm() contractsorm.Orm {
 }
 
 func (r *Schema) Register(migrations []contractsschema.Migration) {
+	for _, migration := range migrations {
+		migration.SetSchema(r)
+	}
 	r.migrations = migrations
 }
 
@@ -407,3 +411,4 @@ func (r *Schema) build(blueprint contractsschema.Blueprint) error {
 func (r *Schema) createBlueprint(table string) contractsschema.Blueprint {
 	return NewBlueprint(r, r.prefix, table)
 }
+
