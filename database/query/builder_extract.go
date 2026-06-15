@@ -167,12 +167,12 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
-		// Skip zero values except for boolean, strings, and pointers (which should be NULL)
+		// Skip zero values except for boolean, strings, pointers, integers, and floats
 		// For deleted_at (nil pointer), we want to include it as NULL in INSERT
 		// For other nil pointers (like Bio), also include as NULL
 		// For strings, include empty strings as they are valid values
-		// For integers, include zero values as they are valid
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 {
+		// For integers and floats, include zero values as they are valid
+		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 && fieldValue.Kind() != reflect.Float32 && fieldValue.Kind() != reflect.Float64 {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For Oracle, also skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For SQL Server, also skip zero time.Time values to use DEFAULT GETDATE()

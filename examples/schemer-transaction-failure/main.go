@@ -57,17 +57,17 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Check what tables exist - users table might still exist
 	fmt.Println("\n=== Checking Database State After Failure ===")
-	schema := db.Schema()
-	if schema.HasTable("users") {
+	dbSchema := db.Schema()
+	if dbSchema.HasTable("users") {
 		fmt.Println("⚠️  'users' table still exists (partial migration state)")
 	} else {
 		fmt.Println("✓ 'users' table does not exist")
 	}
 
 	// Clean up for next example
-	_ = schema.DropIfExists("users")
-	_ = schema.DropIfExists("posts")
-	_ = schema.DropIfExists("migration_tracker")
+	_ = dbSchema.DropIfExists("users")
+	_ = dbSchema.DropIfExists("posts")
+	_ = dbSchema.DropIfExists("migration_tracker")
 
 	// Example 2: Migration failure with transactions
 	fmt.Println("\n=== Example 2: Migration Failure WITH Transactions ===")
@@ -92,13 +92,13 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Check what tables exist - should be clean due to rollback
 	fmt.Println("\n=== Checking Database State After Failure ===")
-	if schema.HasTable("users") {
+	if dbSchema.HasTable("users") {
 		fmt.Println("⚠️  'users' table still exists (unexpected - rollback failed)")
 	} else {
 		fmt.Println("✓ 'users' table does not exist (transaction rolled back successfully)")
 	}
 
-	if schema.HasTable("migration_tracker") {
+	if dbSchema.HasTable("migration_tracker") {
 		fmt.Println("✓ 'migration_tracker' table exists (created before failure)")
 	} else {
 		fmt.Println("⚠️  'migration_tracker' table does not exist")
@@ -142,10 +142,10 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Verify tables exist
 	fmt.Println("\n=== Verifying Database State ===")
-	if schema.HasTable("users") {
+	if dbSchema.HasTable("users") {
 		fmt.Println("✓ 'users' table exists")
 	}
-	if schema.HasTable("posts") {
+	if dbSchema.HasTable("posts") {
 		fmt.Println("✓ 'posts' table exists")
 	}
 

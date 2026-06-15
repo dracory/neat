@@ -95,6 +95,7 @@ func (q *Query) Sum(column string, dest any) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows found - set zero value for destination
+			zeroValue(dest)
 			return nil
 		}
 		return q.sanitizeError(fmt.Errorf("failed to execute SUM query: %w", err))
@@ -145,6 +146,7 @@ func (q *Query) Avg(column string, dest any) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows found - set zero value for destination
+			zeroValue(dest)
 			return nil
 		}
 		return q.sanitizeError(fmt.Errorf("failed to execute AVG query: %w", err))
@@ -195,6 +197,7 @@ func (q *Query) Min(column string, dest any) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows found - set zero value for destination
+			zeroValue(dest)
 			return nil
 		}
 		return q.sanitizeError(fmt.Errorf("failed to execute MIN query: %w", err))
@@ -245,6 +248,7 @@ func (q *Query) Max(column string, dest any) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows found - set zero value for destination
+			zeroValue(dest)
 			return nil
 		}
 		return q.sanitizeError(fmt.Errorf("failed to execute MAX query: %w", err))
@@ -378,6 +382,7 @@ func (q *Query) Value(column string, dest any) error {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows found is not an error for Value - return zero value
+			zeroValue(dest)
 			return nil
 		}
 		return q.sanitizeError(fmt.Errorf("failed to execute VALUE query: %w", err))
@@ -438,6 +443,15 @@ func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
 	}
 
 	return fmt.Errorf("unsupported destination type for PLUCK: %T", dest)
+}
+
+// zeroValue sets the value pointed to by dest to its zero value using reflection.
+func zeroValue(dest any) {
+	v := reflect.ValueOf(dest)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+		v.Set(reflect.Zero(v.Type()))
+	}
 }
 
 // CountAsVar returns the number of records matching the query as a variable.

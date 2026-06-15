@@ -2,6 +2,7 @@ package query
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -115,6 +116,11 @@ func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any
 		}
 		// Re-fetch the updated record into dest
 		return clone.First(dest)
+	}
+
+	// Only treat "not found" as a signal to create; return all other errors immediately
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
 	}
 
 	// Record doesn't exist, create it

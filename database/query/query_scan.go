@@ -221,6 +221,15 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	if callbackType.NumIn() != 1 {
 		return fmt.Errorf("callback must accept exactly one parameter")
 	}
+	if callbackType.NumOut() > 1 {
+		return fmt.Errorf("callback must return at most one value")
+	}
+	if callbackType.NumOut() == 1 {
+		errorType := reflect.TypeOf((*error)(nil)).Elem()
+		if !callbackType.Out(0).Implements(errorType) {
+			return fmt.Errorf("callback return type must be error")
+		}
+	}
 
 	paramType := callbackType.In(0)
 	if paramType.Kind() != reflect.Slice {
