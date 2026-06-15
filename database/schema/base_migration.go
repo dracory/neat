@@ -25,6 +25,10 @@ func (b *BaseMigration) Signature() string {
 	return ""
 }
 
+func (b *BaseMigration) Description() string {
+	return ""
+}
+
 func (b *BaseMigration) Up() error {
 	return errors.New("up method not implemented")
 }

@@ -25,6 +25,7 @@ func TestSchemaMigrations_AllMigrations(t *testing.T) {
 
 	// Create migration instances
 	migrations := []contractsschema.MigrationInterface{
+		&mainpkg.CreateMigrationTrackerTable{},
 		&mainpkg.CreateUsersTable{},
 		&mainpkg.CreatePostsTable{},
 		&mainpkg.CreateCommentsTable{},
@@ -38,12 +39,16 @@ func TestSchemaMigrations_AllMigrations(t *testing.T) {
 
 	// Run all migrations
 	for _, migration := range migrations {
+		t.Logf("Running migration: %s - %s", migration.Signature(), migration.Description())
 		if err := migration.Up(); err != nil {
 			t.Fatalf("migration %s failed: %v", migration.Signature(), err)
 		}
 	}
 
 	// Verify tables exist
+	if !schema.HasTable("migration_tracker") {
+		t.Error("Expected 'migration_tracker' table to exist after migrations")
+	}
 	if !schema.HasTable("users") {
 		t.Error("Expected 'users' table to exist after migrations")
 	}
@@ -102,6 +107,7 @@ func TestSchemaMigrations_Rollback(t *testing.T) {
 
 	// Create migration instances
 	migrations := []contractsschema.MigrationInterface{
+		&mainpkg.CreateMigrationTrackerTable{},
 		&mainpkg.CreateUsersTable{},
 		&mainpkg.CreatePostsTable{},
 		&mainpkg.AddPublishedToPosts{},
@@ -113,6 +119,7 @@ func TestSchemaMigrations_Rollback(t *testing.T) {
 
 	// Run all migrations
 	for _, migration := range migrations {
+		t.Logf("Running migration: %s - %s", migration.Signature(), migration.Description())
 		if err := migration.Up(); err != nil {
 			t.Fatalf("migration %s failed: %v", migration.Signature(), err)
 		}
@@ -169,9 +176,10 @@ func TestSchemaMigrations_DropTable(t *testing.T) {
 
 	// Register migration with schema
 	schema := db.Schema()
-	schema.Register([]contractsschema.MigrationInterface{migration})
+	schema.Register([]contractsschema.MigrationInterface{&mainpkg.CreateMigrationTrackerTable{}, migration})
 
 	// Run migration
+	t.Logf("Running migration: %s - %s", migration.Signature(), migration.Description())
 	if err := migration.Up(); err != nil {
 		t.Fatalf("migration failed: %v", err)
 	}
@@ -201,6 +209,7 @@ func TestSchemaMigrations_MultipleMigrations(t *testing.T) {
 
 	// Create migration instances
 	migrations := []contractsschema.MigrationInterface{
+		&mainpkg.CreateMigrationTrackerTable{},
 		&mainpkg.CreateUsersTable{},
 		&mainpkg.CreatePostsTable{},
 		&mainpkg.CreateCommentsTable{},
@@ -212,13 +221,14 @@ func TestSchemaMigrations_MultipleMigrations(t *testing.T) {
 
 	// Run migrations in order
 	for i, migration := range migrations {
+		t.Logf("Running migration %d: %s - %s", i, migration.Signature(), migration.Description())
 		if err := migration.Up(); err != nil {
 			t.Fatalf("migration %d (%s) failed: %v", i, migration.Signature(), err)
 		}
 	}
 
 	// Verify all tables exist
-	tables := []string{"users", "posts", "comments"}
+	tables := []string{"migration_tracker", "users", "posts", "comments"}
 	for _, table := range tables {
 		if !schema.HasTable(table) {
 			t.Errorf("Expected '%s' table to exist after migrations", table)

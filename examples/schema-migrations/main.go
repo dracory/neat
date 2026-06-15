@@ -31,6 +31,7 @@ func RunInterfaceBasedMigrations(dsn string) error {
 
 	// Create migration instances
 	migrations := []contractsschema.MigrationInterface{
+		&CreateMigrationTrackerTable{},
 		&CreateUsersTable{},
 		&CreatePostsTable{},
 		&CreateCommentsTable{},
@@ -46,6 +47,7 @@ func RunInterfaceBasedMigrations(dsn string) error {
 	fmt.Println("=== Running Migrations ===")
 	for _, migration := range migrations {
 		fmt.Printf("Running migration: %s\n", migration.Signature())
+		fmt.Printf("Description: %s\n", migration.Description())
 		if err := migration.Up(); err != nil {
 			return fmt.Errorf("migration %s failed: %w", migration.Signature(), err)
 		}
@@ -66,16 +68,56 @@ func RunInterfaceBasedMigrations(dsn string) error {
 	return nil
 }
 
+// CreateMigrationTrackerTable creates the migration tracking table
+type CreateMigrationTrackerTable struct {
+	schema.BaseMigration
+}
+
+func (m *CreateMigrationTrackerTable) Signature() string {
+	return "2024_06_15_000000_create_migration_tracker_table"
+}
+
+func (m *CreateMigrationTrackerTable) Description() string {
+	return "Creates the migration_tracker table for tracking migration execution"
+}
+
+func (m *CreateMigrationTrackerTable) Up() error {
+	if m.GetSchema().HasTable("migration_tracker") {
+		return nil
+	}
+
+	return m.GetSchema().Create("migration_tracker", func(blueprint contractsschema.Blueprint) {
+		blueprint.String("id")
+		blueprint.Primary("id")
+		blueprint.Integer("batch")
+		blueprint.Text("description")
+		blueprint.Timestamp("started_at")
+		blueprint.Timestamp("completed_at")
+	})
+}
+
+func (m *CreateMigrationTrackerTable) Down() error {
+	return m.GetSchema().DropIfExists("migration_tracker")
+}
+
 // CreateUsersTable creates the users table
 type CreateUsersTable struct {
 	schema.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
-	return "create_users_table"
+	return "2024_06_15_120000_create_users_table"
+}
+
+func (m *CreateUsersTable) Description() string {
+	return "Creates users table with authentication fields and soft deletes"
 }
 
 func (m *CreateUsersTable) Up() error {
+	if m.GetSchema().HasTable("users") {
+		return nil
+	}
+
 	return m.GetSchema().Create("users", func(blueprint contractsschema.Blueprint) {
 		blueprint.ID()
 		blueprint.String("name")
@@ -98,10 +140,18 @@ type CreatePostsTable struct {
 }
 
 func (m *CreatePostsTable) Signature() string {
-	return "create_posts_table"
+	return "2024_06_15_120100_create_posts_table"
+}
+
+func (m *CreatePostsTable) Description() string {
+	return "Creates posts table with user relationships and status tracking"
 }
 
 func (m *CreatePostsTable) Up() error {
+	if m.GetSchema().HasTable("posts") {
+		return nil
+	}
+
 	return m.GetSchema().Create("posts", func(blueprint contractsschema.Blueprint) {
 		blueprint.ID()
 		blueprint.Integer("user_id")
@@ -125,10 +175,18 @@ type CreateCommentsTable struct {
 }
 
 func (m *CreateCommentsTable) Signature() string {
-	return "create_comments_table"
+	return "2024_06_15_120200_create_comments_table"
+}
+
+func (m *CreateCommentsTable) Description() string {
+	return "Creates comments table for post discussions with user relationships"
 }
 
 func (m *CreateCommentsTable) Up() error {
+	if m.GetSchema().HasTable("comments") {
+		return nil
+	}
+
 	return m.GetSchema().Create("comments", func(blueprint contractsschema.Blueprint) {
 		blueprint.ID()
 		blueprint.Integer("post_id")
@@ -152,7 +210,11 @@ type AddPostsIndexes struct {
 }
 
 func (m *AddPostsIndexes) Signature() string {
-	return "add_posts_indexes"
+	return "2024_06_15_120300_add_posts_indexes"
+}
+
+func (m *AddPostsIndexes) Description() string {
+	return "Adds performance indexes to posts table for user_id and status columns"
 }
 
 func (m *AddPostsIndexes) Up() error {
@@ -174,7 +236,11 @@ type AddPublishedToPosts struct {
 }
 
 func (m *AddPublishedToPosts) Signature() string {
-	return "add_published_to_posts"
+	return "2024_06_15_120400_add_published_to_posts"
+}
+
+func (m *AddPublishedToPosts) Description() string {
+	return "Adds published_at timestamp column to posts table for scheduling"
 }
 
 func (m *AddPublishedToPosts) Up() error {

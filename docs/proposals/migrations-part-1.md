@@ -1,13 +1,13 @@
-# Enhanced Schema Migration Interface
+# Enhanced Schema Migration Interface - Part 1
 
 **Date**: June 15, 2026
-**Status**: Open for Discussion
+**Status**: Implemented
 **Priority**: High
 **Author**: Neat ORM Team
 
 ## Overview
 
-This proposal proposes enhancing the existing schema Migration interface to make it practical and competitive with the current function-based migration system. The design leverages the existing `schema.Migration` interface with a `BaseMigration` pattern for clean, type-safe migrations inspired by Goravel's implementation.
+This proposal (Part 1) enhances the existing schema Migration interface to make it practical and competitive with the current function-based migration system. The design leverages the existing `schema.MigrationInterface` with a `BaseMigration` pattern for clean, type-safe migrations inspired by Goravel's implementation.
 
 ## Motivation
 
@@ -23,23 +23,32 @@ The current migration system has several architectural limitations:
 
 ### Existing Schema Migration Interface
 
-The codebase already has a `schema.Migration` interface that is currently unused:
+The codebase has a `schema.MigrationInterface` that has been enhanced with schema management:
 
 ```go
-type Migration interface {
+type MigrationInterface interface {
+    // Signature Get the migration signature.
     Signature() string
+    // Description Get a human-readable description of what this migration does.
+    Description() string
+    // Up Run the migrations.
     Up() error
+    // Down Reverse the migrations.
     Down() error
+    // SetSchema sets the schema for this migration
+    SetSchema(schema Schema)
+    // GetSchema returns the schema for this migration
+    GetSchema() Schema
 }
 ```
 
-This interface was likely inspired by Goravel's migration system but was abandoned because it lacked a practical way to access the schema.
+This interface was inspired by Goravel's migration system and has been enhanced with direct schema management methods and a Description() method for better audit trails, eliminating the need for optional interfaces.
 
 ### Design Philosophy
 
 The enhanced system embraces these principles:
 
-1. **Leverage Existing Interface**: Use the existing `schema.Migration` interface
+1. **Leverage Existing Interface**: Use the existing `schema.MigrationInterface`
 2. **BaseMigration Pattern**: Provide a base struct with schema management
 3. **Automatic Schema Injection**: Schema is set during registration
 4. **Interface-Based Design**: Better testability and extensibility
@@ -53,21 +62,19 @@ The enhanced system embraces these principles:
 ```go
 package schema
 
-// Migration defines the contract for a single migration
-type Migration interface {
-    // Signature returns the unique identifier for this migration
+// MigrationInterface defines the contract for a single migration
+type MigrationInterface interface {
+    // Signature Get the migration signature.
     Signature() string
-    
-    // Up applies the migration
+    // Description Get a human-readable description of what this migration does.
+    Description() string
+    // Up Run the migrations.
     Up() error
-    
-    // Down rolls back the migration
+    // Down Reverse the migrations.
     Down() error
-}
-
-// SchemaSetter is an optional interface for migrations that need schema access
-type SchemaSetter interface {
+    // SetSchema sets the schema for this migration
     SetSchema(schema Schema)
+    // GetSchema returns the schema for this migration
     GetSchema() Schema
 }
 ```
@@ -98,11 +105,10 @@ func (b *BaseMigration) GetSchema() Schema {
 ```go
 package schema
 
-func (r *Schema) Register(migrations []Migration) {
+// Register migrations.
+func (r *Schema) Register(migrations []MigrationInterface) {
     for _, migration := range migrations {
-        if setter, ok := migration.(SchemaSetter); ok {
-            setter.SetSchema(r)
-        }
+        migration.SetSchema(r)
     }
     r.migrations = migrations
 }
@@ -126,6 +132,10 @@ type CreateUsersTable struct {
 
 func (m *CreateUsersTable) Signature() string {
     return "create_users_table"
+}
+
+func (m *CreateUsersTable) Description() string {
+    return "Creates users table with authentication fields and soft deletes"
 }
 
 func (m *CreateUsersTable) Up() error {
@@ -157,6 +167,10 @@ type AddPostsIndexes struct {
 
 func (m *AddPostsIndexes) Signature() string {
     return "add_posts_indexes"
+}
+
+func (m *AddPostsIndexes) Description() string {
+    return "Adds performance indexes to posts table for user_id and status columns"
 }
 
 func (m *AddPostsIndexes) Up() error {
@@ -194,7 +208,7 @@ func main() {
     defer db.Close()
     
     // Create migrations
-    migrations := []contractsschema.Migration{
+    migrations := []contractsschema.MigrationInterface{
         &migrations.CreateUsersTable{},
         &migrations.CreatePostsTable{},
         &migrations.AddPostsIndexes{},
@@ -205,7 +219,7 @@ func main() {
     
     // Run migrations
     for _, migration := range db.Schema().Migrations() {
-        log.Printf("Running migration: %s", migration.Signature())
+        log.Printf("Running migration: %s - %s", migration.Signature(), migration.Description())
         if err := migration.Up(); err != nil {
             log.Fatalf("Migration failed: %v", err)
         }
@@ -259,6 +273,10 @@ func (m *CreateUsersTable) Signature() string {
     return "create_users_table"
 }
 
+func (m *CreateUsersTable) Description() string {
+    return "Creates users table with authentication fields and soft deletes"
+}
+
 func (m *CreateUsersTable) Up() error {
     return m.GetSchema().Create("users", func(blueprint contractsschema.Blueprint) {
         blueprint.ID()
@@ -284,49 +302,28 @@ func (m *CreateUsersTable) Down() error {
 6. **Consistent Pattern**: All migrations follow the same structure
 7. **Leverages Existing Code**: Uses existing schema interface
 8. **Goravel-Inspired**: Proven pattern from successful framework
+9. **Enhanced Documentation**: Description() method provides human-readable migration purposes
 
-## Migration Tracking
+## Implementation Status
 
-The current system has comprehensive migration tracking (database table, batches, metadata). This would need to be integrated with the new interface-based approach. Options:
+- ✅ MigrationInterface enhanced with SetSchema/GetSchema methods
+- ✅ MigrationInterface enhanced with Description() method
+- ✅ BaseMigration struct implemented
+- ✅ Register method updated to inject schema
+- ✅ Schema interface includes Register method
+- ✅ Migration tracking integration (database/migration package)
+- ✅ Documentation updates (examples/schema-migrations/README.md)
+- ✅ Example migrations (examples/schema-migrations/)
+- ✅ Migration runner service (database/migration/migrator.go)
 
-1. **Add tracking to Schema**: Extend Schema interface with migration tracking methods
-2. **Separate Migrator**: Keep current migrator for tracking, use schema interface for migrations
-3. **Hybrid Approach**: Use schema interface for migration definitions, current migrator for execution
+## Next Steps
 
-## Implementation Plan
+1. Add comprehensive tests for interface-based migrations
+2. Plan migration path from function-based to interface-based
+3. Consider deprecation timeline for function-based system
 
-### Phase 1: Core Infrastructure
-1. Add `SchemaSetter` interface to schema contracts
-2. Implement `BaseMigration` struct
-3. Update `Schema.Register()` to inject schema
-4. Add migration tracking methods to Schema interface
+## Related Documents
 
-### Phase 2: Migration System Integration
-1. Create migrator that works with schema Migration interface
-2. Add batch management
-3. Add metadata tracking (timestamps, duration)
-4. Add rollback support
-
-### Phase 3: Advanced Features
-1. Add context support
-2. Add transaction support
-3. Add raw SQL support
-4. Add migration status commands
-
-### Phase 4: Migration and Documentation
-1. Update examples to use new approach
-2. Create migration guide from current system
-3. Update documentation
-4. Deprecate old function-based approach
-
-## Open Questions
-
-1. **Migration Tracking**: Should tracking be integrated into Schema or kept separate?
-2. **Context Support**: Should we add context to Up/Down methods?
-3. **Transaction Support**: How should transactions be handled?
-4. **Backward Compatibility**: How long should we support the old system?
-5. **Migration Path**: How to help users migrate from old to new system?
-
-## Conclusion
-
-This enhanced schema Migration interface approach provides a clean, practical alternative to the current function-based system. By leveraging the existing interface with a BaseMigration pattern, we can achieve better design while maintaining simplicity. The approach is inspired by Goravel's proven pattern and addresses the limitations of the current system.
+- See [migrations-part-2.md](./migrations-part-2.md) for the migration tracking system
+- See [migrations.md](./migrations.md) for the complete proposal
+- See [examples/schema-migrations/](../../examples/schema-migrations/) for working examples
