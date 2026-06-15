@@ -16,6 +16,7 @@ import (
 )
 
 var _ contractsschema.Schema = (*Schema)(nil)
+var _ contractsschema.MigrationInterface = (*BaseMigration)(nil)
 
 type Schema struct {
 	contractsschema.CommonSchema
@@ -24,14 +25,14 @@ type Schema struct {
 	config     config.Config
 	grammar    contractsschema.Grammar
 	log        log.Log
-	migrations []contractsschema.Migration
+	migrations []contractsschema.MigrationInterface
 	orm        contractsorm.Orm
 	prefix     string
 	processor  contractsschema.Processor
 	schema     string
 }
 
-func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migrations []contractsschema.Migration) (*Schema, error) {
+func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migrations []contractsschema.MigrationInterface) (*Schema, error) {
 	driver := contractsdatabase.Driver(config.GetString(fmt.Sprintf("database.connections.%s.driver", orm.Name())))
 	prefix := config.GetString(fmt.Sprintf("database.connections.%s.prefix", orm.Name()))
 	var (
@@ -323,7 +324,7 @@ func (r *Schema) HasView(name string) bool {
 	return false
 }
 
-func (r *Schema) Migrations() []contractsschema.Migration {
+func (r *Schema) Migrations() []contractsschema.MigrationInterface {
 	return r.migrations
 }
 
@@ -331,7 +332,10 @@ func (r *Schema) Orm() contractsorm.Orm {
 	return r.orm
 }
 
-func (r *Schema) Register(migrations []contractsschema.Migration) {
+func (r *Schema) Register(migrations []contractsschema.MigrationInterface) {
+	for _, migration := range migrations {
+		migration.SetSchema(r)
+	}
 	r.migrations = migrations
 }
 

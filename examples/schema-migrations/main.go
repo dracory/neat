@@ -6,21 +6,21 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/schema"
 )
 
-// This example demonstrates the schema Migration interface approach
-// This is an alternative design pattern that uses interface-based migrations
-// instead of the current function-based registration approach
+// This example demonstrates the interface-based migration system
+// which provides a cleaner, more structured approach to schema migrations
 func main() {
-	if err := RunExample("sqlite://./example_schema_migrations.db"); err != nil {
-		log.Fatalf("Schema migration example failed: %v", err)
+	if err := RunInterfaceBasedMigrations("sqlite://./example_schema_migrations.db"); err != nil {
+		log.Fatalf("Interface-based migration example failed: %v", err)
 	}
 }
 
-// RunExample demonstrates using the schema Migration interface
-func RunExample(dsn string) error {
-	fmt.Println("=== Schema Migration Interface Approach ===")
-	fmt.Println("This approach uses the schema Migration interface with Signature(), Up(), and Down() methods")
+// RunInterfaceBasedMigrations demonstrates the interface-based migration system
+func RunInterfaceBasedMigrations(dsn string) error {
+	fmt.Println("=== Interface-Based Migration System ===")
+	fmt.Println("This approach uses structured migration objects with clean interfaces")
 	fmt.Println()
 
 	db, err := neat.NewFromDSN(dsn)
@@ -29,62 +29,46 @@ func RunExample(dsn string) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migrations implementing the schema Migration interface
-	// Note: We need to pass the schema to each migration since the interface
-	// doesn't provide a way to access it
-	schema := db.Schema()
-	migrations := []contractsschema.Migration{
-		NewCreateUsersTable(schema),
-		NewCreatePostsTable(schema),
-		NewAddPostsIndexes(schema),
+	// Create migration instances
+	migrations := []contractsschema.MigrationInterface{
+		&CreateUsersTable{},
+		&CreatePostsTable{},
+		&CreateCommentsTable{},
+		&AddPostsIndexes{},
+		&AddPublishedToPosts{},
 	}
 
-	// Register migrations with the schema
-	db.Schema().Register(migrations)
+	// Register migrations with schema (automatic schema injection via SchemaSetter)
+	schema := db.Schema()
+	schema.Register(migrations)
 
-	// Run migrations by calling Up() on each
+	// Run all migrations
 	fmt.Println("=== Running Migrations ===")
-	for _, migration := range db.Schema().Migrations() {
+	for _, migration := range migrations {
 		fmt.Printf("Running migration: %s\n", migration.Signature())
 		if err := migration.Up(); err != nil {
-			return fmt.Errorf("failed to run migration %s: %w", migration.Signature(), err)
+			return fmt.Errorf("migration %s failed: %w", migration.Signature(), err)
 		}
 		fmt.Printf("Migration %s completed successfully\n", migration.Signature())
 	}
 
-	// Verify tables were created
-	fmt.Println("\n=== Verification ===")
-	tables := db.Schema().GetTableListing()
-	fmt.Printf("Tables created: %v\n", tables)
+	fmt.Println("\n=== All Migrations Completed ===")
 
-	// Demonstrate rollback
-	fmt.Println("\n=== Rolling Back Migrations ===")
-	// Rollback in reverse order
-	migrationsList := db.Schema().Migrations()
-	for i := len(migrationsList) - 1; i >= 0; i-- {
-		migration := migrationsList[i]
-		fmt.Printf("Rolling back migration: %s\n", migration.Signature())
-		if err := migration.Down(); err != nil {
-			return fmt.Errorf("failed to rollback migration %s: %w", migration.Signature(), err)
-		}
-		fmt.Printf("Migration %s rolled back successfully\n", migration.Signature())
+	// Demonstrate rollback (last migration only)
+	fmt.Println("\n=== Rolling Back Last Migration ===")
+	lastMigration := migrations[len(migrations)-1]
+	fmt.Printf("Rolling back migration: %s\n", lastMigration.Signature())
+	if err := lastMigration.Down(); err != nil {
+		return fmt.Errorf("rollback failed: %w", err)
 	}
-
-	// Verify tables were dropped
-	fmt.Println("\n=== Verification After Rollback ===")
-	tables = db.Schema().GetTableListing()
-	fmt.Printf("Tables remaining: %v\n", tables)
+	fmt.Printf("Migration %s rolled back successfully\n", lastMigration.Signature())
 
 	return nil
 }
 
 // CreateUsersTable creates the users table
 type CreateUsersTable struct {
-	schema contractsschema.Schema
-}
-
-func NewCreateUsersTable(schema contractsschema.Schema) *CreateUsersTable {
-	return &CreateUsersTable{schema: schema}
+	schema.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -92,8 +76,7 @@ func (m *CreateUsersTable) Signature() string {
 }
 
 func (m *CreateUsersTable) Up() error {
-	fmt.Println("  Creating users table...")
-	return m.schema.Create("users", func(blueprint contractsschema.Blueprint) {
+	return m.GetSchema().Create("users", func(blueprint contractsschema.Blueprint) {
 		blueprint.ID()
 		blueprint.String("name")
 		blueprint.String("email")
@@ -106,17 +89,12 @@ func (m *CreateUsersTable) Up() error {
 }
 
 func (m *CreateUsersTable) Down() error {
-	fmt.Println("  Dropping users table...")
-	return m.schema.DropIfExists("users")
+	return m.GetSchema().DropIfExists("users")
 }
 
 // CreatePostsTable creates the posts table
 type CreatePostsTable struct {
-	schema contractsschema.Schema
-}
-
-func NewCreatePostsTable(schema contractsschema.Schema) *CreatePostsTable {
-	return &CreatePostsTable{schema: schema}
+	schema.BaseMigration
 }
 
 func (m *CreatePostsTable) Signature() string {
@@ -124,29 +102,53 @@ func (m *CreatePostsTable) Signature() string {
 }
 
 func (m *CreatePostsTable) Up() error {
-	fmt.Println("  Creating posts table...")
-	return m.schema.Create("posts", func(blueprint contractsschema.Blueprint) {
+	return m.GetSchema().Create("posts", func(blueprint contractsschema.Blueprint) {
 		blueprint.ID()
 		blueprint.Integer("user_id")
 		blueprint.String("title")
 		blueprint.Text("content")
 		blueprint.String("status")
 		blueprint.Timestamps()
+
+		// Note: Foreign key constraints skipped for SQLite compatibility
+		// blueprint.Foreign("user_id")
 	})
 }
 
 func (m *CreatePostsTable) Down() error {
-	fmt.Println("  Dropping posts table...")
-	return m.schema.DropIfExists("posts")
+	return m.GetSchema().DropIfExists("posts")
+}
+
+// CreateCommentsTable creates the comments table
+type CreateCommentsTable struct {
+	schema.BaseMigration
+}
+
+func (m *CreateCommentsTable) Signature() string {
+	return "create_comments_table"
+}
+
+func (m *CreateCommentsTable) Up() error {
+	return m.GetSchema().Create("comments", func(blueprint contractsschema.Blueprint) {
+		blueprint.ID()
+		blueprint.Integer("post_id")
+		blueprint.Integer("user_id")
+		blueprint.Text("comment")
+		blueprint.Timestamps()
+
+		// Note: Foreign key constraints skipped for SQLite compatibility
+		// blueprint.Foreign("post_id")
+		// blueprint.Foreign("user_id")
+	})
+}
+
+func (m *CreateCommentsTable) Down() error {
+	return m.GetSchema().DropIfExists("comments")
 }
 
 // AddPostsIndexes adds indexes to the posts table
 type AddPostsIndexes struct {
-	schema contractsschema.Schema
-}
-
-func NewAddPostsIndexes(schema contractsschema.Schema) *AddPostsIndexes {
-	return &AddPostsIndexes{schema: schema}
+	schema.BaseMigration
 }
 
 func (m *AddPostsIndexes) Signature() string {
@@ -154,16 +156,35 @@ func (m *AddPostsIndexes) Signature() string {
 }
 
 func (m *AddPostsIndexes) Up() error {
-	fmt.Println("  Adding indexes to posts table...")
-	return m.schema.Table("posts", func(blueprint contractsschema.Blueprint) {
+	return m.GetSchema().Table("posts", func(blueprint contractsschema.Blueprint) {
 		blueprint.Index("user_id")
 		blueprint.Index("status")
 	})
 }
 
 func (m *AddPostsIndexes) Down() error {
-	fmt.Println("  Removing indexes from posts table...")
 	// Note: Dropping indexes is database-specific
 	// This is a simplified example
 	return nil
+}
+
+// AddPublishedToPosts adds published_at column to posts table
+type AddPublishedToPosts struct {
+	schema.BaseMigration
+}
+
+func (m *AddPublishedToPosts) Signature() string {
+	return "add_published_to_posts"
+}
+
+func (m *AddPublishedToPosts) Up() error {
+	return m.GetSchema().Table("posts", func(blueprint contractsschema.Blueprint) {
+		blueprint.Timestamp("published_at")
+	})
+}
+
+func (m *AddPublishedToPosts) Down() error {
+	return m.GetSchema().Table("posts", func(blueprint contractsschema.Blueprint) {
+		blueprint.DropColumn("published_at")
+	})
 }

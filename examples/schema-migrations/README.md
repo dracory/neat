@@ -1,36 +1,55 @@
-# Schema Migration Interface Example
+# Schema Migrations (Interface-Based)
 
-This example demonstrates the **schema Migration interface** approach, which is an alternative design pattern that exists in the codebase but is not currently used.
+This example demonstrates the interface-based migration system, which provides a cleaner, more structured approach to managing database schema changes in Neat ORM using the `schema.Migration` interface.
+
+## Features Demonstrated
+
+### Interface-Based Migration System
+- **Structured Migration Objects**: Each migration is a self-contained struct implementing the `Migration` interface
+- **BaseMigration Pattern**: Embed `BaseMigration` to get automatic schema access via `SchemaSetter` interface
+- **Automatic Schema Injection**: Schema is automatically set during registration via `SchemaSetter` interface
+- **Clean Signatures**: Migration IDs are intrinsic to the migration object via `Signature()` method
+- **Type-Safe Operations**: Schema access through `GetSchema()` method instead of manual field management
+- **Better Testability**: Interface-based design enables easy testing and mocking
+- **No Global Registration**: Migrations are created and registered explicitly
+
+### Migration Operations
+- Creating tables with various column types
+- Adding indexes to existing tables
+- Adding columns to existing tables
+- Rolling back migrations
+- Foreign key relationships (commented for SQLite compatibility)
+
+## Advantages Over Function-Based System
+
+1. **No Global Registration**: Migrations are created explicitly, not registered globally
+2. **Self-Contained**: Each migration object knows its own signature
+3. **Better Organization**: Migrations can be organized in separate packages
+4. **Type Safety**: Compile-time checking of migration structure
+5. **Extensibility**: Easy to add custom behavior through struct embedding
+6. **Testability**: Can test migrations in isolation
+7. **IDE Support**: Better autocomplete and navigation
+8. **Automatic Schema Injection**: No manual schema setting required
 
 ## Running the Example
 
 ```bash
+cd examples/schema-migrations
 go run main.go
 ```
 
-## What This Example Demonstrates
+This will:
+1. Create a SQLite database (`example_schema_migrations.db`)
+2. Run all migrations in order
+3. Demonstrate rolling back the last migration
 
-This example shows how to use the `schema.Migration` interface defined in `contracts/database/schema/schema.go`:
+## Migration Structure
 
-```go
-type Migration interface {
-    Signature() string
-    Up() error
-    Down() error
-}
-```
-
-## Schema Migration Interface Approach
-
-### Migration Implementation
+Each migration follows this pattern:
 
 ```go
 type CreateUsersTable struct {
-    schema contractsschema.Schema
-}
-
-func NewCreateUsersTable(schema contractsschema.Schema) *CreateUsersTable {
-    return &CreateUsersTable{schema: schema}
+    schema.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -38,7 +57,7 @@ func (m *CreateUsersTable) Signature() string {
 }
 
 func (m *CreateUsersTable) Up() error {
-    return m.schema.Create("users", func(blueprint contractsschema.Blueprint) {
+    return m.GetSchema().Create("users", func(blueprint contractsschema.Blueprint) {
         blueprint.ID()
         blueprint.String("name")
         blueprint.String("email")
@@ -48,122 +67,89 @@ func (m *CreateUsersTable) Up() error {
 }
 
 func (m *CreateUsersTable) Down() error {
-    return m.schema.DropIfExists("users")
+    return m.GetSchema().DropIfExists("users")
 }
 ```
 
-### Usage
+## Usage Pattern
 
 ```go
-// Create migrations with schema reference
+// Create migration instances
 migrations := []contractsschema.Migration{
-    NewCreateUsersTable(db.Schema()),
-    NewCreatePostsTable(db.Schema()),
+    &CreateUsersTable{},
+    &CreatePostsTable{},
+    &AddPostsIndexes{},
 }
 
-// Register with schema
-db.Schema().Register(migrations)
+// Register migrations with schema (automatic schema injection via SchemaSetter)
+schema := db.Schema()
+schema.Register(migrations)
 
 // Run migrations
-for _, migration := range db.Schema().Migrations() {
+for _, migration := range migrations {
     if err := migration.Up(); err != nil {
-        return err
+        log.Fatal(err)
     }
 }
 ```
 
-## Comparison: Three Migration Approaches
+## Implementation Details
 
-### 1. Schema Migration Interface (This Example)
+### SchemaSetter Interface
+The `SchemaSetter` interface is defined in `contracts/database/schema/schema.go`:
 
-**Pros:**
-- Interface-based design (better testability)
-- Self-contained migration objects
-- Similar to Seeder pattern (consistent design)
+```go
+type SchemaSetter interface {
+    SetSchema(schema Schema)
+    GetSchema() Schema
+}
+```
 
-**Cons:**
-- **Not actually used** in the current codebase
-- Requires manual schema injection
-- No built-in tracking/registry
-- No transaction support
-- No context support
-- No batch management
-- Manual execution order management
+### BaseMigration Struct
+The `BaseMigration` struct is implemented in `database/schema/base_migration.go`:
 
-### 2. Current Migrator System (Function-Based)
+```go
+type BaseMigration struct {
+    schema Schema
+}
 
-**Location:** `examples/migrations/main.go`
+func (b *BaseMigration) SetSchema(schema Schema) {
+    b.schema = schema
+}
 
-**Pros:**
-- **Currently active** and maintained
-- Global registration with `migrator.RegisterMigration()`
-- Built-in migration tracking in database
-- Batch management
-- Transaction support (configurable)
-- Metadata tracking (timestamps, duration)
-- Multiple ID formats (datetime, date, unix, custom)
-- Rollback by step or batch
-- Status checking
+func (b *BaseMigration) GetSchema() Schema {
+    return b.schema
+}
+```
 
-**Cons:**
-- Function-based design (less testable)
-- Global registration pattern (coupling)
-- File-based discovery
-- No context support
-- Limited to schema builder operations
-- Migration IDs derived from registration, not intrinsic
+### Automatic Schema Injection
+The `Schema.Register()` method automatically detects migrations that implement `SchemaSetter` and injects the schema:
 
-### 3. Proposed Interface-Based System
+```go
+func (r *Schema) Register(migrations []Migration) {
+    for _, migration := range migrations {
+        if setter, ok := migration.(SchemaSetter); ok {
+            setter.SetSchema(r)
+        }
+    }
+    r.migrations = migrations
+}
+```
 
-**Location:** `docs/proposals/interface-based-migration-system.md`
+## When to Use Interface-Based Migrations
 
-**Pros:**
-- Interface-based design (best testability)
-- Self-contained migration objects with intrinsic IDs
-- Context support (cancellation, timeouts)
-- Direct transaction access (raw SQL support)
-- No global state
-- Explicit migration management
-- Metadata tracking
-- Inspired by successful patterns (github.com/dracory/migrate)
+- You prefer structured, object-oriented design
+- You want better testability and type safety
+- You need to organize migrations in separate packages
+- You want to avoid global registration patterns
+- You're building a large-scale application with many migrations
+- You need custom migration behavior through struct embedding
 
-**Cons:**
-- **Not implemented yet** (proposal stage)
-- Requires breaking changes
-- Migration from current system needed
+## Comparison with Function-Based System
 
-## Key Differences Summary
+The function-based system (see `examples/migrations`) uses global registration and closures, while this interface-based approach uses structured objects and method calls. This example demonstrates the interface-based approach using the `schema.Migration` interface directly, without the `database/migration` package.
 
-| Feature | Schema Interface | Current Migrator | Proposed System |
-|---------|----------------|-----------------|-----------------|
-| Status | Unused/Legacy | Active | Proposal |
-| Design | Interface | Function-based | Interface |
-| Registration | Manual | Global registry | Explicit |
-| Tracking | None | Database | Database |
-| Context | No | No | Yes |
-| Transactions | No | Yes | Yes |
-| Raw SQL | No | No | Yes |
-| Batches | No | Yes | Yes |
-| Metadata | None | Yes | Yes |
-| Schema Access | Manual injection | Built-in | Transaction parameter |
+## Prerequisites
 
-## Why Schema Interface Isn't Used
-
-The schema Migration interface appears to be:
-1. **Legacy code** from an earlier design iteration
-2. **Unused infrastructure** that was built but never adopted
-3. **Abandoned approach** in favor of the current function-based migrator system
-
-The current system chose the function-based approach with global registration, likely for:
-- Simplicity of use
-- Built-in tracking and management
-- Batch operations
-- Transaction support
-
-However, the proposal suggests moving back to an interface-based approach (but improved) to address limitations of the current system.
-
-## Recommendation
-
-- **For learning**: This example shows the interface pattern that exists but isn't used
-- **For current projects**: Use the current migrator system (`examples/migrations/main.go`)
-- **For future**: Consider the proposed interface-based system when implemented
+- SQLite database (or modify the DSN to use your preferred database)
+- Neat ORM with schema migration support

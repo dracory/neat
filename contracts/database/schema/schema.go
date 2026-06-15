@@ -7,52 +7,76 @@ import (
 type Schema interface {
 	CommonSchema
 	DriverSchema
+
 	// Connection Get the connection for the schema.
 	Connection(name string) Schema
+
 	// Create a new table on the schema.
 	Create(table string, callback func(table Blueprint)) error
+
 	// Drop a table from the schema.
 	Drop(table string) error
+
 	// DropColumns Drop columns from a table on the schema.
 	DropColumns(table string, columns []string) error
+
 	// DropIfExists Drop a table from the schema if exists.
 	DropIfExists(table string) error
+
 	// GetColumnListing Get the column listing for a given table.
 	GetColumnListing(table string) []string
+
 	// GetConnection Get the connection of the schema.
 	GetConnection() string
+
 	// GetForeignKeys Get the foreign keys for a given table.
 	GetForeignKeys(table string) ([]ForeignKey, error)
+
 	// GetIndexListing Get the names of the indexes for a given table.
 	GetIndexListing(table string) []string
+
 	// GetTableListing Get the table listing for the database.
 	GetTableListing() []string
+
 	// HasColumn Determine if the given table has a given column.
 	HasColumn(table, column string) bool
+
 	// HasColumns Determine if the given table has given columns.
 	HasColumns(table string, columns []string) bool
+
 	// HasIndex Determine if the given table has a given index.
 	HasIndex(table, index string) bool
+
 	// HasTable Determine if the given table exists.
 	HasTable(name string) bool
+
 	// HasType Determine if the given type exists.
 	HasType(name string) bool
+
 	// HasView Determine if the given view exists.
 	HasView(name string) bool
+
 	// Migrations Get the migrations.
-	Migrations() []Migration
+	Migrations() []MigrationInterface
+
 	// Orm Get the orm instance.
 	Orm() orm.Orm
+
 	// Register migrations.
-	Register([]Migration)
+	Register([]MigrationInterface)
+
 	// Rename a table on the schema.
 	Rename(from, to string) error
+
 	// RenameColumn Rename a column on the schema.
 	RenameColumn(table, from, to string) error
+
 	// SetConnection Set the connection of the schema.
 	SetConnection(name string)
+
 	// Sql Execute a sql directly.
 	Sql(sql string) error
+
 	// Table Modify a table on the schema.
 	Table(table string, callback func(table Blueprint)) error
 }
@@ -60,6 +84,7 @@ type Schema interface {
 type CommonSchema interface {
 	// GetTables Get the tables that belong to the database.
 	GetTables() ([]Table, error)
+
 	// GetViews Get the views that belong to the database.
 	GetViews() ([]View, error)
 }
@@ -67,25 +92,21 @@ type CommonSchema interface {
 type DriverSchema interface {
 	// DropAllTables Drop all tables from the schema.
 	DropAllTables() error
+
 	// DropAllTypes Drop all types from the schema.
 	DropAllTypes() error
+
 	// DropAllViews Drop all views from the schema.
 	DropAllViews() error
+
 	// GetColumns Get the columns for a given table.
 	GetColumns(table string) ([]Column, error)
+
 	// GetIndexes Get the indexes for a given table.
 	GetIndexes(table string) ([]Index, error)
+
 	// GetTypes Get the types that belong to the database.
 	GetTypes() ([]Type, error)
-}
-
-type Migration interface {
-	// Signature Get the migration signature.
-	Signature() string
-	// Up Run the migrations.
-	Up() error
-	// Down Reverse the migrations.
-	Down() error
 }
 
 type Connection interface {
