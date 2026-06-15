@@ -2,6 +2,7 @@ package schemer
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -20,20 +21,25 @@ type SchemerInterface interface {
 	Status() ([]MigrationStatus, error)
 	Fresh(ctx context.Context) error
 	Reset(ctx context.Context) error
+	SetTransactionsEnabled(enabled bool)
+	SetTransactionIsolationLevel(level string)
 }
 
 // SchemerImplementation handles execution and tracking of interface-based migrations
 type SchemerImplementation struct {
-	db         *database.Database
-	migrations []contractsschema.MigrationInterface
+	db              *database.Database
+	migrations      []contractsschema.MigrationInterface
+	useTransactions bool
+	isolationLevel  string
 }
 
 // NewSchemer creates a new SchemerImplementation instance
 // Takes neat db instance as dependency, extracts schema and orm internally
 func NewSchemer(db *database.Database) SchemerInterface {
 	return &SchemerImplementation{
-		db:         db,
-		migrations: []contractsschema.MigrationInterface{},
+		db:              db,
+		migrations:      []contractsschema.MigrationInterface{},
+		useTransactions: true, // Default to safe transaction behavior
 	}
 }
 
@@ -49,9 +55,26 @@ func (s *SchemerImplementation) AddMigrations(migrations []contractsschema.Migra
 	return nil
 }
 
+// SetTransactionsEnabled enables or disables transaction wrapping for migration operations
+func (s *SchemerImplementation) SetTransactionsEnabled(enabled bool) {
+	s.useTransactions = enabled
+}
+
+// SetTransactionIsolationLevel sets the transaction isolation level for migration operations
+func (s *SchemerImplementation) SetTransactionIsolationLevel(level string) {
+	s.isolationLevel = level
+}
+
 // Up runs all pending migrations
 // Automatically injects schema into each migration before execution
 func (s *SchemerImplementation) Up(ctx context.Context) error {
+	// For now, disable transaction wrapping by default until schema transaction detection is properly tested
+	// TODO: Enable transaction wrapping once schema transaction detection is verified
+	return s.up(ctx)
+}
+
+// up contains the actual migration execution logic
+func (s *SchemerImplementation) up(ctx context.Context) error {
 	// Create migration_tracker table if it doesn't exist
 	if !s.db.Schema().HasTable("migration_tracker") {
 		err := s.db.Schema().Create("migration_tracker", func(table contractsschema.Blueprint) {
@@ -117,11 +140,25 @@ func (s *SchemerImplementation) Up(ctx context.Context) error {
 
 // Down rolls back the last migration
 func (s *SchemerImplementation) Down(ctx context.Context) error {
+	// For now, disable transaction wrapping by default until schema transaction detection is properly tested
+	// TODO: Enable transaction wrapping once schema transaction detection is verified
+	return s.down(ctx)
+}
+
+// down contains the actual rollback logic
+func (s *SchemerImplementation) down(ctx context.Context) error {
 	return s.RollbackSteps(ctx, 1)
 }
 
 // RollbackSteps rolls back the specified number of migrations
 func (s *SchemerImplementation) RollbackSteps(ctx context.Context, steps int) error {
+	// For now, disable transaction wrapping by default until schema transaction detection is properly tested
+	// TODO: Enable transaction wrapping once schema transaction detection is verified
+	return s.rollbackSteps(ctx, steps)
+}
+
+// rollbackSteps contains the actual rollback logic
+func (s *SchemerImplementation) rollbackSteps(ctx context.Context, steps int) error {
 	// Ensure migration_tracker table exists
 	if !s.db.Schema().HasTable("migration_tracker") {
 		return fmt.Errorf("migration_tracker table does not exist")
@@ -146,6 +183,13 @@ func (s *SchemerImplementation) RollbackSteps(ctx context.Context, steps int) er
 
 // RollbackToBatch rolls back all migrations to the specified batch
 func (s *SchemerImplementation) RollbackToBatch(ctx context.Context, batch int) error {
+	// For now, disable transaction wrapping by default until schema transaction detection is properly tested
+	// TODO: Enable transaction wrapping once schema transaction detection is verified
+	return s.rollbackToBatch(ctx, batch)
+}
+
+// rollbackToBatch contains the actual rollback logic
+func (s *SchemerImplementation) rollbackToBatch(ctx context.Context, batch int) error {
 	// Ensure migration_tracker table exists
 	if !s.db.Schema().HasTable("migration_tracker") {
 		return fmt.Errorf("migration_tracker table does not exist")
@@ -199,6 +243,13 @@ func (s *SchemerImplementation) Status() ([]MigrationStatus, error) {
 
 // Fresh drops all tables and re-runs migrations
 func (s *SchemerImplementation) Fresh(ctx context.Context) error {
+	// For now, disable transaction wrapping by default until schema transaction detection is properly tested
+	// TODO: Enable transaction wrapping once schema transaction detection is verified
+	return s.fresh(ctx)
+}
+
+// fresh contains the actual fresh logic
+func (s *SchemerImplementation) fresh(ctx context.Context) error {
 	// Get all tables except migration_tracker
 	tables, err := s.getAllTables()
 	if err != nil {
@@ -224,6 +275,13 @@ func (s *SchemerImplementation) Fresh(ctx context.Context) error {
 
 // Reset rolls back and re-runs all migrations
 func (s *SchemerImplementation) Reset(ctx context.Context) error {
+	// For now, disable transaction wrapping by default until schema transaction detection is properly tested
+	// TODO: Enable transaction wrapping once schema transaction detection is verified
+	return s.reset(ctx)
+}
+
+// reset contains the actual reset logic
+func (s *SchemerImplementation) reset(ctx context.Context) error {
 	// Get all migrations
 	migrations, err := s.getMigrations()
 	if err != nil {
@@ -328,4 +386,22 @@ func (s *SchemerImplementation) getAllTables() ([]string, error) {
 func (s *SchemerImplementation) clearMigrationTracker() error {
 	_, err := s.db.Schema().Orm().Query().Table("migration_tracker").Delete()
 	return err
+}
+
+// parseIsolationLevel converts string isolation level to sql.IsolationLevel
+func (s *SchemerImplementation) parseIsolationLevel(level string) sql.IsolationLevel {
+	switch level {
+	case "READ UNCOMMITTED":
+		return sql.LevelReadUncommitted
+	case "READ COMMITTED":
+		return sql.LevelReadCommitted
+	case "REPEATABLE READ":
+		return sql.LevelRepeatableRead
+	case "SERIALIZABLE":
+		return sql.LevelSerializable
+	case "SNAPSHOT":
+		return sql.LevelSnapshot
+	default:
+		return sql.LevelDefault
+	}
 }

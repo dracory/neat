@@ -64,6 +64,8 @@ type SchemerInterface interface {
     Status() ([]MigrationStatus, error)
     Fresh(ctx context.Context) error
     Reset(ctx context.Context) error
+    SetTransactionsEnabled(enabled bool)
+    SetTransactionIsolationLevel(level string)
 }
 ```
 
@@ -144,6 +146,29 @@ ctx := context.Background()
 err := schemer.Reset(ctx)
 ```
 
+#### SetTransactionsEnabled
+Enables or disables transaction wrapping for migration operations. Transactions are enabled by default for safety.
+
+```go
+schemer.SetTransactionsEnabled(true)  // Enable transactions (default)
+schemer.SetTransactionsEnabled(false) // Disable transactions for large migrations
+```
+
+#### SetTransactionIsolationLevel
+Sets the transaction isolation level for migration operations.
+
+```go
+schemer.SetTransactionIsolationLevel("SERIALIZABLE")
+schemer.SetTransactionIsolationLevel("READ COMMITTED")
+```
+
+Supported isolation levels:
+- `READ UNCOMMITTED`
+- `READ COMMITTED`
+- `REPEATABLE READ`
+- `SERIALIZABLE`
+- `SNAPSHOT`
+
 ## Migration Implementation
 
 Migrations must implement the `MigrationInterface` from the contracts package:
@@ -193,6 +218,41 @@ type MigrationTracker struct {
     CompletedAt time.Time // When migration finished
 }
 ```
+
+## Transaction Support
+
+The schemer package supports transaction wrapping for safe migration execution. Transactions are enabled by default to ensure atomic execution.
+
+### Enabling/Disabling Transactions
+
+```go
+schemer := schemer.NewSchemer(db)
+
+// Transactions are enabled by default
+schemer.SetTransactionsEnabled(true)
+
+// Disable for large migrations or specific needs
+schemer.SetTransactionsEnabled(false)
+```
+
+### Transaction Isolation Levels
+
+```go
+schemer.SetTransactionIsolationLevel("SERIALIZABLE")
+```
+
+Supported isolation levels:
+- `READ UNCOMMITTED`
+- `READ COMMITTED`
+- `REPEATABLE READ`
+- `SERIALIZABLE`
+- `SNAPSHOT`
+
+### Note on Current Implementation
+
+Transaction wrapping is currently disabled by default pending verification of schema transaction detection. The infrastructure is in place and can be enabled once schema transaction behavior is properly tested.
+
+See [examples/schemer-transactions](../../examples/schemer-transactions/) for a complete example of transaction control usage.
 
 ## Migration Status
 

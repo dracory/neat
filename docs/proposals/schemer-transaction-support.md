@@ -69,68 +69,54 @@ if err != nil {
 
 ## Implementation Approach
 
-### Schema Package Already Has Transaction Support
+### Schema Package Transaction Detection Limitation
 
-The schema package already has built-in transaction support and automatically detects transaction context:
+The schema package has built-in transaction support for its own operations, but **does not automatically detect outer transaction context**. Verification tests show:
 
 ```go
-// Schema automatically detects if in transaction
-if query.InTransaction() {
-    return blueprint.Build(query, r.grammar)
-}
-
-// If not in transaction, wraps in transaction
-return r.orm.Transaction(func(tx contractsorm.Query) error {
-    return blueprint.Build(tx, r.grammar)
+// Schema's internal ORM does NOT detect outer transaction state
+db.Transaction(func(tx orm.Query) error {
+    query := db.Schema().Orm().Query()
+    if query.InTransaction() {
+        // This is FALSE - schema's ORM doesn't know about outer transaction
+    }
+    return nil
 })
 ```
 
-### Simple Implementation
+This means that wrapping schemer operations in a transaction **will not automatically make schema operations use that transaction**. The schema has its own ORM instance that doesn't share transaction state.
 
-Since the schema package is already transaction-aware, the implementation is much simpler:
+### Required Schema Package Changes
+
+For transaction support to work, the schema package needs to be enhanced to:
+
+1. **Accept transaction context**: Schema operations need to accept a transaction-aware ORM
+2. **Share transaction state**: Schema's internal ORM needs to use the provided transaction
+3. **Transaction-aware interface**: New methods that accept transaction context
 
 ```go
-type SchemerImplementation struct {
-    db              *database.Database
-    migrations      []contractsschema.MigrationInterface
-    useTransactions bool   // Default: true for safety
-    isolationLevel  string // Optional isolation level
-}
+// Required schema package enhancement
+type Schema interface {
+    // Existing methods...
+    Create(table string, callback func(Blueprint)) error
 
-// SetTransactionsEnabled enables or disables transaction wrapping
-func (s *SchemerImplementation) SetTransactionsEnabled(enabled bool) {
-    s.useTransactions = enabled
-}
-
-// SetTransactionIsolationLevel sets the transaction isolation level
-func (s *SchemerImplementation) SetTransactionIsolationLevel(level string) {
-    s.isolationLevel = level
+    // New transaction-aware methods
+    CreateWithTx(tx orm.Query, table string, callback func(Blueprint)) error
+    DropWithTx(tx orm.Query, table string) error
 }
 ```
 
-### Automatic Transaction Wrapping
+### Alternative: Transaction-Aware Schema Instance
 
-The existing methods will internally handle transaction wrapping:
+Another approach is to create a transaction-aware schema instance:
 
 ```go
-func (s *SchemerImplementation) Up(ctx context.Context) error {
-    if s.useTransactions {
-        // Wrap in transaction - schema will automatically detect and use it
-        return s.db.Transaction(func(tx orm.Query) error {
-            return s.executeMigrations(tx, ctx)
-        })
+// Create schema that uses transaction-aware ORM
+func (s *Schema) WithTransaction(tx orm.Query) Schema {
+    return &Schema{
+        orm:     tx,  // Use transaction-aware ORM
+        grammar: s.grammar,
     }
-    return s.executeMigrationsWithoutTx(ctx)
-}
-
-func (s *SchemerImplementation) executeMigrations(tx orm.Query, ctx context.Context) error {
-    for _, migration := range s.migrations {
-        migration.SetSchema(s.db.Schema())
-        if err := migration.Up(); err != nil {
-            return err  // Transaction automatically rolls back
-        }
-    }
-    return nil  // Transaction automatically commits
 }
 ```
 
@@ -237,13 +223,15 @@ Since the schema package already has transaction support, implementation is stra
 
 ## Implementation Status
 
-- ✅ Schema package already has transaction support
-- ⏳ Add `useTransactions` field to SchemerImplementation
-- ⏳ Add `SetTransactionsEnabled()` setter method
-- ⏳ Add `SetTransactionIsolationLevel()` setter method
-- ⏳ Implement automatic transaction wrapping in existing methods
-- ⏳ Add comprehensive transaction tests
-- ⏳ Update documentation with setter method usage
+- ❌ Schema package transaction context support (see [schema-transaction-context.md](./schema-transaction-context.md))
+- ✅ Add `useTransactions` field to SchemerImplementation
+- ✅ Add `SetTransactionsEnabled()` setter method
+- ✅ Add `SetTransactionIsolationLevel()` setter method
+- ✅ Implement automatic transaction wrapping infrastructure
+- ✅ Add transaction verification tests
+- ❌ Enable transaction wrapping (blocked by schema package limitations)
+- ⏳ Add comprehensive transaction tests (pending schema changes)
+- ✅ Update documentation with setter method usage
 - ⏳ Add performance monitoring and optimization
 
 ## Usage Recommendations
@@ -318,6 +306,7 @@ schemer.Up(context.Background())
 
 ## Related Documents
 
+- **[Schema Transaction Context Proposal](./schema-transaction-context.md)** - Required schema package changes for transaction support
 - See [schemer-package.md](./schemer-package.md) for the base schemer package implementation
 - See [migrations-part-1.md](./migrations-part-1.md) for interface-based migration system
 - See [migrations-part-2.md](./migrations-part-2.md) for migration tracking system
