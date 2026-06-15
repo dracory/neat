@@ -1,0 +1,211 @@
+# Schemer Migrations (New Package)
+
+This example demonstrates the new `database/schemer` package, which provides a cleaner API for managing database schema migrations with automatic schema injection and tracking.
+
+## Features Demonstrated
+
+### New Schemer Package
+- **Simplified API**: No need to manually register migrations with schema
+- **Automatic Schema Injection**: Schema is automatically injected into each migration
+- **Context Support**: All operations support context for cancellation and timeout handling
+- **Clean Interface Naming**: Uses `SchemerInterface` and `SchemerImplementation` pattern
+- **Flexible Migration Addition**: Add migrations individually or in batches
+- **Migration Tracking**: Automatically tracks executed migrations in `migration_tracker` table
+- **Advanced Rollback**: Support for rolling back by steps or by batch
+
+### Migration Operations
+- Creating tables with various column types
+- Adding indexes to existing tables
+- Adding columns to existing tables
+- Rolling back migrations (single, by steps, or by batch)
+- Migration status checking
+- Fresh and reset operations
+
+## Advantages Over Old System
+
+1. **No Manual Registration**: No need to call `schema.Register()`
+2. **Simpler API**: Pass neat db instance directly instead of separate schema and orm
+3. **Auto-injection**: Schema is automatically injected into migrations
+4. **Context Support**: All operations support context for proper cancellation/timeout handling
+5. **Clear Rollback Methods**: `RollbackSteps()` and `RollbackToBatch()` instead of confusing parameters
+6. **Auto-creation**: Automatically creates `migration_tracker` table on first run
+7. **Better Organization**: Clear separation between schema building and migration execution
+
+## Running the Example
+
+```bash
+cd examples/schemer-migrations
+go run main.go
+```
+
+This will:
+1. Create a SQLite database (`example_schema_migrations.db`)
+2. Run all migrations using the new schemer package
+3. Demonstrate rolling back the last migration
+4. Show migration status
+
+## Migration Structure
+
+Each migration follows the same pattern as before, but now uses the schemer package for execution:
+
+```go
+type CreateUsersTable struct {
+    schema.BaseMigration
+}
+
+func (m *CreateUsersTable) Signature() string {
+    return "2024_06_15_120000_create_users_table"
+}
+
+func (m *CreateUsersTable) Description() string {
+    return "Creates users table"
+}
+
+func (m *CreateUsersTable) Up() error {
+    return m.GetSchema().Create("users", func(blueprint contractsschema.Blueprint) {
+        blueprint.ID()
+        blueprint.String("name")
+        blueprint.String("email")
+        blueprint.Unique("email")
+        blueprint.Timestamps()
+    })
+}
+
+func (m *CreateUsersTable) Down() error {
+    return m.GetSchema().DropIfExists("users")
+}
+```
+
+## Usage Pattern
+
+```go
+// Create schemer instance with neat db
+schemer := schemer.NewSchemer(db)
+
+// Add migrations
+schemer.AddMigration(&CreateUsersTable{})
+schemer.AddMigration(&CreatePostsTable{})
+
+// Or add multiple at once
+schemer.AddMigrations([]contractsschema.MigrationInterface{
+    &CreateUsersTable{},
+    &CreatePostsTable{},
+})
+
+// Run migrations
+ctx := context.Background()
+if err := schemer.Up(ctx); err != nil {
+    log.Fatal(err)
+}
+
+// Rollback last migration
+if err := schemer.Down(ctx); err != nil {
+    log.Fatal(err)
+}
+
+// Check status
+status, err := schemer.Status()
+```
+
+## API Methods
+
+### AddMigration
+Adds a single migration to the schemer instance.
+
+### AddMigrations
+Adds multiple migrations at once.
+
+### Up
+Runs all pending migrations. Automatically creates the `migration_tracker` table if it doesn't exist.
+
+### Down
+Rolls back the last migration.
+
+### RollbackSteps
+Rolls back the specified number of migrations.
+
+### RollbackToBatch
+Rolls back all migrations to the specified batch.
+
+### Status
+Returns the current status of all migrations.
+
+### Fresh
+Drops all tables except `migration_tracker` and clears the tracker.
+
+### Reset
+Rolls back all migrations.
+
+## Migration Tracking
+
+The schemer automatically tracks migrations in a `migration_tracker` table with the following structure:
+
+```go
+type MigrationTracker struct {
+    ID          string    // Migration signature
+    Batch       int       // Batch number (timestamp)
+    Description string    // Migration description
+    StartedAt   time.Time // When migration started
+    CompletedAt time.Time // When migration finished
+}
+```
+
+## Best Practices
+
+1. **Migration Naming**: Use timestamp-based signatures for ordering
+   ```go
+   "2024_06_15_120000_create_users_table"
+   ```
+
+2. **Idempotent Up Methods**: Check if resources exist before creating
+   ```go
+   func (m *CreateUsersTable) Up() error {
+       if m.GetSchema().HasTable("users") {
+           return nil
+       }
+       // Create table
+   }
+   ```
+
+3. **Context Usage**: Always use context for production applications
+   ```go
+   ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+   defer cancel()
+   err := schemer.Up(ctx)
+   ```
+
+## Migration from Old System
+
+**Before (Old System):**
+```go
+schema := db.Schema()
+schema.Register(migrations)
+manager := schema.NewMigrationManager(db)
+manager.Run(migrations)
+```
+
+**After (New Schemer Package):**
+```go
+schemer := schemer.NewSchemer(db)
+schemer.AddMigrations(migrations)
+schemer.Up(context.Background())
+```
+
+## Testing
+
+Run the tests with:
+
+```bash
+cd examples/schemer-migrations
+go test -v
+```
+
+## Prerequisites
+
+- SQLite database (or modify the DSN to use your preferred database)
+- Neat ORM with schemer package support
+
+## Related Documentation
+
+- [Schemer Package README](../../database/schemer/README.md)
+- [Schemer Package Proposal](../../docs/proposals/schemer-package.md)

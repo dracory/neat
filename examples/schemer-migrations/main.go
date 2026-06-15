@@ -1,26 +1,28 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema"
+	"github.com/dracory/neat/database/schemer"
 )
 
-// This example demonstrates the interface-based migration system
-// which provides a cleaner, more structured approach to schema migrations
+// This example demonstrates the new schemer package for migration management
+// which provides a cleaner API with automatic schema injection
 func main() {
-	if err := RunInterfaceBasedMigrations("sqlite://./example_schema_migrations.db"); err != nil {
-		log.Fatalf("Interface-based migration example failed: %v", err)
+	if err := RunSchemerBasedMigrations("sqlite://./example_schema_migrations.db"); err != nil {
+		log.Fatalf("Schemer-based migration example failed: %v", err)
 	}
 }
 
-// RunInterfaceBasedMigrations demonstrates the interface-based migration system
-func RunInterfaceBasedMigrations(dsn string) error {
-	fmt.Println("=== Interface-Based Migration System ===")
-	fmt.Println("This approach uses structured migration objects with clean interfaces")
+// RunSchemerBasedMigrations demonstrates the new schemer package
+func RunSchemerBasedMigrations(dsn string) error {
+	fmt.Println("=== New Schemer Package Migration System ===")
+	fmt.Println("This approach uses the schemer package with automatic schema injection")
 	fmt.Println()
 
 	db, err := neat.NewFromDSN(dsn)
@@ -29,41 +31,41 @@ func RunInterfaceBasedMigrations(dsn string) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration instances
-	migrations := []contractsschema.MigrationInterface{
-		&CreateMigrationTrackerTable{},
-		&CreateUsersTable{},
-		&CreatePostsTable{},
-		&CreateCommentsTable{},
-		&AddPostsIndexes{},
-		&AddPublishedToPosts{},
-	}
+	// Create schemer instance with neat db
+	schemerInstance := schemer.NewSchemer(db)
 
-	// Register migrations with schema (automatic schema injection via SchemaSetter)
-	schema := db.Schema()
-	schema.Register(migrations)
+	// Add migrations to schemer
+	schemerInstance.AddMigration(&CreateMigrationTrackerTable{})
+	schemerInstance.AddMigration(&CreateUsersTable{})
+	schemerInstance.AddMigration(&CreatePostsTable{})
+	schemerInstance.AddMigration(&CreateCommentsTable{})
+	schemerInstance.AddMigration(&AddPostsIndexes{})
+	schemerInstance.AddMigration(&AddPublishedToPosts{})
 
 	// Run all migrations
 	fmt.Println("=== Running Migrations ===")
-	for _, migration := range migrations {
-		fmt.Printf("Running migration: %s\n", migration.Signature())
-		fmt.Printf("Description: %s\n", migration.Description())
-		if err := migration.Up(); err != nil {
-			return fmt.Errorf("migration %s failed: %w", migration.Signature(), err)
-		}
-		fmt.Printf("Migration %s completed successfully\n", migration.Signature())
+	ctx := context.Background()
+	if err := schemerInstance.Up(ctx); err != nil {
+		return fmt.Errorf("migration up failed: %w", err)
 	}
 
 	fmt.Println("\n=== All Migrations Completed ===")
 
 	// Demonstrate rollback (last migration only)
 	fmt.Println("\n=== Rolling Back Last Migration ===")
-	lastMigration := migrations[len(migrations)-1]
-	fmt.Printf("Rolling back migration: %s\n", lastMigration.Signature())
-	if err := lastMigration.Down(); err != nil {
-		return fmt.Errorf("rollback failed: %w", err)
+	if err := schemerInstance.Down(ctx); err != nil {
+		return fmt.Errorf("migration down failed: %w", err)
 	}
-	fmt.Printf("Migration %s rolled back successfully\n", lastMigration.Signature())
+
+	fmt.Println("\n=== Migration Status ===")
+	status, err := schemerInstance.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get migration status: %w", err)
+	}
+
+	for _, s := range status {
+		fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
+	}
 
 	return nil
 }

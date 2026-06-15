@@ -312,8 +312,8 @@ func (m *CreateUsersTable) Down() error {
 - ✅ Register method updated to inject schema
 - ✅ Schema interface includes Register method
 - ✅ Migration tracking integration (database/migration package)
-- ✅ Documentation updates (examples/schema-migrations/README.md)
-- ✅ Example migrations (examples/schema-migrations/)
+- ✅ Documentation updates (examples/schemer-migrations/README.md)
+- ✅ Example migrations (examples/schemer-migrations/)
 - ✅ Migration runner service (database/migration/migrator.go)
 
 ## Next Steps
@@ -326,4 +326,4 @@ func (m *CreateUsersTable) Down() error {
 
 - See [migrations-part-2.md](./migrations-part-2.md) for the migration tracking system
 - See [migrations.md](./migrations.md) for the complete proposal
-- See [examples/schema-migrations/](../../examples/schema-migrations/) for working examples
+- See [examples/schemer-migrations/](../../examples/schemer-migrations/) for working examples

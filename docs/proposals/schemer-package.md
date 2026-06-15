@@ -1,7 +1,7 @@
 # Schemer Package Proposal
 
 **Date**: June 15, 2026
-**Status**: Proposed
+**Status**: Implemented
 **Priority**: Medium
 **Author**: Neat ORM Team
 
@@ -21,7 +21,7 @@ This proposal suggests moving the MigrationManager from the `database/schema` pa
 ### Benefits of Schemer Package
 
 1. **Clear Separation**: Schema building vs migration execution are separate concerns
-2. **Simpler API**: Pass schema as dependency instead of requiring registration
+2. **Simpler API**: Pass neat db instance instead of separate schema and orm dependencies
 3. **Better Organization**: Each package has a single, clear responsibility
 4. **User-Friendly**: Less boilerplate and clearer usage patterns
 5. **Extensibility**: Easier to add migration-specific features without affecting schema package
@@ -34,8 +34,8 @@ This proposal suggests moving the MigrationManager from the `database/schema` pa
 database/
 ├── schema/           # Schema building (blueprints, grammars, etc.)
 ├── schemer/          # Migration management (NEW)
-│   ├── schemer.go    # MigrationManager and related types
-│   └── tracker.go    # MigrationTracker and Status types
+│   ├── schemer.go    # SchemerInterface and SchemerImplementation
+│   └── tracker.go    # MigrationTracker and MigrationStatus types
 └── migration/        # Deprecated file-based system
 ```
 
@@ -45,54 +45,90 @@ database/
 package schemer
 
 import (
+    "context"
+    "github.com/dracory/neat"
     contractsschema "github.com/dracory/neat/contracts/database/schema"
-    contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
-// MigrationManager handles execution and tracking of interface-based migrations
-type MigrationManager struct {
-    schema contractsschema.Schema
-    orm    contractsorm.Orm
+// SchemerInterface defines the contract for migration management
+type SchemerInterface interface {
+    AddMigration(migration contractsschema.MigrationInterface) error
+    AddMigrations(migrations []contractsschema.MigrationInterface) error
+    Up(ctx context.Context) error
+    Down(ctx context.Context) error
+    RollbackSteps(ctx context.Context, steps int) error
+    RollbackToBatch(ctx context.Context, batch int) error
+    Status() ([]MigrationStatus, error)
+    Fresh(ctx context.Context) error
+    Reset(ctx context.Context) error
 }
 
-// NewMigrationManager creates a new MigrationManager instance
-// Takes schema and orm as dependencies, no registration needed
-func NewMigrationManager(schema contractsschema.Schema, orm contractsorm.Orm) *MigrationManager {
-    return &MigrationManager{
-        schema: schema,
-        orm:    orm,
+// SchemerImplementation handles execution and tracking of interface-based migrations
+type SchemerImplementation struct {
+    db         *neat.Neat
+    migrations []contractsschema.MigrationInterface
+}
+
+// NewSchemer creates a new SchemerImplementation instance
+// Takes neat db instance as dependency, extracts schema and orm internally
+func NewSchemer(db *neat.Neat) SchemerInterface {
+    return &SchemerImplementation{
+        db:         db,
+        migrations: []contractsschema.MigrationInterface{},
     }
 }
 
-// Run executes pending migrations
+// AddMigration adds a new migration to the list
+func (s *SchemerImplementation) AddMigration(migration contractsschema.MigrationInterface) error {
+    s.migrations = append(s.migrations, migration)
+    return nil
+}
+
+// AddMigrations adds multiple migrations to the runner
+func (s *SchemerImplementation) AddMigrations(migrations []contractsschema.MigrationInterface) error {
+    s.migrations = append(s.migrations, migrations...)
+    return nil
+}
+
+// Up runs all pending migrations
 // Automatically injects schema into each migration before execution
-func (m *MigrationManager) Run(migrations []contractsschema.MigrationInterface) error {
+func (s *SchemerImplementation) Up(ctx context.Context) error {
     // Inject schema into each migration
-    for _, migration := range migrations {
-        migration.SetSchema(m.schema)
+    for _, migration := range s.migrations {
+        migration.SetSchema(s.db.Schema())
     }
 
     // Run migrations with tracking
     // ... existing implementation
 }
 
-// Rollback reverts migrations
-func (m *MigrationManager) Rollback(step, batch int) error {
+// Down rolls back the last migration
+func (s *SchemerImplementation) Down(ctx context.Context) error {
+    // ... existing implementation
+}
+
+// RollbackSteps rolls back the specified number of migrations
+func (s *SchemerImplementation) RollbackSteps(ctx context.Context, steps int) error {
+    // ... existing implementation
+}
+
+// RollbackToBatch rolls back all migrations to the specified batch
+func (s *SchemerImplementation) RollbackToBatch(ctx context.Context, batch int) error {
     // ... existing implementation
 }
 
 // Status returns migration status
-func (m *MigrationManager) Status() ([]Status, error) {
+func (s *SchemerImplementation) Status() ([]MigrationStatus, error) {
     // ... existing implementation
 }
 
 // Fresh drops all tables and re-runs migrations
-func (m *MigrationManager) Fresh() error {
+func (s *SchemerImplementation) Fresh(ctx context.Context) error {
     // ... existing implementation
 }
 
 // Reset rolls back and re-runs all migrations
-func (m *MigrationManager) Reset() error {
+func (s *SchemerImplementation) Reset(ctx context.Context) error {
     // ... existing implementation
 }
 ```
@@ -104,7 +140,8 @@ package schemer
 
 import "time"
 
-// MigrationTracker represents a migration record from the migration_tracker table
+// MigrationTracker represents a migration record stored in the migration_tracker table
+// This is the database model/entity used for persistence
 type MigrationTracker struct {
     ID          string    // The migration signature
     Batch       int       // Timestamp ID (YYYYMMDDHHMMSS)
@@ -113,8 +150,9 @@ type MigrationTracker struct {
     CompletedAt time.Time // When the migration finished
 }
 
-// Status represents the status of a migration
-type Status struct {
+// MigrationStatus represents the status of a migration returned to users
+// This is a DTO/response type derived from MigrationTracker data
+type MigrationStatus struct {
     ID          string    `json:"id"`
     Description string    `json:"description"`
     Batch       int       `json:"batch"`
@@ -124,6 +162,11 @@ type Status struct {
 }
 ```
 
+**Persistence:**
+- MigrationTracker records are stored in a `migration_tracker` table in the database
+- The SchemerImplementation automatically creates this table if it doesn't exist
+- MigrationStatus is computed by comparing registered migrations against MigrationTracker records
+
 ## Usage Examples
 
 ### Before (Current Approach)
@@ -132,6 +175,7 @@ type Status struct {
 package main
 
 import (
+    "context"
     "github.com/dracory/neat"
     contractsschema "github.com/dracory/neat/contracts/database/schema"
     "github.com/dracory/neat/database/schema"
@@ -150,7 +194,7 @@ func main() {
     db.Schema().Register(migrations)
 
     // Step 2: Create manager
-    manager := schema.NewMigrationManager(db.Schema(), db.Orm())
+    manager := schema.NewMigrationManager(db)
 
     // Step 3: Run migrations
     if err := manager.Run(migrations); err != nil {
@@ -165,6 +209,7 @@ func main() {
 package main
 
 import (
+    "context"
     "github.com/dracory/neat"
     contractsschema "github.com/dracory/neat/contracts/database/schema"
     "github.com/dracory/neat/database/schemer"
@@ -174,33 +219,64 @@ func main() {
     db, _ := neat.NewFromDSN("sqlite://./app.db")
     defer db.Close()
 
-    migrations := []contractsschema.MigrationInterface{
-        &CreateUsersTable{},
-        &CreatePostsTable{},
-    }
+    // Create schemer with neat db instance
+    schemer := schemer.NewSchemer(db)
 
-    // Single step: Create manager and run
-    manager := schemer.NewMigrationManager(db.Schema(), db.Orm())
-    if err := manager.Run(migrations); err != nil {
+    // Add migrations
+    schemer.AddMigration(&CreateUsersTable{})
+    schemer.AddMigration(&CreatePostsTable{})
+
+    // Or add multiple at once
+    // schemer.AddMigrations([]contractsschema.MigrationInterface{
+    //     &CreateUsersTable{},
+    //     &CreatePostsTable{},
+    // })
+
+    // Run migrations
+    if err := schemer.Up(context.Background()); err != nil {
         log.Fatal(err)
     }
+
+    // Rollback last 3 migrations
+    if err := schemer.RollbackSteps(context.Background(), 3); err != nil {
+        log.Fatal(err)
+    }
+
+    // Or rollback to specific batch
+    // if err := schemer.RollbackToBatch(context.Background(), 20240115120000); err != nil {
+    //     log.Fatal(err)
+    // }
+
+    // Fresh: drop all tables and re-run migrations
+    // if err := schemer.Fresh(context.Background()); err != nil {
+    //     log.Fatal(err)
+    // }
+
+    // Reset: rollback and re-run all migrations
+    // if err := schemer.Reset(context.Background()); err != nil {
+    //     log.Fatal(err)
+    // }
 }
 ```
 
 ## Migration Path
 
-### Phase 1: Create Schemer Package
+### Phase 1: Create Schemer Package ✅
 
-1. Create `database/schemer` package
-2. Move MigrationManager from `database/schema` to `database/schemer`
-3. Move MigrationTracker and Status types to `database/schemer`
-4. Update MigrationManager to auto-inject schema
+1. Create `database/schemer` package ✅
+2. Create SchemerInterface defining the migration management contract ✅
+3. Implement SchemerImplementation (extract logic from MigrationManager) ✅
+4. Move MigrationTracker and MigrationStatus types to `database/schemer` ✅
+5. Update SchemerImplementation to accept neat db instance and auto-inject schema ✅
+6. Add auto-creation of migration_tracker table ✅
 
-### Phase 2: Update Examples
+### Phase 2: Update Examples ✅
 
-1. Update `examples/schema-migrations/main.go` to use new package
-2. Update `examples/schema-migrations/main_test.go` to use new package
-3. Remove `schema.Register()` calls from examples
+1. Update `examples/schemer-migrations/main.go` to use new package ✅
+2. Update `examples/schemer-migrations/main_test.go` to use new package ✅
+3. Remove `schema.Register()` calls from examples ✅
+4. Update migration calls from `Run()` to `Up()` ✅
+5. Add new schemer-specific tests ✅
 
 ### Phase 3: Deprecate Old Approach
 
@@ -208,7 +284,14 @@ func main() {
 2. Add deprecation notice to `schema.NewMigrationManager`
 3. Update documentation to recommend `schemer` package
 
-### Phase 4: Remove Old Code
+### Phase 4: Documentation ✅
+
+1. Create comprehensive README.md for schemer package ✅
+2. Add API reference and usage examples ✅
+3. Document migration from old system ✅
+4. Add best practices section ✅
+
+### Phase 5: Remove Old Code (Future)
 
 1. Remove `schema.NewMigrationManager` after deprecation period
 2. Remove schema registration requirement from MigrationInterface
@@ -240,12 +323,14 @@ func main() {
 - ✅ Mark database/migrator package as deprecated
 - ✅ Mark schema.NewMigrationManager as deprecated
 - ✅ Add deprecation notices to migrator files (migrator.go, format.go, repository.go)
-- ⏳ Create `database/schemer` package
-- ⏳ Move MigrationManager to schemer package
-- ⏳ Move MigrationTracker and Status types to schemer package
-- ⏳ Update MigrationManager to auto-inject schema
-- ⏳ Update examples to use schemer package
-- ⏳ Update documentation
+- ✅ Create `database/schemer` package
+- ✅ Create SchemerInterface defining migration management contract
+- ✅ Implement SchemerImplementation with migration management logic
+- ✅ Move MigrationTracker and MigrationStatus types to schemer package
+- ✅ Update SchemerImplementation to accept neat db instance and auto-inject schema
+- ✅ Add comprehensive tests for schemer package
+- ✅ Update examples to use schemer package
+- ✅ Update documentation
 
 ## Related Documents
 

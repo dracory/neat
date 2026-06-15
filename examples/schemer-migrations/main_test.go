@@ -5,14 +5,14 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	mainpkg "github.com/dracory/neat/examples/schema-migrations"
+	mainpkg "github.com/dracory/neat/examples/schemer-migrations"
 )
 
-func TestRunInterfaceBasedMigrations(t *testing.T) {
+func TestRunSchemerBasedMigrations(t *testing.T) {
 	// Use in-memory SQLite for testing
-	err := mainpkg.RunInterfaceBasedMigrations("sqlite://:memory:")
+	err := mainpkg.RunSchemerBasedMigrations("sqlite://:memory:")
 	if err != nil {
-		t.Fatalf("RunInterfaceBasedMigrations failed: %v", err)
+		t.Fatalf("RunSchemerBasedMigrations failed: %v", err)
 	}
 }
 
