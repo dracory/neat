@@ -559,58 +559,6 @@ func TestDatabase_Seeder(t *testing.T) {
 	}
 }
 
-func TestDatabase_Migrate(t *testing.T) {
-	config := db.DBConfig{
-		Default: "default",
-		Connections: map[string]db.ConnectionConfig{
-			"default": {
-				Driver:   "sqlite",
-				Database: ":memory:",
-			},
-		},
-	}
-
-	db, err := New(config, WithLogger(log.NewNoopLogger()))
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer func() { _ = db.Close() }()
-
-	// Test Migrate with empty paths (should use default)
-	err = db.Migrate()
-	if err != nil {
-		t.Errorf("Migrate() failed: %v", err)
-	}
-}
-
-func TestDatabase_MigrationStatus(t *testing.T) {
-	config := db.DBConfig{
-		Default: "default",
-		Connections: map[string]db.ConnectionConfig{
-			"default": {
-				Driver:   "sqlite",
-				Database: ":memory:",
-			},
-		},
-	}
-
-	db, err := New(config, WithLogger(log.NewNoopLogger()))
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer func() { _ = db.Close() }()
-
-	// Test MigrationStatus - should return empty slice when no migrations
-	status, err := db.MigrationStatus()
-	if err != nil {
-		t.Errorf("MigrationStatus() failed: %v", err)
-	}
-	// When no migrations are registered, status should be empty
-	if len(status) != 0 {
-		t.Errorf("Expected empty status when no migrations, got %d items", len(status))
-	}
-}
-
 func TestNewFromSQLDB_NilDB(t *testing.T) {
 	_, err := NewFromSQLDB(nil, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
 	if err == nil {

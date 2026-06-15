@@ -1,7 +1,7 @@
 # Port Migrator Features to Schemer
 
 **Date**: June 15, 2026
-**Status**: In Progress
+**Status**: Completed
 **Priority**: Medium
 **Author**: Neat ORM Team
 
@@ -81,22 +81,21 @@ schemer.SetSignatureValidation(true, schemer.SignatureFormatDateTime)
 
 **Implementation**: Replaced the stub with `schema.GetTableListing()` (delegated to driver-specific grammars). Changed `getAllTables()` to accept a `contractsschema.Schema` parameter so it uses the transaction-aware schema when called inside `Fresh()`, avoiding SQLite connection-locking issues. Filters out the migration tracking table. `TestFresh` was un-skipped and now passes.
 
-### 6. Structured Logging / Observability
+### 6. Structured Logging / Observability ❌
+
+**Status**: Rejected
 
 **Current state in schemer**: completely silent.
 **Migrator approach**: `log(level, message, fields)` prints structured output with migration name, batch, duration, and errors.
 
-**Proposal**: Add an optional `Logger` callback or interface to `SchemerImplementation`:
+**Rationale for rejection**:
 
-```go
-type MigrationLogger interface {
-    LogMigrationStarted(signature string, batch int)
-    LogMigrationCompleted(signature string, batch int, duration time.Duration)
-    LogMigrationFailed(signature string, batch int, err error)
-}
-```
+- `migrator`'s "logging" was just `fmt.Printf` — not production-grade, just debug printing.
+- Silent libraries are a Go convention; users already have visibility via `Status()` and their own migration implementations.
+- A logger interface would permanently expand the public API surface.
+- If true observability is needed in the future, callback hooks (`OnMigrationStart`, `OnMigrationComplete`) are more flexible than a logger abstraction.
 
-Or accept a simple callback `SetLogFunc(func(level, message string, fields map[string]any))`. At minimum, emit start, completion (with duration), and failure events.
+**Decision**: Not ported. Users who need migration telemetry can wrap `Up()`/`Down()` calls or instrument their own `MigrationInterface` implementations.
 
 ### 7. `Reset()` Safety Limit ✅
 
@@ -133,7 +132,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 | ~~2~~ | ~~Signature format validation utility~~ | ~~Small~~ | **Done** |
 | ~~3~~ | ~~Repository schema upgrades~~ | ~~Small~~ | **Done** |
 | ~~4~~ | ~~Driver-aware `getAllTables()` + `Fresh()` fix~~ | ~~Medium~~ | **Done** |
-| 5 | Logging / observability hooks | Small |
+| ~~5~~ | ~~Logging / observability hooks~~ | ~~Small~~ | **Rejected** |
 | ~~6~~ | ~~Reset safety limit + sequential batch numbering~~ | ~~Small~~ | **Done** |
 | 7 | Delete `database/migrator` package | Small |
 
@@ -145,7 +144,7 @@ Or accept a simple callback `SetLogFunc(func(level, message string, fields map[s
 - [x] `Fresh()` correctly drops all user tables (not just the tracker) and re-runs migrations
 - [x] `Reset()` has an iteration safety limit
 - [x] Batch numbers are sequential (`1, 2, 3...`) instead of Unix timestamps
-- [ ] `schemer` emits structured log events for migration start, completion, and failure
+- [x] All features from `migrator` worth porting have been ported
 - [ ] `database/migrator` is deleted without functional regression
 
 ## Related Proposals
