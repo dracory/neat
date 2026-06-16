@@ -21,159 +21,137 @@
         p { margin: 1rem 0; }
         strong { color: #2c3e50; }
         .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .badge { display: inline-block; background: #3498db; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; vertical-align: middle; margin-left: 0.5rem; }
     </style>
 </head>
 <body>
     <a href="index.html" class="back-link">&#8592; Back to Index</a>
 
-    <h1>Migrations</h1>
+    <h1>Migrations <span class="badge">New: Schemer Package</span></h1>
 
-    <p>This document describes the migration system in Neat ORM.</p>
+    <p>Neat ORM features a powerful and elegant migration system through the <code>database/schemer</code> package. Migrations allow you to version-control your database schema, making it easy for your team to modify and share the application's database schema.</p>
 
-    <h2>What are Migrations?</h2>
+    <div style="background: #e1f5fe; border-left: 5px solid #03a9f4; padding: 1rem; margin: 1.5rem 0;">
+        <strong>🚀 Key Advantage:</strong> Most Go ORMs lack comprehensive schema migration support. Neat ORM includes a complete migration system with schema builder, rollback support, and automatic tracking.
+    </div>
 
-    <p>Migrations allow you to version-control your database schema. They provide a way to define and apply schema changes in a consistent and reproducible manner.</p>
+    <h2>Overview</h2>
 
-    <h2>Migration Configuration</h2>
+    <p>The <code>schemer</code> package provides a clean API for managing database migrations with:</p>
+    <ul>
+        <li><strong>Automatic Schema Injection</strong>: No need to manually register migrations with schema.</li>
+        <li><strong>Clean Interface-based API</strong>: Uses <code>SchemerInterface</code> for consistent operations.</li>
+        <li><strong>Context Support</strong>: All operations support <code>context.Context</code> for cancellation and timeouts.</li>
+        <li><strong>Automatic Tracking</strong>: Automatically tracks executed migrations in a <code>migration_tracker</code> table.</li>
+        <li><strong>Flexible Rollback</strong>: Support for rolling back by specific steps or to a specific batch.</li>
+    </ul>
 
-    <p>Configure migrations in your DBConfig:</p>
+    <h2>Migration Implementation</h2>
 
-    <pre><code>config := neat.DBConfig{
-    Migrations: neat.MigrationConfig{
-        Driver: "orm", // Currently only "orm" driver is supported
-        Table:  "migrations",
-    },
-}</code></pre>
-
-    <h2>Creating Migrations</h2>
-
-    <h3>Using the Migrator</h3>
-
-    <p>Create a new migration file using the Migrator:</p>
-
-    <pre><code>db, err := neat.NewFromDSN("sqlite://./mydb.db")
-if err != nil {
-    log.Fatal(err)
-}
-defer db.Close()
-
-// Create a new migration file
-err = db.Migrate("create users table", "./migrations")
-if err != nil {
-    log.Fatal(err)
-}</code></pre>
-
-    <p>This will create a file like <code>1717080000_create_users_table.go</code> in the <code>./migrations</code> directory with the following template:</p>
-
-    <pre><code>package migrations
-
-import (
-    "github.com/dracory/neat/database/schema"
-)
-
-// Up applies the migration
-func Up(schema schema.Schema) error {
-    // Add your migration logic here
-    return nil
-}
-
-// Down rolls back the migration
-func Down(schema schema.Schema) error {
-    // Add your rollback logic here
-    return nil
-}</code></pre>
-
-    <h3>Manual Migration Creation</h3>
-
-    <p>You can also create migration files manually. Here's an example:</p>
-
-    <pre><code>package migrations
-
-import "github.com/dracory/neat/database/schema"
-
-func Up(schema schema.Schema) error {
-    schema.Create("users", func(table schema.Blueprint) {
-        table.ID()
-        table.String("name")
-        table.String("email").Unique()
-        table.Timestamps()
-    })
-    return nil
-}
-
-func Down(schema schema.Schema) error {
-    schema.DropTableIfExists("users")
-    return nil
-}</code></pre>
-
-    <h2>Registering Migrations</h2>
-
-    <p>To use migrations, you need to register them in the global registry:</p>
+    <p>Migrations must implement the <code>MigrationInterface</code>. Typically, you embed <code>schema.BaseMigration</code> for convenience:</p>
 
     <pre><code>import (
-    "github.com/dracory/neat/database/schemer"
-    "github.com/dracory/neat/database/schema"
     contractsschema "github.com/dracory/neat/contracts/database/schema"
+    "github.com/dracory/neat/database/schema"
 )
 
-func init() {
-    schemer.AddMigration(&amp;Migration{
-        Name: "create_users_table",
-        Up: func(s contractsschema.Schema) error {
-            return s.Create("users", func(table schema.Blueprint) {
-                table.ID()
-                table.String("name")
-                table.String("email").Unique()
-                table.Timestamps()
-            })
-        },
-        Down: func(s contractsschema.Schema) error {
-            return s.DropIfExists("users")
-        },
-    })
-}</code></pre>
-
-    <h2>Running Migrations</h2>
-
-    <h3>Apply All Pending Migrations</h3>
-
-    <pre><code>err := db.RunMigrations()
-if err != nil {
-    log.Fatal(err)
-}</code></pre>
-
-    <h3>Rollback Last Migration</h3>
-
-    <pre><code>err := db.RollbackMigration()
-if err != nil {
-    log.Fatal(err)
-}</code></pre>
-
-    <h3>Rollback All Migrations</h3>
-
-    <pre><code>err := db.ResetMigrations()
-if err != nil {
-    log.Fatal(err)
-}</code></pre>
-
-    <h3>Fresh Database (Drop All Tables and Re-run)</h3>
-
-    <pre><code>err := db.FreshMigrations()
-if err != nil {
-    log.Fatal(err)
-}</code></pre>
-
-    <h2>Migration Status</h2>
-
-    <pre><code>// Check migration status
-status, err := db.MigrationStatus()
-if err != nil {
-    log.Fatal(err)
+type CreateUsersTable struct {
+    schema.BaseMigration
 }
 
-for _, migration := range status {
-    fmt.Printf("Migration: %s, Applied: %v\n", migrator.Name, migrator.Applied)
+func (m *CreateUsersTable) Signature() string {
+    return "2024_06_15_120000_create_users_table"
+}
+
+func (m *CreateUsersTable) Description() string {
+    return "Creates users table"
+}
+
+func (m *CreateUsersTable) Up() error {
+    return m.GetSchema().Create("users", func(blueprint contractsschema.Blueprint) {
+        blueprint.ID()
+        blueprint.String("name")
+        blueprint.String("email").Unique()
+        blueprint.Timestamps()
+    })
+}
+
+func (m *CreateUsersTable) Down() error {
+    return m.GetSchema().DropIfExists("users")
 }</code></pre>
+
+    <h2>Using the Schemer</h2>
+
+    <p>The <code>Schemer</code> is the entry point for running your migrations. It requires a <code>neat.Database</code> instance.</p>
+
+    <pre><code>import (
+    "context"
+    "github.com/dracory/neat"
+    "github.com/dracory/neat/database/schemer"
+)
+
+func main() {
+    db, _ := neat.NewFromDSN("sqlite://./app.db")
+    defer db.Close()
+
+    // Create schemer instance
+    s := schemer.NewSchemer(db)
+
+    // Add migrations
+    s.AddMigrations([]contractsschema.MigrationInterface{
+        &CreateUsersTable{},
+        &CreatePostsTable{},
+    })
+
+    // Run pending migrations
+    ctx := context.Background()
+    if err := s.Up(ctx); err != nil {
+        log.Fatal(err)
+    }
+}</code></pre>
+
+    <h2>Available Operations</h2>
+
+    <h3>Run All Pending Migrations</h3>
+    <pre><code>err := s.Up(ctx)</code></pre>
+
+    <h3>Rollback Last Migration</h3>
+    <pre><code>err := s.Down(ctx)</code></pre>
+
+    <h3>Rollback Multiple Steps</h3>
+    <pre><code>// Rollback the last 3 migrations
+err := s.RollbackSteps(ctx, 3)</code></pre>
+
+    <h3>Rollback to Specific Batch</h3>
+    <pre><code>err := s.RollbackToBatch(ctx, 20240615120000)</code></pre>
+
+    <h3>Check Migration Status</h3>
+    <pre><code>status, err := s.Status()
+for _, s := range status {
+    fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
+}</code></pre>
+
+    <h3>Reset All Migrations</h3>
+    <p>Rolls back every migration that has ever been run.</p>
+    <pre><code>err := s.Reset(ctx)</code></pre>
+
+    <h3>Fresh Migration</h3>
+    <p>Drops all tables and re-runs all migrations. Useful for development.</p>
+    <pre><code>err := s.Fresh(ctx)</code></pre>
+
+    <h2>Advanced Configuration</h2>
+
+    <h3>Transaction Wrapping</h3>
+    <p>By default, Schemer wraps migration operations in a database transaction for safety. You can disable this if needed (e.g., for DDL operations that don't support transactions):</p>
+    <pre><code>s.SetTransactionsEnabled(false)</code></pre>
+
+    <h3>Custom Tracking Table</h3>
+    <p>The default table name for tracking migrations is <code>migration_tracker</code>. You can change this:</p>
+    <pre><code>s.SetTableName("my_migrations")</code></pre>
+
+    <h3>Signature Validation</h3>
+    <p>You can enforce specific naming conventions for your migration signatures:</p>
+    <pre><code>s.SetSignatureValidation(true, schemer.SignatureFormatDateTime)</code></pre>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>

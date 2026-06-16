@@ -29,7 +29,7 @@
 
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
         <h2 style="color: white; margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 0.5rem;">🚀 Key Advantage: Complete Migration System</h2>
-        <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+        <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and automatic tracking - something most competitors either lack entirely or require third-party tools for.</p>
     </div>
 
     <div class="section-title">Core Documentation</div>
@@ -42,7 +42,7 @@
         <a href="query-builder.html" class="card">
             <span class="badge core">Core</span>
             <h2>Query Builder</h2>
-            <p>Fluent interface for building database queries with method chaining.</p>
+            <p>Fluent interface for building database queries with method chaining and sugar methods.</p>
         </a>
         <a href="schema-builder.html" class="card">
             <span class="badge core">Core</span>
@@ -52,7 +52,7 @@
         <a href="api-reference.html" class="card">
             <span class="badge core">Core</span>
             <h2>API Reference</h2>
-            <p>Complete API reference for all available methods and functions.</p>
+            <p>Complete API reference for Database, Query Builder, and Schemer.</p>
         </a>
     </div>
 
@@ -66,7 +66,7 @@
         <a href="soft-deletes.html" class="card">
             <span class="badge advanced">Advanced</span>
             <h2>Soft Deletes</h2>
-            <p>Soft delete functionality with restore and force delete support.</p>
+            <p>Soft delete functionality with multiple strategies (NULL and Max-Date).</p>
         </a>
         <a href="observers.html" class="card">
             <span class="badge advanced">Advanced</span>
@@ -85,7 +85,7 @@
         <a href="migrations.html" class="card">
             <span class="badge data">Data</span>
             <h2>Migrations</h2>
-            <p>Database migration system for version control of your schema.</p>
+            <p>Database migration system for version control of your schema using the Schemer package.</p>
         </a>
         <a href="seeder.html" class="card">
             <span class="badge data">Data</span>
@@ -134,11 +134,6 @@
             <span class="badge">Guide</span>
             <h2>Sugar Methods Guide</h2>
             <p>Migration guide for using convenience methods (AsVar) for improved API usability.</p>
-        </a>
-        <a href="security-review.html" class="card">
-            <span class="badge">Review</span>
-            <h2>Security Review</h2>
-            <p>Comprehensive security review and vulnerability assessment.</p>
         </a>
         <a href="comparison/index.html" class="card">
             <span class="badge">Review</span>

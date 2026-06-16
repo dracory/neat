@@ -12,23 +12,24 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Query Builder**: Fluent and intuitive query building interface
 - **ORM**: Full ORM support with models and relationships
 - **Schema Builder**: Database schema creation and modification
-- **Migrations**: Complete database migration system with schema builder, rollback support, and ORM driver integration (major advantage over most Go ORMs)
+- **Migrations**: Complete database migration system with the new `Schemer` package, schema builder, rollback support, and automatic tracking (major advantage over most Go ORMs)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
 - **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle
 - **Transactions**: Robust transaction support
 - **Observers**: Model lifecycle event system
 - **Soft Deletes**: Soft delete functionality with multiple strategies (NULL-based and max-date sentinel)
-- **Associations**: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany relationships
+- **Associations**: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany relationships with eager and lazy loading
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
 - **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
+- **Sugar Methods**: Convenience methods (`CountAsVar`, `FirstAsVar`, etc.) that return values directly for improved usability
 - **ToSql Interface**: SQL generation without execution
 - **Security Hardening**: SQL injection prevention with identifier validation
 
 ## Key Advantage: Complete Migration System
 
-> **🚀 Most Go ORMs lack comprehensive schema migration support.** Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.
+> **🚀 Most Go ORMs lack comprehensive schema migration support.** Neat ORM includes a complete migration system with the `Schemer` package, schema builder, rollback support, and automatic tracking - something most competitors either lack entirely or require third-party tools for.
 
 ## Installation
 
@@ -40,7 +41,7 @@ go get github.com/dracory/neat
 
 - **[HTML Documentation](https://html-preview.github.io/?url=https://github.com/dracory/neat/blob/main/docs/index.html)** - Browse documentation in your browser
 - **[Examples](./examples)** - Practical examples for various features
-- **[API Reference](./docs/api-reference.md)** - Complete API documentation
+- **[API Reference](./docs/api-reference.html)** - Complete API documentation
 ```
 
 ## Quick Start
@@ -495,17 +496,17 @@ Contributions are welcome! Please open an issue or submit a pull request. For de
 ### Current Status
 
 Neat ORM is actively developed with the following features implemented:
-- ✅ Query Builder with fluent interface
+- ✅ Query Builder with fluent interface and Sugar Methods
 - ✅ ORM with model support
 - ✅ Schema Builder for database operations
-- ✅ Migration system (ORM driver)
+- ✅ Advanced Migration system (`Schemer` package)
 - ✅ Seeder system for data seeding
 - ✅ Factory pattern for test data
-- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso)
-- ✅ Transaction support
+- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle)
+- ✅ Transaction support with savepoints and callbacks
 - ✅ Observer system for model events
-- ✅ Soft deletes
-- ✅ Associations (BelongsTo, HasMany, HasOne)
+- ✅ Soft deletes with multiple strategies (NULL and Max-Date)
+- ✅ Associations (BelongsTo, HasMany, HasOne, Polymorphic)
 - ✅ Connection pooling
 - ✅ Context support
 
@@ -515,7 +516,6 @@ Neat ORM is actively developed with the following features implemented:
 - [ ] More relationship types (HasManyThrough, BelongsToMany)
 - [ ] Query caching
 - [ ] Full-text search support
-- [ ] Polymorphic relationships
 - [ ] Scopes and global scopes
 - [ ] Mutators and accessors
 - [ ] Model casting
