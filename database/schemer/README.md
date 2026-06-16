@@ -319,6 +319,8 @@ schemer.AddMigrations(migrations)
 schemer.Up(context.Background())
 ```
 
+> **Note**: `schema.Register()`, `schema.Migrations()`, and `schema.NewMigrationManager()` have been removed. Use the `schemer` package as shown above.
+
 ## Examples
 
 See the `examples/schemer-migrations` directory for complete examples of using the schemer package.
