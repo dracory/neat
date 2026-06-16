@@ -192,7 +192,7 @@ func TestAddMigrations(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 		&MockMigration{signature: "migration_3", description: "Third migration"},
@@ -645,7 +645,7 @@ func TestRollbackSteps(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 		&MockMigration{signature: "migration_3", description: "Third migration"},
@@ -690,7 +690,7 @@ func TestRollbackToBatch(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
@@ -762,7 +762,7 @@ func TestStatus_WithMigrations(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
@@ -889,7 +889,7 @@ func TestReset(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
@@ -1033,7 +1033,7 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
@@ -1083,7 +1083,7 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	impl := migrator.(*Migrator)
 	impl.SetTransactionsEnabled(false)
 
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
@@ -1120,7 +1120,7 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 
 	// Do NOT pre-create migration tracking table - runUp will create it inside the transaction
 	migrator := NewMigrator(db)
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}

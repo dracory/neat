@@ -8,7 +8,6 @@ import (
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/migrator"
-	"github.com/dracory/neat/database/schema"
 )
 
 // This example demonstrates the new migrator package for migration management
@@ -84,7 +83,7 @@ func RunMigratorBasedMigrations(dsn string) error {
 
 // CreateMigrationTrackerTable creates the migration tracking table
 type CreateMigrationTrackerTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateMigrationTrackerTable) Signature() string {
@@ -116,7 +115,7 @@ func (m *CreateMigrationTrackerTable) Down() error {
 
 // CreateUsersTable creates the users table
 type CreateUsersTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -150,7 +149,7 @@ func (m *CreateUsersTable) Down() error {
 
 // CreatePostsTable creates the posts table
 type CreatePostsTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreatePostsTable) Signature() string {
@@ -185,7 +184,7 @@ func (m *CreatePostsTable) Down() error {
 
 // CreateCommentsTable creates the comments table
 type CreateCommentsTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateCommentsTable) Signature() string {
@@ -220,7 +219,7 @@ func (m *CreateCommentsTable) Down() error {
 
 // AddPostsIndexes adds indexes to the posts table
 type AddPostsIndexes struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *AddPostsIndexes) Signature() string {
@@ -246,7 +245,7 @@ func (m *AddPostsIndexes) Down() error {
 
 // AddPublishedToPosts adds published_at column to posts table
 type AddPublishedToPosts struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *AddPublishedToPosts) Signature() string {

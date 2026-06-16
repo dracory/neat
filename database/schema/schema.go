@@ -16,7 +16,6 @@ import (
 )
 
 var _ contractsschema.Schema = (*Schema)(nil)
-var _ contractsschema.MigrationInterface = (*BaseMigration)(nil)
 
 type Schema struct {
 	contractsschema.CommonSchema
@@ -25,7 +24,6 @@ type Schema struct {
 	config     config.Config
 	grammar    contractsschema.Grammar
 	log        log.Log
-	migrations []contractsschema.MigrationInterface
 	orm        contractsorm.Orm
 	prefix     string
 	processor  contractsschema.Processor

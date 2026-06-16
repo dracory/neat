@@ -9,8 +9,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/database/schema"
-	"github.com/dracory/neat/database/migrator"
+		"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates transaction control in the migrator package
@@ -97,7 +96,7 @@ func RunTransactionExample(dsn string) error {
 
 // CreateMigrationTrackerTable creates the migration tracking table
 type CreateMigrationTrackerTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateMigrationTrackerTable) Signature() string {
@@ -129,7 +128,7 @@ func (m *CreateMigrationTrackerTable) Down() error {
 
 // CreateUsersTable creates the users table
 type CreateUsersTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -162,7 +161,7 @@ func (m *CreateUsersTable) Down() error {
 
 // CreatePostsTable creates the posts table
 type CreatePostsTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreatePostsTable) Signature() string {
@@ -194,7 +193,7 @@ func (m *CreatePostsTable) Down() error {
 
 // AddPostsIndexes adds indexes to the posts table
 type AddPostsIndexes struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *AddPostsIndexes) Signature() string {

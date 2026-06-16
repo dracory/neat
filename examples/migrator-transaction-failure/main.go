@@ -9,8 +9,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/database/schema"
-	"github.com/dracory/neat/database/migrator"
+		"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates transaction failure behavior
@@ -160,7 +159,7 @@ func RunTransactionFailureExample(dsn string) error {
 
 // CreateMigrationTrackerTable creates the migration tracking table
 type CreateMigrationTrackerTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateMigrationTrackerTable) Signature() string {
@@ -192,7 +191,7 @@ func (m *CreateMigrationTrackerTable) Down() error {
 
 // CreateUsersTable creates the users table
 type CreateUsersTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -223,7 +222,7 @@ func (m *CreateUsersTable) Down() error {
 
 // CreatePostsTable creates the posts table
 type CreatePostsTable struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *CreatePostsTable) Signature() string {
@@ -254,7 +253,7 @@ func (m *CreatePostsTable) Down() error {
 
 // FailingMigration is a migration that intentionally fails
 type FailingMigration struct {
-	schema.BaseMigration
+	migrator.BaseMigration
 }
 
 func (m *FailingMigration) Signature() string {

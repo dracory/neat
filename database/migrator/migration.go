@@ -1,0 +1,24 @@
+package migrator
+
+import contractsschema "github.com/dracory/neat/contracts/database/schema"
+
+// MigrationInterface defines the contract for a single migration.
+type MigrationInterface interface {
+	// Signature Get the migration signature.
+	Signature() string
+
+	// Description Get a human-readable description of what this migration does.
+	Description() string
+
+	// Up Run the migrations.
+	Up() error
+
+	// Down Reverse the migrations.
+	Down() error
+
+	// SetSchema sets the schema for this migration.
+	SetSchema(schema contractsschema.Schema)
+
+	// GetSchema returns the schema for this migration.
+	GetSchema() contractsschema.Schema
+}

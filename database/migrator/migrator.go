@@ -15,8 +15,8 @@ const defaultTableName = "migration_tracker"
 
 // MigratorInterface defines the contract for migration management
 type MigratorInterface interface {
-	AddMigration(migration contractsschema.MigrationInterface) error
-	AddMigrations(migrations []contractsschema.MigrationInterface) error
+	AddMigration(migration MigrationInterface) error
+	AddMigrations(migrations []MigrationInterface) error
 	Up(ctx context.Context) error
 	Down(ctx context.Context) error
 	RollbackSteps(ctx context.Context, steps int) error
@@ -33,7 +33,7 @@ type MigratorInterface interface {
 // Migrator handles execution and tracking of interface-based migrations
 type Migrator struct {
 	db                  *database.Database
-	migrations          []contractsschema.MigrationInterface
+	migrations          []MigrationInterface
 	useTransactions     bool
 	isolationLevel      string
 	tableName           string
@@ -46,20 +46,20 @@ type Migrator struct {
 func NewMigrator(db *database.Database) MigratorInterface {
 	return &Migrator{
 		db:              db,
-		migrations:      []contractsschema.MigrationInterface{},
+		migrations:      []MigrationInterface{},
 		useTransactions: true, // Default to safe transaction behavior
 		tableName:       defaultTableName,
 	}
 }
 
 // AddMigration adds a new migration to the list
-func (s *Migrator) AddMigration(migration contractsschema.MigrationInterface) error {
+func (s *Migrator) AddMigration(migration MigrationInterface) error {
 	s.migrations = append(s.migrations, migration)
 	return nil
 }
 
 // AddMigrations adds multiple migrations to the runner
-func (s *Migrator) AddMigrations(migrations []contractsschema.MigrationInterface) error {
+func (s *Migrator) AddMigrations(migrations []MigrationInterface) error {
 	s.migrations = append(s.migrations, migrations...)
 	return nil
 }
@@ -454,7 +454,7 @@ func (s *Migrator) getLastMigrations(query contractsorm.Query, step int) ([]Migr
 
 func (s *Migrator) rollbackMigration(schema contractsschema.Schema, query contractsorm.Query, id string) error {
 	// Find the migration by signature
-	var migration contractsschema.MigrationInterface
+	var migration MigrationInterface
 	for _, m := range s.migrations {
 		if m.Signature() == id {
 			migration = m

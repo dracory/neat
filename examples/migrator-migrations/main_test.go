@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
-	contractsschema "github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database/migrator"
 	mainpkg "github.com/dracory/neat/examples/migrator-migrations"
 )
 
@@ -24,7 +24,7 @@ func TestSchemaMigrations_AllMigrations(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Create migration instances
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []migrator.MigrationInterface{
 		&mainpkg.CreateMigrationTrackerTable{},
 		&mainpkg.CreateUsersTable{},
 		&mainpkg.CreatePostsTable{},
@@ -108,7 +108,7 @@ func TestSchemaMigrations_Rollback(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Create migration instances
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []migrator.MigrationInterface{
 		&mainpkg.CreateMigrationTrackerTable{},
 		&mainpkg.CreateUsersTable{},
 		&mainpkg.CreatePostsTable{},
@@ -180,7 +180,7 @@ func TestSchemaMigrations_DropTable(t *testing.T) {
 
 	// Inject schema into migrations
 	schema := db.Schema()
-	for _, m := range []contractsschema.MigrationInterface{&mainpkg.CreateMigrationTrackerTable{}, migration} {
+	for _, m := range []migrator.MigrationInterface{&mainpkg.CreateMigrationTrackerTable{}, migration} {
 		m.SetSchema(schema)
 	}
 
@@ -214,7 +214,7 @@ func TestSchemaMigrations_MultipleMigrations(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Create migration instances
-	migrations := []contractsschema.MigrationInterface{
+	migrations := []migrator.MigrationInterface{
 		&mainpkg.CreateMigrationTrackerTable{},
 		&mainpkg.CreateUsersTable{},
 		&mainpkg.CreatePostsTable{},
