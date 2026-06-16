@@ -56,14 +56,8 @@ type Schema interface {
 	// HasView Determine if the given view exists.
 	HasView(name string) bool
 
-	// Migrations Get the migrations.
-	Migrations() []MigrationInterface
-
 	// Orm Get the orm instance.
 	Orm() orm.Orm
-
-	// Register migrations.
-	Register([]MigrationInterface)
 
 	// Rename a table on the schema.
 	Rename(from, to string) error

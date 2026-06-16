@@ -162,7 +162,7 @@ func New(cfg db.DBConfig, opts ...Option) (*Database, error) {
 	database.ormInstance = ormInstance
 
 	// Initialize Schema
-	s, err := schema.NewSchema(database.config, database.logger, database.ormInstance, nil)
+	s, err := schema.NewSchema(database.config, database.logger, database.ormInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func NewFromSQLDB(sqlDB *sql.DB, opts ...Option) (*Database, error) {
 	}
 	database.ormInstance = ormInstance
 
-	s, err := schema.NewSchema(database.config, database.logger, database.ormInstance, nil)
+	s, err := schema.NewSchema(database.config, database.logger, database.ormInstance)
 	if err != nil {
 		return nil, err
 	}

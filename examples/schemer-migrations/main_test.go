@@ -33,9 +33,11 @@ func TestSchemaMigrations_AllMigrations(t *testing.T) {
 		&mainpkg.AddPublishedToPosts{},
 	}
 
-	// Register migrations with schema
+	// Inject schema into migrations
 	schema := db.Schema()
-	schema.Register(migrations)
+	for _, m := range migrations {
+		 m.SetSchema(schema)
+	}
 
 	// Run all migrations
 	for _, migration := range migrations {
@@ -113,9 +115,11 @@ func TestSchemaMigrations_Rollback(t *testing.T) {
 		&mainpkg.AddPublishedToPosts{},
 	}
 
-	// Register migrations with schema
+	// Inject schema into migrations
 	schema := db.Schema()
-	schema.Register(migrations)
+	for _, m := range migrations {
+		 m.SetSchema(schema)
+	}
 
 	// Run all migrations
 	for _, migration := range migrations {
@@ -174,9 +178,11 @@ func TestSchemaMigrations_DropTable(t *testing.T) {
 	// Create migration instance
 	migration := &mainpkg.CreateUsersTable{}
 
-	// Register migration with schema
+	// Inject schema into migrations
 	schema := db.Schema()
-	schema.Register([]contractsschema.MigrationInterface{&mainpkg.CreateMigrationTrackerTable{}, migration})
+	for _, m := range []contractsschema.MigrationInterface{&mainpkg.CreateMigrationTrackerTable{}, migration} {
+		 m.SetSchema(schema)
+	}
 
 	// Run migration
 	t.Logf("Running migration: %s - %s", migration.Signature(), migration.Description())
@@ -215,9 +221,11 @@ func TestSchemaMigrations_MultipleMigrations(t *testing.T) {
 		&mainpkg.CreateCommentsTable{},
 	}
 
-	// Register migrations with schema
+	// Inject schema into migrations
 	schema := db.Schema()
-	schema.Register(migrations)
+	for _, m := range migrations {
+		 m.SetSchema(schema)
+	}
 
 	// Run migrations in order
 	for i, migration := range migrations {

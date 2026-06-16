@@ -20,7 +20,7 @@ When a breaking change is introduced, it will be documented following this forma
 
 #### [Change Description]
 
-**Version**: X.Y.Z
+**Version**: YYYY-MM-DD
 
 **Impact**: Description of what changed
 
@@ -36,7 +36,29 @@ newCode()
 
 ### Current Breaking Changes
 
-*None at this time. Neat ORM has maintained backward compatibility since v0.1.0.*
+#### Removed `Schema.Register()` and `Schema.Migrations()`
+
+**Version**: 2026-06-16
+
+**Impact**: The `Schema` contract no longer exposes migration registration. The `Register([]MigrationInterface)` and `Migrations() []MigrationInterface` methods have been removed from `contracts/database/schema.Schema`, and the legacy `database/schema/migration_manager.go` has been deleted. The `schemer` package (or a future `migrator` rename) is the sole supported migration runner.
+
+**Migration**:
+
+```go
+// Before (old code)
+schema := db.Schema()
+schema.Register(migrations)
+for _, m := range schema.Migrations() {
+    _ = m.Up()
+}
+
+// After (new code)
+import "github.com/dracory/neat/database/schemer"
+
+s := schemer.NewSchemer(db)
+s.AddMigrations(migrations)
+_ = s.Up(ctx)
+```
 
 ## [Unreleased]
 

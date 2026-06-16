@@ -33,7 +33,7 @@ type Schema struct {
 	tx         contractsorm.Query
 }
 
-func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migrations []contractsschema.MigrationInterface) (*Schema, error) {
+func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm) (*Schema, error) {
 	driver := contractsdatabase.Driver(config.GetString(fmt.Sprintf("database.connections.%s.driver", orm.Name())))
 	prefix := config.GetString(fmt.Sprintf("database.connections.%s.prefix", orm.Name()))
 	var (
@@ -88,9 +88,8 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm, migratio
 
 		config:     config,
 		grammar:    grammar,
-		log:        log,
-		migrations: migrations,
-		orm:        orm,
+		log:    log,
+		orm:    orm,
 		prefix:     prefix,
 		processor:  processor,
 		schema:     schema,
@@ -115,7 +114,7 @@ func (r *Schema) GetTables() ([]contractsschema.Table, error) {
 }
 
 func (r *Schema) Connection(name string) contractsschema.Schema {
-	s, err := NewSchema(r.config, r.log, r.orm.Connection(name), r.migrations)
+	s, err := NewSchema(r.config, r.log, r.orm.Connection(name))
 	if err != nil {
 		r.log.Errorf("failed to create schema for connection %s: %v", name, err)
 		return nil
@@ -325,19 +324,8 @@ func (r *Schema) HasView(name string) bool {
 	return false
 }
 
-func (r *Schema) Migrations() []contractsschema.MigrationInterface {
-	return r.migrations
-}
-
 func (r *Schema) Orm() contractsorm.Orm {
 	return r.orm
-}
-
-func (r *Schema) Register(migrations []contractsschema.MigrationInterface) {
-	for _, migration := range migrations {
-		migration.SetSchema(r)
-	}
-	r.migrations = migrations
 }
 
 func (r *Schema) Rename(from, to string) error {
