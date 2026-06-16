@@ -113,6 +113,7 @@ func (s *Migrator) up(ctx context.Context) error {
 
 // runUp contains the shared migration execution logic
 func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query) error {
+	_ = ctx
 	// Ensure migration tracking table exists and is up to date
 	if err := s.ensureMigrationTracker(schema); err != nil {
 		return fmt.Errorf("failed to ensure migration tracker: %w", err)
@@ -201,6 +202,7 @@ func (s *Migrator) RollbackSteps(ctx context.Context, steps int) error {
 
 // runRollbackSteps contains the shared rollback logic
 func (s *Migrator) runRollbackSteps(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query, steps int) error {
+	_ = ctx
 	// Ensure migration tracking table exists
 	if !schema.HasTable(s.tableName) {
 		return fmt.Errorf("%s table does not exist", s.tableName)
@@ -238,6 +240,7 @@ func (s *Migrator) RollbackToBatch(ctx context.Context, batch int) error {
 
 // runRollbackToBatch contains the shared batch rollback logic
 func (s *Migrator) runRollbackToBatch(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query, batch int) error {
+	_ = ctx
 	// Ensure migration tracking table exists
 	if !schema.HasTable(s.tableName) {
 		return fmt.Errorf("%s table does not exist", s.tableName)
@@ -353,6 +356,7 @@ const maxResetIterations = 1000
 
 // runReset contains the shared reset logic
 func (s *Migrator) runReset(ctx context.Context, schema contractsschema.Schema, query contractsorm.Query) error {
+	_ = ctx
 	// Get all migrations
 	migrations, err := s.getMigrationsWithQuery(query)
 	if err != nil {
