@@ -47,6 +47,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 		for rows.Next() {
 			columns, err := rows.Columns()
 			if err != nil {
+				cursorChan <- &cursorWrapper{err: fmt.Errorf("failed to get columns: %w", err)}
 				return
 			}
 
@@ -57,6 +58,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 			}
 
 			if err := rows.Scan(valuePtrs...); err != nil {
+				cursorChan <- &cursorWrapper{err: fmt.Errorf("failed to scan row: %w", err)}
 				return
 			}
 
@@ -67,7 +69,17 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 			}
 
 			// Create a cursor wrapper that implements orm.Cursor
-			cursorChan <- &cursorWrapper{data: result}
+			// Use select to avoid blocking indefinitely if consumer stops reading
+			select {
+			case cursorChan <- &cursorWrapper{data: result}:
+			case <-ctx.Done():
+				return
+			}
+		}
+
+		// Check for errors after iteration completes
+		if err := rows.Err(); err != nil {
+			cursorChan <- &cursorWrapper{err: fmt.Errorf("row iteration error: %w", err)}
 		}
 	}()
 
@@ -77,12 +89,20 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 // cursorWrapper wraps a map to implement orm.Cursor
 type cursorWrapper struct {
 	data map[string]any
+	err  error
 }
 
 // Scan implements the orm.Cursor interface
 func (c *cursorWrapper) Scan(dest any) error {
+	if c.err != nil {
+		return c.err
+	}
+	if c.data == nil {
+		return fmt.Errorf("no data available")
+	}
+
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() != reflect.Ptr {
+	if destValue.Kind() != reflect.Pointer {
 		return fmt.Errorf("dest must be a pointer")
 	}
 	destValue = destValue.Elem()

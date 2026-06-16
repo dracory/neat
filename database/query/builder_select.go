@@ -395,7 +395,7 @@ func (b *Builder) buildCountSubquery(cq countQuery, placeholderFunc func(int) st
 	parentTypeName := ""
 	if b.query.model != nil {
 		v := reflect.ValueOf(b.query.model)
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
 		}
 		if v.Kind() == reflect.Struct {
@@ -461,7 +461,7 @@ func (b *Builder) buildExistsSubquery(eq existsQuery, placeholderFunc func(int) 
 	parentTypeName := ""
 	if b.query.model != nil {
 		v := reflect.ValueOf(b.query.model)
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
 		}
 		if v.Kind() == reflect.Struct {

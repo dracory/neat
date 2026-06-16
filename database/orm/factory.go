@@ -90,13 +90,13 @@ func (f *Factory) Make(value any, attributes ...map[string]any) (any, error) {
 
 	// If the input is a single model (not a slice), update it in place
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 		// For single models, copy the created instance back to the input
 		instancesValue := reflect.ValueOf(instances)
-		if instancesValue.Kind() == reflect.Ptr {
+		if instancesValue.Kind() == reflect.Pointer {
 			instancesValue = instancesValue.Elem()
 		}
 		// Try to assign if types are compatible
@@ -115,7 +115,7 @@ func (f *Factory) Make(value any, attributes ...map[string]any) (any, error) {
 // buildInstances creates the specified number of model instances with optional attributes.
 func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, error) {
 	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -132,7 +132,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 		for i := 0; i < f.count; i++ {
 			// Create a new instance for each element
 			elemType := v.Type().Elem()
-			if elemType.Kind() == reflect.Ptr {
+			if elemType.Kind() == reflect.Pointer {
 				elemType = elemType.Elem()
 			}
 			newElem := reflect.New(elemType).Elem()
@@ -140,7 +140,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 			// If the original slice has elements, copy from the first one as template
 			if v.Len() > 0 {
 				template := v.Index(0)
-				if template.Kind() == reflect.Ptr {
+				if template.Kind() == reflect.Pointer {
 					template = template.Elem()
 				}
 				newElem.Set(template)
@@ -154,7 +154,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 			}
 
 			// If the element type is a pointer, wrap it
-			if v.Type().Elem().Kind() == reflect.Ptr {
+			if v.Type().Elem().Kind() == reflect.Pointer {
 				result.Set(reflect.Append(result, newElem.Addr()))
 			} else {
 				result.Set(reflect.Append(result, newElem))
@@ -162,7 +162,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 		}
 
 		// Return as the same type as input (pointer to slice or slice)
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+		if reflect.TypeOf(value).Kind() == reflect.Pointer {
 			return result.Addr().Interface(), nil
 		}
 		return result.Interface(), nil
@@ -170,7 +170,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 
 	// Handle single model
 	valueType := reflect.TypeOf(value)
-	isPtr := valueType.Kind() == reflect.Ptr
+	isPtr := valueType.Kind() == reflect.Pointer
 
 	// Get the underlying type if it's a pointer
 	var elemType reflect.Type
@@ -190,7 +190,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 			newInstance = reflect.New(elemType)
 			// Copy struct values from original input
 			originalValue := reflect.ValueOf(value)
-			if originalValue.Kind() == reflect.Ptr {
+			if originalValue.Kind() == reflect.Pointer {
 				newInstance.Elem().Set(originalValue.Elem())
 			}
 		} else {
@@ -227,7 +227,7 @@ func (f *Factory) buildInstances(value any, attributes ...map[string]any) (any, 
 // applyAttributes applies the given attributes to a model instance using reflection.
 func applyAttributes(model any, attributes map[string]any) error {
 	v := reflect.ValueOf(model)
-	if v.Kind() != reflect.Ptr {
+	if v.Kind() != reflect.Pointer {
 		return fmt.Errorf("model must be a pointer")
 	}
 	v = v.Elem()

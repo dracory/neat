@@ -16,6 +16,7 @@ type SqlserverSchema struct {
 	orm       orm.Orm
 	prefix    string
 	processor processors.Sqlserver
+	tx        orm.Query
 }
 
 func NewSqlserverSchema(grammar *grammars.Sqlserver, orm orm.Orm, prefix string) *SqlserverSchema {
@@ -28,11 +29,30 @@ func NewSqlserverSchema(grammar *grammars.Sqlserver, orm orm.Orm, prefix string)
 	}
 }
 
+func (r *SqlserverSchema) WithTransaction(tx orm.Query) *SqlserverSchema {
+	return &SqlserverSchema{
+		CommonSchema: NewCommonSchema(r.grammar, r.orm).WithTransaction(tx),
+		grammar:      r.grammar,
+		orm:          r.orm,
+		prefix:       r.prefix,
+		processor:    r.processor,
+		tx:           tx,
+	}
+}
+
+func (r *SqlserverSchema) getQuery() orm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
+}
+
 func (r *SqlserverSchema) DropAllTables() error {
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
+	// Uses the transaction-aware query if available
 	if _, err := query.Exec(r.grammar.CompileDropAllForeignKeys()); err != nil {
 		return err
 	}
@@ -49,7 +69,7 @@ func (r *SqlserverSchema) DropAllTypes() error {
 }
 
 func (r *SqlserverSchema) DropAllViews() error {
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
@@ -67,7 +87,7 @@ func (r *SqlserverSchema) GetColumns(table string) ([]contractsschema.Column, er
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -87,7 +107,7 @@ func (r *SqlserverSchema) GetIndexes(table string) ([]contractsschema.Index, err
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}

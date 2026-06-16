@@ -137,7 +137,7 @@ func (p *PolymorphicHasMany) Append(values ...any) error {
 
 	// Get the expected type from the association field
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	field := val.FieldByName(p.association)
@@ -149,7 +149,7 @@ func (p *PolymorphicHasMany) Append(values ...any) error {
 	if relationType.Kind() == reflect.Slice {
 		relationType = relationType.Elem()
 	}
-	if relationType.Kind() == reflect.Ptr {
+	if relationType.Kind() == reflect.Pointer {
 		relationType = relationType.Elem()
 	}
 
@@ -157,7 +157,7 @@ func (p *PolymorphicHasMany) Append(values ...any) error {
 	for _, value := range values {
 		// Validate that the value type matches the expected association type
 		valueVal := reflect.ValueOf(value)
-		if valueVal.Kind() == reflect.Ptr {
+		if valueVal.Kind() == reflect.Pointer {
 			valueVal = valueVal.Elem()
 		}
 		if valueVal.Type() != relationType {
@@ -220,7 +220,7 @@ func (p *PolymorphicHasMany) Delete(values ...any) error {
 	for _, value := range values {
 		// Get the ID of the model to update
 		val := reflect.ValueOf(value)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 		idField := val.FieldByName("ID")
@@ -332,7 +332,7 @@ func (p *PolymorphicHasMany) Count() int64 {
 // Returns an error if the field is not found or not accessible.
 func (p *PolymorphicHasMany) getLocalKeyValue() (any, error) {
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -363,7 +363,7 @@ func (p *PolymorphicHasMany) getLocalKeyValue() (any, error) {
 // Returns empty string if the model is not a struct.
 func (p *PolymorphicHasMany) getModelTypeName() string {
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -380,7 +380,7 @@ func (p *PolymorphicHasMany) getModelTypeName() string {
 // Returns an error if the field is not found or not settable.
 func (p *PolymorphicHasMany) setPolymorphicIDValue(model any, value any) error {
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -426,7 +426,7 @@ func (p *PolymorphicHasMany) setPolymorphicIDValue(model any, value any) error {
 // Returns an error if the field is not found or not settable.
 func (p *PolymorphicHasMany) setPolymorphicTypeValue(model any, value any) error {
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -471,7 +471,7 @@ func (p *PolymorphicHasMany) setPolymorphicTypeValue(model any, value any) error
 func (p *PolymorphicHasMany) associationName() string {
 	// Try to get the field type from the model to infer table name
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -497,7 +497,7 @@ func (p *PolymorphicHasMany) associationName() string {
 	if relationType.Kind() == reflect.Slice {
 		relationType = relationType.Elem()
 	}
-	if relationType.Kind() == reflect.Ptr {
+	if relationType.Kind() == reflect.Pointer {
 		relationType = relationType.Elem()
 	}
 

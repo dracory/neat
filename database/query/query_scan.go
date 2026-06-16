@@ -48,7 +48,7 @@ func (q *Query) Scan(dest any) error {
 func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 	// Use reflection to handle different destination types
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() != reflect.Ptr {
+	if destValue.Kind() != reflect.Pointer {
 		return fmt.Errorf("dest must be a pointer")
 	}
 
@@ -221,6 +221,15 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 	if callbackType.NumIn() != 1 {
 		return fmt.Errorf("callback must accept exactly one parameter")
 	}
+	if callbackType.NumOut() > 1 {
+		return fmt.Errorf("callback must return at most one value")
+	}
+	if callbackType.NumOut() == 1 {
+		errorType := reflect.TypeOf((*error)(nil)).Elem()
+		if !callbackType.Out(0).Implements(errorType) {
+			return fmt.Errorf("callback return type must be error")
+		}
+	}
 
 	paramType := callbackType.In(0)
 	if paramType.Kind() != reflect.Slice {
@@ -229,7 +238,7 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 
 	elemType := paramType.Elem()
 	realElemType := elemType
-	isPtr := elemType.Kind() == reflect.Ptr
+	isPtr := elemType.Kind() == reflect.Pointer
 	if isPtr {
 		realElemType = elemType.Elem()
 	}

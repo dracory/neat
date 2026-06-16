@@ -9,7 +9,7 @@ import (
 // BuildInsert builds an INSERT query from the query state.
 func (b *Builder) BuildInsert(value any) (string, []any) {
 	var parts []string
-	var args []any = []any{}
+	var args = []any{}
 
 	// INSERT clause
 	parts = append(parts, "INSERT")
@@ -75,7 +75,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 
 		// Handle bulk insert
 		v := reflect.ValueOf(value)
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
 		}
 

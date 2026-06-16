@@ -1,6 +1,8 @@
 package collect
 
 import (
+	"cmp"
+
 	"github.com/samber/lo"
 	"github.com/samber/lo/mutable"
 	"golang.org/x/exp/constraints"
@@ -42,7 +44,7 @@ func Map[T any, R any](collection []T, iteratee func(item T, index int) R) []R {
 }
 
 // Max searches the maximum value of a collection.
-func Max[T constraints.Ordered](collection []T) T {
+func Max[T cmp.Ordered](collection []T) T {
 	return lo.Max(collection)
 }
 
@@ -52,7 +54,7 @@ func Merge[K comparable, V any](maps ...map[K]V) map[K]V {
 }
 
 // Min search the minimum value of a collection.
-func Min[T constraints.Ordered](collection []T) T {
+func Min[T cmp.Ordered](collection []T) T {
 	return lo.Min(collection)
 }
 

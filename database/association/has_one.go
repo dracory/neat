@@ -170,7 +170,7 @@ func (h *HasOne) Delete(values ...any) error {
 	// Set the foreign key to null for the related model using direct SQL update
 	value := values[0]
 	val := reflect.ValueOf(value)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	idField := val.FieldByName("ID")
@@ -252,7 +252,7 @@ func (h *HasOne) Count() int64 {
 // Returns an error if the field is not found or not accessible.
 func (h *HasOne) getLocalKeyValue() (any, error) {
 	val := reflect.ValueOf(h.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -285,7 +285,7 @@ func (h *HasOne) getLocalKeyValue() (any, error) {
 // Returns an error if the field is not found or not settable.
 func (h *HasOne) setForeignKeyValue(model any, value any) error {
 	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -353,7 +353,7 @@ func (h *HasOne) setForeignKeyValue(model any, value any) error {
 func (h *HasOne) associationName() string {
 	// Get the field type to infer table name
 	val := reflect.ValueOf(h.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -366,7 +366,7 @@ func (h *HasOne) associationName() string {
 	}
 
 	relationType := field.Type()
-	if relationType.Kind() == reflect.Ptr {
+	if relationType.Kind() == reflect.Pointer {
 		relationType = relationType.Elem()
 	}
 

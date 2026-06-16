@@ -13,7 +13,7 @@ import (
 
 // initializeRelations initializes relation fields in the destination struct.
 func (q *Query) initializeRelations(v reflect.Value) {
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
@@ -21,7 +21,7 @@ func (q *Query) initializeRelations(v reflect.Value) {
 		if v.Kind() == reflect.Slice {
 			for i := 0; i < v.Len(); i++ {
 				elem := v.Index(i)
-				if elem.Kind() == reflect.Ptr {
+				if elem.Kind() == reflect.Pointer {
 					elem = elem.Elem()
 				}
 				if elem.Kind() == reflect.Struct {
@@ -38,7 +38,7 @@ func (q *Query) initializeRelations(v reflect.Value) {
 			continue
 		}
 
-		if field.Kind() == reflect.Ptr && field.IsNil() {
+		if field.Kind() == reflect.Pointer && field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))
 		} else if field.Kind() == reflect.Slice && field.IsNil() {
 			field.Set(reflect.MakeSlice(field.Type(), 0, 0))
@@ -74,12 +74,12 @@ func (q *Query) getParentTypeName(v reflect.Value) string {
 	// For embedded types or anonymous structs, try to get from the model
 	if q.model != nil {
 		modelType := reflect.TypeOf(q.model)
-		if modelType.Kind() == reflect.Ptr {
+		if modelType.Kind() == reflect.Pointer {
 			modelType = modelType.Elem()
 		}
 		if modelType.Kind() == reflect.Slice {
 			modelType = modelType.Elem()
-			if modelType.Kind() == reflect.Ptr {
+			if modelType.Kind() == reflect.Pointer {
 				modelType = modelType.Elem()
 			}
 		}
@@ -92,7 +92,7 @@ func (q *Query) getParentTypeName(v reflect.Value) string {
 func (q *Query) loadHasManyRelation(v reflect.Value, field reflect.Value, relation string, conn *sql.DB) error {
 	// Get the relation field type
 	relationType := field.Type().Elem()
-	if relationType.Kind() == reflect.Ptr {
+	if relationType.Kind() == reflect.Pointer {
 		relationType = relationType.Elem()
 	}
 
@@ -163,7 +163,7 @@ func (q *Query) loadHasManyRelation(v reflect.Value, field reflect.Value, relati
 		}
 		copyScanResults(destValue, columns, values)
 
-		if field.Type().Elem().Kind() == reflect.Ptr {
+		if field.Type().Elem().Kind() == reflect.Pointer {
 			slice = reflect.Append(slice, dest)
 		} else {
 			slice = reflect.Append(slice, destValue)
@@ -258,7 +258,7 @@ func (q *Query) loadHasOneRelation(v reflect.Value, field reflect.Value, relatio
 
 // loadRelationsWithConn loads relations using a specific connection.
 func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
@@ -266,7 +266,7 @@ func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
 		if v.Kind() == reflect.Slice {
 			for i := 0; i < v.Len(); i++ {
 				elem := v.Index(i)
-				if elem.Kind() == reflect.Ptr {
+				if elem.Kind() == reflect.Pointer {
 					elem = elem.Elem()
 				}
 				if elem.Kind() == reflect.Struct {
@@ -306,7 +306,7 @@ func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
 		}
 
 		// Handle has-one relationships (pointer fields)
-		if field.Kind() == reflect.Ptr {
+		if field.Kind() == reflect.Pointer {
 			if err := q.loadHasOneRelation(v, field, relation, conn); err != nil {
 				// Log error but continue with other relations
 				// This maintains backward compatibility while surfacing errors
@@ -358,7 +358,7 @@ func (q *Query) Load(dest any, relation string, args ...any) error {
 
 	// Get the reflect value of the destination
 	v := reflect.ValueOf(dest)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -373,7 +373,7 @@ func (q *Query) Load(dest any, relation string, args ...any) error {
 func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
 	// Get the reflect value of the destination
 	v := reflect.ValueOf(dest)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -384,7 +384,7 @@ func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
 	}
 
 	// For has-one relationships (pointer fields), check if already loaded
-	if field.Kind() == reflect.Ptr && !field.IsNil() {
+	if field.Kind() == reflect.Pointer && !field.IsNil() {
 		// Already loaded, skip
 		return nil
 	}
@@ -479,7 +479,7 @@ func (q *Query) Association(assocName string) contractsorm.Association {
 
 	// Get the reflect value of the model
 	v := reflect.ValueOf(q.model)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
@@ -530,7 +530,7 @@ func (q *Query) Association(assocName string) contractsorm.Association {
 		// The related model should have polymorphic_id and polymorphic_type fields
 		// We can detect this by checking if the field type has these fields
 		relationType := field.Type().Elem()
-		if relationType.Kind() == reflect.Ptr {
+		if relationType.Kind() == reflect.Pointer {
 			relationType = relationType.Elem()
 		}
 
@@ -595,7 +595,7 @@ func (q *Query) Association(assocName string) contractsorm.Association {
 		return association.NewHasMany(q, q.model, assocName, foreignKey, localKey)
 	}
 
-	if field.Kind() == reflect.Ptr {
+	if field.Kind() == reflect.Pointer {
 		// Check if this is BelongsTo or HasOne
 		// BelongsTo: the model has a foreign key field (e.g., UserID)
 		// HasOne: the related model has a foreign key field

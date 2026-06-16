@@ -1,6 +1,13 @@
 # Proposal: Track Updated Fields (Dirty Tracking)
 
+**Date**: June 15, 2026
+**Status**: Rejected
+**Priority**: Nice to Have
+**Author**: Neat ORM Team
+
 This proposal outlines how to implement "dirty tracking" in the Neat ORM, allowing efficient updates by sending only modified fields to the database.
+
+**Rejection Reason**: Very low impact - existing methods (`Update()`, `Select()`) already solve all dirty tracking use cases effectively. The complexity of implementation outweighs the benefits.
 
 ## Problem Statement
 

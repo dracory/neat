@@ -557,7 +557,7 @@ func TestBulkInsertSetsIDs(t *testing.T) {
 
 	// Note: IDs are not set for bulk inserts in SQLite/MySQL
 	// Verify by querying the database
-	var fetchedUsers []BulkUser = []BulkUser{}
+	var fetchedUsers = []BulkUser{}
 	err = w.Q.Find(&fetchedUsers)
 	if err != nil {
 		t.Fatalf("Find failed: %v", err)

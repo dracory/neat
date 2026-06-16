@@ -559,58 +559,6 @@ func TestDatabase_Seeder(t *testing.T) {
 	}
 }
 
-func TestDatabase_Migrate(t *testing.T) {
-	config := db.DBConfig{
-		Default: "default",
-		Connections: map[string]db.ConnectionConfig{
-			"default": {
-				Driver:   "sqlite",
-				Database: ":memory:",
-			},
-		},
-	}
-
-	db, err := New(config, WithLogger(log.NewNoopLogger()))
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer func() { _ = db.Close() }()
-
-	// Test Migrate with empty paths (should use default)
-	err = db.Migrate()
-	if err != nil {
-		t.Errorf("Migrate() failed: %v", err)
-	}
-}
-
-func TestDatabase_MigrationStatus(t *testing.T) {
-	config := db.DBConfig{
-		Default: "default",
-		Connections: map[string]db.ConnectionConfig{
-			"default": {
-				Driver:   "sqlite",
-				Database: ":memory:",
-			},
-		},
-	}
-
-	db, err := New(config, WithLogger(log.NewNoopLogger()))
-	if err != nil {
-		t.Fatalf("Failed to create database: %v", err)
-	}
-	defer func() { _ = db.Close() }()
-
-	// Test MigrationStatus - should return empty slice when no migrations
-	status, err := db.MigrationStatus()
-	if err != nil {
-		t.Errorf("MigrationStatus() failed: %v", err)
-	}
-	// When no migrations are registered, status should be empty
-	if len(status) != 0 {
-		t.Errorf("Expected empty status when no migrations, got %d items", len(status))
-	}
-}
-
 func TestNewFromSQLDB_NilDB(t *testing.T) {
 	_, err := NewFromSQLDB(nil, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
 	if err == nil {
@@ -685,7 +633,7 @@ func ExampleNew() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Use the database
 	query := db.Query()
@@ -712,7 +660,7 @@ func ExampleNew_multipleConnections() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get a specific connection
 	replica, err := db.Connection("replica")
@@ -748,7 +696,7 @@ func ExampleNew_withPoolConfig() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -758,7 +706,7 @@ func ExampleNewFromDSN() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -768,7 +716,7 @@ func ExampleNewFromDSN_postgres() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -778,7 +726,7 @@ func ExampleNewFromDSN_mysql() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -788,7 +736,7 @@ func ExampleNewFromDSN_sqlite() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -798,7 +746,7 @@ func ExampleNewFromDSN_turso() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -808,13 +756,13 @@ func ExampleNewFromSQLDB() {
 	if err != nil {
 		panic(err)
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	db, err := NewFromSQLDB(sqlDB, WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -824,13 +772,13 @@ func ExampleNewFromSQLDB_withDriver() {
 	if err != nil {
 		panic(err)
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	db, err := NewFromSQLDB(sqlDB, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -849,7 +797,7 @@ func ExampleDatabase_Query() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the ORM query builder
 	query := db.Query()
@@ -871,7 +819,7 @@ func ExampleDatabase_Schema() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Get the schema builder
 	schema := db.Schema()
@@ -893,7 +841,7 @@ func ExampleDatabase_Transaction() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Execute a transaction with automatic rollback on error
 	err = db.Transaction(func(tx orm.Query) error {
@@ -922,7 +870,7 @@ func ExampleDatabase_Transaction_withError() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Transaction with error handling - automatically rolls back on error
 	err = db.Transaction(func(tx orm.Query) error {
@@ -950,7 +898,7 @@ func ExampleDatabase_Transaction_withIsolation() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Transaction with isolation level
 	err = db.Transaction(func(tx orm.Query) error {
@@ -985,7 +933,7 @@ func ExampleNew_withReadWriteConnections() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Use read connection for queries
 	readConn, err := db.Connection("read")
@@ -1008,7 +956,7 @@ func ExampleNewFromDSN_withQueryParams() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	_ = db
 }
 
@@ -1027,7 +975,7 @@ func ExampleDatabase_Transaction_nested() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Nested transaction using savepoints
 	err = db.Transaction(func(tx orm.Query) error {

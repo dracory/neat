@@ -175,7 +175,7 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 	// Clear existing WHERE clauses if model has a non-zero ID to use ID-based restore
 	if len(model) > 0 && model[0] != nil {
 		v := reflect.ValueOf(model[0])
-		if v.Kind() == reflect.Ptr {
+		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
 		}
 		if v.Kind() == reflect.Struct {

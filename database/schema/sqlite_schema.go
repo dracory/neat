@@ -16,6 +16,7 @@ type SqliteSchema struct {
 	orm       orm.Orm
 	prefix    string
 	processor processors.Sqlite
+	tx        orm.Query
 }
 
 func NewSqliteSchema(grammar *grammars.Sqlite, orm orm.Orm, prefix string) *SqliteSchema {
@@ -28,7 +29,27 @@ func NewSqliteSchema(grammar *grammars.Sqlite, orm orm.Orm, prefix string) *Sqli
 	}
 }
 
+func (r *SqliteSchema) WithTransaction(tx orm.Query) *SqliteSchema {
+	return &SqliteSchema{
+		CommonSchema: NewCommonSchema(r.grammar, r.orm).WithTransaction(tx),
+		grammar:      r.grammar,
+		orm:          r.orm,
+		prefix:       r.prefix,
+		processor:    r.processor,
+		tx:           tx,
+	}
+}
+
+func (r *SqliteSchema) getQuery() orm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
+}
+
 func (r *SqliteSchema) DropAllTables() error {
+	// PRAGMA writable_schema and VACUUM cannot run inside a transaction.
+	// Always use the base query, bypassing any WithTransaction wrapper.
 	query := r.orm.Query()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
@@ -54,28 +75,27 @@ func (r *SqliteSchema) DropAllTypes() error {
 }
 
 func (r *SqliteSchema) DropAllViews() error {
-	if err := r.orm.Transaction(func(tx orm.Query) error {
-		if _, err := tx.Exec(r.grammar.CompileEnableWriteableSchema()); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(r.grammar.CompileDropAllViews(nil)); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(r.grammar.CompileDisableWriteableSchema()); err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
+	// Use transaction-aware query for the drop operations if available
+	query := r.getQuery()
+	if query == nil {
+		return fmt.Errorf("query not initialized")
+	}
+	if _, err := query.Exec(r.grammar.CompileEnableWriteableSchema()); err != nil {
+		return err
+	}
+	if _, err := query.Exec(r.grammar.CompileDropAllViews(nil)); err != nil {
+		return err
+	}
+	if _, err := query.Exec(r.grammar.CompileDisableWriteableSchema()); err != nil {
 		return err
 	}
 
 	// cannot VACUUM from within a transaction
-	query := r.orm.Query()
-	if query == nil {
+	nonTxQuery := r.orm.Query()
+	if nonTxQuery == nil {
 		return fmt.Errorf("query not initialized")
 	}
-	if _, err := query.Exec(r.grammar.CompileRebuild()); err != nil {
+	if _, err := nonTxQuery.Exec(r.grammar.CompileRebuild()); err != nil {
 		return err
 	}
 
@@ -86,7 +106,7 @@ func (r *SqliteSchema) GetColumns(table string) ([]schema.Column, error) {
 	table = r.prefix + table
 
 	var dbColumns []schema.DBColumn
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -101,7 +121,7 @@ func (r *SqliteSchema) GetIndexes(table string) ([]schema.Index, error) {
 	table = r.prefix + table
 
 	var dbIndexes []schema.DBIndex
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}

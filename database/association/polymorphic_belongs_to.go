@@ -144,7 +144,7 @@ func (p *PolymorphicBelongsTo) Append(values ...any) error {
 	// Get the ID from the related model
 	relatedModel := values[0]
 	val := reflect.ValueOf(relatedModel)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -234,7 +234,7 @@ func (p *PolymorphicBelongsTo) Delete(values ...any) error {
 	// Validate that the provided value matches the current association
 	relatedModel := values[0]
 	val := reflect.ValueOf(relatedModel)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -363,7 +363,7 @@ func (p *PolymorphicBelongsTo) Count() int64 {
 // Returns an error if the field is not found or not accessible.
 func (p *PolymorphicBelongsTo) getPolymorphicIDValue() (any, error) {
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -390,7 +390,7 @@ func (p *PolymorphicBelongsTo) getPolymorphicIDValue() (any, error) {
 // Returns an error if the field is not found or not accessible.
 func (p *PolymorphicBelongsTo) getPolymorphicTypeValue() (any, error) {
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -419,7 +419,7 @@ func (p *PolymorphicBelongsTo) getPolymorphicTypeValue() (any, error) {
 // Returns an error if the field is not found or not settable.
 func (p *PolymorphicBelongsTo) setPolymorphicIDValue(value any) error {
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
@@ -465,7 +465,7 @@ func (p *PolymorphicBelongsTo) setPolymorphicIDValue(value any) error {
 // Returns an error if the field is not found or not settable.
 func (p *PolymorphicBelongsTo) setPolymorphicTypeValue(value any) error {
 	val := reflect.ValueOf(p.model)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {

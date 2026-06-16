@@ -30,7 +30,7 @@ func TestInitializeRelations(t *testing.T) {
 	if !userField.IsValid() {
 		t.Error("Expected User field to be valid")
 	}
-	if userField.Kind() != reflect.Ptr {
+	if userField.Kind() != reflect.Pointer {
 		t.Error("Expected User field to be a pointer")
 	}
 	if userField.IsNil() {

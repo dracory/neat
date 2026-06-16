@@ -18,6 +18,7 @@ type PostgresSchema struct {
 	prefix    string
 	processor processors.Postgres
 	schema    string
+	tx        orm.Query
 }
 
 func NewPostgresSchema(grammar *grammars.Postgres, orm orm.Orm, schema, prefix string) *PostgresSchema {
@@ -29,6 +30,25 @@ func NewPostgresSchema(grammar *grammars.Postgres, orm orm.Orm, schema, prefix s
 		processor:    processors.NewPostgres(),
 		schema:       schema,
 	}
+}
+
+func (r *PostgresSchema) WithTransaction(tx orm.Query) *PostgresSchema {
+	return &PostgresSchema{
+		CommonSchema: NewCommonSchema(r.grammar, r.orm).WithTransaction(tx),
+		grammar:      r.grammar,
+		orm:          r.orm,
+		prefix:       r.prefix,
+		processor:    r.processor,
+		schema:       r.schema,
+		tx:           tx,
+	}
+}
+
+func (r *PostgresSchema) getQuery() orm.Query {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.orm.Query()
 }
 
 func (r *PostgresSchema) DropAllTables() error {
@@ -67,10 +87,12 @@ func (r *PostgresSchema) DropAllTables() error {
 		return nil
 	}
 
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
+
+	// PostgreSQL DDL statements are transactional, so we can use the transaction if available
 	_, err = query.Exec(r.grammar.CompileDropAllTables(dropTables))
 
 	return err
@@ -94,6 +116,25 @@ func (r *PostgresSchema) DropAllTypes() error {
 		}
 	}
 
+	query := r.getQuery()
+	if query.InTransaction() {
+		// Already in transaction, use it directly
+		if len(dropTypes) > 0 {
+			if _, err := query.Exec(r.grammar.CompileDropAllTypes(dropTypes)); err != nil {
+				return err
+			}
+		}
+
+		if len(dropDomains) > 0 {
+			if _, err := query.Exec(r.grammar.CompileDropAllDomains(dropDomains)); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	// Not in transaction, wrap in one
 	return r.orm.Transaction(func(tx orm.Query) error {
 		if len(dropTypes) > 0 {
 			if _, err := tx.Exec(r.grammar.CompileDropAllTypes(dropTypes)); err != nil {
@@ -127,7 +168,7 @@ func (r *PostgresSchema) DropAllViews() error {
 		return nil
 	}
 
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
@@ -145,7 +186,7 @@ func (r *PostgresSchema) GetColumns(table string) ([]contractsschema.Column, err
 	table = r.prefix + table
 
 	var dbColumns []contractsschema.DBColumn
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -165,7 +206,7 @@ func (r *PostgresSchema) GetIndexes(table string) ([]contractsschema.Index, erro
 	table = r.prefix + table
 
 	var dbIndexes []contractsschema.DBIndex
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}
@@ -178,7 +219,7 @@ func (r *PostgresSchema) GetIndexes(table string) ([]contractsschema.Index, erro
 
 func (r *PostgresSchema) GetTypes() ([]contractsschema.Type, error) {
 	var types []contractsschema.Type
-	query := r.orm.Query()
+	query := r.getQuery()
 	if query == nil {
 		return nil, fmt.Errorf("query not initialized")
 	}

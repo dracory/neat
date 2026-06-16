@@ -13,9 +13,7 @@ import (
 	"github.com/dracory/neat/contracts/database/orm"
 	contractsseeder "github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
-	contractsMigration "github.com/dracory/neat/contracts/migration"
 	"github.com/dracory/neat/database/db"
-	databaseMigration "github.com/dracory/neat/database/migration"
 	databaseorm "github.com/dracory/neat/database/orm"
 	"github.com/dracory/neat/database/schema"
 	databaseseeder "github.com/dracory/neat/database/seeder"
@@ -643,43 +641,6 @@ func (d *Database) Factory() orm.Factory {
 // Observe registers an observer for the given model.
 func (d *Database) Observe(model any, observer orm.Observer) {
 	d.ormInstance.Observe(model, observer)
-}
-
-// Migrate runs all pending migrations.
-func (d *Database) Migrate(paths ...string) error {
-	migrator := d.getMigrator(paths)
-	return migrator.Run()
-}
-
-// MigrateDown rolls back the last migration batch.
-func (d *Database) MigrateDown(step int, paths ...string) error {
-	migrator := d.getMigrator(paths)
-	return migrator.Rollback(step, 0)
-}
-
-// MigrateFresh drops all tables and re-runs all migrations.
-func (d *Database) MigrateFresh(paths ...string) error {
-	migrator := d.getMigrator(paths)
-	return migrator.Fresh()
-}
-
-// MigrateReset rolls back all migrations and re-runs them.
-func (d *Database) MigrateReset(paths ...string) error {
-	migrator := d.getMigrator(paths)
-	return migrator.Reset()
-}
-
-// MigrationStatus returns the status of all migrations.
-func (d *Database) MigrationStatus(paths ...string) ([]contractsMigration.Status, error) {
-	migrator := d.getMigrator(paths)
-	return migrator.Status()
-}
-
-func (d *Database) getMigrator(paths []string) contractsMigration.Migrator {
-	if len(paths) == 0 {
-		paths = []string{"./migrations"}
-	}
-	return databaseMigration.NewMigrator(d.config, d.ormInstance, d.schema, paths)
 }
 
 // Seed runs the specified seeders.

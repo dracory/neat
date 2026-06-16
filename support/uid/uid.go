@@ -18,6 +18,23 @@ var (
 // GenerateShortID creates a new 11-character lowercase short ID.
 // It encodes the current microsecond timestamp in Crockford Base32.
 // Thread-safe via mutex to prevent duplicate IDs under concurrency.
+//
+// Business Logic:
+//   - Uses time.Now().UnixMicro() as the uniqueness base.
+//   - Maintains package-level lastTimestamp and counter across calls.
+//   - Counter increments when the timestamp equals the previous call;
+//     resets to 0 when the timestamp changes.
+//   - The counter is 4 bits (0-15), giving 16 unique IDs per timestamp tick.
+//   - On Windows the system timer resolution is ~1 ms, so UnixMicro returns
+//     the same value for every call within the same millisecond.
+//   - Once the counter exceeds 15 it would overflow and wrap back to 0,
+//     producing the exact same composite value and therefore a duplicate ID.
+//   - Sleeping 1 ms guarantees the timestamp advances to the next tick.
+//   - Packs timestamp and counter into a single int64: (ts << 4) | counter.
+//   - The timestamp occupies the high bits; the counter occupies the low 4 bits.
+//   - Encodes the composite value using Crockford Base32 alphabet.
+//   - Converts the result to lowercase.
+//   - Returns an 11-character string (e.g. "sa4rc789wxg").
 func GenerateShortID() string {
 	idMutex.Lock()
 	defer idMutex.Unlock()
@@ -30,8 +47,13 @@ func GenerateShortID() string {
 		counter = 0
 	}
 
-	// Pack timestamp and sub-microsecond counter into a single int64.
-	// The counter provides up to 16 unique IDs within the same microsecond.
+	if counter > 15 {
+		time.Sleep(1 * time.Millisecond)
+		ts = time.Now().UnixMicro()
+		lastTimestamp = ts
+		counter = 0
+	}
+
 	composite := (ts << 4) | counter
 	return strings.ToLower(encodeCrockford(composite))
 }

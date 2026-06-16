@@ -31,7 +31,7 @@ func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 func (q *Query) validateAggregate(column string) error {
 	// Validate column name: alphanumeric, underscores, dots or *
 	for _, r := range column {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '.' || r == '*') {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' && r != '.' && r != '*' {
 			return fmt.Errorf("invalid column name: %s", column)
 		}
 	}
@@ -94,18 +94,16 @@ func (q *Query) UpdateOrInsert(attributes any, values any) error {
 
 // updateOrInsertInTransaction performs the actual UpdateOrInsert logic within a transaction.
 func (q *Query) updateOrInsertInTransaction(attributes any, values any) error {
-	// Build WHERE conditions from attributes
-	clone := q.Clone().(*Query)
-
 	// Handle nil attributes - just create with values
 	if attributes == nil {
 		return q.Create(values)
 	}
 
-	// Handle map[string]any for attributes
+	// Build an update query with WHERE conditions from attributes
+	updateQ := q.Clone().(*Query)
 	if attrs, ok := attributes.(map[string]any); ok {
 		for col, val := range attrs {
-			clone.Where(col, val)
+			updateQ.Where(col, val)
 		}
 	} else {
 		// For structs, extract fields and build WHERE conditions
@@ -114,38 +112,21 @@ func (q *Query) updateOrInsertInTransaction(attributes any, values any) error {
 			return fmt.Errorf("failed to extract columns and values from attributes: %w", err)
 		}
 		for i, col := range cols {
-			clone.Where(col, vals[i])
+			updateQ.Where(col, vals[i])
 		}
 	}
 
-	// Try to find the record first
-	count := int64(0)
-	if err := clone.Count(&count); err != nil {
+	// Attempt update first; if rows were affected, the record exists.
+	// This avoids the check-then-act (TOCTOU) race condition.
+	result, err := updateQ.Update(values)
+	if err != nil {
 		return err
 	}
-
-	if count > 0 {
-		// Record exists, update it
-		// Use the original query with WHERE conditions from attributes
-		updateQ := q.Clone().(*Query)
-		if attrs, ok := attributes.(map[string]any); ok {
-			for col, val := range attrs {
-				updateQ.Where(col, val)
-			}
-		} else {
-			cols, vals, err := NewBuilder(q).extractSingleColumnsAndValues(attributes)
-			if err != nil {
-				return fmt.Errorf("failed to extract columns and values from attributes: %w", err)
-			}
-			for i, col := range cols {
-				updateQ.Where(col, vals[i])
-			}
-		}
-		_, err := updateQ.Update(values)
-		return err
+	if result.RowsAffected > 0 {
+		return nil
 	}
 
-	// Record doesn't exist, create it
+	// No rows affected, record doesn't exist - create it
 	// Merge attributes and values for the insert
 	if attrsMap, ok := attributes.(map[string]any); ok {
 		if valsMap, ok := values.(map[string]any); ok {

@@ -1,27 +1,37 @@
 package migration
 
+import "time"
+
 const (
 	MigratorDefault = "default"
 	MigratorSql     = "sql"
 )
 
 type Status struct {
-	Name  string
-	Batch int
-	Ran   bool
+	Name        string
+	Batch       int
+	Ran         bool
+	Description string
+	Duration    time.Duration
+	LastRun     time.Time
 }
 
-type Migrator interface {
+type MigratorInterface interface {
 	// Create a new migration file.
 	Create(name string) error
+
 	// Fresh the migrations.
 	Fresh() error
+
 	// Reset the migrations.
 	Reset() error
+
 	// Rollback the last migration operation.
 	Rollback(step, batch int) error
+
 	// Run the migrations according to paths.
 	Run() error
+
 	// Status get the migration's status.
 	Status() ([]Status, error)
 }
