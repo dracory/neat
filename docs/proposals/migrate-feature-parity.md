@@ -53,6 +53,8 @@ migrator.SetLexicographicalOrdering(false)
 
 ### 2. Duplicate Detection
 
+**Status**: Implemented
+
 **Current Behavior**: `AddMigration()` and `AddMigrations()` silently append duplicates.
 
 **Real Problem**: In a real codebase, migrations might be registered from multiple initialization paths (e.g., package `init()` functions, test setup, multiple feature branches merged together). When the same migration is registered twice, the current behavior silently accepts it. This leads to:
@@ -90,6 +92,8 @@ func (s *Migrator) AddMigration(migration MigrationInterface) error {
 ---
 
 ### 3. Complete Status Reporting
+
+**Status**: Implemented
 
 **Current Behavior**: `Status()` only returns records from the `migration_tracker` table. If you have registered migrations that have not yet run, there is no way to see them through the migrator API.
 
@@ -165,6 +169,8 @@ func (s *Migrator) Status() ([]MigrationStatus, error) {
 
 ### 4. Configurable Constructor
 
+**Status**: Implemented
+
 **Current Behavior**: `NewMigrator(db)` returns a migrator with defaults. All customization requires subsequent setter calls.
 
 **Real Problem**: Setting up a migrator with non-default options requires boilerplate:
@@ -234,18 +240,18 @@ migrator, err := migrator.NewMigratorWithOptions(db, &migrator.Options{
 ### Phase 1: Non-Breaking Additions
 
 - [x] **Lexicographical Ordering** -- *Implemented June 16, 2026*
-- [ ] **Configurable Constructor** -- `NewMigratorWithOptions()` and `Options` struct
+- [x] **Configurable Constructor** -- `NewMigratorWithOptions()` and `Options` struct
 
 ### Phase 2: Behavior Changes
 
-- [ ] **Duplicate Detection** -- `AddMigration()` returns error on duplicate signature
-- [ ] **Complete Status Reporting** -- `Status()` returns both `completed` and `pending` migrations
+- [x] **Duplicate Detection** -- `AddMigration()` returns error on duplicate signature
+- [x] **Complete Status Reporting** -- `Status()` returns both `completed` and `pending` migrations
 
 ### Phase 3: Documentation
 
-- [ ] Update `database/migrator/README.md`
-- [ ] Update examples
-- [ ] Update API reference
+- [x] Update `database/migrator/README.md`
+- [ ] Update examples (no examples need changes -- `NewMigrator` still works)
+- [ ] Update API reference (HTML docs to be regenerated from source)
 
 ## Backward Compatibility
 
@@ -260,26 +266,26 @@ migrator, err := migrator.NewMigratorWithOptions(db, &migrator.Options{
 
 ### Duplicate Detection
 
-- [ ] `AddMigration()` returns error when signature already exists
-- [ ] `AddMigrations()` returns error if any signature is duplicate
-- [ ] Empty signature returns error
-- [ ] First registration succeeds, second registration of same migration fails
+- [x] `AddMigration()` returns error when signature already exists
+- [x] `AddMigrations()` returns error if any signature is duplicate
+- [x] Empty signature returns error
+- [x] First registration succeeds, second registration of same migration fails
 
 ### Complete Status
 
-- [ ] `Status()` returns both completed and pending migrations
-- [ ] Completed migrations have `state: "completed"`, `batch`, `started_at`, `completed_at`
-- [ ] Pending migrations have `state: "pending"`, no timing fields
-- [ ] Results are sorted by signature
-- [ ] Empty tracker table returns all registered migrations as pending
+- [x] `Status()` returns both completed and pending migrations
+- [x] Completed migrations have `state: "completed"`, `batch`, `started_at`, `completed_at`
+- [x] Pending migrations have `state: "pending"`, no timing fields
+- [x] Results are sorted by signature
+- [x] Empty tracker table returns all registered migrations as pending
 
 ### Configurable Constructor
 
-- [ ] `NewMigratorWithOptions(db, nil)` is equivalent to `NewMigrator(db)`
-- [ ] `NewMigratorWithOptions(db, &Options{})` applies all defaults
-- [ ] All Options fields are applied correctly
-- [ ] Invalid `TableName` returns error
-- [ ] `NewMigrator(db)` continues to work unchanged
+- [x] `NewMigratorWithOptions(db, nil)` is equivalent to `NewMigrator(db)`
+- [x] `NewMigratorWithOptions(db, &Options{})` applies all defaults
+- [x] All Options fields are applied correctly
+- [x] Invalid `TableName` returns error
+- [x] `NewMigrator(db)` continues to work unchanged
 
 ## Why These Four?
 

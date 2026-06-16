@@ -1,4 +1,4 @@
-package migrator
+﻿package migrator
 
 import (
 	"context"
@@ -56,15 +56,68 @@ func NewMigrator(db *database.Database) MigratorInterface {
 	}
 }
 
-// AddMigration adds a new migration to the list
+// Options configures the Migrator at construction time.
+type Options struct {
+	TableName                  string
+	TransactionIsolationLevel  string
+	LexicographicalOrdering    bool
+	SignatureValidationEnabled bool
+	SignatureValidationFormat  SignatureFormat
+}
+
+// NewMigratorWithOptions creates a Migrator with the given options.
+func NewMigratorWithOptions(db *database.Database, opts *Options) (MigratorInterface, error) {
+	m := NewMigrator(db)
+
+	if opts == nil {
+		return m, nil
+	}
+
+	if opts.TableName != "" {
+		if err := m.SetTableName(opts.TableName); err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.TransactionIsolationLevel != "" {
+		m.SetTransactionIsolationLevel(opts.TransactionIsolationLevel)
+	}
+
+	m.SetLexicographicalOrdering(opts.LexicographicalOrdering)
+
+	if opts.SignatureValidationEnabled {
+		m.SetSignatureValidation(true, opts.SignatureValidationFormat)
+	}
+
+	return m, nil
+}
+
+// AddMigration adds a new migration to the list.
+// Returns an error if the migration signature is empty or already registered.
 func (s *Migrator) AddMigration(migration MigrationInterface) error {
+	signature := migration.Signature()
+	if signature == "" {
+		return fmt.Errorf("migration signature cannot be empty")
+	}
+
+	for _, existing := range s.migrations {
+		if existing.Signature() == signature {
+			return fmt.Errorf("duplicate migration signature: %s", signature)
+		}
+	}
+
 	s.migrations = append(s.migrations, migration)
 	return nil
 }
 
-// AddMigrations adds multiple migrations to the runner
+// AddMigrations adds multiple migrations to the runner.
+// Returns an error if any migration has an empty or duplicate signature.
 func (s *Migrator) AddMigrations(migrations []MigrationInterface) error {
-	s.migrations = append(s.migrations, migrations...)
+	for _, migration := range migrations {
+		if err := s.AddMigration(migration); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -286,33 +339,50 @@ func (s *Migrator) runRollbackToBatch(ctx context.Context, schema contractsschem
 	return nil
 }
 
-// Status returns migration status
+// Status returns migration status for all registered migrations.
+// Includes both completed migrations (from the tracker table) and
+// pending migrations (registered but not yet run).
 func (s *Migrator) Status() ([]MigrationStatus, error) {
-	// Ensure migration tracking table exists
-	if !s.db.Schema().HasTable(s.tableName) {
-		return []MigrationStatus{}, nil
-	}
+	var statuses []MigrationStatus
 
-	// Get all migrations from tracker
-	migrations, err := s.getMigrations()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get migrations: %w", err)
-	}
-
-	// Convert to status
-	status := make([]MigrationStatus, len(migrations))
-	for i, m := range migrations {
-		status[i] = MigrationStatus{
-			ID:          m.ID,
-			Description: m.Description,
-			Batch:       m.Batch,
-			StartedAt:   m.StartedAt,
-			CompletedAt: m.CompletedAt,
-			State:       "completed",
+	// Collect completed migrations from tracker
+	ranMigrations := make(map[string]bool)
+	if s.db.Schema().HasTable(s.tableName) {
+		trackers, err := s.getMigrations()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get migrations: %w", err)
+		}
+		for _, t := range trackers {
+			ranMigrations[t.ID] = true
+			statuses = append(statuses, MigrationStatus{
+				ID:          t.ID,
+				Description: t.Description,
+				Batch:       t.Batch,
+				StartedAt:   t.StartedAt,
+				CompletedAt: t.CompletedAt,
+				State:       "completed",
+			})
 		}
 	}
 
-	return status, nil
+	// Add pending migrations from registered list
+	for _, migration := range s.migrations {
+		sig := migration.Signature()
+		if !ranMigrations[sig] {
+			statuses = append(statuses, MigrationStatus{
+				ID:          sig,
+				Description: migration.Description(),
+				State:       "pending",
+			})
+		}
+	}
+
+	// Sort by signature for consistent output
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].ID < statuses[j].ID
+	})
+
+	return statuses, nil
 }
 
 // Fresh drops all tables and re-runs migrations

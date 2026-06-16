@@ -1,4 +1,4 @@
-package migrator
+﻿package migrator
 
 import (
 	"context"
@@ -209,6 +209,127 @@ func TestAddMigrations(t *testing.T) {
 	}
 }
 
+func TestAddMigration_Duplicate(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{
+		signature:   "test_migration",
+		description: "Test migration",
+	}
+
+	// First registration succeeds
+	if err := migrator.AddMigration(migration); err != nil {
+		t.Fatalf("first AddMigration should succeed: %v", err)
+	}
+
+	// Second registration with same signature fails
+	err = migrator.AddMigration(migration)
+	if err == nil {
+		t.Error("expected error on duplicate migration, got nil")
+	}
+	if err.Error() != "duplicate migration signature: test_migration" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+
+	// Verify only one migration was added
+	impl := migrator.(*Migrator)
+	if len(impl.migrations) != 1 {
+		t.Errorf("expected 1 migration, got %d", len(impl.migrations))
+	}
+}
+
+func TestAddMigration_EmptySignature(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{
+		signature:   "",
+		description: "Test migration with empty signature",
+	}
+
+	err = migrator.AddMigration(migration)
+	if err == nil {
+		t.Error("expected error on empty signature, got nil")
+	}
+	if err.Error() != "migration signature cannot be empty" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestAddMigrations_DuplicateInSlice(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migrations := []MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration"},
+		&MockMigration{signature: "migration_1", description: "Duplicate migration"},
+	}
+
+	err = migrator.AddMigrations(migrations)
+	if err == nil {
+		t.Error("expected error on duplicate in slice, got nil")
+	}
+	if err.Error() != "duplicate migration signature: migration_1" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+
+	// Verify only first two were added before error
+	impl := migrator.(*Migrator)
+	if len(impl.migrations) != 2 {
+		t.Errorf("expected 2 migrations, got %d", len(impl.migrations))
+	}
+}
+
+func TestAddMigrations_DuplicateAcrossCalls(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+
+	firstBatch := []MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration"},
+	}
+	secondBatch := []MigrationInterface{
+		&MockMigration{signature: "migration_3", description: "Third migration"},
+		&MockMigration{signature: "migration_1", description: "Duplicate of first"},
+	}
+
+	if err := migrator.AddMigrations(firstBatch); err != nil {
+		t.Fatalf("first AddMigrations should succeed: %v", err)
+	}
+
+	err = migrator.AddMigrations(secondBatch)
+	if err == nil {
+		t.Error("expected error on duplicate across calls, got nil")
+	}
+	if err.Error() != "duplicate migration signature: migration_1" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+
+	// Verify first batch + only migration_3 from second batch
+	impl := migrator.(*Migrator)
+	if len(impl.migrations) != 3 {
+		t.Errorf("expected 3 migrations, got %d", len(impl.migrations))
+	}
+}
 func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -312,14 +433,13 @@ func TestUp_EmptySignature(t *testing.T) {
 		signature:   "",
 		description: "Test migration",
 	}
-	if err := migrator.AddMigration(migration); err != nil {
-		t.Fatalf("AddMigration failed: %v", err)
-	}
 
-	ctx := context.Background()
-	err = migrator.Up(ctx)
+	err = migrator.AddMigration(migration)
 	if err == nil {
-		t.Error("Expected error for empty signature")
+		t.Fatal("expected AddMigration to fail for empty signature")
+	}
+	if err.Error() != "migration signature cannot be empty" {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 
@@ -794,6 +914,355 @@ func TestStatus_WithMigrations(t *testing.T) {
 		if s.ID != migrations[i].Signature() {
 			t.Errorf("Expected ID '%s' for migration %d, got '%s'", migrations[i].Signature(), i, s.ID)
 		}
+	}
+}
+
+
+func TestStatus_WithPendingMigrations(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	migrator := NewMigrator(db)
+
+	// Register 3 migrations
+	migrations := []MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration"},
+		&MockMigration{signature: "migration_3", description: "Third migration"},
+	}
+	if err := migrator.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	// Run first 3 migrations
+	ctx := context.Background()
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// Add a 4th migration after Up() -- it should show as pending
+	pendingMigration := &MockMigration{signature: "migration_4", description: "Fourth migration"}
+	if err := migrator.AddMigration(pendingMigration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+
+	status, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+
+	if len(status) != 4 {
+		t.Fatalf("expected 4 statuses (3 completed + 1 pending), got %d", len(status))
+	}
+
+	completed := 0
+	pending := 0
+	for _, s := range status {
+		switch s.State {
+		case "completed":
+			completed++
+			if s.Batch == 0 {
+				t.Errorf("completed migration %s should have a batch number", s.ID)
+			}
+		case "pending":
+			pending++
+			if s.Batch != 0 {
+				t.Errorf("pending migration %s should have batch 0, got %d", s.ID, s.Batch)
+			}
+		default:
+			t.Errorf("unexpected state '%s' for migration %s", s.State, s.ID)
+		}
+	}
+
+	if completed != 3 {
+		t.Errorf("expected 3 completed migrations, got %d", completed)
+	}
+	if pending != 1 {
+		t.Errorf("expected 1 pending migration, got %d", pending)
+	}
+
+	// Verify ordering by signature
+	expectedOrder := []string{"migration_1", "migration_2", "migration_3", "migration_4"}
+	for i, expected := range expectedOrder {
+		if status[i].ID != expected {
+			t.Errorf("expected status[%d].ID = '%s', got '%s'", i, expected, status[i].ID)
+		}
+	}
+}
+
+func TestStatus_AllPending(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migrations := []MigrationInterface{
+		&MockMigration{signature: "migration_a", description: "A migration"},
+		&MockMigration{signature: "migration_b", description: "B migration"},
+	}
+	if err := migrator.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	// No tracker table exists yet -- all should be pending
+	status, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+
+	if len(status) != 2 {
+		t.Fatalf("expected 2 pending statuses, got %d", len(status))
+	}
+
+	for _, s := range status {
+		if s.State != "pending" {
+			t.Errorf("expected state 'pending', got '%s'", s.State)
+		}
+	}
+}
+
+func TestStatus_AllCompleted(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create migration tracking table first
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	migrator := NewMigrator(db)
+	migrations := []MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration"},
+	}
+	if err := migrator.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	status, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+
+	if len(status) != 2 {
+		t.Fatalf("expected 2 completed statuses, got %d", len(status))
+	}
+
+	for _, s := range status {
+		if s.State != "completed" {
+			t.Errorf("expected state 'completed', got '%s'", s.State)
+		}
+	}
+}
+
+
+func TestNewMigratorWithOptions_NilOpts(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, nil)
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions(nil) failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if impl.tableName != defaultTableName {
+		t.Errorf("expected default table name, got '%s'", impl.tableName)
+	}
+	if !impl.lexicographicalOrdering {
+		t.Error("expected lexicographical ordering to be enabled by default")
+	}
+}
+
+func TestNewMigratorWithOptions_EmptyOpts(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, &Options{})
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions(&Options{}) failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if impl.tableName != defaultTableName {
+		t.Errorf("expected default table name, got '%s'", impl.tableName)
+	}
+}
+
+func TestNewMigratorWithOptions_TableName(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, &Options{
+		TableName: "my_migrations",
+	})
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if impl.tableName != "my_migrations" {
+		t.Errorf("expected table name 'my_migrations', got '%s'", impl.tableName)
+	}
+}
+
+func TestNewMigratorWithOptions_InvalidTableName(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	_, err = NewMigratorWithOptions(db, &Options{
+		TableName: "1invalid",
+	})
+	if err == nil {
+		t.Error("expected error for invalid table name, got nil")
+	}
+}
+
+func TestNewMigratorWithOptions_IsolationLevel(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, &Options{
+		TransactionIsolationLevel: "SERIALIZABLE",
+	})
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if impl.isolationLevel != "SERIALIZABLE" {
+		t.Errorf("expected isolation level 'SERIALIZABLE', got '%s'", impl.isolationLevel)
+	}
+}
+
+func TestNewMigratorWithOptions_LexicographicalOrdering(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, &Options{
+		LexicographicalOrdering: false,
+	})
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if impl.lexicographicalOrdering {
+		t.Error("expected lexicographical ordering to be disabled")
+	}
+}
+
+func TestNewMigratorWithOptions_SignatureValidation(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, &Options{
+		SignatureValidationEnabled: true,
+		SignatureValidationFormat:  SignatureFormatDateTime,
+	})
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if !impl.sigValidation {
+		t.Error("expected signature validation to be enabled")
+	}
+	if impl.sigValidationFormat != SignatureFormatDateTime {
+		t.Errorf("expected signature format 'datetime', got '%s'", impl.sigValidationFormat)
+	}
+}
+
+func TestNewMigratorWithOptions_Full(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator, err := NewMigratorWithOptions(db, &Options{
+		TableName:                  "custom_migrations",
+		TransactionIsolationLevel:  "READ COMMITTED",
+		LexicographicalOrdering:    true,
+		SignatureValidationEnabled: true,
+		SignatureValidationFormat:  SignatureFormatDate,
+	})
+	if err != nil {
+		t.Fatalf("NewMigratorWithOptions failed: %v", err)
+	}
+
+	impl := migrator.(*Migrator)
+	if impl.tableName != "custom_migrations" {
+		t.Errorf("expected table name 'custom_migrations', got '%s'", impl.tableName)
+	}
+	if impl.isolationLevel != "READ COMMITTED" {
+		t.Errorf("expected isolation level 'READ COMMITTED', got '%s'", impl.isolationLevel)
+	}
+	if !impl.lexicographicalOrdering {
+		t.Error("expected lexicographical ordering to be enabled")
+	}
+	if !impl.sigValidation {
+		t.Error("expected signature validation to be enabled")
+	}
+	if impl.sigValidationFormat != SignatureFormatDate {
+		t.Errorf("expected signature format 'date', got '%s'", impl.sigValidationFormat)
 	}
 }
 

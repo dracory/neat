@@ -1,4 +1,4 @@
-# migrator Package
+﻿# migrator Package
 
 The `migrator` package provides a clean API for managing database migrations with automatic schema injection and tracking.
 
@@ -66,26 +66,58 @@ type MigratorInterface interface {
     Reset(ctx context.Context) error
     SetTransactionsEnabled(enabled bool)
     SetTransactionIsolationLevel(level string)
+    SetTableName(name string) error
+    SetSignatureValidation(enabled bool, format SignatureFormat)
+    SetLexicographicalOrdering(enabled bool)
+}
+```
+
+### Constructors
+
+#### NewMigrator
+Creates a migrator with sensible defaults.
+
+```go
+migrator := migrator.NewMigrator(db)
+```
+
+#### NewMigratorWithOptions
+Creates a migrator with custom options. Useful for reducing boilerplate when multiple options need to be set.
+
+```go
+migrator, err := migrator.NewMigratorWithOptions(db, &migrator.Options{
+    TableName:                  "my_migrations",
+    TransactionIsolationLevel:  "READ COMMITTED",
+    LexicographicalOrdering:    true,
+    SignatureValidationEnabled: true,
+    SignatureValidationFormat:  migrator.SignatureFormatDateTime,
+})
+if err != nil {
+    log.Fatal(err)
 }
 ```
 
 ### Methods
 
 #### AddMigration
-Adds a single migration to the migrator instance.
+Adds a single migration to the migrator instance. Returns an error if the signature is empty or already registered.
 
 ```go
-migrator.AddMigration(&CreateUsersTable{})
+if err := migrator.AddMigration(&CreateUsersTable{}); err != nil {
+    log.Fatal(err)
+}
 ```
 
 #### AddMigrations
-Adds multiple migrations at once.
+Adds multiple migrations at once. Returns an error if any signature is empty or duplicate.
 
 ```go
-migrator.AddMigrations([]migrator.MigrationInterface{
+if err := migrator.AddMigrations([]migrator.MigrationInterface{
     &CreateUsersTable{},
     &CreatePostsTable{},
-})
+}); err != nil {
+    log.Fatal(err)
+}
 ```
 
 #### Up
@@ -121,7 +153,7 @@ err := migrator.RollbackToBatch(ctx, 20240615120000)
 ```
 
 #### Status
-Returns the current status of all migrations.
+Returns the current status of all migrations, including both completed (from the tracker table) and pending (registered but not yet run).
 
 ```go
 status, err := migrator.Status()
@@ -265,7 +297,7 @@ type MigrationStatus struct {
     Batch       int       `json:"batch"`
     StartedAt   time.Time `json:"started_at"`
     CompletedAt time.Time `json:"completed_at"`
-    State       string    `json:"state"` // "pending", "completed", "failed"
+    State       string    `json:"state"` // "completed" or "pending"
 }
 ```
 
