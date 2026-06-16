@@ -1111,6 +1111,140 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	}
 }
 
+func TestLexicographicalOrdering_Default(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	impl := migrator.(*Migrator)
+
+	// Default should be enabled
+	if !impl.lexicographicalOrdering {
+		t.Error("Expected lexicographical ordering to be enabled by default")
+	}
+}
+
+func TestLexicographicalOrdering_Enabled(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Pre-create migration tracking table
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	migrator := NewMigrator(db)
+	// Explicitly enable lexicographical ordering
+	migrator.SetLexicographicalOrdering(true)
+
+	// Add migrations out of order
+	migrations := []MigrationInterface{
+		&MockMigration{signature: "2026_06_15_1400_third", description: "Third migration"},
+		&MockMigration{signature: "2026_06_15_1200_first", description: "First migration"},
+		&MockMigration{signature: "2026_06_15_1300_second", description: "Second migration"},
+	}
+	if err := migrator.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	ctx := context.Background()
+	err = migrator.Up(ctx)
+	if err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// Verify execution order via tracker entries
+	var trackers []MigrationTracker
+	query := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc")
+	if err := query.Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 3 {
+		t.Fatalf("Expected 3 tracker entries, got %d", len(trackers))
+	}
+
+	expectedOrder := []string{"2026_06_15_1200_first", "2026_06_15_1300_second", "2026_06_15_1400_third"}
+	for i, expected := range expectedOrder {
+		if trackers[i].ID != expected {
+			t.Errorf("Expected migration at position %d to be '%s', got '%s'", i, expected, trackers[i].ID)
+		}
+	}
+}
+
+func TestLexicographicalOrdering_Disabled(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Pre-create migration tracking table
+	schema := db.Schema()
+	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	})
+	if err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+
+	migrator := NewMigrator(db)
+	// Disable lexicographical ordering
+	migrator.SetLexicographicalOrdering(false)
+
+	// Add migrations out of order
+	migrations := []MigrationInterface{
+		&MockMigration{signature: "2026_06_15_1400_third", description: "Third migration"},
+		&MockMigration{signature: "2026_06_15_1200_first", description: "First migration"},
+		&MockMigration{signature: "2026_06_15_1300_second", description: "Second migration"},
+	}
+	if err := migrator.AddMigrations(migrations); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	ctx := context.Background()
+	err = migrator.Up(ctx)
+	if err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// Verify execution order preserves registration order
+	var trackers []MigrationTracker
+	query := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc")
+	if err := query.Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 3 {
+		t.Fatalf("Expected 3 tracker entries, got %d", len(trackers))
+	}
+
+	expectedOrder := []string{"2026_06_15_1400_third", "2026_06_15_1200_first", "2026_06_15_1300_second"}
+	for i, expected := range expectedOrder {
+		if trackers[i].ID != expected {
+			t.Errorf("Expected migration at position %d to be '%s', got '%s'", i, expected, trackers[i].ID)
+		}
+	}
+}
+
 func TestTransactionRollbackOnFailure(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {

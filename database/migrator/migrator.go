@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
@@ -28,27 +29,30 @@ type MigratorInterface interface {
 	SetTransactionIsolationLevel(level string)
 	SetTableName(name string) error
 	SetSignatureValidation(enabled bool, format SignatureFormat)
+	SetLexicographicalOrdering(enabled bool)
 }
 
 // Migrator handles execution and tracking of interface-based migrations
 type Migrator struct {
-	db                  *database.Database
-	migrations          []MigrationInterface
-	useTransactions     bool
-	isolationLevel      string
-	tableName           string
-	sigValidation       bool
-	sigValidationFormat SignatureFormat
+	db                      *database.Database
+	migrations              []MigrationInterface
+	useTransactions         bool
+	isolationLevel          string
+	tableName               string
+	sigValidation           bool
+	sigValidationFormat     SignatureFormat
+	lexicographicalOrdering bool
 }
 
 // NewMigrator creates a new Migrator instance
 // Takes neat db instance as dependency, extracts schema and orm internally
 func NewMigrator(db *database.Database) MigratorInterface {
 	return &Migrator{
-		db:              db,
-		migrations:      []MigrationInterface{},
-		useTransactions: true, // Default to safe transaction behavior
-		tableName:       defaultTableName,
+		db:                      db,
+		migrations:              []MigrationInterface{},
+		useTransactions:         true, // Default to safe transaction behavior
+		tableName:               defaultTableName,
+		lexicographicalOrdering: true, // Default to lexicographical ordering
 	}
 }
 
@@ -92,6 +96,20 @@ func (s *Migrator) SetSignatureValidation(enabled bool, format SignatureFormat) 
 	s.sigValidationFormat = format
 }
 
+// SetLexicographicalOrdering enables or disables lexicographical ordering of migrations.
+// When enabled, migrations are sorted by signature before execution.
+// Default is enabled.
+func (s *Migrator) SetLexicographicalOrdering(enabled bool) {
+	s.lexicographicalOrdering = enabled
+}
+
+// sortMigrations sorts migrations lexicographically by signature.
+func (s *Migrator) sortMigrations() {
+	sort.Slice(s.migrations, func(i, j int) bool {
+		return s.migrations[i].Signature() < s.migrations[j].Signature()
+	})
+}
+
 // Up runs all pending migrations
 // Automatically injects schema into each migration before execution
 func (s *Migrator) Up(ctx context.Context) error {
@@ -129,6 +147,11 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 	ranMigrations, err := s.getRanMigrations(query)
 	if err != nil {
 		return fmt.Errorf("failed to get ran migrations: %w", err)
+	}
+
+	// Sort migrations lexicographically if enabled
+	if s.lexicographicalOrdering {
+		s.sortMigrations()
 	}
 
 	// Run pending migrations
