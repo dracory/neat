@@ -50,7 +50,7 @@ Each migration follows the same pattern as before, but now uses the migrator pac
 
 ```go
 type CreateUsersTable struct {
-    schema.BaseMigration
+    migrator.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -87,7 +87,7 @@ migrator.AddMigration(&CreateUsersTable{})
 migrator.AddMigration(&CreatePostsTable{})
 
 // Or add multiple at once
-migrator.AddMigrations([]contractsschema.MigrationInterface{
+migrator.AddMigrations([]migrator.MigrationInterface{
     &CreateUsersTable{},
     &CreatePostsTable{},
 })

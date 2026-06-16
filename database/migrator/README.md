@@ -55,8 +55,8 @@ func main() {
 
 ```go
 type MigratorInterface interface {
-    AddMigration(migration contractsschema.MigrationInterface) error
-    AddMigrations(migrations []contractsschema.MigrationInterface) error
+    AddMigration(migration migrator.MigrationInterface) error
+    AddMigrations(migrations []migrator.MigrationInterface) error
     Up(ctx context.Context) error
     Down(ctx context.Context) error
     RollbackSteps(ctx context.Context, steps int) error
@@ -82,7 +82,7 @@ migrator.AddMigration(&CreateUsersTable{})
 Adds multiple migrations at once.
 
 ```go
-migrator.AddMigrations([]contractsschema.MigrationInterface{
+migrator.AddMigrations([]migrator.MigrationInterface{
     &CreateUsersTable{},
     &CreatePostsTable{},
 })
@@ -171,7 +171,7 @@ Supported isolation levels:
 
 ## Migration Implementation
 
-Migrations must implement the `MigrationInterface` from the contracts package:
+Migrations must implement the `MigrationInterface` from the migrator package:
 
 ```go
 import (
@@ -180,7 +180,7 @@ import (
 )
 
 type CreateUsersTable struct {
-    schema.BaseMigration
+    migrator.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {

@@ -48,7 +48,7 @@
 
     <h2>Migration Implementation</h2>
 
-    <p>Migrations must implement the <code>MigrationInterface</code>. Typically, you embed <code>schema.BaseMigration</code> for convenience:</p>
+    <p>Migrations must implement the <code>MigrationInterface</code>. Typically, you embed <code>migrator.BaseMigration</code> for convenience:</p>
 
     <pre><code>import (
     contractsschema "github.com/dracory/neat/contracts/database/schema"
@@ -56,7 +56,7 @@
 )
 
 type CreateUsersTable struct {
-    schema.BaseMigration
+    migrator.BaseMigration
 }
 
 func (m *CreateUsersTable) Signature() string {
@@ -98,7 +98,7 @@ func main() {
     s := migrator.NewMigrator(db)
 
     // Add migrations
-    s.AddMigrations([]contractsschema.MigrationInterface{
+    s.AddMigrations([]migrator.MigrationInterface{
         &CreateUsersTable{},
         &CreatePostsTable{},
     })
