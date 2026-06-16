@@ -82,18 +82,26 @@ type PoolConfig struct {
         <li><code>Select(query any, args ...any) Query</code> - Select specific columns (supports subqueries, raw expressions)</li>
         <li><code>Distinct(args ...any) Query</code> - Return distinct rows</li>
         <li><code>Pluck(column string, dest any) error</code> - Retrieve single column values</li>
+        <li><code>PluckAsVar(column string) ([]any, error)</code> <strong>(Sugar)</strong> - Retrieve single column values as a variable</li>
         <li><code>Value(column string, dest any) error</code> - Retrieve single value from first row</li>
+        <li><code>ValueAsVar(column string) (any, error)</code> <strong>(Sugar)</strong> - Retrieve single value from first row as a variable</li>
     </ul>
 
     <h3>Retrieval Methods</h3>
 
     <ul class="method-list">
         <li><code>Get(dest any) error</code> - Retrieve all rows</li>
+        <li><code>GetAsVar() ([]any, error)</code> <strong>(Sugar)</strong> - Retrieve all rows as a variable</li>
         <li><code>All(dest any) error</code> - Alias for Get (Django-style)</li>
+        <li><code>AllAsVar() ([]any, error)</code> <strong>(Sugar)</strong> - Alias for GetAsVar</li>
         <li><code>FindAll(dest any) error</code> - Alias for All (Sequelize-style)</li>
+        <li><code>FindAllAsVar() ([]any, error)</code> <strong>(Sugar)</strong> - Alias for GetAsVar</li>
         <li><code>First(dest any) error</code> - Retrieve first row</li>
+        <li><code>FirstAsVar() (any, error)</code> <strong>(Sugar)</strong> - Retrieve first row as a variable</li>
         <li><code>FindOne(dest any) error</code> - Alias for First (Sequelize-style)</li>
+        <li><code>FindOneAsVar() (any, error)</code> <strong>(Sugar)</strong> - Alias for FirstAsVar</li>
         <li><code>Find(dest any, conds ...any) error</code> - Retrieve rows with optional conditions</li>
+        <li><code>FindAsVar(conds ...any) ([]any, error)</code> <strong>(Sugar)</strong> - Retrieve rows with optional conditions as a variable</li>
         <li><code>FirstOrFail(dest any) error</code> - First or error</li>
         <li><code>FindOrFail(dest any, conds ...any) error</code> - Find or error</li>
         <li><code>FirstOr(dest any, callback func() error) error</code> - First or execute callback</li>
@@ -170,11 +178,17 @@ type PoolConfig struct {
         <li><code>Group(name string) Query</code> - GROUP BY clause</li>
         <li><code>Having(query any, args ...any) Query</code> - HAVING clause</li>
         <li><code>Count(count *int64) error</code> - COUNT(*) aggregate</li>
+        <li><code>CountAsVar() (int64, error)</code> <strong>(Sugar)</strong> - COUNT(*) aggregate as a variable</li>
         <li><code>Sum(column string, dest any) error</code> - SUM(column) aggregate</li>
+        <li><code>SumAsVar(column string) (float64, error)</code> <strong>(Sugar)</strong> - SUM(column) aggregate as a variable</li>
         <li><code>Avg(column string, dest any) error</code> - AVG(column) aggregate</li>
+        <li><code>AvgAsVar(column string) (float64, error)</code> <strong>(Sugar)</strong> - AVG(column) aggregate as a variable</li>
         <li><code>Min(column string, dest any) error</code> - MIN(column) aggregate</li>
+        <li><code>MinAsVar(column string) (float64, error)</code> <strong>(Sugar)</strong> - MIN(column) aggregate as a variable</li>
         <li><code>Max(column string, dest any) error</code> - MAX(column) aggregate</li>
+        <li><code>MaxAsVar(column string) (float64, error)</code> <strong>(Sugar)</strong> - MAX(column) aggregate as a variable</li>
         <li><code>Exists(exists *bool) error</code> - EXISTS check</li>
+        <li><code>ExistsAsVar() (bool, error)</code> <strong>(Sugar)</strong> - EXISTS check as a variable</li>
     </ul>
 
     <h3>Create/Insert Methods</h3>
@@ -241,7 +255,7 @@ type PoolConfig struct {
         <li><code>Begin(opts ...*sql.TxOptions) (Query, error)</code> - Begin transaction</li>
         <li><code>Commit() error</code> - Commit transaction</li>
         <li><code>Rollback() error</code> - Rollback transaction</li>
-        <li><code>RollbackTo(level string) error</code> - Rollback to savepoint</li>
+        <li><code>RollbackTo(name string) error</code> - Rollback to savepoint</li>
         <li><code>SavePoint(name string) error</code> - Create savepoint</li>
         <li><code>BeforeCommit(callback func() error) Query</code> - Register pre-commit callback</li>
         <li><code>AfterCommit(callback func() error) Query</code> - Register post-commit callback</li>
@@ -576,17 +590,22 @@ blueprint.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDele
         <li><code>DeletedAt</code> - Laravel-compatible soft delete (deleted_at)</li>
     </ul>
 
-    <h2>Migration Methods</h2>
+    <h2>Schemer Methods</h2>
 
-    <p>Migration methods for database schema management:</p>
+    <p>The <code>database/schemer</code> package provides methods for database migration management:</p>
 
     <ul class="method-list">
-        <li><code>Create(name string) error</code> - Create new migration file</li>
-        <li><code>Fresh() error</code> - Drop all tables and re-run migrations</li>
-        <li><code>Reset() error</code> - Roll back all migrations</li>
-        <li><code>Rollback(step, batch int) error</code> - Roll back migrations</li>
-        <li><code>Run() error</code> - Run pending migrations</li>
-        <li><code>Status() error</code> - Get migration status</li>
+        <li><code>AddMigration(migration MigrationInterface) error</code> - Add a single migration</li>
+        <li><code>AddMigrations(migrations []MigrationInterface) error</code> - Add multiple migrations</li>
+        <li><code>Up(ctx context.Context) error</code> - Run all pending migrations</li>
+        <li><code>Down(ctx context.Context) error</code> - Roll back the last migration</li>
+        <li><code>RollbackSteps(ctx context.Context, steps int) error</code> - Roll back the specified number of migrations</li>
+        <li><code>RollbackToBatch(ctx context.Context, batch int) error</code> - Roll back to a specific batch</li>
+        <li><code>Status() ([]MigrationStatus, error)</code> - Return status of all migrations</li>
+        <li><code>Fresh(ctx context.Context) error</code> - Drop all tables and re-run migrations</li>
+        <li><code>Reset(ctx context.Context) error</code> - Roll back all migrations</li>
+        <li><code>SetTransactionsEnabled(enabled bool)</code> - Enable/disable transaction wrapping</li>
+        <li><code>SetTableName(name string) error</code> - Set custom migration tracking table name</li>
     </ul>
 
     <h2>Key Interfaces</h2>

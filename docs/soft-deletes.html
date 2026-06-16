@@ -20,10 +20,8 @@
         li { margin: 0.3rem 0; }
         p { margin: 1rem 0; }
         strong { color: #2c3e50; }
-        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-        th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
-        th { background: #f8f9fa; font-weight: 600; }
-        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .strategy-card { border: 1px solid #eee; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; background: #fff; }
+        .strategy-card h3 { margin-top: 0; color: #3498db; }
         .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
     </style>
 </head>
@@ -32,379 +30,102 @@
 
     <h1>Soft Deletes</h1>
 
-    <p>Soft deletes mark records as deleted without removing them from the database. The row remains in the table and can be restored. Normal queries automatically exclude soft-deleted records.</p>
+    <p>Soft deleting a record doesn't actually remove it from your database. Instead, it sets a timestamp on the record indicating when it was "deleted". Neat ORM provides multiple strategies to handle soft deletes, giving you flexibility based on your database schema requirements.</p>
 
-    <h2>What are Soft Deletes?</h2>
+    <h2>Basic Usage</h2>
 
-    <p>Soft deletes are useful for:</p>
-    <ul>
-        <li>Data recovery and audit trails</li>
-        <li>Compliance requirements (data retention)</li>
-        <li>Undo / restore workflows</li>
-    </ul>
+    <p>To enable soft deletes for a model, embed one of the soft delete structs from the <code>github.com/dracory/neat/database/soft_delete</code> package.</p>
 
-    <hr>
+    <pre><code>type User struct {
+    soft_delete.SoftDeletes // Embed soft delete functionality
+    ID   uint
+    Name string
+}</code></pre>
 
     <h2>Soft Delete Strategies</h2>
 
-    <p>Neat supports two soft delete strategies to accommodate different database requirements and performance needs:</p>
+    <p>Neat ORM supports two primary strategies for soft deletes:</p>
 
-    <h3>1. NULL-Based Strategy (Default)</h3>
-
-    <p>The traditional approach using NULL to indicate active records:</p>
-    <ul>
-        <li><strong>Active when:</strong> <code>soft_deleted_at IS NULL</code></li>
-        <li><strong>Deleted when:</strong> <code>soft_deleted_at IS NOT NULL</code></li>
-        <li><strong>Column constraint:</strong> Nullable</li>
-        <li><strong>Default value:</strong> NULL</li>
-    </ul>
-
-    <p>This strategy is simple, widely-used, and easy to understand. It's the default choice for most applications.</p>
-
-    <h3>2. Max-Date Sentinel Strategy</h3>
-
-    <p>An alternative approach using a far-future timestamp as a sentinel value:</p>
-    <ul>
-        <li><strong>Active when:</strong> <code>soft_deleted_at > NOW()</code> (future sentinel value)</li>
-        <li><strong>Deleted when:</strong> <code>soft_deleted_at <= NOW()</code> (past or present)</li>
-        <li><strong>Column constraint:</strong> NOT NULL (recommended)</li>
-        <li><strong>Default value:</strong> <code>9999-12-31 23:59:59 UTC</code></li>
-    </ul>
-
-    <p>This strategy offers better compatibility with NOT NULL constraints and improved index performance through range scans instead of NULL checks.</p>
-
-    <h3>Why Max-Date Sentinel Strategy?</h3>
-
-    <p>The Max-Date Sentinel Strategy exists to solve specific problems that NULL-based soft deletes can't handle well:</p>
-
-    <h4>Problems with NULL-Based Soft Deletes</h4>
-
-    <p><strong>1. NOT NULL Constraints</strong></p>
-    <p>Many database schemas enforce NOT NULL constraints on timestamp columns for data integrity. NULL-based soft deletes can't work with these constraints:</p>
-    <pre><code>-- This won't work with NULL-based strategy
-ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NOT NULL;</code></pre>
-
-    <p><strong>2. Index Performance</strong></p>
-    <p>NULL handling varies significantly between databases:</p>
-    <ul>
-        <li><strong>PostgreSQL:</strong> NULLs are not included in standard B-tree indexes by default</li>
-        <li><strong>MySQL:</strong> NULLs are included in indexes but can cause performance issues</li>
-        <li><strong>SQL Server:</strong> NULLs are included but can affect index statistics</li>
-    </ul>
-    <p>With NULL-based strategy, queries like <code>WHERE soft_deleted_at IS NULL</code> may not use indexes efficiently.</p>
-
-    <p><strong>3. Query Complexity</strong></p>
-    <p>NULL handling adds complexity to queries:</p>
-    <pre><code>-- NULL-based: Need special NULL handling
-SELECT * FROM users WHERE soft_deleted_at IS NULL;
-
--- Max-date: Simple range scan (more index-friendly)
-SELECT * FROM users WHERE soft_deleted_at > NOW();</code></pre>
-
-    <h4>Benefits of Max-Date Sentinel Strategy</h4>
-
-    <p><strong>1. NOT NULL Compatible</strong></p>
-    <pre><code>// Schema definition
-blueprint.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
-// No .Nullable() needed - column can be NOT NULL</code></pre>
-
-    <p><strong>2. Better Index Performance</strong></p>
-    <p>Range scans (<code>> NOW()</code>) are generally more efficient than NULL checks:</p>
-    <pre><code>-- This can use a range scan on the index
-WHERE soft_deleted_at > NOW()
-
--- This may not use the index efficiently in some databases
-WHERE soft_deleted_at IS NULL</code></pre>
-
-    <p><strong>3. Simpler Query Logic</strong></p>
-    <p>No special NULL handling needed:</p>
-    <pre><code>// Active: soft_deleted_at > NOW()
-// Deleted: soft_deleted_at <= NOW()</code></pre>
-
-    <p><strong>4. Database Portability</strong></p>
-    <p>Consistent behavior across different database engines since all databases handle date comparisons the same way, but NULL handling varies.</p>
-
-    <h4>Real-World Performance Example</h4>
-
-    <p>Consider a table with 10 million records:</p>
-
-    <p><strong>NULL-based:</strong></p>
-    <pre><code>-- May require full table scan or inefficient index usage
-SELECT * FROM users WHERE soft_deleted_at IS NULL;
--- Performance: Slow on some databases</code></pre>
-
-    <p><strong>Max-date sentinel:</strong></p>
-    <pre><code>-- Efficient range scan using index
-SELECT * FROM users WHERE soft_deleted_at > NOW();
--- Performance: Fast, uses index effectively</code></pre>
-
-    <p>The max-date strategy is essentially a performance and constraint-compatibility optimization over the traditional NULL-based approach.</p>
-
-    <h3>Strategy Comparison</h3>
-
-    <table>
-        <tr>
-            <th>Aspect</th>
-            <th>NULL-Based</th>
-            <th>Max-Date Sentinel</th>
-        </tr>
-        <tr>
-            <td>"Not deleted" value</td>
-            <td>NULL</td>
-            <td><code>9999-12-31 23:59:59</code></td>
-        </tr>
-        <tr>
-            <td>Column constraint</td>
-            <td>Nullable</td>
-            <td>NOT NULL (recommended)</td>
-        </tr>
-        <tr>
-            <td>Default value</td>
-            <td>NULL</td>
-            <td><code>9999-12-31 23:59:59</code></td>
-        </tr>
-        <tr>
-            <td>Active query condition</td>
-            <td><code>IS NULL</code></td>
-            <td><code>> NOW()</code></td>
-        </tr>
-        <tr>
-            <td>Deleted query condition</td>
-            <td><code>IS NOT NULL</code></td>
-            <td><code><= NOW()</code></td>
-        </tr>
-        <tr>
-            <td>Index efficiency</td>
-            <td>Varies by database</td>
-            <td>Better (range scans)</td>
-        </tr>
-        <tr>
-            <td>NOT NULL compatible</td>
-            <td>No</td>
-            <td>Yes</td>
-        </tr>
-        <tr>
-            <td>Simplicity</td>
-            <td>Very simple</td>
-            <td>Slightly more complex</td>
-        </tr>
-    </table>
-
-    <h3>Choosing a Strategy</h3>
-
-    <p><strong>Use NULL-Based when:</strong></p>
-    <ul>
-        <li>You need simplicity and clarity</li>
-        <li>NOT NULL constraints are not required</li>
-        <li>You want the most common and widely-understood pattern</li>
-        <li>Database index performance is not a critical concern</li>
-    </ul>
-
-    <p><strong>Use Max-Date Sentinel when:</strong></p>
-    <ul>
-        <li>You need NOT NULL constraints on the soft delete column</li>
-        <li>You need better index performance on large datasets</li>
-        <li>Working with databases that have poor NULL index handling</li>
-        <li>You want to avoid NULL handling complexity in queries</li>
-    </ul>
-
-    <hr>
-
-    <h2>Choosing an Embed</h2>
-
-    <p>Neat provides built-in soft delete embeds for both strategies. Pick the one that matches your schema:</p>
-
-    <h3>NULL-Based Embeds</h3>
-
-    <table>
-        <tr>
-            <th>Embed</th>
-            <th>Column</th>
-            <th>When to use</th>
-        </tr>
-        <tr>
-            <td><code>soft_delete.SoftDeletes</code></td>
-            <td><code>soft_deleted_at</code></td>
-            <td>Default — new projects</td>
-        </tr>
-        <tr>
-            <td><code>soft_delete.SoftDeletedAt</code></td>
-            <td><code>soft_deleted_at</code></td>
-            <td>Explicit naming (mirrors <code>CreatedAt</code>/<code>UpdatedAt</code>)</td>
-        </tr>
-        <tr>
-            <td><code>soft_delete.DeletedAt</code></td>
-            <td><code>deleted_at</code></td>
-            <td>Laravel-compatible or existing <code>deleted_at</code> schemas</td>
-        </tr>
-    </table>
-
-    <h3>Max-Date Sentinel Embeds</h3>
-
-    <table>
-        <tr>
-            <th>Embed</th>
-            <th>Column</th>
-            <th>When to use</th>
-        </tr>
-        <tr>
-            <td><code>soft_delete.SoftDeletesMaxDate</code></td>
-            <td><code>soft_deleted_at</code></td>
-            <td>Max-date strategy with NOT NULL support</td>
-        </tr>
-        <tr>
-            <td><code>soft_delete.DeletedAtMaxDate</code></td>
-            <td><code>deleted_at</code></td>
-            <td>Laravel-compatible with max-date strategy</td>
-        </tr>
-    </table>
-
-    <p>All embeds are in the <code>github.com/dracory/neat/database/soft_delete</code> package. Equivalent <code>sql.NullTime</code> variants exist in <code>github.com/dracory/neat/database/orm</code>.</p>
-
-    <hr>
-
-    <h2>Setting Up</h2>
-
-    <h3>1. Add the embed to your model</h3>
-
-    <h4>NULL-Based Strategy:</h4>
-
-    <pre><code>import "github.com/dracory/neat/database/soft_delete"
-
-// New project — default column soft_deleted_at
+    <div class="strategy-card">
+        <h3>1. NULL-Based Strategy (Default)</h3>
+        <p>The record is considered active when the timestamp column is <code>NULL</code>, and deleted when it contains a timestamp.</p>
+        <ul>
+            <li><code>SoftDeletes</code>: Uses <code>soft_deleted_at</code> column (Recommended).</li>
+            <li><code>DeletedAt</code>: Uses <code>deleted_at</code> column (Laravel-compatible).</li>
+        </ul>
+        <pre><code>// Example
 type User struct {
     soft_delete.SoftDeletes
-    ID   uint
-    Name string
-}
-
-// Laravel-compatible — column deleted_at
-type Post struct {
-    soft_delete.DeletedAt
-    ID    uint
-    Title string
+    ID uint
 }</code></pre>
+    </div>
 
-    <h4>Max-Date Sentinel Strategy:</h4>
-
-    <pre><code>import "github.com/dracory/neat/database/soft_delete"
-
-// Max-date strategy with soft_deleted_at column
-type Product struct {
+    <div class="strategy-card">
+        <h3>2. Max-Date Sentinel Strategy</h3>
+        <p>Instead of <code>NULL</code>, this strategy uses a far-future date (<code>9999-12-31</code>) as a "not deleted" sentinel. This is useful for databases or schemas that enforce <code>NOT NULL</code> constraints on timestamp columns or for better indexing performance in some environments.</p>
+        <ul>
+            <li><code>SoftDeletesMaxDate</code>: Uses <code>soft_deleted_at</code> with sentinel.</li>
+            <li><code>DeletedAtMaxDate</code>: Uses <code>deleted_at</code> with sentinel.</li>
+        </ul>
+        <pre><code>// Example
+type User struct {
     soft_delete.SoftDeletesMaxDate
-    ID    uint
-    Name  string
-    Price float64
-}
-
-// Laravel-compatible with max-date strategy
-type Article struct {
-    soft_delete.DeletedAtMaxDate
-    ID    uint
-    Title string
+    ID uint
 }</code></pre>
+    </div>
 
-    <h3>2. Add the column to your schema</h3>
+    <h2>Querying Soft Deleted Records</h2>
 
-    <h4>For NULL-Based Strategy:</h4>
+    <p>By default, soft-deleted records are excluded from all queries.</p>
 
-    <pre><code>-- SoftDeletes / SoftDeletedAt
-ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NULL;
-
--- DeletedAt
-ALTER TABLE posts ADD COLUMN deleted_at DATETIME NULL;</code></pre>
-
-    <p>Or using the schema builder:</p>
-
-    <pre><code>table.Timestamp(constants.SoftDeleteAtColumn).Nullable()
-table.Timestamp("deleted_at").Nullable()</code></pre>
-
-    <h4>For Max-Date Sentinel Strategy:</h4>
-
-    <pre><code>-- SoftDeletesMaxDate / DeletedAtMaxDate
-ALTER TABLE users ADD COLUMN soft_deleted_at DATETIME NOT NULL DEFAULT '9999-12-31 23:59:59';
-
-ALTER TABLE posts ADD COLUMN deleted_at DATETIME NOT NULL DEFAULT '9999-12-31 23:59:59';</code></pre>
-
-    <p>Or using the schema builder:</p>
-
-    <pre><code>import "github.com/dracory/neat/database/schema/constants"
-
-// Option 1: Use the helper method (recommended)
-table.SoftDeletesMaxDate(constants.SoftDeleteAtColumn)
-table.SoftDeletesMaxDateTz(constants.SoftDeleteAtColumn)  // with timezone support
-
-// Option 2: Use the constant directly
-table.Timestamp(constants.SoftDeleteAtColumn).Default(constants.MaxSoftDeletedAtDefault)
-table.Timestamp("deleted_at").Default(constants.MaxSoftDeletedAtDefault)</code></pre>
-
-    <p><strong>Note:</strong> The max-date sentinel value is available as a constant:</p>
-
-    <pre><code>import "github.com/dracory/neat/database/soft_delete"
-import "github.com/dracory/neat/database/schema/constants"
-
-// MaxSoftDeletedAt = 9999-12-31 23:59:59 UTC (time.Time)
-fmt.Println(soft_delete.MaxSoftDeletedAt)
-
-// MaxSoftDeletedAtDefault = constants.MaxSoftDeletedAtDefault (string for schema builder)
-fmt.Println(constants.MaxSoftDeletedAtDefault)</code></pre>
-
-    <hr>
-
-    <h2>Soft Deleting Records</h2>
-
-    <pre><code>// Via query builder — sets soft_deleted_at = NOW() in the database
-db.Query().Model(&amp;User{}).Where("id = ?", 1).SoftDelete()
-
-// Via struct method — sets the field in memory (does not hit the database)
-user.SoftDelete()</code></pre>
-
-    <hr>
-
-    <h2>Querying</h2>
-
+    <h3>Include Soft Deleted Records</h3>
     <pre><code>var users []User
+db.Query().WithSoftDeleted().Get(&amp;users)</code></pre>
 
-// Default — excludes soft-deleted records (soft_deleted_at IS NULL)
-db.Query().Model(&amp;User{}).Get(&amp;users)
+    <h3>Only Soft Deleted Records</h3>
+    <pre><code>var users []User
+db.Query().OnlySoftDeleted().Get(&amp;users)</code></pre>
 
-// Include all records (including soft-deleted)
-db.Query().Model(&amp;User{}).WithSoftDeleted().Get(&amp;users)
+    <h2>Performing Operations</h2>
 
-// Only soft-deleted records
-db.Query().Model(&amp;User{}).OnlySoftDeleted().Get(&amp;users)
+    <h3>Soft Delete a Record</h3>
+    <pre><code>// Via Query Builder
+db.Query().Where("id", 1).Delete()
 
-// Explicitly exclude (reset a previous WithSoftDeleted)
-db.Query().Model(&amp;User{}).WithoutSoftDeleted().Get(&amp;users)</code></pre>
+// Via Model
+user.SoftDelete()
+db.Query().Save(&amp;user)</code></pre>
 
-    <hr>
+    <h3>Restore a Soft Deleted Record</h3>
+    <pre><code>// Via Query Builder
+db.Query().Where("id", 1).RestoreSoftDeleted()
 
-    <h2>Restoring Records</h2>
+// Via Model
+user.RestoreSoftDeleted()
+db.Query().Save(&amp;user)</code></pre>
 
-    <pre><code>// Restore soft-deleted records
-db.Query().Model(&amp;User{}).Where("id = ?", 1).Restore()
+    <h3>Permanent Delete (Force Delete)</h3>
+    <p>To permanently remove a soft-deletable model from the database:</p>
+    <pre><code>db.Query().Where("id", 1).ForceDelete()</code></pre>
 
-// Restore via struct method
-user.Restore()</code></pre>
+    <h2>Schema Integration</h2>
 
-    <hr>
+    <p>When creating your table with the Schema Builder, make sure to add the appropriate column:</p>
 
-    <h2>Force Delete (Permanent Deletion)</h2>
+    <pre><code>// For NULL-based (default)
+db.Schema().Create("users", func(table contractsschema.Blueprint) {
+    table.ID()
+    table.String("name")
+    table.SoftDeletes() // Adds nullable soft_deleted_at
+})
 
-    <pre><code>// Force delete (permanently remove from database)
-db.Query().Model(&amp;User{}).Where("id = ?", 1).ForceDelete()
-
-// Force delete via struct method
-user.ForceDelete()</code></pre>
-
-    <hr>
-
-    <h2>Checking if Soft Deleted</h2>
-
-    <pre><code>// Check if record is soft deleted
-if user.IsSoftDeleted() {
-    // Record is soft deleted
-}</code></pre>
+// For Max-Date sentinel
+db.Schema().Create("users", func(table contractsschema.Blueprint) {
+    table.ID()
+    table.String("name")
+    // Adds NOT NULL column with far-future default
+    table.Timestamp("soft_deleted_at").Default("9999-12-31 23:59:59")
+})</code></pre>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>
