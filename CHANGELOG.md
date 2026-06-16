@@ -53,9 +53,9 @@ for _, m := range schema.Migrations() {
 }
 
 // After (new code)
-import "github.com/dracory/neat/database/schemer"
+import "github.com/dracory/neat/database/migrator"
 
-s := schemer.NewSchemer(db)
+s := migrator.NewMigrator(db)
 s.AddMigrations(migrations)
 _ = s.Up(ctx)
 ```

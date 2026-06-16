@@ -1,4 +1,4 @@
-package schemer
+package migrator
 
 import (
 	"context"
@@ -50,21 +50,21 @@ func (m *MockMigration) GetSchema() contractsschema.Schema {
 	return m.schema
 }
 
-func TestNewSchemer(t *testing.T) {
+func TestNewMigrator(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	if schemer == nil {
 		t.Error("Expected non-nil schemer")
 	}
 
-	impl, ok := schemer.(*SchemerImplementation)
+	impl, ok := schemer.(*Migrator)
 	if !ok {
-		t.Error("Expected SchemerImplementation type")
+		t.Error("Expected Migrator type")
 	}
 	if impl.db != db {
 		t.Error("Expected db to be set")
@@ -84,7 +84,7 @@ func TestSetTableName_Valid(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 
 	validNames := []string{"migrations", "my_migrations", "schema_migrations", "_tracker"}
 	for _, name := range validNames {
@@ -93,7 +93,7 @@ func TestSetTableName_Valid(t *testing.T) {
 			t.Errorf("Expected SetTableName('%s') to succeed, got error: %v", name, err)
 		}
 
-		impl := schemer.(*SchemerImplementation)
+		impl := schemer.(*Migrator)
 		if impl.tableName != name {
 			t.Errorf("Expected table name '%s', got '%s'", name, impl.tableName)
 		}
@@ -107,7 +107,7 @@ func TestSetTableName_Invalid(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 
 	invalidNames := []string{"", "1migrations", "migration-tracker", "SELECT", "DROP", "TABLE"}
 	for _, name := range invalidNames {
@@ -117,7 +117,7 @@ func TestSetTableName_Invalid(t *testing.T) {
 		}
 
 		// Table name should remain unchanged
-		impl := schemer.(*SchemerImplementation)
+		impl := schemer.(*Migrator)
 		if impl.tableName != defaultTableName {
 			t.Errorf("Expected table name to remain '%s' after failed SetTableName, got '%s'", defaultTableName, impl.tableName)
 		}
@@ -131,7 +131,7 @@ func TestSetTableName_UsedForTracking(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	customTable := "my_migrations"
 	if err := schemer.SetTableName(customTable); err != nil {
 		t.Fatalf("SetTableName failed: %v", err)
@@ -167,7 +167,7 @@ func TestAddMigration(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
@@ -178,7 +178,7 @@ func TestAddMigration(t *testing.T) {
 		t.Errorf("AddMigration failed: %v", err)
 	}
 
-	impl := schemer.(*SchemerImplementation)
+	impl := schemer.(*Migrator)
 	if len(impl.migrations) != 1 {
 		t.Errorf("Expected 1 migration, got %d", len(impl.migrations))
 	}
@@ -191,7 +191,7 @@ func TestAddMigrations(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
@@ -203,7 +203,7 @@ func TestAddMigrations(t *testing.T) {
 		t.Errorf("AddMigrations failed: %v", err)
 	}
 
-	impl := schemer.(*SchemerImplementation)
+	impl := schemer.(*Migrator)
 	if len(impl.migrations) != 3 {
 		t.Errorf("Expected 3 migrations, got %d", len(impl.migrations))
 	}
@@ -216,7 +216,7 @@ func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
@@ -258,7 +258,7 @@ func TestUp_SchemaInjection(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
@@ -307,7 +307,7 @@ func TestUp_EmptySignature(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "",
 		description: "Test migration",
@@ -344,7 +344,7 @@ func TestUp_SignatureValidation_DateTime(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	schemer.SetSignatureValidation(true, SignatureFormatDateTime)
 
 	// Valid datetime signature should pass
@@ -387,7 +387,7 @@ func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	schemer.SetSignatureValidation(true, SignatureFormatDateTime)
 
 	// Invalid signature should fail
@@ -430,7 +430,7 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	// Validation is disabled by default, but explicitly set it
 	schemer.SetSignatureValidation(false, SignatureFormatDateTime)
 
@@ -467,7 +467,7 @@ func TestEnsureMigrationTracker_CreatesTable(t *testing.T) {
 		t.Fatal("Expected table to NOT exist initially")
 	}
 
-	s := NewSchemer(db).(*SchemerImplementation)
+	s := NewMigrator(db).(*Migrator)
 	if err := s.ensureMigrationTracker(schema); err != nil {
 		t.Fatalf("ensureMigrationTracker failed: %v", err)
 	}
@@ -514,7 +514,7 @@ func TestEnsureMigrationTracker_UpgradesExistingTable(t *testing.T) {
 		}
 	}
 
-	s := NewSchemer(db).(*SchemerImplementation)
+	s := NewMigrator(db).(*Migrator)
 	if err := s.ensureMigrationTracker(schema); err != nil {
 		t.Fatalf("ensureMigrationTracker failed: %v", err)
 	}
@@ -549,7 +549,7 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
@@ -600,7 +600,7 @@ func TestDown(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
@@ -644,7 +644,7 @@ func TestRollbackSteps(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
@@ -689,7 +689,7 @@ func TestRollbackToBatch(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
@@ -729,7 +729,7 @@ func TestStatus_NoMigrationTrackerTable(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 
 	status, err := schemer.Status()
 	if err != nil {
@@ -761,7 +761,7 @@ func TestStatus_WithMigrations(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
@@ -818,7 +818,7 @@ func TestFresh(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 
 	// Migration that creates a user table
 	userMigration := &MockMigration{
@@ -888,7 +888,7 @@ func TestReset(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
@@ -932,7 +932,7 @@ func TestReset_SafetyLimit(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 
 	// Seed the tracker with more than maxResetIterations entries
 	// to trigger the safety guard. We use raw query to bypass normal migration flow.
@@ -964,8 +964,8 @@ func TestSetTransactionsEnabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
-	impl := schemer.(*SchemerImplementation)
+	schemer := NewMigrator(db)
+	impl := schemer.(*Migrator)
 
 	// Default should be enabled
 	if !impl.useTransactions {
@@ -992,8 +992,8 @@ func TestSetTransactionIsolationLevel(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewSchemer(db)
-	impl := schemer.(*SchemerImplementation)
+	schemer := NewMigrator(db)
+	impl := schemer.(*Migrator)
 
 	// Set isolation level
 	impl.SetTransactionIsolationLevel("SERIALIZABLE")
@@ -1032,7 +1032,7 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
@@ -1079,8 +1079,8 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewSchemer(db)
-	impl := schemer.(*SchemerImplementation)
+	schemer := NewMigrator(db)
+	impl := schemer.(*Migrator)
 	impl.SetTransactionsEnabled(false)
 
 	migrations := []contractsschema.MigrationInterface{
@@ -1119,7 +1119,7 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Do NOT pre-create migration tracking table - runUp will create it inside the transaction
-	schemer := NewSchemer(db)
+	schemer := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},

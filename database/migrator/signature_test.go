@@ -1,4 +1,4 @@
-package schemer
+package migrator
 
 import (
 	"testing"
@@ -175,7 +175,7 @@ func TestValidateMigrationSignature_UnknownFormat(t *testing.T) {
 func TestSetSignatureValidation(t *testing.T) {
 	// This is tested indirectly via the schemer integration tests below
 	// Here we verify the setter works on the struct
-	s := &SchemerImplementation{}
+	s := &Migrator{}
 
 	if s.sigValidation {
 		t.Error("Expected signature validation to be disabled by default")

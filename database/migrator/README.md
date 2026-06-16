@@ -1,13 +1,13 @@
-# Schemer Package
+# migrator Package
 
-The `schemer` package provides a clean API for managing database migrations with automatic schema injection and tracking.
+The `migrator` package provides a clean API for managing database migrations with automatic schema injection and tracking.
 
 ## Overview
 
-The schemer package offers a simplified migration management system that:
+The migrator package offers a simplified migration management system that:
 
 - **Automatic Schema Injection**: No need to manually register migrations with schema
-- **Clean Interface-based API**: Uses `SchemerInterface` and `SchemerImplementation` pattern
+- **Clean Interface-based API**: Uses `MigratorInterface` and `Migrator` pattern
 - **Context Support**: All operations support context for cancellation and timeout handling
 - **Migration Tracking**: Automatically tracks executed migrations in a `migration_tracker` table
 - **Flexible Rollback**: Support for rolling back by steps or by batch
@@ -15,7 +15,7 @@ The schemer package offers a simplified migration management system that:
 ## Installation
 
 ```go
-import "github.com/dracory/neat/database/schemer"
+import "github.com/dracory/neat/database/migrator"
 ```
 
 ## Quick Start
@@ -27,23 +27,23 @@ import (
     "context"
     "github.com/dracory/neat"
     contractsschema "github.com/dracory/neat/contracts/database/schema"
-    "github.com/dracory/neat/database/schemer"
+    "github.com/dracory/neat/database/migrator"
 )
 
 func main() {
     db, _ := neat.NewFromDSN("sqlite://./app.db")
     defer db.Close()
 
-    // Create schemer instance
-    schemer := schemer.NewSchemer(db)
+    // Create migrator instance
+    migrator := migrator.NewMigrator(db)
 
     // Add migrations
-    schemer.AddMigration(&CreateUsersTable{})
-    schemer.AddMigration(&CreatePostsTable{})
+    migrator.AddMigration(&CreateUsersTable{})
+    migrator.AddMigration(&CreatePostsTable{})
 
     // Run migrations
     ctx := context.Background()
-    if err := schemer.Up(ctx); err != nil {
+    if err := migrator.Up(ctx); err != nil {
         log.Fatal(err)
     }
 }
@@ -51,10 +51,10 @@ func main() {
 
 ## API Reference
 
-### SchemerInterface
+### MigratorInterface
 
 ```go
-type SchemerInterface interface {
+type MigratorInterface interface {
     AddMigration(migration contractsschema.MigrationInterface) error
     AddMigrations(migrations []contractsschema.MigrationInterface) error
     Up(ctx context.Context) error
@@ -72,17 +72,17 @@ type SchemerInterface interface {
 ### Methods
 
 #### AddMigration
-Adds a single migration to the schemer instance.
+Adds a single migration to the migrator instance.
 
 ```go
-schemer.AddMigration(&CreateUsersTable{})
+migrator.AddMigration(&CreateUsersTable{})
 ```
 
 #### AddMigrations
 Adds multiple migrations at once.
 
 ```go
-schemer.AddMigrations([]contractsschema.MigrationInterface{
+migrator.AddMigrations([]contractsschema.MigrationInterface{
     &CreateUsersTable{},
     &CreatePostsTable{},
 })
@@ -93,7 +93,7 @@ Runs all pending migrations. Automatically creates the `migration_tracker` table
 
 ```go
 ctx := context.Background()
-err := schemer.Up(ctx)
+err := migrator.Up(ctx)
 ```
 
 #### Down
@@ -101,7 +101,7 @@ Rolls back the last migration.
 
 ```go
 ctx := context.Background()
-err := schemer.Down(ctx)
+err := migrator.Down(ctx)
 ```
 
 #### RollbackSteps
@@ -109,7 +109,7 @@ Rolls back the specified number of migrations.
 
 ```go
 ctx := context.Background()
-err := schemer.RollbackSteps(ctx, 3) // Rollback last 3 migrations
+err := migrator.RollbackSteps(ctx, 3) // Rollback last 3 migrations
 ```
 
 #### RollbackToBatch
@@ -117,14 +117,14 @@ Rolls back all migrations to the specified batch.
 
 ```go
 ctx := context.Background()
-err := schemer.RollbackToBatch(ctx, 20240615120000)
+err := migrator.RollbackToBatch(ctx, 20240615120000)
 ```
 
 #### Status
 Returns the current status of all migrations.
 
 ```go
-status, err := schemer.Status()
+status, err := migrator.Status()
 for _, s := range status {
     fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
 }
@@ -135,7 +135,7 @@ Drops all tables except `migration_tracker` and clears the tracker.
 
 ```go
 ctx := context.Background()
-err := schemer.Fresh(ctx)
+err := migrator.Fresh(ctx)
 ```
 
 #### Reset
@@ -143,23 +143,23 @@ Rolls back all migrations.
 
 ```go
 ctx := context.Background()
-err := schemer.Reset(ctx)
+err := migrator.Reset(ctx)
 ```
 
 #### SetTransactionsEnabled
 Enables or disables transaction wrapping for migration operations. Transactions are enabled by default for safety.
 
 ```go
-schemer.SetTransactionsEnabled(true)  // Enable transactions (default)
-schemer.SetTransactionsEnabled(false) // Disable transactions for large migrations
+migrator.SetTransactionsEnabled(true)  // Enable transactions (default)
+migrator.SetTransactionsEnabled(false) // Disable transactions for large migrations
 ```
 
 #### SetTransactionIsolationLevel
 Sets the transaction isolation level for migration operations.
 
 ```go
-schemer.SetTransactionIsolationLevel("SERIALIZABLE")
-schemer.SetTransactionIsolationLevel("READ COMMITTED")
+migrator.SetTransactionIsolationLevel("SERIALIZABLE")
+migrator.SetTransactionIsolationLevel("READ COMMITTED")
 ```
 
 Supported isolation levels:
@@ -207,7 +207,7 @@ func (m *CreateUsersTable) Down() error {
 
 ## Migration Tracking
 
-The schemer automatically tracks migrations in a `migration_tracker` table with the following structure:
+The migrator automatically tracks migrations in a `migration_tracker` table with the following structure:
 
 ```go
 type MigrationTracker struct {
@@ -221,24 +221,24 @@ type MigrationTracker struct {
 
 ## Transaction Support
 
-The schemer package supports transaction wrapping for safe migration execution. Transactions are enabled by default to ensure atomic execution.
+The migrator package supports transaction wrapping for safe migration execution. Transactions are enabled by default to ensure atomic execution.
 
 ### Enabling/Disabling Transactions
 
 ```go
-schemer := schemer.NewSchemer(db)
+migrator := migrator.NewMigrator(db)
 
 // Transactions are enabled by default
-schemer.SetTransactionsEnabled(true)
+migrator.SetTransactionsEnabled(true)
 
 // Disable for large migrations or specific needs
-schemer.SetTransactionsEnabled(false)
+migrator.SetTransactionsEnabled(false)
 ```
 
 ### Transaction Isolation Levels
 
 ```go
-schemer.SetTransactionIsolationLevel("SERIALIZABLE")
+migrator.SetTransactionIsolationLevel("SERIALIZABLE")
 ```
 
 Supported isolation levels:
@@ -252,7 +252,7 @@ Supported isolation levels:
 
 Transaction wrapping is currently disabled by default pending verification of schema transaction detection. The infrastructure is in place and can be enabled once schema transaction behavior is properly tested.
 
-See [examples/schemer-transactions](../../examples/schemer-transactions/) for a complete example of transaction control usage.
+See [examples/migrator-transactions](../../examples/migrator-transactions/) for a complete example of transaction control usage.
 
 ## Migration Status
 
@@ -290,12 +290,12 @@ type MigrationStatus struct {
    ```go
    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
    defer cancel()
-   err := schemer.Up(ctx)
+   err := migrator.Up(ctx)
    ```
 
 4. **Error Handling**: Handle migration errors appropriately
    ```go
-   if err := schemer.Up(ctx); err != nil {
+   if err := migrator.Up(ctx); err != nil {
        log.Fatalf("Migration failed: %v", err)
    }
    ```
@@ -314,28 +314,28 @@ manager.Run(migrations)
 
 **After:**
 ```go
-schemer := schemer.NewSchemer(db)
-schemer.AddMigrations(migrations)
-schemer.Up(context.Background())
+migrator := migrator.NewMigrator(db)
+migrator.AddMigrations(migrations)
+migrator.Up(context.Background())
 ```
 
-> **Note**: `schema.Register()`, `schema.Migrations()`, and `schema.NewMigrationManager()` have been removed. Use the `schemer` package as shown above.
+> **Note**: `schema.Register()`, `schema.Migrations()`, and `schema.NewMigrationManager()` have been removed. Use the `migrator` package as shown above.
 
 ## Examples
 
-See the `examples/schemer-migrations` directory for complete examples of using the schemer package.
+See the `examples/migrator-migrations` directory for complete examples of using the migrator package.
 
 ## Testing
 
-The schemer package includes comprehensive tests. Run them with:
+The migrator package includes comprehensive tests. Run them with:
 
 ```bash
-go test ./database/schemer/...
+go test ./database/migrator/...
 ```
 
 ## Notes
 
-- The schemer automatically creates the `migration_tracker` table on first run
+- The migrator automatically creates the `migration_tracker` table on first run
 - Migrations are executed in the order they are added
 - Already-run migrations are automatically skipped
 - Schema is automatically injected into each migration before execution

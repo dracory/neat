@@ -29,7 +29,7 @@
 
     <h1>Migrations <span class="badge">New: Schemer Package</span></h1>
 
-    <p>Neat ORM features a powerful and elegant migration system through the <code>database/schemer</code> package. Migrations allow you to version-control your database schema, making it easy for your team to modify and share the application's database schema.</p>
+    <p>Neat ORM features a powerful and elegant migration system through the <code>database/migrator</code> package. Migrations allow you to version-control your database schema, making it easy for your team to modify and share the application's database schema.</p>
 
     <div style="background: #e1f5fe; border-left: 5px solid #03a9f4; padding: 1rem; margin: 1.5rem 0;">
         <strong>🚀 Key Advantage:</strong> Most Go ORMs lack comprehensive schema migration support. Neat ORM includes a complete migration system with schema builder, rollback support, and automatic tracking.
@@ -37,10 +37,10 @@
 
     <h2>Overview</h2>
 
-    <p>The <code>schemer</code> package provides a clean API for managing database migrations with:</p>
+    <p>The <code>migrator</code> package provides a clean API for managing database migrations with:</p>
     <ul>
         <li><strong>Automatic Schema Injection</strong>: No need to manually register migrations with schema.</li>
-        <li><strong>Clean Interface-based API</strong>: Uses <code>SchemerInterface</code> for consistent operations.</li>
+        <li><strong>Clean Interface-based API</strong>: Uses <code>MigratorInterface</code> for consistent operations.</li>
         <li><strong>Context Support</strong>: All operations support <code>context.Context</code> for cancellation and timeouts.</li>
         <li><strong>Automatic Tracking</strong>: Automatically tracks executed migrations in a <code>migration_tracker</code> table.</li>
         <li><strong>Flexible Rollback</strong>: Support for rolling back by specific steps or to a specific batch.</li>
@@ -82,12 +82,12 @@ func (m *CreateUsersTable) Down() error {
 
     <h2>Using the Schemer</h2>
 
-    <p>The <code>Schemer</code> is the entry point for running your migrations. It requires a <code>neat.Database</code> instance.</p>
+    <p>The <code>migrator</code> is the entry point for running your migrations. It requires a <code>neat.Database</code> instance.</p>
 
     <pre><code>import (
     "context"
     "github.com/dracory/neat"
-    "github.com/dracory/neat/database/schemer"
+    "github.com/dracory/neat/database/migrator"
 )
 
 func main() {
@@ -95,7 +95,7 @@ func main() {
     defer db.Close()
 
     // Create schemer instance
-    s := schemer.NewSchemer(db)
+    s := migrator.NewMigrator(db)
 
     // Add migrations
     s.AddMigrations([]contractsschema.MigrationInterface{

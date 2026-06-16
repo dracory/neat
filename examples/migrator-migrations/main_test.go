@@ -5,7 +5,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	mainpkg "github.com/dracory/neat/examples/schemer-migrations"
+	mainpkg "github.com/dracory/neat/examples/migrator-migrations"
 )
 
 func TestRunSchemerBasedMigrations(t *testing.T) {

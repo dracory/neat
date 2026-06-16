@@ -1,6 +1,6 @@
-# Schemer Transaction Control Example
+# migrator Transaction Control Example
 
-This example demonstrates transaction control in the schemer package for safe migration execution with automatic rollback on failure.
+This example demonstrates transaction control in the migrator package for safe migration execution with automatic rollback on failure.
 
 ## Features Demonstrated
 
@@ -20,7 +20,7 @@ This example demonstrates transaction control in the schemer package for safe mi
 ## Running the Example
 
 ```bash
-cd examples/schemer-transactions
+cd examples/migrator-transactions
 go run main.go
 ```
 
@@ -34,29 +34,29 @@ This will:
 ## Usage Pattern
 
 ```go
-// Create schemer instance
-schemer := schemer.NewSchemer(db)
+// Create migrator instance
+migrator := migrator.NewMigrator(db)
 
 // Configure transaction settings
-schemer.SetTransactionsEnabled(true)
-schemer.SetTransactionIsolationLevel("SERIALIZABLE")
+migrator.SetTransactionsEnabled(true)
+migrator.SetTransactionIsolationLevel("SERIALIZABLE")
 
 // Add migrations
-schemer.AddMigration(&CreateUsersTable{})
-schemer.AddMigration(&CreatePostsTable{})
+migrator.AddMigration(&CreateUsersTable{})
+migrator.AddMigration(&CreatePostsTable{})
 
 // Run migrations with transaction wrapping
 ctx := context.Background()
-err := schemer.Up(ctx)
+err := migrator.Up(ctx)
 if err != nil {
     // All changes automatically rolled back
     log.Fatal("Migration failed, database rolled back:", err)
 }
 
 // Disable for large migrations
-schemer.SetTransactionsEnabled(false)
-schemer.AddMigration(&AddPostsIndexes{})
-schemer.Up(ctx)
+migrator.SetTransactionsEnabled(false)
+migrator.AddMigration(&AddPostsIndexes{})
+migrator.Up(ctx)
 ```
 
 ## When to Use Transactions
@@ -82,9 +82,9 @@ schemer.Up(ctx)
 
 ## Note
 
-Transaction wrapping is currently disabled by default in the schemer package pending verification of schema transaction detection. The infrastructure is in place and demonstrated in this example. Once schema transaction behavior is properly tested, transaction wrapping can be enabled by default for safe migration execution.
+Transaction wrapping is currently disabled by default in the migrator package pending verification of schema transaction detection. The infrastructure is in place and demonstrated in this example. Once schema transaction behavior is properly tested, transaction wrapping can be enabled by default for safe migration execution.
 
 ## Related Documentation
 
-- [Schemer Package README](../../database/schemer/README.md)
-- [Transaction Support Proposal](../../docs/proposals/schemer-transaction-support.md)
+- [migrator Package README](../../database/migrator/README.md)
+- [Transaction Support Proposal](../../docs/proposals/migrator-transaction-support.md)

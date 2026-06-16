@@ -1,14 +1,14 @@
-# Schemer Migrations (New Package)
+# migrator Migrations (New Package)
 
-This example demonstrates the new `database/schemer` package, which provides a cleaner API for managing database schema migrations with automatic schema injection and tracking.
+This example demonstrates the new `database/migrator` package, which provides a cleaner API for managing database schema migrations with automatic schema injection and tracking.
 
 ## Features Demonstrated
 
-### New Schemer Package
+### New migrator Package
 - **Simplified API**: No need to manually register migrations with schema
 - **Automatic Schema Injection**: Schema is automatically injected into each migration
 - **Context Support**: All operations support context for cancellation and timeout handling
-- **Clean Interface Naming**: Uses `SchemerInterface` and `SchemerImplementation` pattern
+- **Clean Interface Naming**: Uses `MigratorInterface` and `Migrator` pattern
 - **Flexible Migration Addition**: Add migrations individually or in batches
 - **Migration Tracking**: Automatically tracks executed migrations in `migration_tracker` table
 - **Advanced Rollback**: Support for rolling back by steps or by batch
@@ -34,19 +34,19 @@ This example demonstrates the new `database/schemer` package, which provides a c
 ## Running the Example
 
 ```bash
-cd examples/schemer-migrations
+cd examples/migrator-migrations
 go run main.go
 ```
 
 This will:
 1. Create a SQLite database (`example_schema_migrations.db`)
-2. Run all migrations using the new schemer package
+2. Run all migrations using the new migrator package
 3. Demonstrate rolling back the last migration
 4. Show migration status
 
 ## Migration Structure
 
-Each migration follows the same pattern as before, but now uses the schemer package for execution:
+Each migration follows the same pattern as before, but now uses the migrator package for execution:
 
 ```go
 type CreateUsersTable struct {
@@ -79,38 +79,38 @@ func (m *CreateUsersTable) Down() error {
 ## Usage Pattern
 
 ```go
-// Create schemer instance with neat db
-schemer := schemer.NewSchemer(db)
+// Create migrator instance with neat db
+migrator := migrator.NewMigrator(db)
 
 // Add migrations
-schemer.AddMigration(&CreateUsersTable{})
-schemer.AddMigration(&CreatePostsTable{})
+migrator.AddMigration(&CreateUsersTable{})
+migrator.AddMigration(&CreatePostsTable{})
 
 // Or add multiple at once
-schemer.AddMigrations([]contractsschema.MigrationInterface{
+migrator.AddMigrations([]contractsschema.MigrationInterface{
     &CreateUsersTable{},
     &CreatePostsTable{},
 })
 
 // Run migrations
 ctx := context.Background()
-if err := schemer.Up(ctx); err != nil {
+if err := migrator.Up(ctx); err != nil {
     log.Fatal(err)
 }
 
 // Rollback last migration
-if err := schemer.Down(ctx); err != nil {
+if err := migrator.Down(ctx); err != nil {
     log.Fatal(err)
 }
 
 // Check status
-status, err := schemer.Status()
+status, err := migrator.Status()
 ```
 
 ## API Methods
 
 ### AddMigration
-Adds a single migration to the schemer instance.
+Adds a single migration to the migrator instance.
 
 ### AddMigrations
 Adds multiple migrations at once.
@@ -138,7 +138,7 @@ Rolls back all migrations.
 
 ## Migration Tracking
 
-The schemer automatically tracks migrations in a `migration_tracker` table with the following structure:
+The migrator automatically tracks migrations in a `migration_tracker` table with the following structure:
 
 ```go
 type MigrationTracker struct {
@@ -171,7 +171,7 @@ type MigrationTracker struct {
    ```go
    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
    defer cancel()
-   err := schemer.Up(ctx)
+   err := migrator.Up(ctx)
    ```
 
 ## Migration from Old System
@@ -184,30 +184,30 @@ manager := schema.NewMigrationManager(db)
 manager.Run(migrations)
 ```
 
-**After (New Schemer Package):**
+**After (New migrator Package):**
 ```go
-schemer := schemer.NewSchemer(db)
-schemer.AddMigrations(migrations)
-schemer.Up(context.Background())
+migrator := migrator.NewMigrator(db)
+migrator.AddMigrations(migrations)
+migrator.Up(context.Background())
 ```
 
-> **Note**: `schema.Register()`, `schema.Migrations()`, and `schema.NewMigrationManager()` have been removed. Use the `schemer` package as shown above.
+> **Note**: `schema.Register()`, `schema.Migrations()`, and `schema.NewMigrationManager()` have been removed. Use the `migrator` package as shown above.
 
 ## Testing
 
 Run the tests with:
 
 ```bash
-cd examples/schemer-migrations
+cd examples/migrator-migrations
 go test -v
 ```
 
 ## Prerequisites
 
 - SQLite database (or modify the DSN to use your preferred database)
-- Neat ORM with schemer package support
+- Neat ORM with migrator package support
 
 ## Related Documentation
 
-- [Schemer Package README](../../database/schemer/README.md)
-- [Schemer Package Proposal](../../docs/proposals/schemer-package.md)
+- [migrator Package README](../../database/migrator/README.md)
+- [migrator Package Proposal](../../docs/proposals/migrator-package.md)

@@ -10,7 +10,7 @@ import (
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema"
-	"github.com/dracory/neat/database/schemer"
+	"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates transaction failure behavior
@@ -35,7 +35,7 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Example 1: Migration failure without transactions
 	fmt.Println("=== Example 1: Migration Failure WITHOUT Transactions ===")
-	schemerNoTx := schemer.NewSchemer(db)
+	schemerNoTx := migrator.NewMigrator(db)
 	schemerNoTx.SetTransactionsEnabled(false)
 	fmt.Println("Transactions enabled: false")
 
@@ -71,7 +71,7 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Example 2: Migration failure with transactions
 	fmt.Println("\n=== Example 2: Migration Failure WITH Transactions ===")
-	schemerWithTx := schemer.NewSchemer(db)
+	schemerWithTx := migrator.NewMigrator(db)
 	schemerWithTx.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 
@@ -122,7 +122,7 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Example 3: Successful migration with transactions
 	fmt.Println("\n=== Example 3: Successful Migration WITH Transactions ===")
-	schemerSuccess := schemer.NewSchemer(db)
+	schemerSuccess := migrator.NewMigrator(db)
 	schemerSuccess.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 

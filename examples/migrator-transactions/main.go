@@ -5,24 +5,26 @@ import (
 	"fmt"
 	"log"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema"
-	"github.com/dracory/neat/database/schemer"
+	"github.com/dracory/neat/database/migrator"
 )
 
-// This example demonstrates the new schemer package for migration management
-// which provides a cleaner API with automatic schema injection
+// This example demonstrates transaction control in the schemer package
+// for safe migration execution with automatic rollback on failure
 func main() {
-	if err := RunSchemerBasedMigrations("sqlite://./example_schema_migrations.db"); err != nil {
-		log.Fatalf("Schemer-based migration example failed: %v", err)
+	if err := RunTransactionExample("sqlite://./example_transactions.db"); err != nil {
+		log.Fatalf("Transaction example failed: %v", err)
 	}
 }
 
-// RunSchemerBasedMigrations demonstrates the new schemer package
-func RunSchemerBasedMigrations(dsn string) error {
-	fmt.Println("=== New Schemer Package Migration System ===")
-	fmt.Println("This approach uses the schemer package with automatic schema injection")
+// RunTransactionExample demonstrates transaction control in migrations
+func RunTransactionExample(dsn string) error {
+	fmt.Println("=== Schemer Transaction Control Example ===")
+	fmt.Println("This demonstrates transaction settings for migration safety")
 	fmt.Println()
 
 	db, err := neat.NewFromDSN(dsn)
@@ -31,10 +33,18 @@ func RunSchemerBasedMigrations(dsn string) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create schemer instance with neat db
-	schemerInstance := schemer.NewSchemer(db)
+	// Create schemer instance
+	schemerInstance := migrator.NewMigrator(db)
 
-	// Add migrations to schemer
+	// Configure transaction settings
+	fmt.Println("=== Configuring Transaction Settings ===")
+	schemerInstance.SetTransactionsEnabled(true)
+	fmt.Println("Transactions enabled: true")
+
+	schemerInstance.SetTransactionIsolationLevel("SERIALIZABLE")
+	fmt.Println("Transaction isolation level: SERIALIZABLE")
+
+	// Add migrations
 	if err := schemerInstance.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
@@ -44,31 +54,17 @@ func RunSchemerBasedMigrations(dsn string) error {
 	if err := schemerInstance.AddMigration(&CreatePostsTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerInstance.AddMigration(&CreateCommentsTable{}); err != nil {
-		return fmt.Errorf("failed to add migration: %w", err)
-	}
-	if err := schemerInstance.AddMigration(&AddPostsIndexes{}); err != nil {
-		return fmt.Errorf("failed to add migration: %w", err)
-	}
-	if err := schemerInstance.AddMigration(&AddPublishedToPosts{}); err != nil {
-		return fmt.Errorf("failed to add migration: %w", err)
-	}
 
-	// Run all migrations
-	fmt.Println("=== Running Migrations ===")
+	// Run migrations with transaction wrapping
+	fmt.Println("\n=== Running Migrations with Transaction Wrapping ===")
 	ctx := context.Background()
 	if err := schemerInstance.Up(ctx); err != nil {
 		return fmt.Errorf("migration up failed: %w", err)
 	}
 
-	fmt.Println("\n=== All Migrations Completed ===")
+	fmt.Println("\n=== Migrations Completed Successfully ===")
 
-	// Demonstrate rollback (last migration only)
-	fmt.Println("\n=== Rolling Back Last Migration ===")
-	if err := schemerInstance.Down(ctx); err != nil {
-		return fmt.Errorf("migration down failed: %w", err)
-	}
-
+	// Check migration status
 	fmt.Println("\n=== Migration Status ===")
 	status, err := schemerInstance.Status()
 	if err != nil {
@@ -78,6 +74,23 @@ func RunSchemerBasedMigrations(dsn string) error {
 	for _, s := range status {
 		fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
 	}
+
+	// Demonstrate disabling transactions for large migrations
+	fmt.Println("\n=== Disabling Transactions for Large Migrations ===")
+	schemerInstance.SetTransactionsEnabled(false)
+	fmt.Println("Transactions enabled: false")
+
+	// Add a large migration
+	if err := schemerInstance.AddMigration(&AddPostsIndexes{}); err != nil {
+		return fmt.Errorf("failed to add migration: %w", err)
+	}
+
+	// Run without transaction wrapping
+	if err := schemerInstance.Up(ctx); err != nil {
+		return fmt.Errorf("migration up failed: %w", err)
+	}
+
+	fmt.Println("\n=== Large Migration Completed ===")
 
 	return nil
 }
@@ -124,7 +137,7 @@ func (m *CreateUsersTable) Signature() string {
 }
 
 func (m *CreateUsersTable) Description() string {
-	return "Creates users table with authentication fields and soft deletes"
+	return "Creates users table with authentication fields"
 }
 
 func (m *CreateUsersTable) Up() error {
@@ -140,7 +153,6 @@ func (m *CreateUsersTable) Up() error {
 		blueprint.String("password")
 		blueprint.String("status")
 		blueprint.Timestamps()
-		blueprint.SoftDeletes()
 	})
 }
 
@@ -158,7 +170,7 @@ func (m *CreatePostsTable) Signature() string {
 }
 
 func (m *CreatePostsTable) Description() string {
-	return "Creates posts table with user relationships and status tracking"
+	return "Creates posts table with user relationships"
 }
 
 func (m *CreatePostsTable) Up() error {
@@ -173,49 +185,11 @@ func (m *CreatePostsTable) Up() error {
 		blueprint.Text("content")
 		blueprint.String("status")
 		blueprint.Timestamps()
-
-		// Note: Foreign key constraints skipped for SQLite compatibility
-		// blueprint.Foreign("user_id")
 	})
 }
 
 func (m *CreatePostsTable) Down() error {
 	return m.GetSchema().DropIfExists("posts")
-}
-
-// CreateCommentsTable creates the comments table
-type CreateCommentsTable struct {
-	schema.BaseMigration
-}
-
-func (m *CreateCommentsTable) Signature() string {
-	return "2024_06_15_120200_create_comments_table"
-}
-
-func (m *CreateCommentsTable) Description() string {
-	return "Creates comments table for post discussions with user relationships"
-}
-
-func (m *CreateCommentsTable) Up() error {
-	if m.GetSchema().HasTable("comments") {
-		return nil
-	}
-
-	return m.GetSchema().Create("comments", func(blueprint contractsschema.Blueprint) {
-		blueprint.ID()
-		blueprint.Integer("post_id")
-		blueprint.Integer("user_id")
-		blueprint.Text("comment")
-		blueprint.Timestamps()
-
-		// Note: Foreign key constraints skipped for SQLite compatibility
-		// blueprint.Foreign("post_id")
-		// blueprint.Foreign("user_id")
-	})
-}
-
-func (m *CreateCommentsTable) Down() error {
-	return m.GetSchema().DropIfExists("comments")
 }
 
 // AddPostsIndexes adds indexes to the posts table
@@ -224,11 +198,11 @@ type AddPostsIndexes struct {
 }
 
 func (m *AddPostsIndexes) Signature() string {
-	return "2024_06_15_120300_add_posts_indexes"
+	return "2024_06_15_120200_add_posts_indexes"
 }
 
 func (m *AddPostsIndexes) Description() string {
-	return "Adds performance indexes to posts table for user_id and status columns"
+	return "Adds performance indexes to posts table"
 }
 
 func (m *AddPostsIndexes) Up() error {
@@ -240,31 +214,5 @@ func (m *AddPostsIndexes) Up() error {
 
 func (m *AddPostsIndexes) Down() error {
 	// Note: Dropping indexes is database-specific
-	// This is a simplified example
 	return nil
-}
-
-// AddPublishedToPosts adds published_at column to posts table
-type AddPublishedToPosts struct {
-	schema.BaseMigration
-}
-
-func (m *AddPublishedToPosts) Signature() string {
-	return "2024_06_15_120400_add_published_to_posts"
-}
-
-func (m *AddPublishedToPosts) Description() string {
-	return "Adds published_at timestamp column to posts table for scheduling"
-}
-
-func (m *AddPublishedToPosts) Up() error {
-	return m.GetSchema().Table("posts", func(blueprint contractsschema.Blueprint) {
-		blueprint.Timestamp("published_at")
-	})
-}
-
-func (m *AddPublishedToPosts) Down() error {
-	return m.GetSchema().Table("posts", func(blueprint contractsschema.Blueprint) {
-		blueprint.DropColumn("published_at")
-	})
 }

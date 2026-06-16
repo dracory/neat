@@ -1,4 +1,4 @@
-package schemer
+package migrator
 
 import (
 	"testing"

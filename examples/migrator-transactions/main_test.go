@@ -3,7 +3,7 @@ package main_test
 import (
 	"testing"
 
-	mainpkg "github.com/dracory/neat/examples/schemer-transactions"
+	mainpkg "github.com/dracory/neat/examples/migrator-transactions"
 )
 
 func TestRunTransactionExample(t *testing.T) {

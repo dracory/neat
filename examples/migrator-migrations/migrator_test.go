@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
-	"github.com/dracory/neat/database/schemer"
-	mainpkg "github.com/dracory/neat/examples/schemer-migrations"
+	"github.com/dracory/neat/database/migrator"
+	mainpkg "github.com/dracory/neat/examples/migrator-migrations"
 )
 
 func TestSchemerPackage_AllMigrations(t *testing.T) {
@@ -17,7 +17,7 @@ func TestSchemerPackage_AllMigrations(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Create schemer instance
-	schemerInstance := schemer.NewSchemer(db)
+	schemerInstance := migrator.NewMigrator(db)
 
 	// Add migrations
 	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
@@ -83,7 +83,7 @@ func TestSchemerPackage_RollbackSteps(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Create schemer instance
-	schemerInstance := schemer.NewSchemer(db)
+	schemerInstance := migrator.NewMigrator(db)
 
 	// Add migrations
 	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
@@ -116,7 +116,7 @@ func TestSchemerPackage_AddMigrations(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Create schemer instance
-	schemerInstance := schemer.NewSchemer(db)
+	schemerInstance := migrator.NewMigrator(db)
 
 	// Add migrations individually
 	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {

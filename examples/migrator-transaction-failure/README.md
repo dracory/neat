@@ -1,6 +1,6 @@
 # Transaction Failure and Automatic Rollback Example
 
-This example demonstrates how transaction failure behavior works in the schemer package, showing automatic rollback when migrations fail.
+This example demonstrates how transaction failure behavior works in the migrator package, showing automatic rollback when migrations fail.
 
 ## Features Demonstrated
 
@@ -25,7 +25,7 @@ This example demonstrates how transaction failure behavior works in the schemer 
 ## Running the Example
 
 ```bash
-cd examples/schemer-transaction-failure
+cd examples/migrator-transaction-failure
 go run main.go
 ```
 
@@ -36,7 +36,7 @@ This will:
 
 ## Expected Output
 
-**Note**: Transaction wrapping is currently disabled in the schemer package pending verification of schema transaction detection. The example below shows the current behavior (no automatic rollback) and demonstrates what would happen once transaction wrapping is enabled.
+**Note**: Transaction wrapping is currently disabled in the migrator package pending verification of schema transaction detection. The example below shows the current behavior (no automatic rollback) and demonstrates what would happen once transaction wrapping is enabled.
 
 ```
 === Transaction Failure and Automatic Rollback Example ===
@@ -109,10 +109,10 @@ Transactions enabled: true
 
 ## Note on Current Implementation
 
-Transaction wrapping is currently disabled by default in the schemer package pending verification of schema transaction detection. This example demonstrates the behavior once transaction wrapping is enabled.
+Transaction wrapping is currently disabled by default in the migrator package pending verification of schema transaction detection. This example demonstrates the behavior once transaction wrapping is enabled.
 
 ## Related Documentation
 
-- [Schemer Transaction Control Example](../schemer-transactions/)
-- [Schemer Package README](../../database/schemer/README.md)
-- [Transaction Support Proposal](../../docs/proposals/schemer-transaction-support.md)
+- [migrator Transaction Control Example](../migrator-transactions/)
+- [migrator Package README](../../database/migrator/README.md)
+- [Transaction Support Proposal](../../docs/proposals/migrator-transaction-support.md)
