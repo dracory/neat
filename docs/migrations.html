@@ -27,7 +27,7 @@
 <body>
     <a href="index.html" class="back-link">&#8592; Back to Index</a>
 
-    <h1>Migrations <span class="badge">New: Schemer Package</span></h1>
+    <h1>Migrations <span class="badge">New: migrator Package</span></h1>
 
     <p>Neat ORM features a powerful and elegant migration system through the <code>database/migrator</code> package. Migrations allow you to version-control your database schema, making it easy for your team to modify and share the application's database schema.</p>
 
@@ -80,7 +80,7 @@ func (m *CreateUsersTable) Down() error {
     return m.GetSchema().DropIfExists("users")
 }</code></pre>
 
-    <h2>Using the Schemer</h2>
+    <h2>Using the migrator</h2>
 
     <p>The <code>migrator</code> is the entry point for running your migrations. It requires a <code>neat.Database</code> instance.</p>
 
@@ -94,7 +94,7 @@ func main() {
     db, _ := neat.NewFromDSN("sqlite://./app.db")
     defer db.Close()
 
-    // Create schemer instance
+    // Create migrator instance
     s := migrator.NewMigrator(db)
 
     // Add migrations
@@ -142,7 +142,7 @@ for _, s := range status {
     <h2>Advanced Configuration</h2>
 
     <h3>Transaction Wrapping</h3>
-    <p>By default, Schemer wraps migration operations in a database transaction for safety. You can disable this if needed (e.g., for DDL operations that don't support transactions):</p>
+    <p>By default, migrator wraps migration operations in a database transaction for safety. You can disable this if needed (e.g., for DDL operations that don't support transactions):</p>
     <pre><code>s.SetTransactionsEnabled(false)</code></pre>
 
     <h3>Custom Tracking Table</h3>
@@ -151,7 +151,7 @@ for _, s := range status {
 
     <h3>Signature Validation</h3>
     <p>You can enforce specific naming conventions for your migration signatures:</p>
-    <pre><code>s.SetSignatureValidation(true, schemer.SignatureFormatDateTime)</code></pre>
+    <pre><code>s.SetSignatureValidation(true, migrator.SignatureFormatDateTime)</code></pre>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>

@@ -9,39 +9,39 @@ import (
 	mainpkg "github.com/dracory/neat/examples/migrator-migrations"
 )
 
-func TestSchemerPackage_AllMigrations(t *testing.T) {
+func TestMigratorPackage_AllMigrations(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create schemer instance
-	schemerInstance := migrator.NewMigrator(db)
+	// Create migrator instance
+	migratorInstance := migrator.NewMigrator(db)
 
 	// Add migrations
-	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.CreatePostsTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreatePostsTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.CreateCommentsTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateCommentsTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.AddPostsIndexes{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.AddPostsIndexes{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.AddPublishedToPosts{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.AddPublishedToPosts{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	if err := schemerInstance.Up(ctx); err != nil {
+	if err := migratorInstance.Up(ctx); err != nil {
 		t.Fatalf("migration up failed: %v", err)
 	}
 
@@ -61,7 +61,7 @@ func TestSchemerPackage_AllMigrations(t *testing.T) {
 	}
 
 	// Check migration status
-	status, err := schemerInstance.Status()
+	status, err := migratorInstance.Status()
 	if err != nil {
 		t.Fatalf("failed to get migration status: %v", err)
 	}
@@ -70,65 +70,65 @@ func TestSchemerPackage_AllMigrations(t *testing.T) {
 	}
 
 	// Rollback last migration
-	if err := schemerInstance.Down(ctx); err != nil {
+	if err := migratorInstance.Down(ctx); err != nil {
 		t.Fatalf("migration down failed: %v", err)
 	}
 }
 
-func TestSchemerPackage_RollbackSteps(t *testing.T) {
+func TestMigratorPackage_RollbackSteps(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create schemer instance
-	schemerInstance := migrator.NewMigrator(db)
+	// Create migrator instance
+	migratorInstance := migrator.NewMigrator(db)
 
 	// Add migrations
-	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.CreatePostsTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreatePostsTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	if err := schemerInstance.Up(ctx); err != nil {
+	if err := migratorInstance.Up(ctx); err != nil {
 		t.Fatalf("migration up failed: %v", err)
 	}
 
 	// Rollback 2 migrations
-	if err := schemerInstance.RollbackSteps(ctx, 2); err != nil {
+	if err := migratorInstance.RollbackSteps(ctx, 2); err != nil {
 		t.Fatalf("rollback steps failed: %v", err)
 	}
 }
 
-func TestSchemerPackage_AddMigrations(t *testing.T) {
+func TestMigratorPackage_AddMigrations(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create schemer instance
-	schemerInstance := migrator.NewMigrator(db)
+	// Create migrator instance
+	migratorInstance := migrator.NewMigrator(db)
 
 	// Add migrations individually
-	if err := schemerInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateMigrationTrackerTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
-	if err := schemerInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&mainpkg.CreateUsersTable{}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	if err := schemerInstance.Up(ctx); err != nil {
+	if err := migratorInstance.Up(ctx); err != nil {
 		t.Fatalf("migration up failed: %v", err)
 	}
 

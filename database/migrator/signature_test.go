@@ -173,7 +173,7 @@ func TestValidateMigrationSignature_UnknownFormat(t *testing.T) {
 }
 
 func TestSetSignatureValidation(t *testing.T) {
-	// This is tested indirectly via the schemer integration tests below
+	// This is tested indirectly via the migrator integration tests below
 	// Here we verify the setter works on the struct
 	s := &Migrator{}
 

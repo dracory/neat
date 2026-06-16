@@ -13,7 +13,7 @@ import (
 	"github.com/dracory/neat/database/migrator"
 )
 
-// This example demonstrates transaction control in the schemer package
+// This example demonstrates transaction control in the migrator package
 // for safe migration execution with automatic rollback on failure
 func main() {
 	if err := RunTransactionExample("sqlite://./example_transactions.db"); err != nil {
@@ -23,7 +23,7 @@ func main() {
 
 // RunTransactionExample demonstrates transaction control in migrations
 func RunTransactionExample(dsn string) error {
-	fmt.Println("=== Schemer Transaction Control Example ===")
+	fmt.Println("=== migrator Transaction Control Example ===")
 	fmt.Println("This demonstrates transaction settings for migration safety")
 	fmt.Println()
 
@@ -33,32 +33,32 @@ func RunTransactionExample(dsn string) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create schemer instance
-	schemerInstance := migrator.NewMigrator(db)
+	// Create migrator instance
+	migratorInstance := migrator.NewMigrator(db)
 
 	// Configure transaction settings
 	fmt.Println("=== Configuring Transaction Settings ===")
-	schemerInstance.SetTransactionsEnabled(true)
+	migratorInstance.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 
-	schemerInstance.SetTransactionIsolationLevel("SERIALIZABLE")
+	migratorInstance.SetTransactionIsolationLevel("SERIALIZABLE")
 	fmt.Println("Transaction isolation level: SERIALIZABLE")
 
 	// Add migrations
-	if err := schemerInstance.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerInstance.AddMigration(&CreateUsersTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&CreateUsersTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerInstance.AddMigration(&CreatePostsTable{}); err != nil {
+	if err := migratorInstance.AddMigration(&CreatePostsTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
 
 	// Run migrations with transaction wrapping
 	fmt.Println("\n=== Running Migrations with Transaction Wrapping ===")
 	ctx := context.Background()
-	if err := schemerInstance.Up(ctx); err != nil {
+	if err := migratorInstance.Up(ctx); err != nil {
 		return fmt.Errorf("migration up failed: %w", err)
 	}
 
@@ -66,7 +66,7 @@ func RunTransactionExample(dsn string) error {
 
 	// Check migration status
 	fmt.Println("\n=== Migration Status ===")
-	status, err := schemerInstance.Status()
+	status, err := migratorInstance.Status()
 	if err != nil {
 		return fmt.Errorf("failed to get migration status: %w", err)
 	}
@@ -77,16 +77,16 @@ func RunTransactionExample(dsn string) error {
 
 	// Demonstrate disabling transactions for large migrations
 	fmt.Println("\n=== Disabling Transactions for Large Migrations ===")
-	schemerInstance.SetTransactionsEnabled(false)
+	migratorInstance.SetTransactionsEnabled(false)
 	fmt.Println("Transactions enabled: false")
 
 	// Add a large migration
-	if err := schemerInstance.AddMigration(&AddPostsIndexes{}); err != nil {
+	if err := migratorInstance.AddMigration(&AddPostsIndexes{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
 
 	// Run without transaction wrapping
-	if err := schemerInstance.Up(ctx); err != nil {
+	if err := migratorInstance.Up(ctx); err != nil {
 		return fmt.Errorf("migration up failed: %w", err)
 	}
 

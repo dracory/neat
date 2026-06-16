@@ -57,12 +57,12 @@ func TestNewMigrator(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
-	if schemer == nil {
-		t.Error("Expected non-nil schemer")
+	migrator := NewMigrator(db)
+	if migrator == nil {
+		t.Error("Expected non-nil migrator")
 	}
 
-	impl, ok := schemer.(*Migrator)
+	impl, ok := migrator.(*Migrator)
 	if !ok {
 		t.Error("Expected Migrator type")
 	}
@@ -84,16 +84,16 @@ func TestSetTableName_Valid(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 
 	validNames := []string{"migrations", "my_migrations", "schema_migrations", "_tracker"}
 	for _, name := range validNames {
-		err := schemer.SetTableName(name)
+		err := migrator.SetTableName(name)
 		if err != nil {
 			t.Errorf("Expected SetTableName('%s') to succeed, got error: %v", name, err)
 		}
 
-		impl := schemer.(*Migrator)
+		impl := migrator.(*Migrator)
 		if impl.tableName != name {
 			t.Errorf("Expected table name '%s', got '%s'", name, impl.tableName)
 		}
@@ -107,17 +107,17 @@ func TestSetTableName_Invalid(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 
 	invalidNames := []string{"", "1migrations", "migration-tracker", "SELECT", "DROP", "TABLE"}
 	for _, name := range invalidNames {
-		err := schemer.SetTableName(name)
+		err := migrator.SetTableName(name)
 		if err == nil {
 			t.Errorf("Expected SetTableName('%s') to fail, got nil", name)
 		}
 
 		// Table name should remain unchanged
-		impl := schemer.(*Migrator)
+		impl := migrator.(*Migrator)
 		if impl.tableName != defaultTableName {
 			t.Errorf("Expected table name to remain '%s' after failed SetTableName, got '%s'", defaultTableName, impl.tableName)
 		}
@@ -131,9 +131,9 @@ func TestSetTableName_UsedForTracking(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	customTable := "my_migrations"
-	if err := schemer.SetTableName(customTable); err != nil {
+	if err := migrator.SetTableName(customTable); err != nil {
 		t.Fatalf("SetTableName failed: %v", err)
 	}
 
@@ -141,12 +141,12 @@ func TestSetTableName_UsedForTracking(t *testing.T) {
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Fatalf("Up failed: %v", err)
 	}
@@ -167,18 +167,18 @@ func TestAddMigration(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
 	}
 
-	err = schemer.AddMigration(migration)
+	err = migrator.AddMigration(migration)
 	if err != nil {
 		t.Errorf("AddMigration failed: %v", err)
 	}
 
-	impl := schemer.(*Migrator)
+	impl := migrator.(*Migrator)
 	if len(impl.migrations) != 1 {
 		t.Errorf("Expected 1 migration, got %d", len(impl.migrations))
 	}
@@ -191,19 +191,19 @@ func TestAddMigrations(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 		&MockMigration{signature: "migration_3", description: "Third migration"},
 	}
 
-	err = schemer.AddMigrations(migrations)
+	err = migrator.AddMigrations(migrations)
 	if err != nil {
 		t.Errorf("AddMigrations failed: %v", err)
 	}
 
-	impl := schemer.(*Migrator)
+	impl := migrator.(*Migrator)
 	if len(impl.migrations) != 3 {
 		t.Errorf("Expected 3 migrations, got %d", len(impl.migrations))
 	}
@@ -216,17 +216,17 @@ func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
@@ -258,17 +258,17 @@ func TestUp_SchemaInjection(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
@@ -307,17 +307,17 @@ func TestUp_EmptySignature(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "",
 		description: "Test migration",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err == nil {
 		t.Error("Expected error for empty signature")
 	}
@@ -344,20 +344,20 @@ func TestUp_SignatureValidation_DateTime(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
-	schemer.SetSignatureValidation(true, SignatureFormatDateTime)
+	migrator := NewMigrator(db)
+	migrator.SetSignatureValidation(true, SignatureFormatDateTime)
 
 	// Valid datetime signature should pass
 	validMigration := &MockMigration{
 		signature:   "2026_06_15_1200_create_users_table",
 		description: "Valid datetime signature",
 	}
-	if err := schemer.AddMigration(validMigration); err != nil {
+	if err := migrator.AddMigration(validMigration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Expected valid datetime signature to pass, got error: %v", err)
 	}
@@ -387,20 +387,20 @@ func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
-	schemer.SetSignatureValidation(true, SignatureFormatDateTime)
+	migrator := NewMigrator(db)
+	migrator.SetSignatureValidation(true, SignatureFormatDateTime)
 
 	// Invalid signature should fail
 	invalidMigration := &MockMigration{
 		signature:   "test_migration",
 		description: "Invalid datetime signature",
 	}
-	if err := schemer.AddMigration(invalidMigration); err != nil {
+	if err := migrator.AddMigration(invalidMigration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err == nil {
 		t.Error("Expected error for invalid signature format")
 	}
@@ -430,21 +430,21 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	// Validation is disabled by default, but explicitly set it
-	schemer.SetSignatureValidation(false, SignatureFormatDateTime)
+	migrator.SetSignatureValidation(false, SignatureFormatDateTime)
 
 	// Arbitrary signature should pass when validation is disabled
 	migration := &MockMigration{
 		signature:   "totally_arbitrary_name",
 		description: "Arbitrary signature",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Expected arbitrary signature to pass when validation disabled, got error: %v", err)
 	}
@@ -549,18 +549,18 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	// Run migration first time
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("First Up failed: %v", err)
 	}
@@ -569,7 +569,7 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 	migration.upCalled = false
 
 	// Run migration second time - should be skipped
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Second Up failed: %v", err)
 	}
@@ -600,24 +600,24 @@ func TestDown(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migration := &MockMigration{
 		signature:   "test_migration",
 		description: "Test migration",
 	}
-	if err := schemer.AddMigration(migration); err != nil {
+	if err := migrator.AddMigration(migration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	// Run migration first
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
 	// Down should rollback last migration
-	err = schemer.Down(ctx)
+	err = migrator.Down(ctx)
 	if err != nil {
 		t.Errorf("Down failed: %v", err)
 	}
@@ -644,25 +644,25 @@ func TestRollbackSteps(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 		&MockMigration{signature: "migration_3", description: "Third migration"},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
 	// Rollback 2 migrations
-	err = schemer.RollbackSteps(ctx, 2)
+	err = migrator.RollbackSteps(ctx, 2)
 	if err != nil {
 		t.Errorf("RollbackSteps failed: %v", err)
 	}
@@ -689,24 +689,24 @@ func TestRollbackToBatch(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
 	// Get the batch number from status
-	status, err := schemer.Status()
+	status, err := migrator.Status()
 	if err != nil {
 		t.Errorf("Status failed: %v", err)
 	}
@@ -716,7 +716,7 @@ func TestRollbackToBatch(t *testing.T) {
 	batch := status[0].Batch
 
 	// Rollback to that batch
-	err = schemer.RollbackToBatch(ctx, batch)
+	err = migrator.RollbackToBatch(ctx, batch)
 	if err != nil {
 		t.Errorf("RollbackToBatch failed: %v", err)
 	}
@@ -729,9 +729,9 @@ func TestStatus_NoMigrationTrackerTable(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 
-	status, err := schemer.Status()
+	status, err := migrator.Status()
 	if err != nil {
 		t.Errorf("Status failed: %v", err)
 	}
@@ -761,24 +761,24 @@ func TestStatus_WithMigrations(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
 	// Get status
-	status, err := schemer.Status()
+	status, err := migrator.Status()
 	if err != nil {
 		t.Errorf("Status failed: %v", err)
 	}
@@ -818,27 +818,27 @@ func TestFresh(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 
 	// Migration that creates a user table
 	userMigration := &MockMigration{
 		signature:   "2026_06_15_1200_create_users",
 		description: "Create users table",
 	}
-	if err := schemer.AddMigration(userMigration); err != nil {
+	if err := migrator.AddMigration(userMigration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
 	ctx := context.Background()
 
 	// Run migrations to create tables
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Fatalf("Up failed: %v", err)
 	}
 
 	// Verify migration was tracked
-	status, err := schemer.Status()
+	status, err := migrator.Status()
 	if err != nil {
 		t.Fatalf("Status failed: %v", err)
 	}
@@ -847,7 +847,7 @@ func TestFresh(t *testing.T) {
 	}
 
 	// Fresh should drop all tables and re-run migrations
-	err = schemer.Fresh(ctx)
+	err = migrator.Fresh(ctx)
 	if err != nil {
 		t.Fatalf("Fresh failed: %v", err)
 	}
@@ -858,7 +858,7 @@ func TestFresh(t *testing.T) {
 	}
 
 	// Migration should have been re-run (tracker cleared then re-populated)
-	status, err = schemer.Status()
+	status, err = migrator.Status()
 	if err != nil {
 		t.Fatalf("Status after Fresh failed: %v", err)
 	}
@@ -888,24 +888,24 @@ func TestReset(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// Run migrations
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
 	// Reset should rollback all migrations
-	err = schemer.Reset(ctx)
+	err = migrator.Reset(ctx)
 	if err != nil {
 		t.Errorf("Reset failed: %v", err)
 	}
@@ -932,7 +932,7 @@ func TestReset_SafetyLimit(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 
 	// Seed the tracker with more than maxResetIterations entries
 	// to trigger the safety guard. We use raw query to bypass normal migration flow.
@@ -948,7 +948,7 @@ func TestReset_SafetyLimit(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = schemer.Reset(ctx)
+	err = migrator.Reset(ctx)
 	if err == nil {
 		t.Fatal("Expected Reset to fail with safety limit exceeded")
 	}
@@ -964,8 +964,8 @@ func TestSetTransactionsEnabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
-	impl := schemer.(*Migrator)
+	migrator := NewMigrator(db)
+	impl := migrator.(*Migrator)
 
 	// Default should be enabled
 	if !impl.useTransactions {
@@ -992,8 +992,8 @@ func TestSetTransactionIsolationLevel(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	schemer := NewMigrator(db)
-	impl := schemer.(*Migrator)
+	migrator := NewMigrator(db)
+	impl := migrator.(*Migrator)
 
 	// Set isolation level
 	impl.SetTransactionIsolationLevel("SERIALIZABLE")
@@ -1032,18 +1032,18 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// With transactions enabled (default), Up should fail and roll back tracker entries
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err == nil {
 		t.Fatal("Expected error from failing migration")
 	}
@@ -1079,21 +1079,21 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
 
-	schemer := NewMigrator(db)
-	impl := schemer.(*Migrator)
+	migrator := NewMigrator(db)
+	impl := migrator.(*Migrator)
 	impl.SetTransactionsEnabled(false)
 
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// With transactions disabled, Up should fail but prior tracker entries persist
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err == nil {
 		t.Fatal("Expected error from failing migration")
 	}
@@ -1119,18 +1119,18 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	// Do NOT pre-create migration tracking table - runUp will create it inside the transaction
-	schemer := NewMigrator(db)
+	migrator := NewMigrator(db)
 	migrations := []contractsschema.MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
 	}
-	if err := schemer.AddMigrations(migrations); err != nil {
+	if err := migrator.AddMigrations(migrations); err != nil {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
 	// Up should fail; the entire transaction (including tracker table creation) should roll back
 	ctx := context.Background()
-	err = schemer.Up(ctx)
+	err = migrator.Up(ctx)
 	if err == nil {
 		t.Fatal("Expected Up to return error when migration fails")
 	}

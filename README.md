@@ -12,7 +12,7 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Query Builder**: Fluent and intuitive query building interface
 - **ORM**: Full ORM support with models and relationships
 - **Schema Builder**: Database schema creation and modification
-- **Migrations**: Complete database migration system with the new `Schemer` package, schema builder, rollback support, and automatic tracking (major advantage over most Go ORMs)
+- **Migrations**: Complete database migration system with the `Migrator` package, schema builder, rollback support, and automatic tracking (major advantage over most Go ORMs)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
 - **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle
@@ -29,7 +29,7 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 
 ## Key Advantage: Complete Migration System
 
-> **🚀 Most Go ORMs lack comprehensive schema migration support.** Neat ORM includes a complete migration system with the `Schemer` package, schema builder, rollback support, and automatic tracking - something most competitors either lack entirely or require third-party tools for.
+> **🚀 Most Go ORMs lack comprehensive schema migration support.** Neat ORM includes a complete migration system with the `Migrator` package, schema builder, rollback support, and automatic tracking - something most competitors either lack entirely or require third-party tools for.
 
 ## Installation
 
@@ -499,7 +499,7 @@ Neat ORM is actively developed with the following features implemented:
 - ✅ Query Builder with fluent interface and Sugar Methods
 - ✅ ORM with model support
 - ✅ Schema Builder for database operations
-- ✅ Advanced Migration system (`Schemer` package)
+- ✅ Advanced Migration system (`Migrator` package)
 - ✅ Seeder system for data seeding
 - ✅ Factory pattern for test data
 - ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle)

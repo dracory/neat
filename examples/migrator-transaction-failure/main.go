@@ -35,22 +35,22 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Example 1: Migration failure without transactions
 	fmt.Println("=== Example 1: Migration Failure WITHOUT Transactions ===")
-	schemerNoTx := migrator.NewMigrator(db)
-	schemerNoTx.SetTransactionsEnabled(false)
+	migratorNoTx := migrator.NewMigrator(db)
+	migratorNoTx.SetTransactionsEnabled(false)
 	fmt.Println("Transactions enabled: false")
 
-	if err := schemerNoTx.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+	if err := migratorNoTx.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerNoTx.AddMigration(&CreateUsersTable{}); err != nil {
+	if err := migratorNoTx.AddMigration(&CreateUsersTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerNoTx.AddMigration(&FailingMigration{}); err != nil {
+	if err := migratorNoTx.AddMigration(&FailingMigration{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
 
 	ctx := context.Background()
-	err = schemerNoTx.Up(ctx)
+	err = migratorNoTx.Up(ctx)
 	if err != nil {
 		fmt.Printf("Migration failed (expected): %v\n", err)
 	}
@@ -71,21 +71,21 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Example 2: Migration failure with transactions
 	fmt.Println("\n=== Example 2: Migration Failure WITH Transactions ===")
-	schemerWithTx := migrator.NewMigrator(db)
-	schemerWithTx.SetTransactionsEnabled(true)
+	migratorWithTx := migrator.NewMigrator(db)
+	migratorWithTx.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 
-	if err := schemerWithTx.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
+	if err := migratorWithTx.AddMigration(&CreateMigrationTrackerTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerWithTx.AddMigration(&CreateUsersTable{}); err != nil {
+	if err := migratorWithTx.AddMigration(&CreateUsersTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerWithTx.AddMigration(&FailingMigration{}); err != nil {
+	if err := migratorWithTx.AddMigration(&FailingMigration{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
 
-	err = schemerWithTx.Up(ctx)
+	err = migratorWithTx.Up(ctx)
 	if err != nil {
 		fmt.Printf("Migration failed (expected): %v\n", err)
 	}
@@ -106,7 +106,7 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Check migration status
 	fmt.Println("\n=== Migration Status ===")
-	status, err := schemerWithTx.Status()
+	status, err := migratorWithTx.Status()
 	if err != nil {
 		return fmt.Errorf("failed to get migration status: %w", err)
 	}
@@ -122,18 +122,18 @@ func RunTransactionFailureExample(dsn string) error {
 
 	// Example 3: Successful migration with transactions
 	fmt.Println("\n=== Example 3: Successful Migration WITH Transactions ===")
-	schemerSuccess := migrator.NewMigrator(db)
-	schemerSuccess.SetTransactionsEnabled(true)
+	migratorSuccess := migrator.NewMigrator(db)
+	migratorSuccess.SetTransactionsEnabled(true)
 	fmt.Println("Transactions enabled: true")
 
-	if err := schemerSuccess.AddMigration(&CreateUsersTable{}); err != nil {
+	if err := migratorSuccess.AddMigration(&CreateUsersTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
-	if err := schemerSuccess.AddMigration(&CreatePostsTable{}); err != nil {
+	if err := migratorSuccess.AddMigration(&CreatePostsTable{}); err != nil {
 		return fmt.Errorf("failed to add migration: %w", err)
 	}
 
-	err = schemerSuccess.Up(ctx)
+	err = migratorSuccess.Up(ctx)
 	if err != nil {
 		return fmt.Errorf("migration failed: %w", err)
 	}

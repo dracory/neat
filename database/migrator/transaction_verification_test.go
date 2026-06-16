@@ -104,8 +104,8 @@ func TestSchemaTransactionDetection(t *testing.T) {
 	})
 }
 
-// TestSchemerWithRealTransactions tests schemer with actual transaction wrapping enabled
-func TestSchemerWithRealTransactions(t *testing.T) {
+// TestmigratorWithRealTransactions tests migrator with actual transaction wrapping enabled
+func TestMigratorWithRealTransactions(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)

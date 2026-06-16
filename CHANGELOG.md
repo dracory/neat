@@ -40,7 +40,7 @@ newCode()
 
 **Version**: 2026-06-16
 
-**Impact**: The `Schema` contract no longer exposes migration registration. The `Register([]MigrationInterface)` and `Migrations() []MigrationInterface` methods have been removed from `contracts/database/schema.Schema`, and the legacy `database/schema/migration_manager.go` has been deleted. The `schemer` package (or a future `migrator` rename) is the sole supported migration runner.
+**Impact**: The `Schema` contract no longer exposes migration registration. The `Register([]MigrationInterface)` and `Migrations() []MigrationInterface` methods have been removed from `contracts/database/schema.Schema`, and the legacy `database/schema/migration_manager.go` has been deleted. The `migrator` package is the sole supported migration runner.
 
 **Migration**:
 

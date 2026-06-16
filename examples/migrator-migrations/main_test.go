@@ -8,11 +8,11 @@ import (
 	mainpkg "github.com/dracory/neat/examples/migrator-migrations"
 )
 
-func TestRunSchemerBasedMigrations(t *testing.T) {
+func TestRunMigratorBasedMigrations(t *testing.T) {
 	// Use in-memory SQLite for testing
-	err := mainpkg.RunSchemerBasedMigrations("sqlite://:memory:")
+	err := mainpkg.RunMigratorBasedMigrations("sqlite://:memory:")
 	if err != nil {
-		t.Fatalf("RunSchemerBasedMigrations failed: %v", err)
+		t.Fatalf("RunMigratorBasedMigrations failed: %v", err)
 	}
 }
 
@@ -36,7 +36,7 @@ func TestSchemaMigrations_AllMigrations(t *testing.T) {
 	// Inject schema into migrations
 	schema := db.Schema()
 	for _, m := range migrations {
-		 m.SetSchema(schema)
+		m.SetSchema(schema)
 	}
 
 	// Run all migrations
@@ -118,7 +118,7 @@ func TestSchemaMigrations_Rollback(t *testing.T) {
 	// Inject schema into migrations
 	schema := db.Schema()
 	for _, m := range migrations {
-		 m.SetSchema(schema)
+		m.SetSchema(schema)
 	}
 
 	// Run all migrations
@@ -181,7 +181,7 @@ func TestSchemaMigrations_DropTable(t *testing.T) {
 	// Inject schema into migrations
 	schema := db.Schema()
 	for _, m := range []contractsschema.MigrationInterface{&mainpkg.CreateMigrationTrackerTable{}, migration} {
-		 m.SetSchema(schema)
+		m.SetSchema(schema)
 	}
 
 	// Run migration
@@ -224,7 +224,7 @@ func TestSchemaMigrations_MultipleMigrations(t *testing.T) {
 	// Inject schema into migrations
 	schema := db.Schema()
 	for _, m := range migrations {
-		 m.SetSchema(schema)
+		m.SetSchema(schema)
 	}
 
 	// Run migrations in order

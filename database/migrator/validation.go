@@ -63,7 +63,7 @@ func isValidTableName(tableName string) bool {
 
 // ValidateTableName ensures the table name contains only safe characters.
 // Exported to allow external validation of table names before creating
-// a schemer instance.
+// a migrator instance.
 func ValidateTableName(name string) error {
 	if len(name) == 0 {
 		return fmt.Errorf("table name cannot be empty")
