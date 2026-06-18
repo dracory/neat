@@ -263,10 +263,11 @@ func NewFromSQLDB(sqlDB *sql.DB, opts ...Option) (*Database, error) {
 	}
 
 	const connName = "default"
+	databaseName := detectDatabaseName(sqlDB, o.driver)
 	cfg := db.DBConfig{
 		Default: connName,
 		Connections: map[string]db.ConnectionConfig{
-			connName: {Driver: o.driver},
+			connName: {Driver: o.driver, Database: databaseName},
 		},
 		Debug: o.debug,
 	}
@@ -302,7 +303,7 @@ func NewFromSQLDB(sqlDB *sql.DB, opts ...Option) (*Database, error) {
 func detectDriverName(sqlDB *sql.DB) string {
 	name := reflect.ValueOf(sqlDB.Driver()).Type().String()
 	switch {
-	case strings.Contains(name, "mysql"):
+	case strings.Contains(name, "mysql"), strings.Contains(name, "maria"):
 		return "mysql"
 	case strings.Contains(name, "postgres"), strings.Contains(name, "pq"), strings.Contains(name, "pgx"):
 		return "postgres"
@@ -315,6 +316,41 @@ func detectDriverName(sqlDB *sql.DB) string {
 	default:
 		return ""
 	}
+}
+
+// detectDatabaseName attempts to determine the current database name from an
+// already-open *sql.DB connection. Returns an empty string if detection fails.
+func detectDatabaseName(sqlDB *sql.DB, driver string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	switch driver {
+	case "mysql":
+		var dbName string
+		if err := sqlDB.QueryRowContext(ctx, "SELECT DATABASE()").Scan(&dbName); err == nil {
+			return dbName
+		}
+	case "postgres":
+		var dbName string
+		if err := sqlDB.QueryRowContext(ctx, "SELECT current_database()").Scan(&dbName); err == nil {
+			return dbName
+		}
+	case "sqlserver":
+		var dbName string
+		if err := sqlDB.QueryRowContext(ctx, "SELECT DB_NAME()").Scan(&dbName); err == nil {
+			return dbName
+		}
+	case "oracle":
+		var schemaName string
+		if err := sqlDB.QueryRowContext(ctx, "SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM DUAL").Scan(&schemaName); err == nil {
+			return schemaName
+		}
+	case "sqlite", "turso":
+		// SQLite and Turso do not have a database name concept like server DBs.
+		// Return "main" which is the default schema name in SQLite/Turso.
+		return "main"
+	}
+	return ""
 }
 
 // redactDSN removes credentials from a DSN string for safe logging/error messages.

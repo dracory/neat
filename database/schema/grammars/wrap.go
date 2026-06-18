@@ -64,7 +64,7 @@ func (r *Wrap) PrefixArray(prefix string, values []string) []string {
 
 func (r *Wrap) Quote(value string) string {
 	if value == "" {
-		return value
+		return "''"
 	}
 
 	// Escape single quotes by doubling them
