@@ -8,14 +8,17 @@ import (
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
-// convertTimeArgs converts time.Time / *time.Time values in args to UTC datetime strings.
+// convertTimeArgs passes time.Time / *time.Time values as-is to the database driver.
+// The driver handles time.Time natively, ensuring consistent formatting between
+// INSERT and WHERE comparisons. Converting to a string here (e.g. via carbon)
+// produces "2006-01-02 15:04:05" which does not match the RFC3339 format
+// ("2006-01-02T15:04:05Z") that SQLite stores when time.Time is passed directly,
+// causing lexicographic comparison failures in soft-delete filters.
 func convertTimeArgs(args []any) []any {
 	converted := make([]any, len(args))
 	for i, arg := range args {
-		if t, ok := arg.(time.Time); ok {
-			converted[i] = timeToDateTimeString(t)
-		} else if ptr, ok := arg.(*time.Time); ok && ptr != nil {
-			converted[i] = timeToDateTimeString(*ptr)
+		if ptr, ok := arg.(*time.Time); ok && ptr != nil {
+			converted[i] = *ptr
 		} else {
 			converted[i] = arg
 		}

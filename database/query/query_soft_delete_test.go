@@ -1,18 +1,20 @@
 package query_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/dracory/neat/database/query"
 	"github.com/dracory/neat/database/schema/constants"
+	"github.com/dracory/neat/database/soft_delete"
 )
 
 // softModel has a *time.Time DeletedAt and implements SoftDeleteColumnNamer.
 type softModel struct {
-	ID            int
-	Name          string
+	ID        int
+	Name      string
 	DeletedAt *time.Time
 }
 
@@ -358,5 +360,82 @@ func TestSoftDeleteWithRelations(t *testing.T) {
 
 	if count != 2 {
 		t.Errorf("Expected 2 total related records, got %d", count)
+	}
+}
+
+// maxDateModel uses the max-date sentinel strategy (SoftDeletesMaxDate).
+// Records are active when soft_deleted_at > NOW(), soft-deleted when <= NOW().
+type maxDateModel struct {
+	ID   int    `db:"id"`
+	Name string `db:"name"`
+	soft_delete.SoftDeletesMaxDate
+}
+
+// TestSoftDeleteMaxDateExecution tests the max-date soft delete strategy with actual SQLite.
+// Rows are active when soft_deleted_at > NOW(), soft-deleted when <= NOW().
+//
+// Crucially, INSERTs go through database/sql ExecContext directly (as application
+// code does), which stores time.Time as RFC3339 ("2006-01-02T15:04:05Z").
+// The query builder's WHERE args must produce the same format so SQLite's
+// lexicographic datetime comparisons work correctly.
+// This test would have failed with the old convertTimeArgs that converted
+// time.Time to carbon format ("2006-01-02 15:04:05"), causing "T" > " " to
+// make soft-deleted records appear active.
+func TestSoftDeleteMaxDateExecution(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, `CREATE TABLE max_date_models (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT,
+		soft_deleted_at DATETIME NOT NULL
+	)`)
+	w.SetTable("max_date_models")
+	w.SetModel(&maxDateModel{})
+
+	// Insert via database/sql directly so time.Time is stored as RFC3339,
+	// matching what real application code does (bypassing neat's Create path).
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("Failed to get DB: %v", err)
+	}
+
+	// Active record: soft_deleted_at far in the future
+	_, err = db.ExecContext(context.Background(),
+		"INSERT INTO max_date_models (name, soft_deleted_at) VALUES (?, ?)",
+		"active", soft_delete.MaxSoftDeletedAt,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert active record: %v", err)
+	}
+
+	// Soft-deleted record: soft_deleted_at one hour in the past
+	_, err = db.ExecContext(context.Background(),
+		"INSERT INTO max_date_models (name, soft_deleted_at) VALUES (?, ?)",
+		"deleted", time.Now().Add(-time.Hour),
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert soft-deleted record: %v", err)
+	}
+
+	// Default query must return only the active record (soft_deleted_at > NOW)
+	var results []maxDateModel
+	err = w.Q.Get(&results)
+	if err != nil {
+		t.Fatalf("Failed to list records: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("Expected 1 active record, got %d", len(results))
+	}
+	if len(results) > 0 && results[0].Name != "active" {
+		t.Errorf("Expected active record, got %q", results[0].Name)
+	}
+
+	// WithSoftDeleted must return both records
+	var allResults []maxDateModel
+	err = w.Q.WithSoftDeleted().Get(&allResults)
+	if err != nil {
+		t.Fatalf("Failed to list all records: %v", err)
+	}
+	if len(allResults) != 2 {
+		t.Errorf("Expected 2 total records with WithSoftDeleted, got %d", len(allResults))
 	}
 }

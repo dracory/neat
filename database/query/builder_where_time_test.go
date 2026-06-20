@@ -22,11 +22,11 @@ func TestConvertTimeArgs(t *testing.T) {
 	if converted[1] != 123 {
 		t.Errorf("Expected int unchanged, got %v", converted[1])
 	}
-	if s, ok := converted[2].(string); !ok || s != "2026-06-20 12:34:56" {
-		t.Errorf("Expected time.Time converted to '2026-06-20 12:34:56', got %v (%T)", converted[2], converted[2])
+	if t2, ok := converted[2].(time.Time); !ok || !t2.Equal(ts) {
+		t.Errorf("Expected time.Time passed as-is, got %v (%T)", converted[2], converted[2])
 	}
-	if s, ok := converted[3].(string); !ok || s != "2026-06-20 12:34:56" {
-		t.Errorf("Expected *time.Time converted to '2026-06-20 12:34:56', got %v (%T)", converted[3], converted[3])
+	if t2, ok := converted[3].(time.Time); !ok || !t2.Equal(ts) {
+		t.Errorf("Expected *time.Time dereferenced to time.Time, got %v (%T)", converted[3], converted[3])
 	}
 	if converted[4] != nil {
 		t.Errorf("Expected nil unchanged, got %v", converted[4])
@@ -51,8 +51,8 @@ func TestBuildWheresWithTimeArg(t *testing.T) {
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg, got %d", len(args))
 	}
-	if s, ok := args[0].(string); !ok || s != "2026-06-20 12:34:56" {
-		t.Errorf("Expected time arg converted to '2026-06-20 12:34:56', got %v (%T)", args[0], args[0])
+	if t2, ok := args[0].(time.Time); !ok || !t2.Equal(time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)) {
+		t.Errorf("Expected time.Time arg passed as-is, got %v (%T)", args[0], args[0])
 	}
 }
 
@@ -72,7 +72,7 @@ func TestBuildWheresWithPtrTimeArg(t *testing.T) {
 	if len(args) != 1 {
 		t.Errorf("Expected 1 arg, got %d", len(args))
 	}
-	if s, ok := args[0].(string); !ok || s != "2026-06-20 12:34:56" {
-		t.Errorf("Expected *time.Time arg converted to '2026-06-20 12:34:56', got %v (%T)", args[0], args[0])
+	if t2, ok := args[0].(time.Time); !ok || !t2.Equal(ts) {
+		t.Errorf("Expected *time.Time arg dereferenced to time.Time, got %v (%T)", args[0], args[0])
 	}
 }
