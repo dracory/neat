@@ -290,6 +290,9 @@ func (b *ConfigBuilder) buildMySQLDSN() (string, error) {
 		charset = "utf8mb4"
 	}
 	params = append(params, "charset="+charset)
+	// parseTime=true is required for the MySQL driver to return time.Time values
+	// for DATETIME/TIMESTAMP columns instead of []uint8 byte slices.
+	params = append(params, "parseTime=true")
 	if b.config.Loc != "" {
 		params = append(params, "loc="+url.QueryEscape(b.config.Loc))
 	}
