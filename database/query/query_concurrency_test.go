@@ -544,9 +544,9 @@ func TestConcurrentQueryWithChunking(t *testing.T) {
 			q := NewQuery(context.Background(), db, nil, "", nil, nil)
 			q.Table("users")
 
-			err := q.Chunk(10, func(users []map[string]any) bool {
+			err := q.Chunk(10, func(users []map[string]any) error {
 				chunkCount.Add(1)
-				return true
+				return nil
 			})
 			if err != nil {
 				errors <- err
