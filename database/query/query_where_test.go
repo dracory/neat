@@ -452,6 +452,55 @@ func TestWhereIn_SqlOutput(t *testing.T) {
 	}
 }
 
+func TestWhereInWithStringSlice(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
+	q.Where("name IN ?", []string{"alice", "bob", "carol"})
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+
+	// Verify IN clause expansion for []string
+	if !contains(sql, "IN (?, ?, ?)") && !contains(sql, "IN (?,?,?)") {
+		t.Errorf("Expected IN clause with 3 placeholders, got: %s", sql)
+	}
+
+	if len(args) != 3 {
+		t.Errorf("Expected 3 arguments, got %d", len(args))
+	}
+
+	if args[0] != "alice" || args[1] != "bob" || args[2] != "carol" {
+		t.Errorf("Expected args [alice,bob,carol], got %v", args)
+	}
+}
+
+func TestWhereInWithIntSlice(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
+	q.Where("id IN ?", []int{10, 20, 30})
+
+	builder := NewBuilder(q)
+	sql, args := builder.BuildSelect()
+
+	if sql == "" {
+		t.Error("Expected non-empty SQL")
+	}
+
+	if !contains(sql, "IN (?, ?, ?)") && !contains(sql, "IN (?,?,?)") {
+		t.Errorf("Expected IN clause with 3 placeholders, got: %s", sql)
+	}
+
+	if len(args) != 3 {
+		t.Errorf("Expected 3 arguments, got %d", len(args))
+	}
+
+	if args[0] != 10 || args[1] != 20 || args[2] != 30 {
+		t.Errorf("Expected args [10,20,30], got %v", args)
+	}
+}
+
 func TestOrWhereIn_SqlOutput(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
 	q.Where("status = ?", "active")

@@ -2,6 +2,7 @@ package query
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -24,6 +25,43 @@ func convertTimeArgs(args []any) []any {
 		}
 	}
 	return converted
+}
+
+// toAnySlice converts a slice of any type to []any.
+// Returns ok=false if the value is not a slice.
+func toAnySlice(v any) ([]any, bool) {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice {
+		return nil, false
+	}
+	out := make([]any, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		out[i] = rv.Index(i).Interface()
+	}
+	return out, true
+}
+
+// expandInPlaceholders replaces the placeholder in an IN/NOT IN clause with
+// multiple placeholders, one per slice element. It handles both "IN (?)" and
+// "IN ?" patterns (with or without parentheses).
+// Returns the original query unchanged if no IN pattern is found.
+func expandInPlaceholders(query string, placeholders []string) string {
+	expanded := "(" + strings.Join(placeholders, ", ") + ")"
+	// First try the "(?)" pattern (used by WhereIn/WhereNotIn)
+	if strings.Contains(query, "(?)") {
+		return strings.Replace(query, "(?)", expanded, 1)
+	}
+	// Then try the " IN ?" or " NOT IN ?" pattern (used by raw Where)
+	upper := strings.ToUpper(query)
+	if idx := strings.Index(upper, " IN ?"); idx >= 0 {
+		// idx+4 is the position of "?"; replace it with the expanded placeholders
+		return query[:idx+4] + expanded + query[idx+5:]
+	}
+	if idx := strings.Index(upper, " NOT IN ?"); idx >= 0 {
+		return query[:idx+8] + expanded + query[idx+9:]
+	}
+	// No IN pattern found — return unchanged to avoid corrupting unrelated placeholders
+	return query
 }
 
 // buildWheresWithSoftDelete prepends the soft-delete condition when the model implements
@@ -85,17 +123,17 @@ func (b *Builder) buildWheres() (string, []any) {
 			parts = append(parts, strings.ToUpper(where._type))
 		}
 
-		// Expand IN (?) / NOT IN (?) when the single arg is a []any slice.
+		// Expand IN (?) / NOT IN (?) when the single arg is a slice of any type.
 		clauseQuery := where.query
 		clauseArgs := where.args
 		if len(clauseArgs) == 1 {
-			if slice, ok := clauseArgs[0].([]any); ok {
+			if slice, ok := toAnySlice(clauseArgs[0]); ok {
 				placeholders := make([]string, len(slice))
 				for j := range slice {
 					placeholders[j] = placeholderFunc(placeholderIndex)
 					placeholderIndex++
 				}
-				clauseQuery = strings.Replace(clauseQuery, "(?)", "("+strings.Join(placeholders, ", ")+")", 1)
+				clauseQuery = expandInPlaceholders(clauseQuery, placeholders)
 				clauseArgs = slice
 			}
 		}
@@ -135,17 +173,17 @@ func (b *Builder) buildWheresWithIndex(startIndex int) (string, []any) {
 			parts = append(parts, strings.ToUpper(where._type))
 		}
 
-		// Expand IN (?) / NOT IN (?) when the single arg is a []any slice.
+		// Expand IN (?) / NOT IN (?) when the single arg is a slice of any type.
 		clauseQuery := where.query
 		clauseArgs := where.args
 		if len(clauseArgs) == 1 {
-			if slice, ok := clauseArgs[0].([]any); ok {
+			if slice, ok := toAnySlice(clauseArgs[0]); ok {
 				placeholders := make([]string, len(slice))
 				for j := range slice {
 					placeholders[j] = placeholderFunc(placeholderIndex)
 					placeholderIndex++
 				}
-				clauseQuery = strings.Replace(clauseQuery, "(?)", "("+strings.Join(placeholders, ", ")+")", 1)
+				clauseQuery = expandInPlaceholders(clauseQuery, placeholders)
 				clauseArgs = slice
 			}
 		}
