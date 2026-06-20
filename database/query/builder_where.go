@@ -3,9 +3,25 @@ package query
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
+
+// convertTimeArgs converts time.Time / *time.Time values in args to UTC datetime strings.
+func convertTimeArgs(args []any) []any {
+	converted := make([]any, len(args))
+	for i, arg := range args {
+		if t, ok := arg.(time.Time); ok {
+			converted[i] = timeToDateTimeString(t)
+		} else if ptr, ok := arg.(*time.Time); ok && ptr != nil {
+			converted[i] = timeToDateTimeString(*ptr)
+		} else {
+			converted[i] = arg
+		}
+	}
+	return converted
+}
 
 // buildWheresWithSoftDelete prepends the soft-delete condition when the model implements
 // SoftDeleteColumnNamer and neither includeSoftDeleted nor onlySoftDeleted is set.
@@ -39,14 +55,14 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, prefixArgs
+		return prefix, convertTimeArgs(prefixArgs)
 	}
 
 	base, args := b.buildWheres()
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, append(prefixArgs, args...)
+	return prefix + " AND " + base, append(convertTimeArgs(prefixArgs), args...)
 }
 
 // buildWheres builds the WHERE clause from where clauses.
@@ -96,7 +112,7 @@ func (b *Builder) buildWheres() (string, []any) {
 		args = append(args, clauseArgs...)
 	}
 
-	return strings.Join(parts, " "), args
+	return strings.Join(parts, " "), convertTimeArgs(args)
 }
 
 // buildWheresWithIndex builds the WHERE clause from where clauses with a starting placeholder index.
@@ -146,7 +162,7 @@ func (b *Builder) buildWheresWithIndex(startIndex int) (string, []any) {
 		args = append(args, clauseArgs...)
 	}
 
-	return strings.Join(parts, " "), args
+	return strings.Join(parts, " "), convertTimeArgs(args)
 }
 
 // buildWheresWithSoftDeleteIndex prepends the soft-delete condition when the model implements
@@ -191,12 +207,12 @@ func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any)
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, prefixArgs
+		return prefix, convertTimeArgs(prefixArgs)
 	}
 
 	base, args := b.buildWheresWithIndex(startIndex)
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, append(prefixArgs, args...)
+	return prefix + " AND " + base, append(convertTimeArgs(prefixArgs), args...)
 }

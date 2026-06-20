@@ -9,9 +9,9 @@ import (
 )
 
 // timeToDateTimeString converts a time.Time to a UTC datetime string
-// in "YYYY-MM-DD HH:MM:SS" format, suitable for all supported database
-// Note! Without this, SQLiite is storing dates as
-// 9999-12-31 23:59:59 +0000 UTC instead of 9999-12-31 23:59:59
+// in "YYYY-MM-DD HH:MM:SS" format, suitable for all supported databases.
+// Without this, SQLite stores dates as "9999-12-31 23:59:59 +0000 UTC"
+// instead of "9999-12-31 23:59:59".
 func timeToDateTimeString(t time.Time) string {
 	return carbon.CreateFromStdTime(t).SetTimezone(carbon.UTC).ToDateTimeString()
 }
