@@ -57,7 +57,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 	// Handle *interface{} destination (for AsVar methods)
 	if destValue.Kind() == reflect.Interface {
 		if !rows.Next() {
-			return fmt.Errorf("no rows found")
+			return sql.ErrNoRows
 		}
 
 		columns, err := rows.Columns()
@@ -156,7 +156,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 	// Handle single struct destination
 	if destValue.Kind() == reflect.Struct {
 		if !rows.Next() {
-			return fmt.Errorf("no rows found")
+			return sql.ErrNoRows
 		}
 
 		columns, err := rows.Columns()
