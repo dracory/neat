@@ -224,6 +224,81 @@ func TestExtractStructColumnsAndValuesWithTime(t *testing.T) {
 	if len(vals) != 2 {
 		t.Errorf("Expected 2 values (time.Time included), got %d", len(vals))
 	}
+
+	// time.Time value should be converted to a datetime string
+	if _, ok := vals[1].(string); !ok {
+		t.Errorf("Expected time.Time to be converted to string, got %T", vals[1])
+	}
+}
+
+func TestExtractStructColumnsAndValuesTimeConvertedToString(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	type User struct {
+		Name      string    `db:"name"`
+		CreatedAt time.Time `db:"created_at"`
+	}
+
+	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
+	user := User{Name: "Alice", CreatedAt: ts}
+	_, vals := b.extractStructColumnsAndValues(reflect.ValueOf(user))
+
+	if s, ok := vals[1].(string); !ok || s != "2026-06-20 12:34:56" {
+		t.Errorf("Expected time to be converted to '2026-06-20 12:34:56', got %v (%T)", vals[1], vals[1])
+	}
+}
+
+func TestExtractMapValuesTimeConvertedToString(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
+	data := map[string]any{"created_at": ts}
+	_, vals, err := b.extractColumnsAndValues(data)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if s, ok := vals[0].(string); !ok || s != "2026-06-20 12:34:56" {
+		t.Errorf("Expected time.Time in map to be converted to '2026-06-20 12:34:56', got %v (%T)", vals[0], vals[0])
+	}
+}
+
+func TestExtractMapValuesPtrTimeConvertedToString(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
+	data := map[string]any{"deleted_at": &ts}
+	_, vals, err := b.extractColumnsAndValues(data)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if s, ok := vals[0].(string); !ok || s != "2026-06-20 12:34:56" {
+		t.Errorf("Expected *time.Time in map to be converted to '2026-06-20 12:34:56', got %v (%T)", vals[0], vals[0])
+	}
+}
+
+func TestExtractMapValuesNilPtrTimeRemainsNil(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	var nilTime *time.Time
+	data := map[string]any{"deleted_at": nilTime}
+	_, vals, err := b.extractColumnsAndValues(data)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	// Nil *time.Time should not be converted to a string; verify it stays as *time.Time nil
+	if _, ok := vals[0].(string); ok {
+		t.Errorf("Expected nil *time.Time in map NOT to be converted to string, got %v", vals[0])
+	}
+	if ptr, ok := vals[0].(*time.Time); !ok || ptr != nil {
+		t.Errorf("Expected nil *time.Time to remain as (*time.Time)(nil), got %v (%T)", vals[0], vals[0])
+	}
 }
 
 func TestExtractColumnNames(t *testing.T) {

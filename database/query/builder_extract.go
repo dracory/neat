@@ -4,7 +4,17 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/dromara/carbon/v2"
 )
+
+// timeToDateTimeString converts a time.Time to a UTC datetime string
+// in "YYYY-MM-DD HH:MM:SS" format, suitable for all supported database
+// Note! Without this, SQLiite is storing dates as
+// 9999-12-31 23:59:59 +0000 UTC instead of 9999-12-31 23:59:59
+func timeToDateTimeString(t time.Time) string {
+	return carbon.CreateFromStdTime(t).SetTimezone(carbon.UTC).ToDateTimeString()
+}
 
 // extractColumnsAndValues extracts column names and values from a struct, map, or slice.
 func (b *Builder) extractColumnsAndValues(value any) ([]string, []any, error) {
@@ -75,6 +85,12 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 				if t, ok := value.(time.Time); ok && t.IsZero() {
 					continue
 				}
+			}
+			// Convert time.Time / *time.Time to UTC datetime string for consistent storage
+			if t, ok := value.(time.Time); ok {
+				value = timeToDateTimeString(t)
+			} else if ptr, ok := value.(*time.Time); ok && ptr != nil {
+				value = timeToDateTimeString(*ptr)
 			}
 			// Keep RawExpression as-is - it will be handled by the builder
 			columns = append(columns, key.String())
@@ -189,7 +205,11 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		}
 
 		columns = append(columns, columnName)
-		values = append(values, fieldValue.Interface())
+		iface := fieldValue.Interface()
+		if t, ok := iface.(time.Time); ok {
+			iface = timeToDateTimeString(t)
+		}
+		values = append(values, iface)
 	}
 	if values == nil {
 		values = []any{}
