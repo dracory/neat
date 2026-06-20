@@ -206,7 +206,7 @@ func TestExtractStructColumnsAndValuesWithZeroValues(t *testing.T) {
 }
 
 func TestExtractStructColumnsAndValuesWithTime(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -225,14 +225,14 @@ func TestExtractStructColumnsAndValuesWithTime(t *testing.T) {
 		t.Errorf("Expected 2 values (time.Time included), got %d", len(vals))
 	}
 
-	// time.Time value should be converted to a datetime string
+	// For SQLite, time.Time value should be converted to a datetime string
 	if _, ok := vals[1].(string); !ok {
-		t.Errorf("Expected time.Time to be converted to string, got %T", vals[1])
+		t.Errorf("Expected time.Time to be converted to string for SQLite, got %T", vals[1])
 	}
 }
 
 func TestExtractStructColumnsAndValuesTimeConvertedToString(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "", nil, nil)
 	b := NewBuilder(q)
 
 	type User struct {
@@ -249,8 +249,26 @@ func TestExtractStructColumnsAndValuesTimeConvertedToString(t *testing.T) {
 	}
 }
 
+func TestExtractStructColumnsAndValuesTimePassedAsIsForNonSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "mysql"}, "", nil, nil)
+	b := NewBuilder(q)
+
+	type User struct {
+		Name      string    `db:"name"`
+		CreatedAt time.Time `db:"created_at"`
+	}
+
+	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
+	user := User{Name: "Alice", CreatedAt: ts}
+	_, vals := b.extractStructColumnsAndValues(reflect.ValueOf(user))
+
+	if tt, ok := vals[1].(time.Time); !ok || !tt.Equal(ts) {
+		t.Errorf("Expected time.Time to be passed as-is for MySQL, got %v (%T)", vals[1], vals[1])
+	}
+}
+
 func TestExtractMapValuesTimeConvertedToString(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "", nil, nil)
 	b := NewBuilder(q)
 
 	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
@@ -265,8 +283,24 @@ func TestExtractMapValuesTimeConvertedToString(t *testing.T) {
 	}
 }
 
+func TestExtractMapValuesTimePassedAsIsForNonSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "oracle"}, "", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
+	data := map[string]any{"created_at": ts}
+	_, vals, err := b.extractColumnsAndValues(data)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if tt, ok := vals[0].(time.Time); !ok || !tt.Equal(ts) {
+		t.Errorf("Expected time.Time in map to be passed as-is for Oracle, got %v (%T)", vals[0], vals[0])
+	}
+}
+
 func TestExtractMapValuesPtrTimeConvertedToString(t *testing.T) {
-	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "", nil, nil)
 	b := NewBuilder(q)
 
 	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)

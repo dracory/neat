@@ -86,11 +86,16 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 					continue
 				}
 			}
-			// Convert time.Time / *time.Time to UTC datetime string for consistent storage
-			if t, ok := value.(time.Time); ok {
-				value = timeToDateTimeString(t)
-			} else if ptr, ok := value.(*time.Time); ok && ptr != nil {
-				value = timeToDateTimeString(*ptr)
+			// Convert time.Time / *time.Time to UTC datetime string for SQLite only.
+			// SQLite's modernc.org/sqlite driver stores time.Time as "9999-12-31 23:59:59 +0000 UTC"
+			// (Go's default format), so we convert to "YYYY-MM-DD HH:MM:SS" for consistent storage.
+			// Other drivers (MySQL, Oracle, PostgreSQL, SQL Server) handle time.Time natively.
+			if b.query.isSQLite() {
+				if t, ok := value.(time.Time); ok {
+					value = timeToDateTimeString(t)
+				} else if ptr, ok := value.(*time.Time); ok && ptr != nil {
+					value = timeToDateTimeString(*ptr)
+				}
 			}
 			// Keep RawExpression as-is - it will be handled by the builder
 			columns = append(columns, key.String())
@@ -206,7 +211,9 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 
 		columns = append(columns, columnName)
 		iface := fieldValue.Interface()
-		if t, ok := iface.(time.Time); ok {
+		// Convert time.Time to UTC datetime string for SQLite only.
+		// Other drivers handle time.Time natively.
+		if t, ok := iface.(time.Time); ok && b.query.isSQLite() {
 			iface = timeToDateTimeString(t)
 		}
 		values = append(values, iface)
