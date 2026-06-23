@@ -74,6 +74,14 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.withExistsQueries = append([]existsQuery{}, q.withExistsQueries...)
 	clone.buildError = q.buildError
 
+	// Per-query population cache
+	if q.populatedTables != nil {
+		clone.populatedTables = make(map[string]bool)
+		for k, v := range q.populatedTables {
+			clone.populatedTables[k] = v
+		}
+	}
+
 	// Transaction state
 	clone.inTransaction = q.inTransaction
 	clone.tx = q.tx

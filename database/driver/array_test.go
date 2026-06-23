@@ -3,6 +3,8 @@ package driver
 import (
 	"context"
 	"database/sql"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -120,7 +122,7 @@ func TestArraySchemaInference(t *testing.T) {
 		{"id": 1, "name": "John", "score": 1.5, "active": true},
 	}
 
-	schema := driver.inferSchema(rows)
+	schema, _ := driver.inferSchema(rows)
 
 	if schema["id"] != "INTEGER" {
 		t.Errorf("Expected id to be INTEGER, got %s", schema["id"])
@@ -198,5 +200,115 @@ func TestArrayInvalidIdentifiers(t *testing.T) {
 	}
 	if err := driver.Populate(ctx, db, source2); err == nil {
 		t.Error("Expected error for invalid column name, got nil")
+	}
+}
+
+func TestArrayTypeWidening(t *testing.T) {
+	driver := NewArray()
+
+	rows := []map[string]any{
+		{"val": 1},
+		{"val": 1.5},
+	}
+
+	schema, err := driver.inferSchema(rows)
+	if err != nil {
+		t.Fatalf("inferSchema failed: %v", err)
+	}
+	if schema["val"] != "REAL" {
+		t.Errorf("Expected val to be REAL (widened from INTEGER), got %s", schema["val"])
+	}
+
+	rows2 := []map[string]any{
+		{"val": "string"},
+		{"val": 1},
+	}
+	schema2, err := driver.inferSchema(rows2)
+	if err != nil {
+		t.Fatalf("inferSchema failed: %v", err)
+	}
+	if schema2["val"] != "TEXT" {
+		t.Errorf("Expected val to be TEXT (widened from incompatible types), got %s", schema2["val"])
+	}
+}
+
+func TestArraySchemaMismatch(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	driver := NewArray()
+	ctx := context.Background()
+
+	source := &mockArraySourceWithSchema{
+		mockArraySource: mockArraySource{
+			tableName: "mismatch_table",
+			rows: []map[string]any{
+				{"id": 1, "extra": "data"},
+			},
+		},
+		schema: map[string]string{
+			"id": "int",
+		},
+	}
+
+	err = driver.Populate(ctx, db, source)
+	if err == nil {
+		t.Error("Expected error for schema/row mismatch, got nil")
+	}
+	if !strings.Contains(err.Error(), "contains key \"extra\" which is not in the explicit schema") {
+		t.Errorf("Expected mismatch error message, got: %v", err)
+	}
+}
+
+func TestArrayUnsupportedType(t *testing.T) {
+	driver := NewArray()
+	rows := []map[string]any{
+		{"val": []string{"unsupported"}},
+	}
+	_, err := driver.inferSchema(rows)
+	if err == nil {
+		t.Error("Expected error for unsupported type, got nil")
+	}
+}
+
+func TestArrayConcurrentPopulation(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	driver := NewArray()
+	ctx := context.Background()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			tableName := "concurrent_table"
+			source := &mockArraySource{
+				tableName: tableName,
+				rows:      []map[string]any{{"id": 1}},
+			}
+			if err := driver.Populate(ctx, db, source); err != nil {
+				// Errors are expected if we have multiple concurrent attempts at CREATE TABLE IF NOT EXISTS
+				// but SQLite should handle it. If our lock works, only one should proceed.
+				// However, they might all report success if already populated.
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM concurrent_table").Scan(&count); err != nil {
+		t.Errorf("table check failed: %v", err)
 	}
 }

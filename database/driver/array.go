@@ -16,7 +16,8 @@ import (
 type Array struct {
 	*SQLite
 	populated sync.Map // map[string]bool, key is "dbPointer-tableName"
-	mu        sync.Mutex
+	locks     sync.Map // map[string]*sync.Mutex, key is "dbPointer-tableName"
+	locksMu   sync.Mutex
 }
 
 // NewArray creates a new Array driver.
@@ -48,8 +49,10 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 		return nil
 	}
 
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	// Get or create a per-table mutex
+	lock := a.getTableMutex(db, tableName)
+	lock.Lock()
+	defer lock.Unlock()
 
 	// Double-check after acquiring lock
 	if a.isPopulated(db, tableName) {
@@ -62,16 +65,32 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 	}
 
 	var schema map[string]string
+	explicitSchema := false
 	if s, ok := source.(contractsorm.ArraySchema); ok {
 		schema = s.Schema()
+		explicitSchema = true
 	}
 
 	if schema == nil {
-		schema = a.inferSchema(rows)
+		schema, err = a.inferSchema(rows)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(schema) == 0 {
 		return fmt.Errorf("could not infer schema for table %s and no schema provided", tableName)
+	}
+
+	// If explicit schema provided, validate that rows only contain declared keys
+	if explicitSchema && len(rows) > 0 {
+		for i, row := range rows {
+			for key := range row {
+				if _, ok := schema[key]; !ok {
+					return fmt.Errorf("row %d contains key %q which is not in the explicit schema", i, key)
+				}
+			}
+		}
 	}
 
 	// Get sorted column names to ensure deterministic ordering in CREATE and INSERT
@@ -112,55 +131,87 @@ func (a *Array) markPopulated(db *sql.DB, tableName string) {
 	a.populated.Store(key, true)
 }
 
-func (a *Array) inferSchema(rows []map[string]any) map[string]string {
-	schema := make(map[string]string)
-	if len(rows) == 0 {
-		return schema
+func (a *Array) getTableMutex(db *sql.DB, tableName string) *sync.Mutex {
+	key := fmt.Sprintf("%p-%s", db, tableName)
+	if m, ok := a.locks.Load(key); ok {
+		return m.(*sync.Mutex)
 	}
 
-	// Track found types for each column
-	foundTypes := make(map[string]string)
+	a.locksMu.Lock()
+	defer a.locksMu.Unlock()
 
+	// Double check
+	if m, ok := a.locks.Load(key); ok {
+		return m.(*sync.Mutex)
+	}
+
+	m := &sync.Mutex{}
+	a.locks.Store(key, m)
+	return m
+}
+
+func (a *Array) inferSchema(rows []map[string]any) (map[string]string, error) {
+	schema := make(map[string]string)
+	if len(rows) == 0 {
+		return schema, nil
+	}
+
+	// First pass: find all columns across all rows
 	for _, row := range rows {
 		for col, val := range row {
-			if _, exists := foundTypes[col]; exists {
-				continue
-			}
-
 			if val == nil {
 				continue
 			}
 
-			foundTypes[col] = a.goTypeToSQLite(val)
+			currentType := schema[col]
+			newType, err := a.goTypeToSQLite(val)
+			if err != nil {
+				return nil, err
+			}
+
+			if currentType == "" {
+				schema[col] = newType
+				continue
+			}
+
+			// Type widening logic
+			if currentType != newType {
+				if (currentType == "INTEGER" && newType == "REAL") || (currentType == "REAL" && newType == "INTEGER") {
+					schema[col] = "REAL"
+				} else {
+					// Incompatible types, default to TEXT
+					schema[col] = "TEXT"
+				}
+			}
 		}
 	}
 
 	// For columns that are nil in all rows, default to TEXT
 	for _, row := range rows {
 		for col := range row {
-			if _, ok := foundTypes[col]; !ok {
-				foundTypes[col] = "TEXT"
+			if _, ok := schema[col]; !ok {
+				schema[col] = "TEXT"
 			}
 		}
 	}
 
-	return foundTypes
+	return schema, nil
 }
 
-func (a *Array) goTypeToSQLite(val any) string {
+func (a *Array) goTypeToSQLite(val any) (string, error) {
 	switch val.(type) {
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return "INTEGER"
+		return "INTEGER", nil
 	case float32, float64:
-		return "REAL"
+		return "REAL", nil
 	case bool:
-		return "INTEGER" // SQLite uses 0/1 for boolean
+		return "INTEGER", nil // SQLite uses 0/1 for boolean
 	case time.Time, *time.Time:
-		return "DATETIME"
+		return "DATETIME", nil
 	case string:
-		return "TEXT"
+		return "TEXT", nil
 	default:
-		return "TEXT"
+		return "", fmt.Errorf("unsupported type %T in array source", val)
 	}
 }
 
