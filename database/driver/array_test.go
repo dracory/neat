@@ -84,7 +84,11 @@ func TestArrayPopulate(t *testing.T) {
 		t.Fatalf("Query failed: %v", err)
 	}
 
-	defer func() { if err := rows.Close(); err != nil { t.Errorf("failed to close rows: %v", err) } }()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("failed to close rows: %v", err)
+		}
+	}()
 	for rows.Next() {
 		var id int
 		var name string
@@ -299,9 +303,7 @@ func TestArrayConcurrentPopulation(t *testing.T) {
 				rows:      []map[string]any{{"id": 1}},
 			}
 			if err := driver.Populate(ctx, db, source); err != nil {
-				// Errors are expected if we have multiple concurrent attempts at CREATE TABLE IF NOT EXISTS
-				// but SQLite should handle it. If our lock works, only one should proceed.
-				// However, they might all report success if already populated.
+				t.Errorf("Populate failed for %s: %v", tableName, err)
 			}
 		}(i)
 	}
