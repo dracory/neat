@@ -94,6 +94,9 @@ func WithDriver(driverName string) Option {
 	}
 }
 
+// DBConfig represents the database configuration.
+type DBConfig = db.DBConfig
+
 // New creates a new Database instance from a DBConfig.
 // The cfg parameter specifies the database configuration including connections and pool settings.
 // The opts parameter allows for functional options like WithContext, WithLogger, WithPool, etc.

@@ -54,6 +54,9 @@ func TestArrayPopulate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Populate failed: %v", err)
 	}
+	defer func() {
+		_ = db.Close()
+	}()
 
 	// Verify data
 	var count int
@@ -117,7 +120,9 @@ func TestArrayEmptyWithSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	driver := NewArray()
 	source := &mockArraySourceWithSchema{
