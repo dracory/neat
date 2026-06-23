@@ -37,7 +37,7 @@ func TestArrayPopulate(t *testing.T) {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 	defer func() {
-		_ = db.Close()
+		if err := db.Close(); err != nil { t.Errorf("failed to close db: %v", err) }
 	}()
 
 	driver := NewArray()
@@ -81,8 +81,8 @@ func TestArrayPopulate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Query failed: %v", err)
 	}
-	defer rows.Close()
 
+	defer func() { if err := rows.Close(); err != nil { t.Errorf("failed to close rows: %v", err) } }()
 	for rows.Next() {
 		var id int
 		var name string
@@ -142,7 +142,7 @@ func TestArrayEmptyWithSchema(t *testing.T) {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 	defer func() {
-		_ = db.Close()
+		if err := db.Close(); err != nil { t.Errorf("failed to close db: %v", err) }
 	}()
 
 	driver := NewArray()
@@ -176,7 +176,7 @@ func TestArrayInvalidIdentifiers(t *testing.T) {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 	defer func() {
-		_ = db.Close()
+		if err := db.Close(); err != nil { t.Errorf("failed to close db: %v", err) }
 	}()
 
 	driver := NewArray()
