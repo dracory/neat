@@ -468,6 +468,11 @@ func (r *Orm) Close() error {
 
 	var lastErr error
 	for name, db := range r.dbConnections {
+		if drv, ok := r.drivers[name]; ok {
+			if arrayDrv, ok := drv.(*driver.Array); ok {
+				arrayDrv.Cleanup(db)
+			}
+		}
 		if err := db.Close(); err != nil {
 			r.log.Errorf("[Orm] Failed to close connection %s: %v", name, err)
 			lastErr = err

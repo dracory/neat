@@ -32,6 +32,10 @@ func (a *Array) Dialect() string {
 	return "array"
 }
 
+// MaxArrayRows limits the number of rows that can be populated in a single
+// Populate call to prevent unbounded memory/CPU consumption.
+const MaxArrayRows = 100000
+
 // Populate populates the database with rows from the given ArraySource.
 func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.ArraySource) error {
 	tableName := source.TableName()
@@ -62,6 +66,10 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 	rows, err := source.Rows()
 	if err != nil {
 		return fmt.Errorf("failed to get rows from source: %w", err)
+	}
+
+	if len(rows) > MaxArrayRows {
+		return fmt.Errorf("array source for table %s has %d rows, exceeding the limit of %d", tableName, len(rows), MaxArrayRows)
 	}
 
 	var schema map[string]string
@@ -104,6 +112,18 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 	}
 	sort.Strings(sortedCols)
 
+	// Check if the table already exists before creating it.
+	// If it does, skip creation and insertion to avoid schema mismatch
+	// (CREATE TABLE IF NOT EXISTS would silently succeed with a different schema).
+	exists, err := a.tableExists(ctx, db, tableName)
+	if err != nil {
+		return fmt.Errorf("failed to check table existence for %s: %w", tableName, err)
+	}
+	if exists {
+		a.markPopulated(db, tableName)
+		return nil
+	}
+
 	// Create table
 	if err := a.createTable(ctx, db, tableName, schema, sortedCols); err != nil {
 		return fmt.Errorf("failed to create table %s: %w", tableName, err)
@@ -120,10 +140,33 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 	return nil
 }
 
+func (a *Array) tableExists(ctx context.Context, db *sql.DB, tableName string) (bool, error) {
+	var count int
+	err := db.QueryRowContext(ctx,
+		"SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", tableName,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (a *Array) isPopulated(db *sql.DB, tableName string) bool {
 	key := fmt.Sprintf("%p-%s", db, tableName)
-	_, ok := a.populated.Load(key)
-	return ok
+	if _, ok := a.populated.Load(key); ok {
+		// Verify the table actually exists to guard against pointer reuse
+		// after a *sql.DB is closed and a new one reuses the same address.
+		var exists int
+		err := db.QueryRow(
+			"SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", tableName,
+		).Scan(&exists)
+		if err != nil || exists == 0 {
+			a.populated.Delete(key)
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (a *Array) markPopulated(db *sql.DB, tableName string) {
@@ -232,6 +275,8 @@ func (a *Array) createTable(ctx context.Context, db *sql.DB, tableName string, s
 			sqlType = "TEXT"
 		case "time", "datetime", "timestamp":
 			sqlType = "DATETIME"
+		default:
+			return fmt.Errorf("unsupported column type %q for column %q", sqlType, col)
 		}
 		columns = append(columns, fmt.Sprintf("\"%s\" %s", col, sqlType))
 	}
@@ -296,6 +341,25 @@ func (a *Array) insertRows(ctx context.Context, db *sql.DB, tableName string, so
 	}
 
 	return nil
+}
+
+// Cleanup removes all cached entries for the given *sql.DB from the populated
+// and locks maps. This should be called when the connection is closed to prevent
+// unbounded memory growth in long-running services.
+func (a *Array) Cleanup(db *sql.DB) {
+	prefix := fmt.Sprintf("%p-", db)
+	a.populated.Range(func(key, _ any) bool {
+		if k, ok := key.(string); ok && strings.HasPrefix(k, prefix) {
+			a.populated.Delete(k)
+		}
+		return true
+	})
+	a.locks.Range(func(key, _ any) bool {
+		if k, ok := key.(string); ok && strings.HasPrefix(k, prefix) {
+			a.locks.Delete(k)
+		}
+		return true
+	})
 }
 
 // isSimpleIdentifier checks if a string is a simple column identifier

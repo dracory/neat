@@ -1,6 +1,7 @@
 package query
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -23,15 +24,16 @@ func (q *Query) Model(value any) contractsorm.Query {
 
 			if !q.populatedTables[tableName] {
 				if arrayDriver, ok := q.driver.(contractsorm.ArrayPopulator); ok {
-					db, err := q.DB()
-					if err != nil {
+					// Use q.db directly instead of q.DB() because q.DB() returns
+					// an error during transactions. The array driver needs *sql.DB
+					// for DDL operations (CREATE TABLE / INSERT), which are not
+					// transaction-scoped in SQLite for in-memory databases.
+					if q.db == nil {
+						q.buildError = fmt.Errorf("database connection is nil, cannot populate array source")
+					} else if err := arrayDriver.Populate(q.ctx, q.db, source); err != nil {
 						q.buildError = err
 					} else {
-						if err := arrayDriver.Populate(q.ctx, db, source); err != nil {
-							q.buildError = err
-						} else {
-							q.populatedTables[tableName] = true
-						}
+						q.populatedTables[tableName] = true
 					}
 				}
 			}

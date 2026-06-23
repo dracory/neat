@@ -13,6 +13,10 @@ import (
 
 // NewQuery creates a new Query instance.
 func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection string, dbConfig *db.DBConfig, log log.Log) *Query {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	debugState := false
 	if dbConfig != nil {
 		debugState = dbConfig.Debug

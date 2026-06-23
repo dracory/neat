@@ -146,6 +146,8 @@ func newDriverForDialect(dialect string) driver.Driver {
 		return driver.NewTurso()
 	case "oracle":
 		return driver.NewOracle()
+	case "array":
+		return driver.NewArray()
 	default:
 		return driver.NewSQLite()
 	}
