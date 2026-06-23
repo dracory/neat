@@ -54,7 +54,9 @@ func RunExample() error {
 	if err != nil {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
-	defer database.Close()
+	defer func() {
+		_ = database.Close()
+	}()
 
 	// Querying the array-backed model
 	fmt.Println("=== Querying Array-Backed Data ===")

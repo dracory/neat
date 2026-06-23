@@ -36,7 +36,9 @@ func TestArrayPopulate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	driver := NewArray()
 	now := time.Now().Round(time.Second)
