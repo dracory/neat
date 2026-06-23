@@ -56,9 +56,6 @@ func TestArrayPopulate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Populate failed: %v", err)
 	}
-	defer func() {
-		_ = db.Close()
-	}()
 
 	// Verify data
 	var count int
@@ -77,6 +74,28 @@ func TestArrayPopulate(t *testing.T) {
 	}
 	if name != "John" {
 		t.Errorf("Expected John, got %s", name)
+	}
+
+	// Verify all columns and types (round-trip)
+	rows, err := db.Query("SELECT id, name, active, created_at FROM users ORDER BY id")
+	if err != nil {
+		t.Fatalf("Query failed: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int
+		var name string
+		var active bool
+		var createdAt time.Time
+		if err := rows.Scan(&id, &name, &active, &createdAt); err != nil {
+			t.Fatalf("Scan failed: %v", err)
+		}
+		if id == 1 {
+			if name != "John" || active != true || !createdAt.Equal(now) {
+				t.Errorf("Round-trip failed for ID 1: got name=%s, active=%v, created_at=%v", name, active, createdAt)
+			}
+		}
 	}
 
 	// Test idempotency
@@ -148,5 +167,36 @@ func TestArrayEmptyWithSchema(t *testing.T) {
 	_, err = db.Exec("SELECT * FROM empty_table")
 	if err != nil {
 		t.Errorf("Expected table to exist, but got error: %v", err)
+	}
+}
+
+func TestArrayInvalidIdentifiers(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	driver := NewArray()
+	ctx := context.Background()
+
+	// Invalid table name
+	source1 := &mockArraySource{
+		tableName: "users; DROP TABLE users",
+		rows:      []map[string]any{{"id": 1}},
+	}
+	if err := driver.Populate(ctx, db, source1); err == nil {
+		t.Error("Expected error for invalid table name, got nil")
+	}
+
+	// Invalid column name
+	source2 := &mockArraySource{
+		tableName: "valid_table",
+		rows:      []map[string]any{{"id\"; --": 1}},
+	}
+	if err := driver.Populate(ctx, db, source2); err == nil {
+		t.Error("Expected error for invalid column name, got nil")
 	}
 }

@@ -1,8 +1,6 @@
 package query
 
 import (
-	"context"
-	"database/sql"
 	"reflect"
 	"strings"
 
@@ -18,12 +16,14 @@ func (q *Query) Model(value any) contractsorm.Query {
 	// If driver is "array" and model implements ArraySource, populate the database
 	if q.driver != nil && q.driver.Dialect() == "array" {
 		if source, ok := value.(contractsorm.ArraySource); ok {
-			if arrayDriver, ok := q.driver.(interface {
-				Populate(ctx context.Context, db *sql.DB, source contractsorm.ArraySource) error
-			}); ok {
+			if arrayDriver, ok := q.driver.(contractsorm.ArrayPopulator); ok {
 				db, err := q.DB()
-				if err == nil {
-					_ = arrayDriver.Populate(q.ctx, db, source)
+				if err != nil {
+					q.buildError = err
+				} else {
+					if err := arrayDriver.Populate(q.ctx, db, source); err != nil {
+						q.buildError = err
+					}
 				}
 			}
 		}

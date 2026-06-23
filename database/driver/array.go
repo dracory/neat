@@ -38,6 +38,11 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 		return fmt.Errorf("table name cannot be empty")
 	}
 
+	// Validate table name to prevent SQL injection
+	if !a.isSimpleIdentifier(tableName) {
+		return fmt.Errorf("invalid table name: %s", tableName)
+	}
+
 	// Check if already populated for this connection and table
 	if a.isPopulated(db, tableName) {
 		return nil
@@ -69,14 +74,25 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 		return fmt.Errorf("could not infer schema for table %s and no schema provided", tableName)
 	}
 
+	// Get sorted column names to ensure deterministic ordering in CREATE and INSERT
+	sortedCols := make([]string, 0, len(schema))
+	for col := range schema {
+		// Validate column name to prevent SQL injection
+		if !a.isSimpleIdentifier(col) {
+			return fmt.Errorf("invalid column name: %s", col)
+		}
+		sortedCols = append(sortedCols, col)
+	}
+	sort.Strings(sortedCols)
+
 	// Create table
-	if err := a.createTable(ctx, db, tableName, schema); err != nil {
+	if err := a.createTable(ctx, db, tableName, schema, sortedCols); err != nil {
 		return fmt.Errorf("failed to create table %s: %w", tableName, err)
 	}
 
 	// Insert rows
 	if len(rows) > 0 {
-		if err := a.insertRows(ctx, db, tableName, schema, rows); err != nil {
+		if err := a.insertRows(ctx, db, tableName, sortedCols, rows); err != nil {
 			return fmt.Errorf("failed to insert rows into %s: %w", tableName, err)
 		}
 	}
@@ -148,17 +164,10 @@ func (a *Array) goTypeToSQLite(val any) string {
 	}
 }
 
-func (a *Array) createTable(ctx context.Context, db *sql.DB, tableName string, schema map[string]string) error {
+func (a *Array) createTable(ctx context.Context, db *sql.DB, tableName string, schema map[string]string, sortedCols []string) error {
 	var columns []string
 
-	// Sort columns for deterministic SQL
-	keys := make([]string, 0, len(schema))
-	for k := range schema {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, col := range keys {
+	for _, col := range sortedCols {
 		sqlType := schema[col]
 		// Convert our internal type names to SQLite types if they aren't already
 		switch strings.ToLower(sqlType) {
@@ -181,21 +190,14 @@ func (a *Array) createTable(ctx context.Context, db *sql.DB, tableName string, s
 	return err
 }
 
-func (a *Array) insertRows(ctx context.Context, db *sql.DB, tableName string, schema map[string]string, rows []map[string]any) error {
+func (a *Array) insertRows(ctx context.Context, db *sql.DB, tableName string, sortedCols []string, rows []map[string]any) error {
 	if len(rows) == 0 {
 		return nil
 	}
 
-	// Sort columns for deterministic SQL
-	cols := make([]string, 0, len(schema))
-	for col := range schema {
-		cols = append(cols, col)
-	}
-	sort.Strings(cols)
-
-	colNames := make([]string, len(cols))
-	placeholders := make([]string, len(cols))
-	for i, col := range cols {
+	colNames := make([]string, len(sortedCols))
+	placeholders := make([]string, len(sortedCols))
+	for i, col := range sortedCols {
 		colNames[i] = fmt.Sprintf("\"%s\"", col)
 		placeholders[i] = "?"
 	}
@@ -204,7 +206,7 @@ func (a *Array) insertRows(ctx context.Context, db *sql.DB, tableName string, sc
 
 	// SQLite has a limit on the number of variables (parameters) in a single statement.
 	// Default is usually 999.
-	batchSize := 500 / len(cols)
+	batchSize := 500 / len(sortedCols)
 	if batchSize == 0 {
 		batchSize = 1
 	}
@@ -221,7 +223,7 @@ func (a *Array) insertRows(ctx context.Context, db *sql.DB, tableName string, sc
 
 		for _, row := range batch {
 			placeholderGroups = append(placeholderGroups, "("+strings.Join(placeholders, ", ")+")")
-			for _, col := range cols {
+			for _, col := range sortedCols {
 				val := row[col]
 				// Convert bool to 0/1 for SQLite
 				if b, ok := val.(bool); ok {
@@ -243,4 +245,55 @@ func (a *Array) insertRows(ctx context.Context, db *sql.DB, tableName string, sc
 	}
 
 	return nil
+}
+
+// isSimpleIdentifier checks if a string is a simple column identifier
+// that can be safely quoted.
+func (a *Array) isSimpleIdentifier(s string) bool {
+	if s == "" {
+		return false
+	}
+
+	// Check for dots (table.column) or parentheses (function calls)
+	if strings.Contains(s, ".") || strings.Contains(s, "(") || strings.Contains(s, ")") {
+		return false
+	}
+
+	// Check if starts with a number
+	if s[0] >= '0' && s[0] <= '9' {
+		return false
+	}
+
+	// Check if contains only valid identifier characters
+	for _, r := range s {
+		isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+		isDigit := r >= '0' && r <= '9'
+		isUnderscore := r == '_'
+		if !isLetter && !isDigit && !isUnderscore {
+			return false
+		}
+	}
+
+	// Reject SQL keywords to prevent injection attempts
+	upperS := strings.ToUpper(s)
+	sqlKeywords := []string{
+		"SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "CREATE",
+		"ALTER", "TRUNCATE", "REPLACE", "MERGE", "UNION", "EXCEPT",
+		"INTERSECT", "WHERE", "FROM", "JOIN", "INNER", "OUTER",
+		"LEFT", "RIGHT", "FULL", "CROSS", "ON", "USING", "AND",
+		"OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS",
+		"NULL", "TRUE", "FALSE", "CASE", "WHEN", "THEN", "ELSE",
+		"END", "GROUP", "HAVING", "ORDER", "BY", "LIMIT", "OFFSET",
+		"DISTINCT", "ALL", "AS", "TABLE", "VIEW", "INDEX", "TRIGGER",
+		"PROCEDURE", "FUNCTION", "DATABASE", "SCHEMA", "GRANT", "REVOKE",
+		"EXEC", "EXECUTE", "DUAL", "SYSDATE", "SYSTIMESTAMP",
+	}
+
+	for _, keyword := range sqlKeywords {
+		if upperS == keyword {
+			return false
+		}
+	}
+
+	return true
 }

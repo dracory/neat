@@ -77,7 +77,7 @@ func (q *Query) isMySQL() bool {
 
 // isSQLite returns true if the driver dialect is SQLite.
 func (q *Query) isSQLite() bool {
-	return q.driver != nil && q.driver.Dialect() == "sqlite"
+	return q.driver != nil && (q.driver.Dialect() == "sqlite" || q.driver.Dialect() == "array")
 }
 
 // isOracle returns true if the driver dialect is Oracle.
