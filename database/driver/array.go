@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -151,22 +152,28 @@ func (a *Array) tableExists(ctx context.Context, db *sql.DB, tableName string) (
 	return count > 0, nil
 }
 
+// isPopulated checks whether the given table has already been populated for
+// the given *sql.DB connection.
+//
+// This method trusts the sync.Map without issuing a sqlite_master verification
+// query on every call. The previous implementation queried sqlite_master each
+// time to guard against *sql.DB pointer reuse (after Close + reopen), but this
+// added a round-trip to every Model() call. Instead, we rely on Cleanup() being
+// called when connections are closed (via Orm.Close() → Database.Close()) to
+// remove stale entries. If a stale entry causes Populate to skip a missing
+// table, the subsequent query will fail with a clear "no such table" error.
+//
+// Edge case: When a Database is created via NewFromSQLDB / BuildOrmFromDB, the
+// caller retains ownership of the *sql.DB. If the caller closes it directly
+// (without calling Database.Close()), Cleanup() is never invoked and stale
+// entries remain in the sync.Map. A new *sql.DB allocated at the same memory
+// address would inherit these stale entries and skip population. This is an
+// acceptable trade-off for performance; the affected query will fail with a
+// clear "no such table" error that is easy to diagnose.
 func (a *Array) isPopulated(db *sql.DB, tableName string) bool {
 	key := fmt.Sprintf("%p-%s", db, tableName)
-	if _, ok := a.populated.Load(key); ok {
-		// Verify the table actually exists to guard against pointer reuse
-		// after a *sql.DB is closed and a new one reuses the same address.
-		var exists int
-		err := db.QueryRow(
-			"SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", tableName,
-		).Scan(&exists)
-		if err != nil || exists == 0 {
-			a.populated.Delete(key)
-			return false
-		}
-		return true
-	}
-	return false
+	_, ok := a.populated.Load(key)
+	return ok
 }
 
 func (a *Array) markPopulated(db *sql.DB, tableName string) {
@@ -253,6 +260,8 @@ func (a *Array) goTypeToSQLite(val any) (string, error) {
 		return "DATETIME", nil
 	case string:
 		return "TEXT", nil
+	case []byte, json.RawMessage:
+		return "BLOB", nil
 	default:
 		return "", fmt.Errorf("unsupported type %T in array source", val)
 	}
@@ -275,6 +284,8 @@ func (a *Array) createTable(ctx context.Context, db *sql.DB, tableName string, s
 			sqlType = "TEXT"
 		case "time", "datetime", "timestamp":
 			sqlType = "DATETIME"
+		case "blob":
+			sqlType = "BLOB"
 		default:
 			return fmt.Errorf("unsupported column type %q for column %q", sqlType, col)
 		}
@@ -362,8 +373,18 @@ func (a *Array) Cleanup(db *sql.DB) {
 	})
 }
 
-// isSimpleIdentifier checks if a string is a simple column identifier
-// that can be safely quoted.
+// isSimpleIdentifier checks if a string is a simple SQL identifier (table or
+// column name) that can be safely embedded in a double-quoted SQL identifier.
+//
+// All identifiers are emitted with double quotes in the generated SQL (e.g.
+// ""column_name""), which makes any valid identifier safe regardless of whether
+// it coincides with a SQL keyword. Therefore, we do NOT reject SQL keywords
+// here — doing so would prevent legitimate column names like "order", "group",
+// "index", "level", "date", "key", "type", "user", etc.
+//
+// The check still rejects characters that could break out of the double-quote
+// context: dots (table.column), parentheses (function calls), non-identifier
+// characters, and identifiers starting with a digit.
 func (a *Array) isSimpleIdentifier(s string) bool {
 	if s == "" {
 		return false
@@ -385,27 +406,6 @@ func (a *Array) isSimpleIdentifier(s string) bool {
 		isDigit := r >= '0' && r <= '9'
 		isUnderscore := r == '_'
 		if !isLetter && !isDigit && !isUnderscore {
-			return false
-		}
-	}
-
-	// Reject SQL keywords to prevent injection attempts
-	upperS := strings.ToUpper(s)
-	sqlKeywords := []string{
-		"SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "CREATE",
-		"ALTER", "TRUNCATE", "REPLACE", "MERGE", "UNION", "EXCEPT",
-		"INTERSECT", "WHERE", "FROM", "JOIN", "INNER", "OUTER",
-		"LEFT", "RIGHT", "FULL", "CROSS", "ON", "USING", "AND",
-		"OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS",
-		"NULL", "TRUE", "FALSE", "CASE", "WHEN", "THEN", "ELSE",
-		"END", "GROUP", "HAVING", "ORDER", "BY", "LIMIT", "OFFSET",
-		"DISTINCT", "ALL", "AS", "TABLE", "VIEW", "INDEX", "TRIGGER",
-		"PROCEDURE", "FUNCTION", "DATABASE", "SCHEMA", "GRANT", "REVOKE",
-		"EXEC", "EXECUTE", "DUAL", "SYSDATE", "SYSTIMESTAMP",
-	}
-
-	for _, keyword := range sqlKeywords {
-		if upperS == keyword {
 			return false
 		}
 	}

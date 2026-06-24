@@ -26,9 +26,9 @@ func (s *StatusSource) Rows() ([]map[string]any, error) {
 
 // Status represents the model for querying the statuses table.
 type Status struct {
-	ID    int    `db:"id"`
-	Name  string `db:"name"`
-	Color string `db:"color"`
+	ID    int
+	Name  string
+	Color string
 }
 
 func main() {
@@ -44,8 +44,7 @@ func RunExample() error {
 		Default: "array_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"array_db": {
-				Driver:   "array",
-				Database: ":memory:",
+				Driver: "array",
 			},
 		},
 	}
@@ -55,7 +54,9 @@ func RunExample() error {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
 	defer func() {
-		if err := database.Close(); err != nil { fmt.Printf("failed to close database: %v", err) }
+		if err := database.Close(); err != nil {
+			fmt.Printf("failed to close database: %v", err)
+		}
 	}()
 
 	// Querying the array-backed model

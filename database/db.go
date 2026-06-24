@@ -539,7 +539,17 @@ func (d *Database) DB() (*sql.DB, error) {
 }
 
 // Close closes the database connection.
+//
+// When the underlying Orm implements Close() (as the concrete *orm.Orm does),
+// this calls Orm.Close() instead of closing *sql.DB directly. Orm.Close()
+// invokes Array.Cleanup() for array-driver connections, which removes
+// populated/locks sync.Map entries — preventing unbounded memory growth
+// in long-running services that create and close Database instances.
+// If the Orm does not implement Close(), it falls back to direct *sql.DB close.
 func (d *Database) Close() error {
+	if closer, ok := d.ormInstance.(interface{ Close() error }); ok {
+		return closer.Close()
+	}
 	sqlDB, err := d.ormInstance.DB()
 	if err != nil {
 		return err

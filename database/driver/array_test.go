@@ -39,7 +39,9 @@ func TestArrayPopulate(t *testing.T) {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 	defer func() {
-		if err := db.Close(); err != nil { t.Errorf("failed to close db: %v", err) }
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close db: %v", err)
+		}
 	}()
 
 	driver := NewArray()
@@ -148,7 +150,9 @@ func TestArrayEmptyWithSchema(t *testing.T) {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 	defer func() {
-		if err := db.Close(); err != nil { t.Errorf("failed to close db: %v", err) }
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close db: %v", err)
+		}
 	}()
 
 	driver := NewArray()
@@ -182,7 +186,9 @@ func TestArrayInvalidIdentifiers(t *testing.T) {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 	defer func() {
-		if err := db.Close(); err != nil { t.Errorf("failed to close db: %v", err) }
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close db: %v", err)
+		}
 	}()
 
 	driver := NewArray()
@@ -312,5 +318,151 @@ func TestArrayConcurrentPopulation(t *testing.T) {
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM concurrent_table").Scan(&count); err != nil {
 		t.Errorf("table check failed: %v", err)
+	}
+}
+
+func TestArrayCleanup(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	drv := NewArray()
+	ctx := context.Background()
+
+	source := &mockArraySource{
+		tableName: "cleanup_test",
+		rows:      []map[string]any{{"id": 1}},
+	}
+
+	if err := drv.Populate(ctx, db, source); err != nil {
+		t.Fatalf("Populate failed: %v", err)
+	}
+
+	// Verify the populated entry exists
+	if !drv.isPopulated(db, "cleanup_test") {
+		t.Fatal("Expected table to be marked as populated before Cleanup")
+	}
+
+	// Call Cleanup and verify the entry is removed
+	drv.Cleanup(db)
+	if drv.isPopulated(db, "cleanup_test") {
+		t.Error("Expected table to NOT be marked as populated after Cleanup")
+	}
+
+	// After Cleanup, Populate should re-populate successfully
+	if err := drv.Populate(ctx, db, source); err != nil {
+		t.Fatalf("Populate after Cleanup failed: %v", err)
+	}
+	if !drv.isPopulated(db, "cleanup_test") {
+		t.Error("Expected table to be marked as populated after re-Populate")
+	}
+}
+
+func TestArrayMaxRowsLimit(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	drv := NewArray()
+	ctx := context.Background()
+
+	// Create a source with MaxArrayRows + 1 rows
+	rows := make([]map[string]any, MaxArrayRows+1)
+	for i := range rows {
+		rows[i] = map[string]any{"id": i}
+	}
+
+	source := &mockArraySource{
+		tableName: "too_many_rows",
+		rows:      rows,
+	}
+
+	err = drv.Populate(ctx, db, source)
+	if err == nil {
+		t.Fatal("Expected error for exceeding MaxArrayRows, got nil")
+	}
+	if !strings.Contains(err.Error(), "exceeding the limit") {
+		t.Errorf("Expected 'exceeding the limit' error, got: %v", err)
+	}
+}
+
+func TestArraySQLKeywordColumnNames(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	drv := NewArray()
+	ctx := context.Background()
+
+	// Column names that are SQL keywords — these must be accepted because
+	// all identifiers are double-quoted in the generated SQL, making them safe.
+	source := &mockArraySource{
+		tableName: "keyword_cols",
+		rows: []map[string]any{
+			{"id": 1, "order": "first", "group": "A", "index": 10},
+			{"id": 2, "order": "second", "group": "B", "index": 20},
+		},
+	}
+
+	if err := drv.Populate(ctx, db, source); err != nil {
+		t.Fatalf("Populate with SQL keyword column names failed: %v", err)
+	}
+
+	var orderVal, groupVal string
+	var indexVal int
+	err = db.QueryRow(`SELECT "order", "group", "index" FROM keyword_cols WHERE id = 1`).Scan(&orderVal, &groupVal, &indexVal)
+	if err != nil {
+		t.Fatalf("Query with quoted keyword columns failed: %v", err)
+	}
+	if orderVal != "first" || groupVal != "A" || indexVal != 10 {
+		t.Errorf("Unexpected values: order=%s, group=%s, index=%d", orderVal, groupVal, indexVal)
+	}
+}
+
+func TestArrayBlobType(t *testing.T) {
+	drv := NewArray()
+
+	rows := []map[string]any{
+		{"id": 1, "data": []byte("binary data")},
+	}
+
+	schema, err := drv.inferSchema(rows)
+	if err != nil {
+		t.Fatalf("inferSchema failed: %v", err)
+	}
+	if schema["data"] != "BLOB" {
+		t.Errorf("Expected data to be BLOB, got %s", schema["data"])
+	}
+
+	// Full Populate round-trip — verifies createTable accepts BLOB type
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	source := &mockArraySource{
+		tableName: "blob_test",
+		rows:      rows,
+	}
+	if err := drv.Populate(ctx, db, source); err != nil {
+		t.Fatalf("Populate with []byte column failed: %v", err)
+	}
+
+	var id int
+	var data []byte
+	err = db.QueryRow("SELECT id, data FROM blob_test WHERE id = 1").Scan(&id, &data)
+	if err != nil {
+		t.Fatalf("Query failed: %v", err)
+	}
+	if string(data) != "binary data" {
+		t.Errorf("Expected 'binary data', got %q", string(data))
 	}
 }

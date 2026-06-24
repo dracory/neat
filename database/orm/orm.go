@@ -461,22 +461,34 @@ func (r *Orm) WithContext(ctx context.Context) contractsorm.Orm {
 	return NewOrm(ctx, r.dbConfig, r.connection, r.query, r.queries, r.log, r.modelToObserver, r.refresh, r.drivers, r.dbConnections)
 }
 
-// Close closes all database connections.
+// Close closes the database connection for this Orm instance only.
+//
+// Only the connection matching r.connection is closed and cleaned up.
+// This prevents a secondary Database (created via Connection()) from
+// closing connections belonging to other Database instances that share
+// the same dbConnections map.
+//
+// For array-driver connections, Array.Cleanup() is called to remove
+// populated/locks sync.Map entries — preventing unbounded memory growth
+// in long-running services.
 func (r *Orm) Close() error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	var lastErr error
-	for name, db := range r.dbConnections {
-		if drv, ok := r.drivers[name]; ok {
-			if arrayDrv, ok := drv.(*driver.Array); ok {
-				arrayDrv.Cleanup(db)
-			}
-		}
-		if err := db.Close(); err != nil {
-			r.log.Errorf("[Orm] Failed to close connection %s: %v", name, err)
-			lastErr = err
+	db, ok := r.dbConnections[r.connection]
+	if !ok {
+		return nil
+	}
+
+	if drv, ok := r.drivers[r.connection]; ok {
+		if arrayDrv, ok := drv.(*driver.Array); ok {
+			arrayDrv.Cleanup(db)
 		}
 	}
-	return lastErr
+
+	if err := db.Close(); err != nil {
+		r.log.Errorf("[Orm] Failed to close connection %s: %v", r.connection, err)
+		return err
+	}
+	return nil
 }
