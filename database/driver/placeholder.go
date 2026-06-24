@@ -13,6 +13,7 @@ var PlaceholderFuncs = map[string]PlaceholderFunc{
 	"sqlite":    sqlitePlaceholder,
 	"sqlserver": sqlserverPlaceholder,
 	"turso":     sqlitePlaceholder,
+	"array":     sqlitePlaceholder,
 }
 
 // mysqlPlaceholder returns MySQL-style placeholders (?).

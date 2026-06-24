@@ -269,6 +269,8 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 		return b.buildTursoDSN()
 	case "oracle":
 		return b.buildOracleDSN()
+	case "array":
+		return b.buildSQLiteDSN()
 	default:
 		return "", fmt.Errorf("unsupported driver: %s", b.config.Driver)
 	}
@@ -422,7 +424,7 @@ func (c *ConnectionConfig) Validate() error {
 		return nil
 	}
 	switch c.Driver {
-	case "sqlite":
+	case "sqlite", "array":
 		// database path is optional; empty defaults to :memory:
 		return nil
 	case "mysql":

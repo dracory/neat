@@ -92,6 +92,9 @@ type Query struct {
 
 	// Validation error
 	buildError error
+
+	// Per-query population cache (maps table name to populated status)
+	populatedTables map[string]bool
 }
 
 // countQuery represents a count subquery for eager loading.

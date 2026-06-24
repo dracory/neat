@@ -13,6 +13,10 @@ import (
 
 // NewQuery creates a new Query instance.
 func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection string, dbConfig *db.DBConfig, log log.Log) *Query {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	debugState := false
 	if dbConfig != nil {
 		debugState = dbConfig.Debug
@@ -77,7 +81,7 @@ func (q *Query) isMySQL() bool {
 
 // isSQLite returns true if the driver dialect is SQLite.
 func (q *Query) isSQLite() bool {
-	return q.driver != nil && q.driver.Dialect() == "sqlite"
+	return q.driver != nil && (q.driver.Dialect() == "sqlite" || q.driver.Dialect() == "array")
 }
 
 // isOracle returns true if the driver dialect is Oracle.
