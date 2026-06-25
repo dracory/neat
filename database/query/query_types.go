@@ -78,7 +78,7 @@ type Query struct {
 	omitColumns []string
 
 	// Soft delete state
-	includeSoftDeleted    bool
+	includeSoftDeleted bool
 	onlySoftDeleted    bool
 	excludeSoftDeleted bool
 
@@ -145,7 +145,7 @@ type RawExpression struct {
 // orderClause represents an ORDER BY clause in a query.
 type orderClause struct {
 	column    string
-	direction string // "asc", "desc"
+	direction string // dirAsc, dirDesc
 }
 
 // RawExpr creates a new raw SQL expression for use in Create/Update values.

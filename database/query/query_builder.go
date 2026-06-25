@@ -216,30 +216,30 @@ func (q *Query) Order(value any) orm.Query {
 		if !isSimpleIdentifier(expr) {
 			return q
 		}
-		q.orders = append(q.orders, orderClause{column: expr, direction: "desc"})
+		q.orders = append(q.orders, orderClause{column: expr, direction: dirDesc})
 	} else if strings.Contains(upperExpr, " ASC") {
 		expr = strings.TrimSuffix(expr, " ASC")
 		expr = strings.TrimSuffix(expr, " asc")
 		if !isSimpleIdentifier(expr) {
 			return q
 		}
-		q.orders = append(q.orders, orderClause{column: expr, direction: "asc"})
+		q.orders = append(q.orders, orderClause{column: expr, direction: dirAsc})
 	} else {
 		if !isSimpleIdentifier(expr) {
 			return q
 		}
-		q.orders = append(q.orders, orderClause{column: expr, direction: "asc"})
+		q.orders = append(q.orders, orderClause{column: expr, direction: dirAsc})
 	}
 	return q
 }
 
 // OrderBy adds an order by clause with direction.
 func (q *Query) OrderBy(column string, direction ...string) orm.Query {
-	dir := "asc"
+	dir := dirAsc
 	if len(direction) > 0 {
 		dir = strings.ToLower(direction[0])
-		if dir != "asc" && dir != "desc" {
-			dir = "asc"
+		if dir != dirAsc && dir != dirDesc {
+			dir = dirAsc
 		}
 	}
 	// Validate column is a simple identifier
@@ -255,7 +255,7 @@ func (q *Query) OrderByDesc(column string) orm.Query {
 	if !isSimpleIdentifier(column) {
 		return q
 	}
-	q.orders = append(q.orders, orderClause{column: column, direction: "desc"})
+	q.orders = append(q.orders, orderClause{column: column, direction: dirDesc})
 	return q
 }
 

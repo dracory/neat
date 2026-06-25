@@ -3,10 +3,20 @@ package query
 import (
 	"fmt"
 	"strings"
+
+	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
 // ClauseType represents the type of a query clause.
 type ClauseType int
+
+// Internal sort direction constants. These are derived from the canonical
+// orm.SortAsc / orm.SortDesc constants (lowercased for internal storage)
+// to avoid duplicating string literals.
+var (
+	dirAsc  = strings.ToLower(contractsorm.SortAsc)
+	dirDesc = strings.ToLower(contractsorm.SortDesc)
+)
 
 const (
 	WhereClause ClauseType = iota

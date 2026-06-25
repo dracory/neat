@@ -7,6 +7,14 @@ import (
 	"github.com/dracory/neat/contracts/database"
 )
 
+// Sort directions for use with Query.OrderBy.
+// These are the canonical constants — the root neat package re-exports them
+// as neat.SortAsc / neat.SortDesc for convenience.
+const (
+	SortAsc  = "ASC"
+	SortDesc = "DESC"
+)
+
 type QueryLog struct {
 	Query    string
 	Bindings []any
@@ -520,7 +528,8 @@ type Query interface {
 	//
 	// Example:
 	//   query.OrderBy("name")
-	//   query.OrderBy("created_at", "DESC")
+	//   query.OrderBy("created_at", orm.SortDesc)
+	//   query.OrderBy("created_at", orm.SortAsc)
 	OrderBy(column string, direction ...string) Query
 
 	// OrderByDesc specifies that results should be ordered by a column in descending order.
