@@ -61,7 +61,7 @@ func (r *Sqlite) CompileChange(_ schema.Blueprint, _ *schema.Command) (string, e
 func (r *Sqlite) CompileColumns(schema, table string) string {
 	return fmt.Sprintf(
 		`select name, type, not "notnull" as "nullable", dflt_value as "default", pk as "primary", hidden as "extra", `+
-			`"" as collation `+
+			`'' as collation `+
 			"from pragma_table_xinfo(%s) order by cid asc",
 		r.wrap.Quote(strings.ReplaceAll(table, ".", "__")))
 }
