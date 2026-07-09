@@ -245,3 +245,75 @@ func TestToSqlUpdate(t *testing.T) {
 		t.Error("Expected SQL to be generated for Update")
 	}
 }
+
+// TestToSqlDeleteWithConditions tests that ToSql.Delete applies conditions on a clone
+// and does not mutate the original query.
+func TestToSqlDeleteWithConditions(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	toSql := q.ToSql()
+	sql := toSql.Delete("id = ?", 1)
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for Delete with conditions")
+	}
+	if !strings.Contains(sql, "WHERE") {
+		t.Errorf("Expected WHERE clause in SQL, got %q", sql)
+	}
+	if !strings.Contains(sql, "id = ?") {
+		t.Errorf("Expected 'id = ?' in SQL, got %q", sql)
+	}
+
+	// Verify original query was not mutated
+	if len(q.wheres) != 0 {
+		t.Errorf("Expected original query to have no WHERE clauses, got %d", len(q.wheres))
+	}
+}
+
+// TestToSqlFindWithConditions tests that ToSql.Find applies conditions on a clone
+// and does not mutate the original query.
+func TestToSqlFindWithConditions(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+
+	toSql := q.ToSql()
+	sql := toSql.Find(nil, "id = ?", 2)
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for Find with conditions")
+	}
+	if !strings.Contains(sql, "WHERE") {
+		t.Errorf("Expected WHERE clause in SQL, got %q", sql)
+	}
+	if !strings.Contains(sql, "id = ?") {
+		t.Errorf("Expected 'id = ?' in SQL, got %q", sql)
+	}
+
+	// Verify original query was not mutated
+	if len(q.wheres) != 0 {
+		t.Errorf("Expected original query to have no WHERE clauses, got %d", len(q.wheres))
+	}
+}
+
+// TestToSqlForceDeleteIncludesSoftDeleted tests that ToSql.ForceDelete sets
+// includeSoftDeleted=true so soft-deleted records are included in the DELETE.
+func TestToSqlForceDeleteIncludesSoftDeleted(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("soft_models")
+
+	toSql := q.ToSql()
+	sql := toSql.ForceDelete("id = ?", 1)
+
+	if sql == "" {
+		t.Error("Expected SQL to be generated for ForceDelete")
+	}
+	if !strings.Contains(sql, "DELETE") {
+		t.Errorf("Expected DELETE in SQL, got %q", sql)
+	}
+
+	// Verify original query was not mutated
+	if q.includeSoftDeleted != false {
+		t.Error("Expected original query includeSoftDeleted to remain false")
+	}
+}

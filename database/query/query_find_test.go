@@ -77,6 +77,62 @@ func TestFindUsesCondsArgument(t *testing.T) {
 	}
 }
 
+func TestFindWithMapCondition(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_find_map (id INTEGER PRIMARY KEY, name TEXT, status TEXT)")
+	execSQL(t, w, "INSERT INTO test_find_map VALUES (1, 'Alice', 'active')")
+	execSQL(t, w, "INSERT INTO test_find_map VALUES (2, 'Bob', 'inactive')")
+
+	w.SetTable("test_find_map")
+
+	type User struct {
+		ID     int
+		Name   string
+		Status string
+	}
+
+	results := make([]User, 0)
+	if err := w.Q.Find(&results, map[string]any{"status": "active"}); err != nil {
+		t.Fatalf("Find with map condition failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("expected 1 result, got %d", len(results))
+	}
+	if len(results) > 0 && results[0].Name != "Alice" {
+		t.Errorf("expected name 'Alice', got %s", results[0].Name)
+	}
+}
+
+func TestFindWithStructCondition(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_find_struct (id INTEGER PRIMARY KEY, name TEXT, status TEXT)")
+	execSQL(t, w, "INSERT INTO test_find_struct VALUES (1, 'Alice', 'active')")
+	execSQL(t, w, "INSERT INTO test_find_struct VALUES (2, 'Bob', 'inactive')")
+
+	w.SetTable("test_find_struct")
+
+	type User struct {
+		ID     int
+		Name   string
+		Status string
+	}
+
+	type Filter struct {
+		Status string
+	}
+
+	results := make([]User, 0)
+	if err := w.Q.Find(&results, &Filter{Status: "inactive"}); err != nil {
+		t.Fatalf("Find with struct condition failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("expected 1 result, got %d", len(results))
+	}
+	if len(results) > 0 && results[0].Name != "Bob" {
+		t.Errorf("expected name 'Bob', got %s", results[0].Name)
+	}
+}
+
 func TestFindOrFail(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE test_find_or_fail (id INTEGER PRIMARY KEY, name TEXT)")

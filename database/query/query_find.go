@@ -24,30 +24,30 @@ func (q *Query) Find(dest any, conds ...any) error {
 	sql, args := builder.BuildSelect()
 
 	start := time.Now()
-	ctx, cancel := q.timeoutContext()
+	ctx, cancel := clone.timeoutContext()
 	defer cancel()
 	// Execute query
-	if q.tx != nil {
-		rows, err := q.tx.QueryContext(ctx, sql, args...)
+	if clone.tx != nil {
+		rows, err := clone.tx.QueryContext(ctx, sql, args...)
 		if err != nil {
-			return q.sanitizeError(fmt.Errorf("failed to execute query: %w", err))
+			return clone.sanitizeError(fmt.Errorf("failed to execute query: %w", err))
 		}
 		defer func() { _ = rows.Close() }()
-		q.logQuery(sql, args, start)
+		clone.logQuery(sql, args, start)
 		return clone.scanRows(rows, dest)
 	}
 
-	dbConn, err := q.ReadDB()
+	dbConn, err := clone.ReadDB()
 	if err != nil {
 		return err
 	}
 
 	rows, err := dbConn.QueryContext(ctx, sql, args...)
 	if err != nil {
-		return q.sanitizeError(fmt.Errorf("failed to execute query: %w", err))
+		return clone.sanitizeError(fmt.Errorf("failed to execute query: %w", err))
 	}
 	defer func() { _ = rows.Close() }()
-	q.logQuery(sql, args, start)
+	clone.logQuery(sql, args, start)
 	return clone.scanRows(rows, dest)
 }
 

@@ -61,8 +61,9 @@ func (t *ToSql) Delete(value ...any) string {
 
 // Find generates the SQL for a SELECT query.
 func (t *ToSql) Find(dest any, conds ...any) string {
-	// Add conditions to where clause on a clone to avoid mutating the original query.
+	// Apply scopes and conditions on a clone to avoid mutating the original query.
 	query := t.query.Clone().(*Query)
+	query = query.applyScopes()
 	if len(conds) > 0 {
 		applyConditions(query, conds)
 	}
@@ -86,9 +87,19 @@ func (t *ToSql) First(dest any) string {
 	return t.replacePlaceholders(sql, args)
 }
 
-// ForceDelete generates the SQL for a DELETE query (same as Delete for now).
+// ForceDelete generates the SQL for a permanent DELETE query (bypasses soft delete).
 func (t *ToSql) ForceDelete(value ...any) string {
-	return t.Delete(value...)
+	query := t.query.Clone().(*Query)
+	query.includeSoftDeleted = true
+	if len(value) > 0 {
+		applyConditions(query, value)
+	}
+	builder := NewBuilder(query)
+	sql, args := builder.BuildDelete()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
+	return t.replacePlaceholders(sql, args)
 }
 
 // Get generates the SQL for a SELECT query.

@@ -64,6 +64,100 @@ func TestDeleteUsesValueArgument(t *testing.T) {
 	}
 }
 
+func TestForceDeleteUsesValueArgument(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_force_delete_conds (id INTEGER PRIMARY KEY, name TEXT, deleted_at DATETIME)")
+	execSQL(t, w, "INSERT INTO test_force_delete_conds VALUES (1, 'Alice', NULL)")
+	execSQL(t, w, "INSERT INTO test_force_delete_conds VALUES (2, 'Bob', NULL)")
+	w.SetTable("test_force_delete_conds")
+	w.SetModel(&softModel{})
+
+	result, err := w.Q.ForceDelete("id = ?", 1)
+	if err != nil {
+		t.Fatalf("ForceDelete with value failed: %v", err)
+	}
+	if result.RowsAffected != 1 {
+		t.Errorf("expected 1 row affected, got %d", result.RowsAffected)
+	}
+
+	var count int64
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("DB() failed: %v", err)
+	}
+	err = db.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM test_force_delete_conds").Scan(&count)
+	if err != nil {
+		t.Fatalf("Raw count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 record remaining, got %d", count)
+	}
+}
+
+func TestDeleteWithMapCondition(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_delete_map (id INTEGER PRIMARY KEY, name TEXT, status TEXT)")
+	execSQL(t, w, "INSERT INTO test_delete_map VALUES (1, 'Alice', 'active')")
+	execSQL(t, w, "INSERT INTO test_delete_map VALUES (2, 'Bob', 'inactive')")
+	execSQL(t, w, "INSERT INTO test_delete_map VALUES (3, 'Carol', 'inactive')")
+	w.SetTable("test_delete_map")
+
+	result, err := w.Q.Delete(map[string]any{"status": "inactive"})
+	if err != nil {
+		t.Fatalf("Delete with map condition failed: %v", err)
+	}
+	if result.RowsAffected != 2 {
+		t.Errorf("expected 2 rows affected, got %d", result.RowsAffected)
+	}
+
+	var count int64
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("DB() failed: %v", err)
+	}
+	err = db.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM test_delete_map").Scan(&count)
+	if err != nil {
+		t.Fatalf("Raw count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 record remaining, got %d", count)
+	}
+}
+
+func TestDeleteWithStructCondition(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_delete_struct (id INTEGER PRIMARY KEY, name TEXT, status TEXT)")
+	execSQL(t, w, "INSERT INTO test_delete_struct VALUES (1, 'Alice', 'active')")
+	execSQL(t, w, "INSERT INTO test_delete_struct VALUES (2, 'Bob', 'inactive')")
+	execSQL(t, w, "INSERT INTO test_delete_struct VALUES (3, 'Carol', 'inactive')")
+	w.SetTable("test_delete_struct")
+
+	type Filter struct {
+		Status string
+	}
+
+	result, err := w.Q.Delete(&Filter{Status: "inactive"})
+	if err != nil {
+		t.Fatalf("Delete with struct condition failed: %v", err)
+	}
+	if result.RowsAffected != 2 {
+		t.Errorf("expected 2 rows affected, got %d", result.RowsAffected)
+	}
+
+	var count int64
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("DB() failed: %v", err)
+	}
+	err = db.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM test_delete_struct").Scan(&count)
+	if err != nil {
+		t.Fatalf("Raw count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 record remaining, got %d", count)
+	}
+}
+
 func TestBulkDeleteWithWhereClause(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE bulk_delete (id INTEGER PRIMARY KEY, status TEXT)")
