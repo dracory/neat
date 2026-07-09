@@ -422,10 +422,10 @@ func applyConditions(q *Query, conds []any) {
 		case string:
 			q.Where(c)
 		case map[string]any:
-			applyWhereConditions(q, c)
+			_ = applyWhereConditions(q, c)
 		default:
 			if isStructLike(c) {
-				applyWhereConditions(q, c)
+				_ = applyWhereConditions(q, c)
 			} else {
 				q.Where(c)
 			}
