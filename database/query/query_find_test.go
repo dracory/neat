@@ -52,6 +52,31 @@ func TestFindWithConditions(t *testing.T) {
 	}
 }
 
+func TestFindUsesCondsArgument(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_find_conds (id INTEGER PRIMARY KEY, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_find_conds VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_find_conds VALUES (2, 'Bob')")
+
+	w.SetTable("test_find_conds")
+
+	type User struct {
+		ID   int
+		Name string
+	}
+
+	results := make([]User, 0)
+	if err := w.Q.Find(&results, "id = ?", 2); err != nil {
+		t.Fatalf("Find with conds failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("expected 1 result, got %d", len(results))
+	}
+	if len(results) > 0 && results[0].Name != "Bob" {
+		t.Errorf("expected name 'Bob', got %s", results[0].Name)
+	}
+}
+
 func TestFindOrFail(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE test_find_or_fail (id INTEGER PRIMARY KEY, name TEXT)")

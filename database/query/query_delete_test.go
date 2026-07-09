@@ -35,6 +35,35 @@ func TestDelete(t *testing.T) {
 
 // --- Bulk Delete Tests ---
 
+func TestDeleteUsesValueArgument(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_delete_conds (id INTEGER PRIMARY KEY, name TEXT)")
+	execSQL(t, w, "INSERT INTO test_delete_conds VALUES (1, 'Alice')")
+	execSQL(t, w, "INSERT INTO test_delete_conds VALUES (2, 'Bob')")
+	w.SetTable("test_delete_conds")
+
+	result, err := w.Q.Delete("id = ?", 1)
+	if err != nil {
+		t.Fatalf("Delete with value failed: %v", err)
+	}
+	if result.RowsAffected != 1 {
+		t.Errorf("expected 1 row affected, got %d", result.RowsAffected)
+	}
+
+	var count int64
+	db, err := w.Q.DB()
+	if err != nil {
+		t.Fatalf("DB() failed: %v", err)
+	}
+	err = db.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM test_delete_conds").Scan(&count)
+	if err != nil {
+		t.Fatalf("Raw count failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 record remaining, got %d", count)
+	}
+}
+
 func TestBulkDeleteWithWhereClause(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE bulk_delete (id INTEGER PRIMARY KEY, status TEXT)")

@@ -31,35 +31,40 @@ func getSoftDeleteColumn(model any) string {
 
 // Delete deletes records from the database.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
+	// Work on a clone to avoid mutating the original query and to apply
+	// any variadic value arguments as additional WHERE conditions.
+	query := q.Clone().(*Query)
+	if len(value) > 0 {
+		applyConditions(query, value)
+	}
+
 	// Validate common conditions (build errors, nil DB, empty table)
-	if err := q.validate(); err != nil {
+	if err := query.validate(); err != nil {
 		return nil, err
 	}
 	// Fire Deleting event if not disabled
-	if !q.withoutEvents && q.model != nil {
-		attributes := observer.ExtractModelAttributes(q.model)
-		if err := q.dispatcher.DispatchDeleting(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+	if !query.withoutEvents && query.model != nil {
+		attributes := observer.ExtractModelAttributes(query.model)
+		if err := query.dispatcher.DispatchDeleting(query.ctx, query.model, query.modelToObserver, nil, attributes, nil, query); err != nil {
 			return nil, fmt.Errorf("deleting event error: %w", err)
 		}
 	}
 
 	// Check if model has soft delete capability
-	useSoftDelete := hasSoftDeleteCapability(q.model)
+	useSoftDelete := hasSoftDeleteCapability(query.model)
 
 	var deleteSQL string
 	var args []any
 	var err error
 
-	if useSoftDelete && !q.includeSoftDeleted && !q.onlySoftDeleted {
+	if useSoftDelete && !query.includeSoftDeleted && !query.onlySoftDeleted {
 		// Use UPDATE to set the soft delete column instead of DELETE
-		// Clone the query to preserve WHERE clauses
-		clone := q.Clone().(*Query)
-		clone.includeSoftDeleted = true
-		builder := NewBuilder(clone)
-		col := getSoftDeleteColumn(q.model)
+		query.includeSoftDeleted = true
+		builder := NewBuilder(query)
+		col := getSoftDeleteColumn(query.model)
 		// Check if model implements SoftDeleteStrategy for custom delete value
 		var deleteValue any = time.Now()
-		if strat, ok := q.model.(contractsorm.SoftDeleteStrategy); ok {
+		if strat, ok := query.model.(contractsorm.SoftDeleteStrategy); ok {
 			deleteValue = strat.SoftDeleteValue()
 		}
 		deleteSQL, args = builder.BuildUpdate(map[string]any{col: deleteValue})
@@ -67,10 +72,10 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 			return nil, fmt.Errorf("failed to build SOFT DELETE query")
 		}
 		// Log the soft delete SQL for debugging
-		q.logQuery(deleteSQL, args, time.Now())
+		query.logQuery(deleteSQL, args, time.Now())
 	} else {
 		// Build DELETE query
-		builder := NewBuilder(q)
+		builder := NewBuilder(query)
 		deleteSQL, args = builder.BuildDelete()
 		if deleteSQL == "" {
 			return nil, fmt.Errorf("failed to build DELETE query")
@@ -78,15 +83,15 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute query
-	ctx, cancel := q.timeoutContext()
+	ctx, cancel := query.timeoutContext()
 	defer cancel()
 	var result interface{ RowsAffected() (int64, error) }
 	start := time.Now()
-	if q.tx != nil {
-		result, err = q.tx.ExecContext(ctx, deleteSQL, args...)
+	if query.tx != nil {
+		result, err = query.tx.ExecContext(ctx, deleteSQL, args...)
 	} else {
 		var dbConn *sql.DB
-		dbConn, err = q.DB()
+		dbConn, err = query.DB()
 		if err != nil {
 			return nil, err
 		}
@@ -94,14 +99,14 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, q.sanitizeError(fmt.Errorf("failed to execute DELETE query: %w", err))
+		return nil, query.sanitizeError(fmt.Errorf("failed to execute DELETE query: %w", err))
 	}
-	q.logQuery(deleteSQL, args, start)
+	query.logQuery(deleteSQL, args, start)
 
 	// Fire Deleted event if not disabled
-	if !q.withoutEvents && q.model != nil {
-		attributes := observer.ExtractModelAttributes(q.model)
-		if err := q.dispatcher.DispatchDeleted(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+	if !query.withoutEvents && query.model != nil {
+		attributes := observer.ExtractModelAttributes(query.model)
+		if err := query.dispatcher.DispatchDeleted(query.ctx, query.model, query.modelToObserver, nil, attributes, nil, query); err != nil {
 			return nil, fmt.Errorf("deleted event error: %w", err)
 		}
 	}

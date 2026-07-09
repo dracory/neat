@@ -47,7 +47,11 @@ func (t *ToSql) InsertGetId(values any) string {
 
 // Delete generates the SQL for a DELETE query.
 func (t *ToSql) Delete(value ...any) string {
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query)
+	if len(value) > 0 {
+		applyConditions(query, value)
+	}
+	builder := NewBuilder(query)
 	sql, args := builder.BuildDelete()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -57,11 +61,12 @@ func (t *ToSql) Delete(value ...any) string {
 
 // Find generates the SQL for a SELECT query.
 func (t *ToSql) Find(dest any, conds ...any) string {
-	// Add conditions to where clause
-	for _, cond := range conds {
-		t.query.wheres = append(t.query.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", cond), args: nil})
+	// Add conditions to where clause on a clone to avoid mutating the original query.
+	query := t.query.Clone().(*Query)
+	if len(conds) > 0 {
+		applyConditions(query, conds)
 	}
-	builder := NewBuilder(t.query)
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)

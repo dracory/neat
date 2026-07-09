@@ -68,10 +68,10 @@ func setupPerformanceTestDB(t *testing.T, recordCount int) *Query {
 		records := make([]PerformanceTestModel, end-i)
 		for j := i; j < end; j++ {
 			records[j-i] = PerformanceTestModel{
-				Name:  fmt.Sprintf("User_%d", j),
-				Email: fmt.Sprintf("user_%d@example.com", j),
-				Age:   20 + (j % 50),
-				Score: float64(j % 100),
+				Name:   fmt.Sprintf("User_%d", j),
+				Email:  fmt.Sprintf("user_%d@example.com", j),
+				Age:    20 + (j % 50),
+				Score:  float64(j % 100),
 				Active: (j % 2) == 0,
 			}
 		}
@@ -340,10 +340,10 @@ func BenchmarkDelete_10K(b *testing.B) {
 		records := make([]PerformanceTestModel, 10)
 		for j := 0; j < 10; j++ {
 			records[j] = PerformanceTestModel{
-				Name:  fmt.Sprintf("Temp_%d_%d", i, j),
-				Email: fmt.Sprintf("temp_%d_%d@example.com", i, j),
-				Age:   20,
-				Score: 50.0,
+				Name:   fmt.Sprintf("Temp_%d_%d", i, j),
+				Email:  fmt.Sprintf("temp_%d_%d@example.com", i, j),
+				Age:    20,
+				Score:  50.0,
 				Active: true,
 			}
 		}

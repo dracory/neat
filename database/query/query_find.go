@@ -17,9 +17,7 @@ func (q *Query) Find(dest any, conds ...any) error {
 	clone := q.Clone().(*Query)
 
 	// Add conditions to where clause
-	for _, cond := range conds {
-		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: fmt.Sprintf("%v", cond), args: nil})
-	}
+	applyConditions(clone, conds)
 
 	// Build SELECT query
 	builder := NewBuilder(clone)

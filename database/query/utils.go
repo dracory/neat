@@ -410,6 +410,56 @@ func applyWhereConditions(q *Query, attributes any) error {
 	return nil
 }
 
+// applyConditions applies variadic conditions to a query using Where or
+// applyWhereConditions depending on the condition type.
+func applyConditions(q *Query, conds []any) {
+	if len(conds) == 0 {
+		return
+	}
+
+	if len(conds) == 1 {
+		switch c := conds[0].(type) {
+		case string:
+			q.Where(c)
+		case map[string]any:
+			applyWhereConditions(q, c)
+		default:
+			if isStructLike(c) {
+				applyWhereConditions(q, c)
+			} else {
+				q.Where(c)
+			}
+		}
+		return
+	}
+
+	// Multiple arguments: if the first is a string, treat it as a query with
+	// bound arguments; otherwise treat each argument as a separate condition.
+	if s, ok := conds[0].(string); ok {
+		q.Where(s, conds[1:]...)
+		return
+	}
+
+	for _, c := range conds {
+		applyConditions(q, []any{c})
+	}
+}
+
+// isStructLike returns true if value is a struct or a pointer to a struct.
+func isStructLike(v any) bool {
+	if v == nil {
+		return false
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return false
+		}
+		rv = rv.Elem()
+	}
+	return rv.Kind() == reflect.Struct
+}
+
 // applyAttributes applies attributes from a map or struct to a destination struct.
 func applyAttributes(dest any, attributes any) error {
 	destValue := reflect.ValueOf(dest)

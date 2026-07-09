@@ -261,17 +261,23 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 
 // ForceDelete permanently deletes a record (bypasses soft delete).
 func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
+	// Work on a clone to avoid mutating the original query and to apply
+	// any variadic value arguments as additional WHERE conditions.
+	clone := q.Clone().(*Query)
+	if len(value) > 0 {
+		applyConditions(clone, value)
+	}
+
 	// Fire ForceDeleting event if not disabled
-	if !q.withoutEvents && q.model != nil {
-		attributes := observer.ExtractModelAttributes(q.model)
-		if err := q.dispatcher.DispatchForceDeleting(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+	if !clone.withoutEvents && clone.model != nil {
+		attributes := observer.ExtractModelAttributes(clone.model)
+		if err := clone.dispatcher.DispatchForceDeleting(clone.ctx, clone.model, clone.modelToObserver, nil, attributes, nil, clone); err != nil {
 			return nil, fmt.Errorf("force_deleting event error: %w", err)
 		}
 	}
 
 	// Build DELETE query (permanent delete, not soft delete)
 	// Use includeSoftDeleted to include soft-deleted records
-	clone := q.Clone().(*Query)
 	clone.includeSoftDeleted = true
 	builder := NewBuilder(clone)
 	sql, args := builder.BuildDelete()
@@ -280,15 +286,15 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	// Execute query
-	ctx, cancel := q.timeoutContext()
+	ctx, cancel := clone.timeoutContext()
 	defer cancel()
 	var err error
 	var result interface{ RowsAffected() (int64, error) }
 	start := time.Now()
-	if q.tx != nil {
-		result, err = q.tx.ExecContext(ctx, sql, args...)
+	if clone.tx != nil {
+		result, err = clone.tx.ExecContext(ctx, sql, args...)
 	} else {
-		dbConn, dbErr := q.DB()
+		dbConn, dbErr := clone.DB()
 		if dbErr != nil {
 			return nil, dbErr
 		}
@@ -296,14 +302,14 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	if err != nil {
-		return nil, q.sanitizeError(fmt.Errorf("failed to execute FORCE DELETE query: %w", err))
+		return nil, clone.sanitizeError(fmt.Errorf("failed to execute FORCE DELETE query: %w", err))
 	}
-	q.logQuery(sql, args, start)
+	clone.logQuery(sql, args, start)
 
 	// Fire ForceDeleted event if not disabled
-	if !q.withoutEvents && q.model != nil {
-		attributes := observer.ExtractModelAttributes(q.model)
-		if err := q.dispatcher.DispatchForceDeleted(q.ctx, q.model, q.modelToObserver, nil, attributes, nil, q); err != nil {
+	if !clone.withoutEvents && clone.model != nil {
+		attributes := observer.ExtractModelAttributes(clone.model)
+		if err := clone.dispatcher.DispatchForceDeleted(clone.ctx, clone.model, clone.modelToObserver, nil, attributes, nil, clone); err != nil {
 			return nil, fmt.Errorf("force_deleted event error: %w", err)
 		}
 	}
