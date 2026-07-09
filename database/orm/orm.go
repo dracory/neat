@@ -345,6 +345,11 @@ func (r *Orm) GetQueryLog() []contractsorm.QueryLog {
 func (r *Orm) EnableDebug() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+	if r.query != nil {
+		if queryWithDebug, ok := r.query.(interface{ EnableDebug() }); ok {
+			queryWithDebug.EnableDebug()
+		}
+	}
 	for _, q := range r.queries {
 		if queryWithDebug, ok := q.(interface{ EnableDebug() }); ok {
 			queryWithDebug.EnableDebug()

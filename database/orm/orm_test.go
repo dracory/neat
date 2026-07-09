@@ -6,6 +6,8 @@ import (
 
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
+	"github.com/dracory/neat/database/driver"
+	"github.com/dracory/neat/database/query"
 	_ "modernc.org/sqlite"
 )
 
@@ -191,6 +193,93 @@ func TestBuildQueryFallbackWhenReplicaUnavailable(t *testing.T) {
 	}
 	if orm == nil {
 		t.Fatal("Expected non-nil Orm even with bad replica config")
+	}
+}
+
+func TestEnableDebugMissesDefaultQuery(t *testing.T) {
+	// This test proves that Orm.EnableDebug() does not call EnableDebug()
+	// on r.query (the default query), only on queries in the r.queries map.
+	// In contrast, DisableDebug() handles both r.query and r.queries.
+	//
+	// The fresh query uses a separate dbConfig so that EnableDebug() on the
+	// map query (which sets dbConfig.Debug=true) doesn't mask the bug via
+	// the shared config fallback in IsDebug().
+	cfg := sqliteMemoryConfig("default")
+	orm, err := BuildOrm(context.Background(), cfg, "default", log.NewStdLogger(), nil)
+	if err != nil {
+		t.Fatalf("BuildOrm failed: %v", err)
+	}
+
+	// Create a separate config with debug=false for the fresh query
+	separateCfg := sqliteMemoryConfig("default")
+	freshQuery := query.NewQuery(
+		context.Background(),
+		nil,
+		driver.NewSQLite(),
+		"default",
+		separateCfg,
+		log.NewStdLogger(),
+	)
+	orm.SetQuery(freshQuery)
+
+	defaultQ, ok := orm.query.(*query.Query)
+	if !ok {
+		t.Fatal("Expected orm.query to be *query.Query")
+	}
+	if defaultQ.IsDebug() {
+		t.Fatal("Fresh query should have debug=false before EnableDebug")
+	}
+
+	orm.EnableDebug()
+
+	// EnableDebug should enable debug on r.query, just like DisableDebug does.
+	// This currently FAILS because EnableDebug only iterates r.queries, skipping r.query.
+	if !defaultQ.IsDebug() {
+		t.Error("BUG: EnableDebug() did not enable debug on r.query — it only iterates r.queries, not r.query")
+	}
+
+	// The query still in r.queries should have debug enabled
+	for _, q := range orm.queries {
+		if qConcrete, ok := q.(*query.Query); ok && !qConcrete.IsDebug() {
+			t.Error("Expected query in r.queries map to have debug enabled")
+		}
+	}
+}
+
+func TestDisableDebugHandlesDefaultQuery(t *testing.T) {
+	// This test shows that DisableDebug() DOES handle r.query,
+	// proving the asymmetry with EnableDebug().
+	cfg := sqliteMemoryConfig("default")
+	cfg.Debug = true
+	orm, err := BuildOrm(context.Background(), cfg, "default", log.NewStdLogger(), nil)
+	if err != nil {
+		t.Fatalf("BuildOrm failed: %v", err)
+	}
+
+	// Replace r.query with a fresh query that has debug=true via config
+	freshQuery := query.NewQuery(
+		context.Background(),
+		nil,
+		driver.NewSQLite(),
+		"default",
+		cfg,
+		log.NewStdLogger(),
+	)
+	orm.SetQuery(freshQuery)
+
+	defaultQ, ok := orm.query.(*query.Query)
+	if !ok {
+		t.Fatal("Expected orm.query to be *query.Query")
+	}
+	if !defaultQ.IsDebug() {
+		t.Fatal("Fresh query should have debug=true from config before DisableDebug")
+	}
+
+	orm.DisableDebug()
+
+	// DisableDebug DOES handle r.query, so this should be false
+	if defaultQ.IsDebug() {
+		t.Error("DisableDebug failed to disable debug on r.query")
 	}
 }
 
