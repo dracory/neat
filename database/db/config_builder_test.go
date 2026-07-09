@@ -151,25 +151,59 @@ func TestConfigBuilderBuildSQLServerDSN(t *testing.T) {
 }
 
 func TestConfigBuilderBuildTursoDSN(t *testing.T) {
-	config := ConnectionConfig{
-		Driver:   "turso",
-		Database: "testdb",
-		Dsn:      "libsql://test-url?authToken=test-token",
+	tests := []struct {
+		name     string
+		config   ConnectionConfig
+		expected string
+	}{
+		{
+			name:     "bare database name with authToken",
+			config:   ConnectionConfig{Driver: "turso", Database: "my-db.turso.io", Password: "tok123"},
+			expected: "libsql://my-db.turso.io?authToken=tok123",
+		},
+		{
+			name:     "libsql prefix with authToken",
+			config:   ConnectionConfig{Driver: "turso", Database: "libsql://my-db.turso.io", Password: "tok123"},
+			expected: "libsql://my-db.turso.io?authToken=tok123",
+		},
+		{
+			name:     "libsql prefix with existing query params and authToken",
+			config:   ConnectionConfig{Driver: "turso", Database: "libsql://my-db.turso.io?foo=bar", Password: "tok123"},
+			expected: "libsql://my-db.turso.io?foo=bar&authToken=tok123",
+		},
+		{
+			name:     "bare database name without authToken",
+			config:   ConnectionConfig{Driver: "turso", Database: "my-db.turso.io"},
+			expected: "libsql://my-db.turso.io",
+		},
+		{
+			name:     "file prefix without authToken",
+			config:   ConnectionConfig{Driver: "turso", Database: "file:///path/to/db"},
+			expected: "file:///path/to/db",
+		},
+		{
+			name:     "file prefix with authToken (should not append token)",
+			config:   ConnectionConfig{Driver: "turso", Database: "file:///path/to/db", Password: "tok123"},
+			expected: "file:///path/to/db",
+		},
+		{
+			name:     "authToken with special chars is URL-encoded",
+			config:   ConnectionConfig{Driver: "turso", Database: "my-db.turso.io", Password: "tok&=+"},
+			expected: "libsql://my-db.turso.io?authToken=tok%26%3D%2B",
+		},
 	}
 
-	builder := NewConfigBuilder(config)
-	dsn, err := builder.BuildDSN()
-
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-
-	if dsn == "" {
-		t.Error("Expected DSN to be generated")
-	}
-
-	if !contains(dsn, "test-url") {
-		t.Error("Expected DSN to contain URL")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := NewConfigBuilder(tt.config)
+			dsn, err := builder.BuildDSN()
+			if err != nil {
+				t.Fatalf("Expected no error, got %v", err)
+			}
+			if dsn != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, dsn)
+			}
+		})
 	}
 }
 

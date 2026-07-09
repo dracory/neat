@@ -353,16 +353,21 @@ func (b *ConfigBuilder) buildSQLServerDSN() (string, error) {
 // buildTursoDSN builds a Turso DSN string.
 func (b *ConfigBuilder) buildTursoDSN() (string, error) {
 	// Turso uses libsql:// or file:// format
-	if strings.HasPrefix(b.config.Database, "libsql://") || strings.HasPrefix(b.config.Database, "file://") {
-		return b.config.Database, nil
+	db := b.config.Database
+	if !strings.HasPrefix(db, "libsql://") && !strings.HasPrefix(db, "file://") {
+		db = "libsql://" + db
 	}
 
-	// If auth token is provided, add it
-	if b.config.Password != "" {
-		return fmt.Sprintf("libsql://%s?authToken=%s", b.config.Database, b.config.Password), nil
+	// If auth token is provided, append it (skip for file:// URLs which are local)
+	if b.config.Password != "" && !strings.HasPrefix(db, "file://") {
+		separator := "?"
+		if strings.Contains(db, "?") {
+			separator = "&"
+		}
+		return fmt.Sprintf("%s%sauthToken=%s", db, separator, url.QueryEscape(b.config.Password)), nil
 	}
 
-	return fmt.Sprintf("libsql://%s", b.config.Database), nil
+	return db, nil
 }
 
 // buildOracleDSN builds an Oracle DSN string.
