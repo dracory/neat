@@ -213,6 +213,40 @@ func TestFirstOrCreate(t *testing.T) {
 	})
 }
 
+func TestFirstOrCreateUsesCondsArgument(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE test_first_or_create_conds (id INTEGER, name TEXT, email TEXT)")
+	execSQL(t, w, "INSERT INTO test_first_or_create_conds VALUES (1,'alice','alice@example.com')")
+
+	w.SetTable("test_first_or_create_conds")
+
+	var user FirstOrUser
+	user.ID = 2
+	user.Name = "bob"
+	user.Email = "bob@example.com"
+
+	// The condition should be used to decide whether to find or create.
+	// With the current bug, the condition is ignored; First() returns alice.
+	err := w.Q.FirstOrCreate(&user, "email = ?", "bob@example.com")
+	if err != nil {
+		t.Fatalf("FirstOrCreate failed: %v", err)
+	}
+
+	if user.Email != "bob@example.com" {
+		t.Errorf("expected returned user.Email='bob@example.com', got %q", user.Email)
+	}
+
+	var count int64
+	err = w.Q.Count(&count)
+	if err != nil {
+		t.Fatalf("Count failed: %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 records (alice + bob), got %d", count)
+	}
+}
+
 func TestFirstOrNew(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, "CREATE TABLE test_first_or_new (id INTEGER, name TEXT, email TEXT)")

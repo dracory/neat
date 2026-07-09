@@ -115,8 +115,17 @@ func (q *Query) FirstOr(dest any, callback func() error) error {
 
 // FirstOrCreate retrieves the first record or creates it if not found.
 func (q *Query) FirstOrCreate(dest any, conds ...any) error {
+	// Work on a clone so we don't mutate the original query with conds.
+	query := q
+
+	// Apply any conditions supplied as arguments to the method.
+	if len(conds) > 0 {
+		query = q.Clone().(*Query)
+		query.Where(conds[0], conds[1:]...)
+	}
+
 	// Try to find the record first
-	err := q.First(dest)
+	err := query.First(dest)
 	if err == nil {
 		return nil // Record exists
 	}
