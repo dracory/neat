@@ -30,6 +30,10 @@ func getSoftDeleteColumn(model any) string {
 }
 
 // Delete deletes records from the database.
+// If the model implements SoftDeleteColumnNamer, this performs a soft delete
+// (UPDATE setting the soft-delete timestamp). Otherwise, it performs a hard DELETE.
+// For clarity, prefer SoftDelete() when the model supports soft deletes, or
+// HardDelete() when you want a permanent deletion.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
@@ -119,7 +123,8 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 }
 
 // Destroy is an alias for Delete, providing Sequelize-style syntax.
-// Deletes records from the database.
+//
+// Deprecated: Prefer SoftDelete() or HardDelete() for explicit intent.
 func (q *Query) Destroy(value ...any) (*contractsorm.Result, error) {
 	return q.Delete(value...)
 }

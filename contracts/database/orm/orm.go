@@ -171,16 +171,23 @@ type Query interface {
 	// DB gets the underlying database connection.
 	DB() (*sql.DB, error)
 	// Delete deletes records matching the query conditions.
-	// If soft deletes are enabled on the model, this sets a deleted_at timestamp instead of permanently deleting.
-	// Use ForceDelete for permanent deletion when soft deletes are enabled.
-	// Returns the number of rows affected.
+	// If the model implements SoftDeleteColumnNamer, this performs a soft delete
+	// (UPDATE setting the soft-delete timestamp). Otherwise, it performs a hard DELETE.
+	//
+	// For clarity, prefer SoftDelete() when the model supports soft deletes, or
+	// HardDelete() when you want a permanent deletion. Use Delete() only when the
+	// model's soft-delete capability is unknown or intentionally auto-detected.
 	//
 	// Example:
 	//   result, err := query.Where("status = ?", "inactive").Delete()
 	Delete(value ...any) (*Result, error)
 
 	// Destroy is an alias for Delete, providing Sequelize-style syntax.
-	// Deletes records from the database.
+	//
+	// If the model implements SoftDeleteColumnNamer, this performs a soft delete.
+	// Otherwise, it performs a hard DELETE.
+	//
+	// Deprecated: Prefer SoftDelete() or HardDelete() for explicit intent.
 	//
 	// Example:
 	//   result, err := query.Where("status = ?", "inactive").Destroy()
@@ -330,12 +337,19 @@ type Query interface {
 
 	// ForceDelete permanently deletes records matching the query conditions.
 	// Unlike Delete, this bypasses soft delete mechanisms and permanently removes records.
-	// Returns the number of rows affected and any error.
+	//
+	// Deprecated: Use HardDelete() instead.
 	//
 	// Example:
 	//   result, err := query.Where("status = ?", "inactive").ForceDelete()
 	ForceDelete(value ...any) (*Result, error)
-
+	// HardDelete permanently deletes records matching the query conditions.
+	// Unlike Delete, this bypasses soft delete mechanisms and permanently removes records.
+	// This is an intuitive alias for ForceDelete().
+	//
+	// Example:
+	//   result, err := query.Where("status = ?", "inactive").HardDelete()
+	HardDelete(value ...any) (*Result, error)
 	// Get retrieves all rows from the database matching the query conditions.
 	// The dest parameter must be a pointer to a slice of structs or maps.
 	// Returns an error if the query fails.
@@ -678,6 +692,13 @@ type Query interface {
 	// Example:
 	//   err := query.SaveQuietly(&user)
 	SaveQuietly(value any) error
+	// SoftDelete soft-deletes records by setting the soft-delete timestamp column.
+	// Returns an error if the model does not implement SoftDeleteColumnNamer
+	// (i.e., does not support soft deletes).
+	//
+	// Example:
+	//   result, err := query.Where("status = ?", "inactive").SoftDelete()
+	SoftDelete(value ...any) (*Result, error)
 	// SavePoint creates a new savepoint in the current transaction.
 	// Savepoints allow partial rollback within a transaction.
 	// The name parameter specifies the savepoint name.
@@ -1248,7 +1269,9 @@ type ToSql interface {
 	First(dest any) string
 	ForceDelete(value ...any) string
 	Get(dest any) string
+	HardDelete(value ...any) string
 	Pluck(column string, dest any) string
+	SoftDelete(value ...any) string
 	Value(column string, dest any) string
 	Save(value any) string
 	Avg(column string, dest any) string

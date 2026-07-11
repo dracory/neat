@@ -317,3 +317,71 @@ func TestToSqlForceDeleteIncludesSoftDeleted(t *testing.T) {
 		t.Error("Expected original query includeSoftDeleted to remain false")
 	}
 }
+
+// toSqlSoftModel implements SoftDeleteColumnNamer for ToSql SQL-generation tests.
+type toSqlSoftModel struct {
+	ID        int
+	Name      string
+	DeletedAt *string
+}
+
+func (m *toSqlSoftModel) SoftDeletedAtColumn() string { return "deleted_at" }
+
+// toSqlHardModel has no soft-delete support, for ToSql SQL-generation tests.
+type toSqlHardModel struct {
+	ID   int
+	Name string
+}
+
+// TestToSqlSoftDeleteGeneratesUpdate verifies ToSql.SoftDelete generates an
+// UPDATE statement targeting the soft-delete column for a soft-deletable model.
+func TestToSqlSoftDeleteGeneratesUpdate(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("soft_models")
+	q.model = &toSqlSoftModel{}
+
+	toSql := q.ToSql()
+	sql := toSql.SoftDelete("id = ?", 1)
+
+	if sql == "" {
+		t.Fatal("Expected SQL to be generated for SoftDelete")
+	}
+	if !strings.Contains(sql, "UPDATE") {
+		t.Errorf("Expected UPDATE in SQL, got %q", sql)
+	}
+	if !strings.Contains(sql, "deleted_at") {
+		t.Errorf("Expected 'deleted_at' column in SQL, got %q", sql)
+	}
+}
+
+// TestToSqlSoftDeleteEmptyWithoutCapability verifies ToSql.SoftDelete returns
+// an empty string (fail-fast) when the model does not implement
+// SoftDeleteColumnNamer, mirroring Query.SoftDelete()'s error behavior.
+func TestToSqlSoftDeleteEmptyWithoutCapability(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("hard_models")
+	q.model = &toSqlHardModel{}
+
+	toSql := q.ToSql()
+	sql := toSql.SoftDelete("id = ?", 1)
+
+	if sql != "" {
+		t.Errorf("Expected empty SQL for model without soft-delete support, got %q", sql)
+	}
+}
+
+// TestToSqlHardDeleteMatchesForceDelete verifies ToSql.HardDelete produces the
+// same SQL as ToSql.ForceDelete, confirming it is a pure alias.
+func TestToSqlHardDeleteMatchesForceDelete(t *testing.T) {
+	q1 := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q1.Table("soft_models")
+	forceSql := q1.ToSql().ForceDelete("id = ?", 1)
+
+	q2 := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q2.Table("soft_models")
+	hardSql := q2.ToSql().HardDelete("id = ?", 1)
+
+	if hardSql != forceSql {
+		t.Errorf("Expected HardDelete SQL to match ForceDelete SQL.\nForceDelete: %q\nHardDelete:  %q", forceSql, hardSql)
+	}
+}

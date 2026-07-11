@@ -470,7 +470,13 @@ db.Query().WithoutTrashed().Get(&amp;users)
 result, err := db.Query().Where("id", 1).RestoreSoftDeleted()
 
 // Deprecated alias
-result, err := db.Query().Where("id", 1).Restore()</code></pre>
+result, err := db.Query().Where("id", 1).Restore()
+
+// Explicit soft delete (errors if model lacks soft delete support)
+result, err := db.Query().Where("id", 1).SoftDelete()
+
+// Explicit hard delete (permanent, bypasses soft delete)
+result, err := db.Query().Where("id", 1).HardDelete()</code></pre>
 
     <h3>Relationship Methods</h3>
 
@@ -737,6 +743,16 @@ rawSql := db.Query().Where("id", 1).ToRawSql()</code></pre>
             <td>Destroy()</td>
         </tr>
         <tr>
+            <td>SoftDelete()</td>
+            <td>-</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>HardDelete()</td>
+            <td>ForceDelete()</td>
+            <td>-</td>
+        </tr>
+        <tr>
             <td>WithSoftDeleted()</td>
             <td>-</td>
             <td>-</td>
@@ -790,11 +806,18 @@ err := db.Query().Where("id", 1).Update(map[string]any{
 
     <h3>Delete</h3>
 
-    <pre><code>// Delete records
+    <pre><code>// Soft delete (explicit — errors if model lacks soft delete support)
+result, err := db.Query().Where("id", 1).SoftDelete()
+
+// Hard delete (permanent — recommended)
+result, err := db.Query().Where("id", 1).HardDelete()
+
+// Auto-detect delete (soft if model supports it, otherwise hard)
 result, err := db.Query().Where("id", 1).Delete()
 
-// Force delete (with soft deletes)
-result, err := db.Query().Where("id", 1).ForceDelete()</code></pre>
+// Deprecated aliases
+result, err := db.Query().Where("id", 1).ForceDelete()  // use HardDelete()
+result, err := db.Query().Where("id", 1).Destroy()       // use Delete()</code></pre>
 
     <h2>Method Chaining</h2>
 

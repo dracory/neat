@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
@@ -88,6 +89,8 @@ func (t *ToSql) First(dest any) string {
 }
 
 // ForceDelete generates the SQL for a permanent DELETE query (bypasses soft delete).
+//
+// Deprecated: Use HardDelete() instead.
 func (t *ToSql) ForceDelete(value ...any) string {
 	query := t.query.Clone().(*Query)
 	query.includeSoftDeleted = true
@@ -96,6 +99,40 @@ func (t *ToSql) ForceDelete(value ...any) string {
 	}
 	builder := NewBuilder(query)
 	sql, args := builder.BuildDelete()
+	if t.useValues {
+		return t.replacePlaceholdersWithValues(sql, args)
+	}
+	return t.replacePlaceholders(sql, args)
+}
+
+// HardDelete generates the SQL for a permanent DELETE query (bypasses soft delete).
+// This is an intuitive alias for ForceDelete().
+func (t *ToSql) HardDelete(value ...any) string {
+	return t.ForceDelete(value...)
+}
+
+// SoftDelete generates the SQL for a soft-delete UPDATE query.
+// Returns an empty string if the model does not implement SoftDeleteColumnNamer
+// (i.e., does not support soft deletes), mirroring the fail-fast behavior of
+// Query.SoftDelete().
+func (t *ToSql) SoftDelete(value ...any) string {
+	query := t.query.Clone().(*Query)
+	if len(value) > 0 {
+		applyConditions(query, value)
+	}
+
+	if !hasSoftDeleteCapability(query.model) {
+		return ""
+	}
+
+	query.includeSoftDeleted = true
+	builder := NewBuilder(query)
+	col := getSoftDeleteColumn(query.model)
+	var deleteValue any = time.Now()
+	if strat, ok := query.model.(contractsorm.SoftDeleteStrategy); ok {
+		deleteValue = strat.SoftDeleteValue()
+	}
+	sql, args := builder.BuildUpdate(map[string]any{col: deleteValue})
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
 	}

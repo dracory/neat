@@ -211,9 +211,11 @@ type PoolConfig struct {
     <h3>Delete Methods</h3>
 
     <ul class="method-list">
-        <li><code>Delete(value ...any) (sql.Result, error)</code> - Soft delete records (if enabled)</li>
-        <li><code>Destroy(value ...any) (sql.Result, error)</code> - Alias for Delete (Sequelize-style)</li>
-        <li><code>ForceDelete(value ...any) (sql.Result, error)</code> - Permanently delete records</li>
+        <li><code>SoftDelete(value ...any) (*Result, error)</code> - Explicitly soft delete records (errors if model lacks soft delete support)</li>
+        <li><code>HardDelete(value ...any) (*Result, error)</code> - Permanently delete records (recommended)</li>
+        <li><code>Delete(value ...any) (*Result, error)</code> - Auto-detect soft or hard delete based on model</li>
+        <li><code>Destroy(value ...any) (*Result, error)</code> - Deprecated alias for Delete (Sequelize-style)</li>
+        <li><code>ForceDelete(value ...any) (*Result, error)</code> - Deprecated alias for HardDelete (Laravel-compatible)</li>
     </ul>
 
     <h3>Soft Delete Operations</h3>
@@ -621,9 +623,11 @@ blueprint.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDele
         <li><code>Delete(value ...any) string</code> - SQL for delete</li>
         <li><code>Find(dest any, conds ...any) string</code> - SQL for find</li>
         <li><code>First(dest any) string</code> - SQL for first</li>
-        <li><code>ForceDelete(value ...any) string</code> - SQL for force delete</li>
+        <li><code>ForceDelete(value ...any) string</code> - Deprecated: SQL for force delete</li>
         <li><code>Get(dest any) string</code> - SQL for get</li>
+        <li><code>HardDelete(value ...any) string</code> - SQL for hard delete (bypasses soft delete)</li>
         <li><code>Pluck(column string, dest any) string</code> - SQL for pluck</li>
+        <li><code>SoftDelete(value ...any) string</code> - SQL for soft delete (UPDATE)</li>
         <li><code>Value(column string, dest any) string</code> - SQL for value</li>
         <li><code>Save(value any) string</code> - SQL for save</li>
         <li><code>Avg(column string, dest any) string</code> - SQL for avg</li>

@@ -371,6 +371,141 @@ type maxDateModel struct {
 	soft_delete.SoftDeletesMaxDate
 }
 
+// TestSoftDeleteExplicitExecution tests that Query.SoftDelete() sets the
+// soft-delete timestamp column, mirroring the implicit Delete() behavior.
+func TestSoftDeleteExplicitExecution(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE soft_models (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, deleted_at DATETIME)")
+	w.SetTable("soft_models")
+	w.SetModel(&softModel{})
+
+	err := w.Q.Create(map[string]any{"name": "explicit_soft_user"})
+	if err != nil {
+		t.Fatalf("Failed to create record: %v", err)
+	}
+
+	var created softModel
+	err = w.Q.Where("name = ?", "explicit_soft_user").First(&created)
+	if err != nil {
+		t.Fatalf("Failed to get created record: %v", err)
+	}
+
+	res, err := w.Q.Where("name = ?", "explicit_soft_user").SoftDelete()
+	if err != nil {
+		t.Fatalf("SoftDelete() returned error: %v", err)
+	}
+	if res.RowsAffected != 1 {
+		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
+	}
+
+	// Not found by default (excluded by soft-delete filter).
+	var notFound softModel
+	err = w.Q.Where("id = ?", created.ID).First(&notFound)
+	if err == nil {
+		t.Error("Expected error when finding soft deleted record without WithSoftDeleted")
+	}
+
+	// Found with WithSoftDeleted, and timestamp is set.
+	var found softModel
+	err = w.Q.WithSoftDeleted().Where("id = ?", created.ID).First(&found)
+	if err != nil {
+		t.Fatalf("Failed to find soft deleted record with WithSoftDeleted: %v", err)
+	}
+	if found.DeletedAt == nil {
+		t.Error("DeletedAt should be set after SoftDelete()")
+	}
+}
+
+// TestSoftDeleteFailsFastWithoutCapability verifies that SoftDelete() returns
+// an error (instead of silently hard-deleting) when the model does not
+// implement SoftDeleteColumnNamer.
+func TestSoftDeleteFailsFastWithoutCapability(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE hard_models (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
+	w.SetTable("hard_models")
+	w.SetModel(&hardModel{})
+
+	err := w.Q.Create(map[string]any{"name": "plain_user"})
+	if err != nil {
+		t.Fatalf("Failed to create record: %v", err)
+	}
+
+	_, err = w.Q.Where("name = ?", "plain_user").SoftDelete()
+	if err == nil {
+		t.Fatal("Expected SoftDelete() to return an error for a model without soft-delete support")
+	}
+
+	// Verify the row was NOT deleted (fail-fast, no side effects).
+	var stillThere hardModel
+	err = w.Q.Where("name = ?", "plain_user").First(&stillThere)
+	if err != nil {
+		t.Fatalf("Expected record to still exist after failed SoftDelete(), got error: %v", err)
+	}
+}
+
+// TestHardDeleteBypassesSoftDelete verifies HardDelete() permanently removes a
+// soft-deletable model's row rather than setting the soft-delete timestamp.
+func TestHardDeleteBypassesSoftDelete(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE soft_models (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, deleted_at DATETIME)")
+	w.SetTable("soft_models")
+	w.SetModel(&softModel{})
+
+	err := w.Q.Create(map[string]any{"name": "hard_delete_user"})
+	if err != nil {
+		t.Fatalf("Failed to create record: %v", err)
+	}
+
+	var created softModel
+	err = w.Q.Where("name = ?", "hard_delete_user").First(&created)
+	if err != nil {
+		t.Fatalf("Failed to get created record: %v", err)
+	}
+
+	res, err := w.Q.Where("name = ?", "hard_delete_user").HardDelete()
+	if err != nil {
+		t.Fatalf("HardDelete() returned error: %v", err)
+	}
+	if res.RowsAffected != 1 {
+		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
+	}
+
+	// Not found even with WithSoftDeleted (permanently removed).
+	var notFound softModel
+	err = w.Q.WithSoftDeleted().Where("id = ?", created.ID).First(&notFound)
+	if err == nil {
+		t.Error("Expected error when finding hard-deleted record even with WithSoftDeleted")
+	}
+}
+
+// TestHardDeleteNoSoftDeleteCapability verifies HardDelete() works on models
+// without soft-delete support, identically to ForceDelete().
+func TestHardDeleteNoSoftDeleteCapability(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE hard_models (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)")
+	w.SetTable("hard_models")
+	w.SetModel(&hardModel{})
+
+	err := w.Q.Create(map[string]any{"name": "plain_hard_user"})
+	if err != nil {
+		t.Fatalf("Failed to create record: %v", err)
+	}
+
+	res, err := w.Q.Where("name = ?", "plain_hard_user").HardDelete()
+	if err != nil {
+		t.Fatalf("HardDelete() returned error: %v", err)
+	}
+	if res.RowsAffected != 1 {
+		t.Errorf("Expected 1 row affected, got %d", res.RowsAffected)
+	}
+
+	var notFound hardModel
+	err = w.Q.Where("name = ?", "plain_hard_user").First(&notFound)
+	if err == nil {
+		t.Error("Expected error when finding hard-deleted record")
+	}
+}
+
 // TestSoftDeleteMaxDateExecution tests the max-date soft delete strategy with actual SQLite.
 // Rows are active when soft_deleted_at > NOW(), soft-deleted when <= NOW().
 //

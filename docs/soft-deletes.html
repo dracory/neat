@@ -89,7 +89,10 @@ db.Query().OnlySoftDeleted().Get(&amp;users)</code></pre>
     <h2>Performing Operations</h2>
 
     <h3>Soft Delete a Record</h3>
-    <pre><code>// Via Query Builder
+    <pre><code>// Via Query Builder (explicit — recommended)
+db.Query().Where("id", 1).SoftDelete()
+
+// Via Query Builder (auto-detect — works for both soft and hard delete)
 db.Query().Where("id", 1).Delete()
 
 // Via Model
@@ -104,9 +107,13 @@ db.Query().Where("id", 1).RestoreSoftDeleted()
 user.RestoreSoftDeleted()
 db.Query().Save(&amp;user)</code></pre>
 
-    <h3>Permanent Delete (Force Delete)</h3>
+    <h3>Permanent Delete (Hard Delete)</h3>
     <p>To permanently remove a soft-deletable model from the database:</p>
-    <pre><code>db.Query().Where("id", 1).ForceDelete()</code></pre>
+    <pre><code>// Recommended — explicit
+db.Query().Where("id", 1).HardDelete()
+
+// Deprecated alias (Laravel-compatible)
+db.Query().Where("id", 1).ForceDelete()</code></pre>
 
     <h2>Schema Integration</h2>
 

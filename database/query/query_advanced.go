@@ -260,6 +260,8 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 }
 
 // ForceDelete permanently deletes a record (bypasses soft delete).
+//
+// Deprecated: Use HardDelete() instead.
 func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
@@ -322,4 +324,10 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	return &contractsorm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
+}
+
+// HardDelete permanently deletes a record (bypasses soft delete).
+// This is an intuitive alias for ForceDelete().
+func (q *Query) HardDelete(value ...any) (*contractsorm.Result, error) {
+	return q.ForceDelete(value...)
 }
