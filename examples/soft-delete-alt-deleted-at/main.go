@@ -191,13 +191,13 @@ func RunExample(dsn string) error {
 		restoredPost.Author,
 		restoredPost.DeletedAt.DeletedAt)
 
-	// Demonstrate force delete (permanent deletion)
-	fmt.Println("\n=== Force Delete (Permanent Deletion) ===")
-	forceResult, err := db.Query().Model(&Post{}).Where("title = ?", "Advanced Go Patterns").ForceDelete()
+	// Demonstrate hard delete (permanent deletion)
+	fmt.Println("\n=== Hard Delete (Permanent Deletion) ===")
+	hardResult, err := db.Query().Model(&Post{}).Where("title = ?", "Advanced Go Patterns").HardDelete()
 	if err != nil {
-		return fmt.Errorf("failed to force delete: %w", err)
+		return fmt.Errorf("failed to hard delete: %w", err)
 	}
-	fmt.Printf("Force deleted %d post(s) permanently\n", forceResult.RowsAffected)
+	fmt.Printf("Hard deleted %d post(s) permanently\n", hardResult.RowsAffected)
 
 	// Final count
 	fmt.Println("\n=== Final Active Post Count ===")

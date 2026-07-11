@@ -168,10 +168,10 @@ func TestOracleIntegrationForceDelete(t *testing.T) {
 		t.Error("User should be soft deleted")
 	}
 
-	// Force delete the user (permanent deletion)
-	res, err = query.Model(&models.User{}).Where("name = ?", "force_delete_user").ForceDelete(&models.User{})
+	// Hard delete the user (permanent deletion)
+	res, err = query.Model(&models.User{}).Where("name = ?", "force_delete_user").HardDelete(&models.User{})
 	if err != nil {
-		t.Fatalf("Failed to force delete user: %v", err)
+		t.Fatalf("Failed to hard delete user: %v", err)
 	}
 
 	if res.RowsAffected != 1 {

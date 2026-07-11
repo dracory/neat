@@ -135,10 +135,10 @@ func RunExample(dsn string) error {
 	}
 
 	// Example 4: ForceDeleted event
-	fmt.Println("\n=== Example 4: Force Delete ===")
-	_, err = db.Query().Model(&User{}).ForceDelete(user)
+	fmt.Println("\n=== Example 4: Hard Delete ===")
+	_, err = db.Query().Model(&User{}).HardDelete(user)
 	if err != nil {
-		return fmt.Errorf("failed to force delete user: %w", err)
+		return fmt.Errorf("failed to hard delete user: %w", err)
 	}
 
 	// Example 5: WithoutEvents — observer is NOT called

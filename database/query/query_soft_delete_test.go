@@ -248,10 +248,10 @@ func TestForceDeleteExecution(t *testing.T) {
 		t.Error("Record should be soft deleted")
 	}
 
-	// Force delete the record (permanent deletion)
-	res, err = w.Q.Where("name = ?", "force_delete_user").ForceDelete(&softModel{})
+	// Hard delete the record (permanent deletion)
+	res, err = w.Q.Where("name = ?", "force_delete_user").HardDelete(&softModel{})
 	if err != nil {
-		t.Fatalf("Failed to force delete: %v", err)
+		t.Fatalf("Failed to hard delete: %v", err)
 	}
 
 	if res.RowsAffected != 1 {

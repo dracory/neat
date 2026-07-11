@@ -186,10 +186,10 @@ func TestDeletedAtSoftDelete_ForceDelete(t *testing.T) {
 		t.Fatalf("failed to create: %v", err)
 	}
 
-	// Force delete (permanent)
-	_, err = db.Query().Model(&Post{}).Where("title = ?", "Deletable Post").ForceDelete()
+	// Hard delete (permanent)
+	_, err = db.Query().Model(&Post{}).Where("title = ?", "Deletable Post").HardDelete()
 	if err != nil {
-		t.Fatalf("failed to force delete: %v", err)
+		t.Fatalf("failed to hard delete: %v", err)
 	}
 
 	// Count with trashed should be 0 (permanently deleted)

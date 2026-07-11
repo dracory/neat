@@ -189,13 +189,13 @@ func RunExample(dsn string) error {
 		restoredProduct.Price,
 		restoredProduct.SoftDeletedAt.Format(time.RFC3339))
 
-	// Demonstrate force delete (permanent deletion)
-	fmt.Println("\n=== Force Delete (Permanent Deletion) ===")
-	forceResult, err := db.Query().Model(&Product{}).Where("name = ?", "Mouse").ForceDelete()
+	// Demonstrate hard delete (permanent deletion)
+	fmt.Println("\n=== Hard Delete (Permanent Deletion) ===")
+	hardResult, err := db.Query().Model(&Product{}).Where("name = ?", "Mouse").HardDelete()
 	if err != nil {
-		return fmt.Errorf("failed to force delete: %w", err)
+		return fmt.Errorf("failed to hard delete: %w", err)
 	}
-	fmt.Printf("Force deleted %d product(s) permanently\n", forceResult.RowsAffected)
+	fmt.Printf("Hard deleted %d product(s) permanently\n", hardResult.RowsAffected)
 
 	// Final count
 	fmt.Println("\n=== Final Active Product Count ===")

@@ -198,10 +198,10 @@ func TestSequelizeDestroy(t *testing.T) {
 		}
 	}
 
-	// Test Destroy (Sequelize-style)
-	result, err := db.Query().Table("products").Where("name = ?", "Delete").Destroy()
+	// Test Delete
+	result, err := db.Query().Table("products").Where("name = ?", "Delete").Delete()
 	if err != nil {
-		t.Fatalf("Destroy failed: %v", err)
+		t.Fatalf("Delete failed: %v", err)
 	}
 	if result.RowsAffected != 1 {
 		t.Errorf("expected 1 row affected, got %d", result.RowsAffected)
