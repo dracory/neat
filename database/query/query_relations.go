@@ -169,6 +169,9 @@ func (q *Query) loadHasManyRelation(v reflect.Value, field reflect.Value, relati
 			slice = reflect.Append(slice, destValue)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error iterating has-many relation %s rows: %w", relation, err)
+	}
 
 	field.Set(slice)
 	return nil
