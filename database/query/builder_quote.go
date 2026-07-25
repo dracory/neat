@@ -54,7 +54,8 @@ func (b *Builder) quoteIdentifier(name string) string {
 		return fmt.Sprintf("%s %s", b.quoteIdentifier(identifier), b.quoteIdentifier(alias))
 	}
 
-	return fmt.Sprintf("%s%s%s", quoteChar, name, quoteChar)
+	escaped := strings.ReplaceAll(name, quoteChar, quoteChar+quoteChar)
+	return fmt.Sprintf("%s%s%s", quoteChar, escaped, quoteChar)
 }
 
 // quoteWhereIdentifiers quotes column names in WHERE clauses.
