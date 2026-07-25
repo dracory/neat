@@ -29,7 +29,7 @@ func (PerformanceTestModel) TableName() string {
 }
 
 // setupPerformanceTestDB creates and populates a test database with large datasets
-func setupPerformanceTestDB(t *testing.T, recordCount int) *Query {
+func setupPerformanceTestDB(t testing.TB, recordCount int) *Query {
 	t.Helper()
 
 	ctx := context.Background()
@@ -50,12 +50,12 @@ func setupPerformanceTestDB(t *testing.T, recordCount int) *Query {
 	`
 
 	// Execute table creation
-	if err := query.Raw(createTableSQL).Exec(); err != nil {
+	if _, err := query.Exec(createTableSQL); err != nil {
 		t.Fatalf("Failed to create performance test table: %v", err)
 	}
 
 	// Drop existing data
-	query.Raw("TRUNCATE TABLE performance_test_models").Exec()
+	_, _ = query.Exec("TRUNCATE TABLE performance_test_models")
 
 	// Bulk insert test data
 	batchSize := 1000
@@ -82,7 +82,7 @@ func setupPerformanceTestDB(t *testing.T, recordCount int) *Query {
 	}
 
 	t.Cleanup(func() {
-		query.Raw("DROP TABLE IF EXISTS performance_test_models").Exec()
+		_, _ = query.Exec("DROP TABLE IF EXISTS performance_test_models")
 	})
 
 	return query
@@ -209,7 +209,7 @@ func BenchmarkMemoryUsage_Cursor(b *testing.B) {
 	query := setupPerformanceTestDB(b, 10000)
 
 	b.ResetTimer()
-	allocs := b.AllocsPerRun(5, func() {
+	allocs := float64(testing.AllocsPerRun(5, func() {
 		cursor, err := query.Cursor()
 		if err != nil {
 			b.Fatalf("Cursor failed: %v", err)
@@ -222,7 +222,7 @@ func BenchmarkMemoryUsage_Cursor(b *testing.B) {
 				break
 			}
 		}
-	})
+	}))
 
 	b.ReportMetric(allocs, "allocs/op")
 }
@@ -236,7 +236,7 @@ func BenchmarkMemoryUsage_Chunk(b *testing.B) {
 	query := setupPerformanceTestDB(b, 10000)
 
 	b.ResetTimer()
-	allocs := b.AllocsPerRun(5, func() {
+	allocs := float64(testing.AllocsPerRun(5, func() {
 		count := 0
 		err := query.Chunk(100, func(results []PerformanceTestModel) bool {
 			count += len(results)
@@ -245,7 +245,7 @@ func BenchmarkMemoryUsage_Chunk(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Chunk failed: %v", err)
 		}
-	})
+	}))
 
 	b.ReportMetric(allocs, "allocs/op")
 }
@@ -259,12 +259,12 @@ func BenchmarkMemoryUsage_Get(b *testing.B) {
 	query := setupPerformanceTestDB(b, 10000)
 
 	b.ResetTimer()
-	allocs := b.AllocsPerRun(5, func() {
+	allocs := float64(testing.AllocsPerRun(5, func() {
 		var results []PerformanceTestModel
 		if err := query.Limit(1000).Get(&results); err != nil {
 			b.Fatalf("Get failed: %v", err)
 		}
-	})
+	}))
 
 	b.ReportMetric(allocs, "allocs/op")
 }
@@ -304,7 +304,8 @@ func BenchmarkPagination_10K(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		page := (i % 100) + 1
 		var results []PerformanceTestModel
-		if err := query.Paginate(page, 50, &results); err != nil {
+		var total int64
+		if err := query.Paginate(page, 50, &results, &total); err != nil {
 			b.Fatalf("Pagination failed: %v", err)
 		}
 	}
@@ -320,7 +321,7 @@ func BenchmarkUpdate_10K(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if err := query.Where("id", "<=", 100).Update("score", 99.9); err != nil {
+		if _, err := query.Where("id", "<=", 100).Update("score", 99.9); err != nil {
 			b.Fatalf("Update failed: %v", err)
 		}
 	}
@@ -350,7 +351,7 @@ func BenchmarkDelete_10K(b *testing.B) {
 		query.Create(&records)
 
 		// Delete the records
-		if err := query.Where("name", "like", "Temp_%").Delete(); err != nil {
+		if _, err := query.Where("name", "like", "Temp_%").Delete(); err != nil {
 			b.Fatalf("Delete failed: %v", err)
 		}
 	}
