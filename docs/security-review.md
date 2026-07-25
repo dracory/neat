@@ -37,7 +37,7 @@ return fmt.Sprintf("%s%s%s", quoteChar, name, quoteChar)
 
 ## Medium Severity Findings
 
-### Finding #2: `logQuery` Stores Full SQL in QueryLog
+### Finding #2: `logQuery` Stores Full SQL in QueryLog ✅ FIXED
 
 - **Location**: `database/query/query_helpers.go:14-22`
 - **Description**: The `logQuery` function stores the full SQL query string and bindings in the query log (`q.queryLog`). While bindings are redacted in the slow-query warning log, they are stored unredacted in the `QueryLog` struct.

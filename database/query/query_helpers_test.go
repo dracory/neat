@@ -33,6 +33,7 @@ func TestValidateAggregate(t *testing.T) {
 func TestLogQuery(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.enableLog = true
+	q.EnableDebug()
 
 	start := time.Now()
 	q.logQuery("SELECT * FROM users", []any{1, 2}, start)

@@ -14,9 +14,13 @@ import (
 func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 	elapsed := float64(time.Since(start).Milliseconds())
 	if q.enableLog && q.queryLog != nil {
+		var loggedBindings []any
+		if q.IsDebug() {
+			loggedBindings = bindings
+		}
 		*q.queryLog = append(*q.queryLog, contractsorm.QueryLog{
 			Query:    sql,
-			Bindings: bindings,
+			Bindings: loggedBindings,
 			Time:     elapsed,
 		})
 	}
