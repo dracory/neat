@@ -594,7 +594,10 @@ func isSimpleIdentifier(s string) bool {
 	return true
 }
 
-// normalizeScanValue converts []byte to string.
+// normalizeScanValue converts []byte to string for ergonomic map/interface scanning.
+// Note: this means binary BLOB columns scanned into map[string]any will also
+// surface as string, not []byte. Go strings can hold arbitrary bytes, so data
+// is not corrupted, but the type contract changes for binary data consumers.
 func normalizeScanValue(v any) any {
 	if b, ok := v.([]byte); ok {
 		return string(b)

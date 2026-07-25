@@ -133,7 +133,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 					if val == nil {
 						valVal = reflect.Zero(valType)
 					} else {
-						valVal = reflect.ValueOf(val)
+						valVal = reflect.ValueOf(val).Convert(valType)
 					}
 					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), valVal)
 				}
@@ -204,11 +204,20 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		m := make(map[string]any, len(columns))
+		m := reflect.MakeMap(destValue.Type())
+		keyType := destValue.Type().Key()
+		valType := destValue.Type().Elem()
 		for i, col := range columns {
-			m[col] = normalizeScanValue(values[i])
+			val := normalizeScanValue(values[i])
+			var valVal reflect.Value
+			if val == nil {
+				valVal = reflect.Zero(valType)
+			} else {
+				valVal = reflect.ValueOf(val).Convert(valType)
+			}
+			m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), valVal)
 		}
-		destValue.Set(reflect.ValueOf(m))
+		destValue.Set(m)
 
 		return rows.Err()
 	}
@@ -300,7 +309,7 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 				if val == nil {
 					valVal = reflect.Zero(valType)
 				} else {
-					valVal = reflect.ValueOf(val)
+					valVal = reflect.ValueOf(val).Convert(valType)
 				}
 				m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), valVal)
 			}

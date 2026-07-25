@@ -1,6 +1,8 @@
 package query_test
 
 import (
+	"database/sql"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -230,7 +232,6 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 	// 3. Test single map destination (*map[string]any)
 	{
 		q := baseQ.Clone().(*query.Query)
-		q.EnableDebug()
 		var result map[string]any
 		if err := q.WhereNotNull("val").First(&result); err != nil {
 			t.Fatalf("First with map[string]any failed: %v", err)
@@ -244,8 +245,8 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 		q2 := baseQ.Clone().(*query.Query)
 		var noResult map[string]any
 		err := q2.Where("val", "non-existent").First(&noResult)
-		if err == nil {
-			t.Fatal("expected First with map to return ErrNoRows, got nil")
+		if !errors.Is(err, sql.ErrNoRows) {
+			t.Fatalf("expected First with map to return sql.ErrNoRows, got %v", err)
 		}
 	}
 

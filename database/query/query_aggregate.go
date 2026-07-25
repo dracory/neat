@@ -432,7 +432,7 @@ func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
 					if val == nil {
 						valVal = reflect.Zero(valType)
 					} else {
-						valVal = reflect.ValueOf(val)
+						valVal = reflect.ValueOf(val).Convert(valType)
 					}
 					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), valVal)
 				}
