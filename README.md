@@ -1,7 +1,7 @@
 # Neat ORM
 
 [![Tests Status](https://github.com/dracory/neat/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/dracory/neat/actions/workflows/tests.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dracory/neat)](https://goreportcard.com/report/github.com/dracory/neat)
+[![golangci-lint](https://golangci-lint.run/badge.svg)](https://golangci-lint.run)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/dracory/neat)](https://pkg.go.dev/github.com/dracory/neat)
 [![codecov](https://codecov.io/gh/dracory/neat/branch/main/graph/badge.svg)](https://codecov.io/gh/dracory/neat)
 
