@@ -65,11 +65,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 			// Create map from column names to values
 			result := make(map[string]any)
 			for i, col := range columns {
-				val := values[i]
-				if b, ok := val.([]byte); ok {
-					val = string(b)
-				}
-				result[col] = val
+				result[col] = normalizeScanValue(values[i])
 			}
 
 			// Create a cursor wrapper that implements orm.Cursor

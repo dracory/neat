@@ -167,98 +167,143 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 	// Create table with a BLOB column so SQLite returns []byte
 	execSQL(t, w, "CREATE TABLE test_blob (val BLOB)")
 	execSQL(t, w, "INSERT INTO test_blob VALUES (X'68656c6c6f')") // "hello" in hex
+	execSQL(t, w, "INSERT INTO test_blob VALUES (NULL)")          // NULL row
 	w.SetTable("test_blob")
+
+	baseQ := w.Q.Clone().(*query.Query)
 
 	// 1. Test []map[string]any via slice of interface{} path
 	{
+		q := baseQ.Clone().(*query.Query)
 		var results []any
-		if err := w.Q.Get(&results); err != nil {
+		if err := q.OrderBy("val", "desc").Get(&results); err != nil {
 			t.Fatalf("Get with []any failed: %v", err)
 		}
-		if len(results) != 1 {
-			t.Fatalf("expected 1 result, got %d", len(results))
+		if len(results) != 2 {
+			t.Fatalf("expected 2 results, got %d", len(results))
 		}
-		m, ok := results[0].(map[string]any)
+		// First row: hello
+		m0, ok := results[0].(map[string]any)
 		if !ok {
 			t.Fatalf("expected map[string]any, got %T", results[0])
 		}
-		val, ok := m["val"]
+		val0, ok := m0["val"]
 		if !ok {
 			t.Fatal("expected key 'val' in map")
 		}
-		if s, ok := val.(string); !ok || s != "hello" {
-			t.Errorf("expected string 'hello', got %T (%v)", val, val)
+		if s, ok := val0.(string); !ok || s != "hello" {
+			t.Errorf("expected string 'hello', got %T (%v)", val0, val0)
+		}
+		// Second row: NULL
+		m1, ok := results[1].(map[string]any)
+		if !ok {
+			t.Fatalf("expected map[string]any, got %T", results[1])
+		}
+		val1 := m1["val"]
+		if val1 != nil {
+			t.Errorf("expected val to be nil for NULL column, got %T (%v)", val1, val1)
 		}
 	}
 
 	// 2. Test slice of map destination (reflect.Slice elem.Kind() == reflect.Map)
 	{
+		q := baseQ.Clone().(*query.Query)
 		var results []map[string]any
-		if err := w.Q.Get(&results); err != nil {
+		if err := q.OrderBy("val", "desc").Get(&results); err != nil {
 			t.Fatalf("Get with []map[string]any failed: %v", err)
 		}
-		if len(results) != 1 {
-			t.Fatalf("expected 1 result, got %d", len(results))
+		if len(results) != 2 {
+			t.Fatalf("expected 2 results, got %d", len(results))
 		}
-		val := results[0]["val"]
-		if s, ok := val.(string); !ok || s != "hello" {
-			t.Errorf("expected string 'hello' in []map, got %T (%v)", val, val)
+		// Row 1
+		val0 := results[0]["val"]
+		if s, ok := val0.(string); !ok || s != "hello" {
+			t.Errorf("expected string 'hello' in []map, got %T (%v)", val0, val0)
+		}
+		// Row 2
+		val1 := results[1]["val"]
+		if val1 != nil {
+			t.Errorf("expected nil for NULL column in []map, got %T (%v)", val1, val1)
 		}
 	}
 
 	// 3. Test single map destination (*map[string]any)
 	{
+		q := baseQ.Clone().(*query.Query)
+		q.EnableDebug()
 		var result map[string]any
-		if err := w.Q.First(&result); err != nil {
+		if err := q.WhereNotNull("val").First(&result); err != nil {
 			t.Fatalf("First with map[string]any failed: %v", err)
 		}
 		val := result["val"]
 		if s, ok := val.(string); !ok || s != "hello" {
 			t.Errorf("expected string 'hello' in single map, got %T (%v)", val, val)
 		}
+
+		// Test ErrNoRows for non-existent row on single map scan
+		q2 := baseQ.Clone().(*query.Query)
+		var noResult map[string]any
+		err := q2.Where("val", "non-existent").First(&noResult)
+		if err == nil {
+			t.Fatal("expected First with map to return ErrNoRows, got nil")
+		}
 	}
 
 	// 4. Test Chunk() callback with map elements
 	{
-		var chunkVals []string
-		err := w.Q.Chunk(1, func(chunk []map[string]any) error {
+		q := baseQ.Clone().(*query.Query)
+		var chunkVals []any
+		err := q.OrderBy("val", "desc").Chunk(1, func(chunk []map[string]any) error {
 			for _, m := range chunk {
-				if s, ok := m["val"].(string); ok {
-					chunkVals = append(chunkVals, s)
-				}
+				chunkVals = append(chunkVals, m["val"])
 			}
 			return nil
 		})
 		if err != nil {
 			t.Fatalf("Chunk failed: %v", err)
 		}
-		if len(chunkVals) != 1 || chunkVals[0] != "hello" {
-			t.Errorf("Chunk expected 'hello', got %v", chunkVals)
+		if len(chunkVals) != 2 {
+			t.Fatalf("expected 2 results, got %d", len(chunkVals))
+		}
+		if s, ok := chunkVals[0].(string); !ok || s != "hello" {
+			t.Errorf("Chunk expected 'hello', got %T (%v)", chunkVals[0], chunkVals[0])
+		}
+		if chunkVals[1] != nil {
+			t.Errorf("Chunk expected nil for NULL, got %T (%v)", chunkVals[1], chunkVals[1])
 		}
 	}
 
 	// 5. Test Pluck() map destination
 	{
+		q := baseQ.Clone().(*query.Query)
 		var results []map[string]any
-		if err := w.Q.Pluck("val", &results); err != nil {
+		if err := q.OrderBy("val", "desc").Pluck("val", &results); err != nil {
 			t.Fatalf("Pluck with []map[string]any failed: %v", err)
 		}
-		if len(results) != 1 {
-			t.Fatalf("expected 1 result from Pluck, got %d", len(results))
+		if len(results) != 2 {
+			t.Fatalf("expected 2 results from Pluck, got %d", len(results))
 		}
-		val := results[0]["val"]
-		if s, ok := val.(string); !ok || s != "hello" {
-			t.Errorf("expected string 'hello' in Pluck map, got %T (%v)", val, val)
+		// Row 1
+		val0 := results[0]["val"]
+		if s, ok := val0.(string); !ok || s != "hello" {
+			t.Errorf("expected string 'hello' in Pluck map, got %T (%v)", val0, val0)
+		}
+		// Row 2
+		val1 := results[1]["val"]
+		if val1 != nil {
+			t.Errorf("expected nil for NULL in Pluck map, got %T (%v)", val1, val1)
 		}
 	}
 
 	// 6. Test Cursor() map destination
 	{
-		cursorChan, err := w.Q.Cursor()
+		q := baseQ.Clone().(*query.Query)
+		cursorChan, err := q.OrderBy("val", "desc").Cursor()
 		if err != nil {
 			t.Fatalf("Cursor failed: %v", err)
 		}
 		count := 0
+		var cursorVals []any
 		for cursor := range cursorChan {
 			count++
 			if cursor == nil {
@@ -269,19 +314,23 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 			if err := cursor.Scan(&result); err != nil {
 				t.Fatalf("Cursor.Scan into map failed: %v", err)
 			}
-			val := result["val"]
-			if s, ok := val.(string); !ok || s != "hello" {
-				t.Errorf("expected string 'hello' in Cursor map, got %T (%v)", val, val)
-			}
+			cursorVals = append(cursorVals, result["val"])
 		}
-		if count != 1 {
-			t.Errorf("expected 1 cursor item, got %d", count)
+		if count != 2 {
+			t.Errorf("expected 2 cursor items, got %d", count)
+		}
+		if s, ok := cursorVals[0].(string); !ok || s != "hello" {
+			t.Errorf("expected string 'hello' in Cursor map, got %T (%v)", cursorVals[0], cursorVals[0])
+		}
+		if cursorVals[1] != nil {
+			t.Errorf("expected nil for NULL in Cursor map, got %T (%v)", cursorVals[1], cursorVals[1])
 		}
 	}
 
 	// 7. Test FirstAsVar map destination
 	{
-		res, err := w.Q.FirstAsVar()
+		q := baseQ.Clone().(*query.Query)
+		res, err := q.WhereNotNull("val").FirstAsVar()
 		if err != nil {
 			t.Fatalf("FirstAsVar failed: %v", err)
 		}
