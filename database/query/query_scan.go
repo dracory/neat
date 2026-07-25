@@ -76,7 +76,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 
 		m := make(map[string]any, len(columns))
 		for i, col := range columns {
-			m[col] = values[i]
+			val := values[i]
+			if b, ok := val.([]byte); ok {
+				val = string(b)
+			}
+			m[col] = val
 		}
 		destValue.Set(reflect.ValueOf(m))
 
@@ -112,7 +116,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				}
 				m := make(map[string]any, len(columns))
 				for i, col := range columns {
-					m[col] = values[i]
+					val := values[i]
+					if b, ok := val.([]byte); ok {
+						val = string(b)
+					}
+					m[col] = val
 				}
 				elem.Set(reflect.ValueOf(m))
 			} else if elem.Kind() == reflect.Map {
@@ -127,7 +135,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				m := reflect.MakeMap(elemType)
 				keyType := elemType.Key()
 				for i, col := range columns {
-					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+					val := values[i]
+					if b, ok := val.([]byte); ok {
+						val = string(b)
+					}
+					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(val))
 				}
 				elem.Set(m)
 			} else if elem.Kind() == reflect.Struct {
@@ -198,7 +210,11 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 
 		m := make(map[string]any, len(columns))
 		for i, col := range columns {
-			m[col] = values[i]
+			val := values[i]
+			if b, ok := val.([]byte); ok {
+				val = string(b)
+			}
+			m[col] = val
 		}
 		destValue.Set(reflect.ValueOf(m))
 
@@ -286,7 +302,11 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 			m := reflect.MakeMap(realElemType)
 			keyType := realElemType.Key()
 			for i, col := range columns {
-				m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+				val := values[i]
+				if b, ok := val.([]byte); ok {
+					val = string(b)
+				}
+				m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(val))
 			}
 			if isPtr {
 				elem.Elem().Set(m)

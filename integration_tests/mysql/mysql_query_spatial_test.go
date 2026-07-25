@@ -58,8 +58,15 @@ func TestMySQLIntegrationSpatial(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result, got %d", len(results))
 	} else {
-		name := string(results[0]["name"].([]byte))
-		locationText := string(results[0]["location_text"].([]byte))
+		name, ok1 := results[0]["name"].(string)
+		locationText, ok2 := results[0]["location_text"].(string)
+
+		if !ok1 {
+			t.Errorf("Expected name to be a string, got %T", results[0]["name"])
+		}
+		if !ok2 {
+			t.Errorf("Expected location_text to be a string, got %T", results[0]["location_text"])
+		}
 
 		if name != "Point 1" {
 			t.Errorf("Expected name 'Point 1', got %s", name)

@@ -426,7 +426,11 @@ func (q *Query) pluckRows(rows *sql.Rows, dest any) error {
 				m := reflect.MakeMap(elemType)
 				keyType := elemType.Key()
 				for i, col := range columns {
-					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+					val := values[i]
+					if b, ok := val.([]byte); ok {
+						val = string(b)
+					}
+					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(val))
 				}
 				elem.Set(m)
 			} else {
