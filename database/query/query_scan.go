@@ -76,7 +76,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 
 		m := make(map[string]any, len(columns))
 		for i, col := range columns {
-			m[col] = values[i]
+			m[col] = normalizeScanValue(values[i])
 		}
 		destValue.Set(reflect.ValueOf(m))
 
@@ -112,7 +112,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				}
 				m := make(map[string]any, len(columns))
 				for i, col := range columns {
-					m[col] = values[i]
+					m[col] = normalizeScanValue(values[i])
 				}
 				elem.Set(reflect.ValueOf(m))
 			} else if elem.Kind() == reflect.Map {
@@ -126,8 +126,16 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 				}
 				m := reflect.MakeMap(elemType)
 				keyType := elemType.Key()
+				valType := elemType.Elem()
 				for i, col := range columns {
-					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+					val := normalizeScanValue(values[i])
+					var valVal reflect.Value
+					if val == nil {
+						valVal = reflect.Zero(valType)
+					} else {
+						valVal = reflect.ValueOf(val)
+					}
+					m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), valVal)
 				}
 				elem.Set(m)
 			} else if elem.Kind() == reflect.Struct {
@@ -179,7 +187,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 	// Handle single map destination (*map[string]any)
 	if destValue.Kind() == reflect.Map {
 		if !rows.Next() {
-			return nil
+			return sql.ErrNoRows
 		}
 
 		columns, err := rows.Columns()
@@ -198,7 +206,7 @@ func (q *Query) scanRows(rows *sql.Rows, dest any) error {
 
 		m := make(map[string]any, len(columns))
 		for i, col := range columns {
-			m[col] = values[i]
+			m[col] = normalizeScanValue(values[i])
 		}
 		destValue.Set(reflect.ValueOf(m))
 
@@ -285,8 +293,16 @@ func (q *Query) chunkRows(rows *sql.Rows, size int, callback any) error {
 			}
 			m := reflect.MakeMap(realElemType)
 			keyType := realElemType.Key()
+			valType := realElemType.Elem()
 			for i, col := range columns {
-				m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), reflect.ValueOf(values[i]))
+				val := normalizeScanValue(values[i])
+				var valVal reflect.Value
+				if val == nil {
+					valVal = reflect.Zero(valType)
+				} else {
+					valVal = reflect.ValueOf(val)
+				}
+				m.SetMapIndex(reflect.ValueOf(col).Convert(keyType), valVal)
 			}
 			if isPtr {
 				elem.Elem().Set(m)

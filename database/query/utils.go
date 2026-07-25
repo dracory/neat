@@ -593,3 +593,11 @@ func isSimpleIdentifier(s string) bool {
 
 	return true
 }
+
+// normalizeScanValue converts []byte to string.
+func normalizeScanValue(v any) any {
+	if b, ok := v.([]byte); ok {
+		return string(b)
+	}
+	return v
+}

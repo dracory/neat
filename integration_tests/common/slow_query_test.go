@@ -1,6 +1,8 @@
 package common
 
 import (
+	"database/sql"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -163,7 +165,7 @@ func TestSlowQueryNoWarningBelowThreshold(t *testing.T) {
 	// Execute a fast query (should not exceed 100ms threshold)
 	var result map[string]any
 	err = db.Query().Table("fast_test").Where("id = ?", 1).First(&result)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("Failed to execute query: %v", err)
 	}
 
@@ -220,7 +222,7 @@ func TestSlowQueryDisabled(t *testing.T) {
 	time.Sleep(2 * time.Millisecond)
 	var result map[string]any
 	err = db.Query().Table("disabled_test").Where("id = ?", 1).First(&result)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("Failed to execute query: %v", err)
 	}
 

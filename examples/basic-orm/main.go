@@ -46,16 +46,6 @@ func RunExample(dsn string) error {
 		fmt.Printf("Found %d records\n", len(results))
 	}
 
-	// Find by ID
-	fmt.Println("\n=== Find by ID ===")
-	var user map[string]any
-	err = db.Query().Table("users").Where("id = ?", 1).Get(&user)
-	if err != nil {
-		return fmt.Errorf("error finding user: %v", err)
-	} else {
-		fmt.Printf("Found user: %v\n", user)
-	}
-
 	// Create a new record
 	fmt.Println("\n=== Create Record ===")
 	newUser := map[string]any{
@@ -70,6 +60,16 @@ func RunExample(dsn string) error {
 		return fmt.Errorf("error creating user: %v", err)
 	} else {
 		fmt.Println("User created successfully")
+	}
+
+	// Find by ID
+	fmt.Println("\n=== Find by ID ===")
+	var user map[string]any
+	err = db.Query().Table("users").Where("id = ?", 1).Get(&user)
+	if err != nil {
+		return fmt.Errorf("error finding user: %v", err)
+	} else {
+		fmt.Printf("Found user: %v\n", user)
 	}
 
 	// Update a record
