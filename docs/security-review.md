@@ -57,7 +57,7 @@ return fmt.Sprintf("%s%s%s", quoteChar, name, quoteChar)
 
 ## Low Severity Findings
 
-### Finding #3: `sanitizeError` Keyword Check Is Too Narrow
+### Finding #3: `sanitizeError` Keyword Check Is Too Narrow ✅ FIXED
 
 - **Location**: `database/query/error_sanitizer.go:36-40`
 - **Description**: The error sanitizer checks for "sql", "query", and "syntax" keywords to decide whether to suppress error details. Table and column names in error messages aren't typically secret, and the sanitizer catches the most common SQL error patterns. Expanding the keyword list would be hardening, not fixing a vulnerability.

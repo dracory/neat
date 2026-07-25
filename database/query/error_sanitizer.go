@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -33,10 +34,10 @@ func (q *Query) sanitizeError(err error) error {
 	errMsg := err.Error()
 
 	// Check if error contains SQL details
-	if strings.Contains(strings.ToLower(errMsg), "sql") ||
-		strings.Contains(strings.ToLower(errMsg), "query") ||
-		strings.Contains(strings.ToLower(errMsg), "syntax") {
-		return fmt.Errorf("database operation failed")
+	lowerMsg := strings.ToLower(errMsg)
+	keywords := []string{"sql", "query", "syntax", "column", "table", "constraint", "foreign key", "primary key", "duplicate", "unique", "relation", "schema"}
+	if slices.ContainsFunc(keywords, func(k string) bool { return strings.Contains(lowerMsg, k) }) {
+		return fmt.Errorf("database operation failed: %w", err)
 	}
 
 	return err
