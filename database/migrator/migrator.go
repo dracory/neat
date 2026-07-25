@@ -1,4 +1,4 @@
-﻿package migrator
+package migrator
 
 import (
 	"context"
@@ -611,7 +611,7 @@ func (s *Migrator) ensureMigrationTracker(schema contractsschema.Schema) error {
 	}
 
 	// Upgrade: add missing columns to existing table
-	// Each addition is independent — if one fails, we still try the others.
+	// Each addition is independent - if one fails, we still try the others.
 	columnsToAdd := []struct {
 		name     string
 		add      func(table contractsschema.Blueprint)
