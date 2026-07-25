@@ -79,9 +79,11 @@ func (q *Query) isMySQL() bool {
 	return q.driver != nil && q.driver.Dialect() == "mysql"
 }
 
-// isSQLite returns true if the driver dialect is SQLite.
+// isSQLite returns true if the driver dialect is SQLite-compatible.
+// Turso (libSQL) is a SQLite fork and supports the same SQL syntax for
+// JSON functions, PRAGMAs, and LIMIT/OFFSET behavior.
 func (q *Query) isSQLite() bool {
-	return q.driver != nil && (q.driver.Dialect() == "sqlite" || q.driver.Dialect() == "array")
+	return q.driver != nil && (q.driver.Dialect() == "sqlite" || q.driver.Dialect() == "turso" || q.driver.Dialect() == "array")
 }
 
 // isOracle returns true if the driver dialect is Oracle.

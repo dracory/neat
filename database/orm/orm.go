@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -147,28 +148,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 			}
 		}
 
-		// Configure connection pool from DBConfig.
-		// SQLite does not support concurrent writers; always pin to a single
-		// connection regardless of PoolConfig to prevent "database is locked" errors.
-		// WAL mode (applied below) allows concurrent readers alongside the single writer.
-		if connConfig.Driver == "sqlite" || connConfig.Driver == "array" {
-			sqlDB.SetMaxOpenConns(1)
-			sqlDB.SetMaxIdleConns(1)
-		} else {
-			sqlDB.SetMaxIdleConns(dbConfig.Pool.MaxIdleConns)
-			sqlDB.SetMaxOpenConns(dbConfig.Pool.MaxOpenConns)
-		}
-		sqlDB.SetConnMaxLifetime(time.Duration(dbConfig.Pool.ConnMaxLifetime) * time.Second)
-		sqlDB.SetConnMaxIdleTime(time.Duration(dbConfig.Pool.ConnMaxIdleTime) * time.Second)
-
-		// Apply SQLite-specific optimizations. Errors are intentionally ignored —
-		// these are performance/safety hints, not requirements for a valid connection.
-		if connConfig.Driver == "sqlite" || connConfig.Driver == "array" {
-			_, _ = sqlDB.ExecContext(ctx, "PRAGMA journal_mode=WAL;")
-			_, _ = sqlDB.ExecContext(ctx, "PRAGMA synchronous=NORMAL;")
-			_, _ = sqlDB.ExecContext(ctx, "PRAGMA foreign_keys=ON;")
-			_, _ = sqlDB.ExecContext(ctx, "PRAGMA busy_timeout=5000;")
-		}
+		configureConnectionPool(ctx, sqlDB, &connConfig, dbConfig)
 
 		dbConnections[connection] = sqlDB
 	}
@@ -178,6 +158,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 	if len(connConfig.Read) > 0 {
 		replica := connConfig.Read[0]
 		replicaCfg := connConfig
+		replicaCfg.Dsn = "" // Clear DSN so BuildDSN reconstructs from individual fields
 		replicaCfg.Host = replica.Host
 		replicaCfg.Port = replica.Port
 		replicaCfg.Database = replica.Database
@@ -191,12 +172,18 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 			if err != nil {
 				log.Warningf("[Orm] Failed to open read-replica connection for %s: %v", connection, err)
 				readSQLDB = nil
-			} else if !skipPing {
-				// Ping to validate the replica connection
-				if err := dbDriver.Ping(ctx, readSQLDB); err != nil {
-					log.Warningf("[Orm] Failed to ping read-replica connection for %s: %v", connection, err)
-					_ = readSQLDB.Close()
-					readSQLDB = nil
+			} else {
+				configureConnectionPool(ctx, readSQLDB, &replicaCfg, dbConfig)
+				if !skipPing {
+					// Ping to validate the replica connection
+					if err := dbDriver.Ping(ctx, readSQLDB); err != nil {
+						log.Warningf("[Orm] Failed to ping read-replica connection for %s: %v", connection, err)
+						_ = readSQLDB.Close()
+						readSQLDB = nil
+					}
+				}
+				if readSQLDB != nil {
+					dbConnections[connection+":read"] = readSQLDB
 				}
 			}
 		}
@@ -207,6 +194,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 	if len(connConfig.Write) > 0 {
 		primary := connConfig.Write[0]
 		primaryCfg := connConfig
+		primaryCfg.Dsn = "" // Clear DSN so BuildDSN reconstructs from individual fields
 		primaryCfg.Host = primary.Host
 		primaryCfg.Port = primary.Port
 		primaryCfg.Database = primary.Database
@@ -220,12 +208,18 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 			if err != nil {
 				log.Warningf("[Orm] Failed to open write-primary connection for %s: %v", connection, err)
 				writeSQLDB = nil
-			} else if !skipPing {
-				// Ping to validate the primary connection
-				if err := dbDriver.Ping(ctx, writeSQLDB); err != nil {
-					log.Warningf("[Orm] Failed to ping write-primary connection for %s: %v", connection, err)
-					_ = writeSQLDB.Close()
-					writeSQLDB = nil
+			} else {
+				configureConnectionPool(ctx, writeSQLDB, &primaryCfg, dbConfig)
+				if !skipPing {
+					// Ping to validate the primary connection
+					if err := dbDriver.Ping(ctx, writeSQLDB); err != nil {
+						log.Warningf("[Orm] Failed to ping write-primary connection for %s: %v", connection, err)
+						_ = writeSQLDB.Close()
+						writeSQLDB = nil
+					}
+				}
+				if writeSQLDB != nil {
+					dbConnections[connection+":write"] = writeSQLDB
 				}
 			}
 		}
@@ -263,6 +257,40 @@ func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName string, conne
 	}
 
 	return NewOrm(ctx, dbConfig, connection, q, queries, log, nil, refresh, drivers, dbConnections), nil
+}
+
+// configureConnectionPool sets connection pool parameters and applies
+// SQLite-specific PRAGMAs for local file-based databases.
+// SQLite and local Turso (file://) do not support concurrent writers;
+// always pin to a single connection regardless of PoolConfig to prevent
+// "database is locked" errors. WAL mode (applied below) allows concurrent
+// readers alongside the single writer.
+// Remote Turso (libsql://) supports concurrent connections via HTTP.
+func configureConnectionPool(ctx context.Context, sqlDB *sql.DB, connConfig *db.ConnectionConfig, dbConfig *db.DBConfig) {
+	pinSingleConn := connConfig.Driver == "sqlite" || connConfig.Driver == "array"
+	if connConfig.Driver == "turso" {
+		pinSingleConn = strings.HasPrefix(connConfig.Dsn, "file:") || strings.HasPrefix(connConfig.Database, "file:")
+	}
+	if pinSingleConn {
+		sqlDB.SetMaxOpenConns(1)
+		sqlDB.SetMaxIdleConns(1)
+	} else {
+		sqlDB.SetMaxIdleConns(dbConfig.Pool.MaxIdleConns)
+		sqlDB.SetMaxOpenConns(dbConfig.Pool.MaxOpenConns)
+	}
+	sqlDB.SetConnMaxLifetime(time.Duration(dbConfig.Pool.ConnMaxLifetime) * time.Second)
+	sqlDB.SetConnMaxIdleTime(time.Duration(dbConfig.Pool.ConnMaxIdleTime) * time.Second)
+
+	// Apply SQLite-specific optimizations for local SQLite and local Turso.
+	// These PRAGMAs are local file concepts and are no-ops on remote Turso.
+	// Errors are intentionally ignored — these are performance/safety hints,
+	// not requirements for a valid connection.
+	if pinSingleConn {
+		_, _ = sqlDB.ExecContext(ctx, "PRAGMA journal_mode=WAL;")
+		_, _ = sqlDB.ExecContext(ctx, "PRAGMA synchronous=NORMAL;")
+		_, _ = sqlDB.ExecContext(ctx, "PRAGMA foreign_keys=ON;")
+		_, _ = sqlDB.ExecContext(ctx, "PRAGMA busy_timeout=5000;")
+	}
 }
 
 func createDriver(driverName string) driver.Driver {
@@ -480,9 +508,25 @@ func (r *Orm) Close() error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	var firstErr error
+
+	// Close read-replica and write-primary connections if present
+	for _, suffix := range []string{":read", ":write"} {
+		key := r.connection + suffix
+		if rc, ok := r.dbConnections[key]; ok {
+			if err := rc.Close(); err != nil {
+				r.log.Errorf("[Orm] Failed to close connection %s: %v", key, err)
+				if firstErr == nil {
+					firstErr = err
+				}
+			}
+			delete(r.dbConnections, key)
+		}
+	}
+
 	db, ok := r.dbConnections[r.connection]
 	if !ok {
-		return nil
+		return firstErr
 	}
 
 	if drv, ok := r.drivers[r.connection]; ok {
@@ -493,7 +537,10 @@ func (r *Orm) Close() error {
 
 	if err := db.Close(); err != nil {
 		r.log.Errorf("[Orm] Failed to close connection %s: %v", r.connection, err)
-		return err
+		if firstErr == nil {
+			firstErr = err
+		}
 	}
-	return nil
+	delete(r.dbConnections, r.connection)
+	return firstErr
 }

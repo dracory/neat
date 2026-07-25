@@ -5,6 +5,9 @@ const (
 	DriverPostgres  Driver = "postgres"
 	DriverSqlite    Driver = "sqlite"
 	DriverSqlserver Driver = "sqlserver"
+	DriverTurso     Driver = "turso"
+	DriverOracle    Driver = "oracle"
+	DriverArray     Driver = "array"
 )
 
 type Driver string

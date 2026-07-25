@@ -309,6 +309,8 @@ func detectDriverName(sqlDB *sql.DB) string {
 		return "postgres"
 	case strings.Contains(name, "sqlite"):
 		return "sqlite"
+	case strings.Contains(name, "libsql"), strings.Contains(name, "turso"):
+		return "turso"
 	case strings.Contains(name, "mssql"), strings.Contains(name, "sqlserver"):
 		return "sqlserver"
 	case strings.Contains(name, "oracle"):
@@ -366,9 +368,16 @@ func redactDSN(dsn string) string {
 			rest := parts[1]
 			// Remove user:password@ part if present
 			if atIdx := strings.Index(rest, "@"); atIdx != -1 {
-				return scheme + "://[REDACTED]@" + rest[atIdx+1:]
+				rest = "[REDACTED]@" + rest[atIdx+1:]
 			}
-			return dsn
+			// Redact authToken/auth_token/jwt query parameters
+			if qIdx := strings.Index(rest, "?"); qIdx != -1 {
+				base := rest[:qIdx]
+				query := rest[qIdx+1:]
+				query = redactQueryParams(query)
+				rest = base + "?" + query
+			}
+			return scheme + "://" + rest
 		}
 	}
 	// Handle mysql:// DSNs with user:pass@tcp(host:port)/db format
@@ -379,6 +388,34 @@ func redactDSN(dsn string) string {
 		}
 	}
 	return dsn
+}
+
+// redactQueryParams redacts sensitive query parameters (authToken, auth_token, jwt)
+// in a URL query string while preserving other parameters.
+// Uses url.ParseQuery to decode percent-encoded keys before comparison.
+func redactQueryParams(query string) string {
+	values, err := url.ParseQuery(query)
+	if err != nil {
+		return query
+	}
+	sensitiveKeys := map[string]bool{
+		"authtoken":  true,
+		"auth_token": true,
+		"jwt":        true,
+	}
+	var parts []string
+	for key, vals := range values {
+		if sensitiveKeys[strings.ToLower(key)] {
+			for range vals {
+				parts = append(parts, key+"=[REDACTED]")
+			}
+		} else {
+			for _, v := range vals {
+				parts = append(parts, key+"="+v)
+			}
+		}
+	}
+	return strings.Join(parts, "&")
 }
 
 // parseDSN parses a DSN string and returns the driver and connection config.
@@ -410,6 +447,22 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 			Driver:   "turso",
 			Database: dbPath,
 		}, nil
+	}
+
+	if strings.HasPrefix(dsn, "libsql://") {
+		u, err := url.Parse(dsn)
+		if err != nil {
+			return "", db.ConnectionConfig{}, fmt.Errorf("invalid libsql DSN %s: %w", redactDSN(dsn), err)
+		}
+		config := db.ConnectionConfig{
+			Driver:   "turso",
+			Dsn:      dsn,
+			Database: u.Hostname(),
+		}
+		if authToken := u.Query().Get("authToken"); authToken != "" {
+			config.Password = authToken
+		}
+		return "turso", config, nil
 	}
 
 	// Detect driver from scheme
