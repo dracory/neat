@@ -314,6 +314,9 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 			if err := cursor.Scan(&result); err != nil {
 				t.Fatalf("Cursor.Scan into map failed: %v", err)
 			}
+			if result == nil {
+				continue
+			}
 			cursorVals = append(cursorVals, result["val"])
 		}
 		if count != 2 {
