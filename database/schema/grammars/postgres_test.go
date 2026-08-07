@@ -154,14 +154,16 @@ func (b *stubBlueprint) Float(col string, _ ...int) contractsschema.ColumnDefini
 }
 func (b *stubBlueprint) Foreign(_ ...string) contractsschema.ForeignKeyDefinition { return nil }
 func (b *stubBlueprint) FullText(_ ...string) contractsschema.IndexDefinition     { return nil }
-func (b *stubBlueprint) Geometry(col string) contractsschema.ColumnDefinition     { return b.col(col, "geometry") }
+func (b *stubBlueprint) Geometry(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "geometry")
+}
 func (b *stubBlueprint) GeometryCollection(col string) contractsschema.ColumnDefinition {
 	return b.col(col, "geometryCollection")
 }
 func (b *stubBlueprint) GetAddedColumns() []contractsschema.ColumnDefinition { return b.columns }
-func (b *stubBlueprint) GetCommands() []*contractsschema.Command                  { return nil }
-func (b *stubBlueprint) GetTableName() string                                     { return b.table }
-func (b *stubBlueprint) HasCommand(_ string) bool                                 { return false }
+func (b *stubBlueprint) GetCommands() []*contractsschema.Command             { return nil }
+func (b *stubBlueprint) GetTableName() string                                { return b.table }
+func (b *stubBlueprint) HasCommand(_ string) bool                            { return false }
 func (b *stubBlueprint) ID(_ ...string) contractsschema.ColumnDefinition {
 	return b.col("id", "bigInteger")
 }
@@ -203,9 +205,13 @@ func (b *stubBlueprint) MultiPoint(col string) contractsschema.ColumnDefinition 
 func (b *stubBlueprint) MultiPolygon(col string) contractsschema.ColumnDefinition {
 	return b.col(col, "multiPolygon")
 }
-func (b *stubBlueprint) Point(col string) contractsschema.ColumnDefinition   { return b.col(col, "point") }
-func (b *stubBlueprint) Polygon(col string) contractsschema.ColumnDefinition { return b.col(col, "polygon") }
-func (b *stubBlueprint) Primary(_ ...string)                                 {}
+func (b *stubBlueprint) Point(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "point")
+}
+func (b *stubBlueprint) Polygon(col string) contractsschema.ColumnDefinition {
+	return b.col(col, "polygon")
+}
+func (b *stubBlueprint) Primary(_ ...string)      {}
 func (b *stubBlueprint) Rename(_ string)          {}
 func (b *stubBlueprint) RenameColumn(_, _ string) {}
 func (b *stubBlueprint) RenameIndex(_, _ string)  {}
@@ -616,6 +622,84 @@ func TestPostgresCompileDropAllViews(t *testing.T) {
 	}
 	if !strings.Contains(sql, "cascade") {
 		t.Errorf("Expected 'cascade', got: %s", sql)
+	}
+}
+
+func TestPostgresCompileCreateView(t *testing.T) {
+	g := newPostgresGrammar()
+
+	// Plain name
+	sql, err := g.CompileCreateView(contractsschema.View{Name: "user_view", Definition: "select * from users"})
+	if err != nil {
+		t.Fatalf("CompileCreateView returned error: %v", err)
+	}
+	if !strings.Contains(sql, "create or replace view") {
+		t.Errorf("Expected 'create or replace view', got: %s", sql)
+	}
+	if !strings.Contains(sql, "as select * from users") {
+		t.Errorf("Expected view definition, got: %s", sql)
+	}
+	if !strings.Contains(sql, `"user_view"`) {
+		t.Errorf("Expected quoted view name, got: %s", sql)
+	}
+
+	// Schema-qualified name
+	sql, err = g.CompileCreateView(contractsschema.View{Name: "public.my_view", Definition: "select 1"})
+	if err != nil {
+		t.Fatalf("CompileCreateView returned error for schema-qualified name: %v", err)
+	}
+	if !strings.Contains(sql, `"public"."my_view"`) {
+		t.Errorf("Expected schema-quoted name, got: %s", sql)
+	}
+}
+
+func TestPostgresCompileDropView(t *testing.T) {
+	g := newPostgresGrammar()
+
+	sql, err := g.CompileDropView("user_view")
+	if err != nil {
+		t.Fatalf("CompileDropView returned error: %v", err)
+	}
+	if !strings.Contains(sql, "drop view") {
+		t.Errorf("Expected 'drop view', got: %s", sql)
+	}
+	if !strings.Contains(sql, `"user_view"`) {
+		t.Errorf("Expected quoted view name, got: %s", sql)
+	}
+}
+
+func TestPostgresCompileDropViewIfExists(t *testing.T) {
+	g := newPostgresGrammar()
+
+	// Plain name
+	sql, err := g.CompileDropViewIfExists("user_view")
+	if err != nil {
+		t.Fatalf("CompileDropViewIfExists returned error: %v", err)
+	}
+	if !strings.Contains(sql, "drop view if exists") {
+		t.Errorf("Expected 'drop view if exists', got: %s", sql)
+	}
+	if !strings.Contains(sql, `"user_view"`) {
+		t.Errorf("Expected quoted view name, got: %s", sql)
+	}
+
+	// Schema-qualified name
+	sql, err = g.CompileDropViewIfExists("public.my_view")
+	if err != nil {
+		t.Fatalf("CompileDropViewIfExists returned error for schema-qualified name: %v", err)
+	}
+	if !strings.Contains(sql, `"public"."my_view"`) {
+		t.Errorf("Expected schema-quoted name, got: %s", sql)
+	}
+}
+
+func TestPostgresCompileCreateViewInjection(t *testing.T) {
+	g := newPostgresGrammar()
+
+	// SQL injection attempt — semicolon is not a valid identifier char
+	_, err := g.CompileCreateView(contractsschema.View{Name: "users; DROP TABLE users; --", Definition: "select 1"})
+	if err == nil {
+		t.Error("Expected error for invalid identifier, got nil")
 	}
 }
 

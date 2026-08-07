@@ -21,14 +21,14 @@ type Schema struct {
 	contractsschema.CommonSchema
 	contractsschema.DriverSchema
 
-	config     config.Config
-	grammar    contractsschema.Grammar
-	log        log.Log
-	orm        contractsorm.Orm
-	prefix     string
-	processor  contractsschema.Processor
-	schema     string
-	tx         contractsorm.Query
+	config    config.Config
+	grammar   contractsschema.Grammar
+	log       log.Log
+	orm       contractsorm.Orm
+	prefix    string
+	processor contractsschema.Processor
+	schema    string
+	tx        contractsorm.Query
 }
 
 func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm) (*Schema, error) {
@@ -89,13 +89,13 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm) (*Schema
 		DriverSchema: driverSchema,
 		CommonSchema: NewCommonSchema(grammar, orm),
 
-		config:     config,
-		grammar:    grammar,
-		log:    log,
-		orm:    orm,
-		prefix:     prefix,
-		processor:  processor,
-		schema:     schema,
+		config:    config,
+		grammar:   grammar,
+		log:       log,
+		orm:       orm,
+		prefix:    prefix,
+		processor: processor,
+		schema:    schema,
 	}, nil
 }
 
@@ -168,6 +168,61 @@ func (r *Schema) DropIfExists(table string) error {
 	}
 
 	return nil
+}
+
+func (r *Schema) CreateView(name string, q contractsorm.Query) error {
+	// Use ToRawSql (not ToSql) so that bound parameters are interpolated into
+	// the SQL string. ToSql leaves "?" placeholders intact, which would produce
+	// a view definition containing literal "?" characters.
+	selectSQL := q.ToRawSql().Get(nil)
+	return r.createViewInternal(name, selectSQL)
+}
+
+func (r *Schema) CreateViewRaw(name string, selectSQL string) error {
+	return r.createViewInternal(name, selectSQL)
+}
+
+func (r *Schema) createViewInternal(name string, selectSQL string) error {
+	if selectSQL == "" {
+		return errors.SchemaFailedToCreateView.Args(name, fmt.Errorf("empty select SQL"))
+	}
+	view := contractsschema.View{Name: name, Definition: selectSQL}
+	sql, err := r.grammar.CompileCreateView(view)
+	if err != nil {
+		return errors.SchemaFailedToCreateView.Args(name, err)
+	}
+	return r.Sql(sql)
+}
+
+func (r *Schema) DropView(name string) error {
+	sql, err := r.grammar.CompileDropView(name)
+	if err != nil {
+		return errors.SchemaFailedToDropView.Args(name, err)
+	}
+	return r.Sql(sql)
+}
+
+func (r *Schema) DropViewIfExists(name string) error {
+	// Use a check-then-drop approach instead of relying on driver-specific
+	// "DROP VIEW IF EXISTS" syntax or PL/SQL blocks. This is more robust
+	// because some drivers (notably go-ora for Oracle) cannot execute
+	// PL/SQL anonymous blocks via Exec(). The grammar's CompileDropViewIfExists
+	// methods remain available for direct use and unit testing.
+	//
+	// Trade-off: this introduces a TOCTOU race — another process could drop the
+	// view between the HasView check and the CompileDropView execution, causing
+	// the DROP VIEW to fail. This is acceptable for typical migration workflows
+	// (single-process, sequential). For drivers that support atomic IF EXISTS
+	// (MySQL, PostgreSQL, SQLite), callers can use CompileDropViewIfExists
+	// directly via r.grammar to avoid the race.
+	if !r.HasView(name) {
+		return nil
+	}
+	sql, err := r.grammar.CompileDropView(name)
+	if err != nil {
+		return errors.SchemaFailedToDropView.Args(name, err)
+	}
+	return r.Sql(sql)
 }
 
 func (r *Schema) GetColumnListing(table string) []string {
@@ -312,14 +367,27 @@ func (r *Schema) HasType(name string) bool {
 }
 
 func (r *Schema) HasView(name string) bool {
+	// Apply the table prefix to match the behavior of CompileCreateView/
+	// CompileDropView*, which use Wrap.Table() and therefore prepend the prefix
+	// to the last segment of a schema-qualified name. This mirrors HasTable's
+	// handling and keeps the CreateView → HasView round-trip consistent when a
+	// prefix is configured.
+	viewName := name
+	if strings.Contains(name, ".") {
+		lastDotIndex := strings.LastIndex(name, ".")
+		viewName = name[:lastDotIndex+1] + r.prefix + name[lastDotIndex+1:]
+	} else {
+		viewName = r.prefix + name
+	}
+
 	views, err := r.GetViews()
 	if err != nil {
-		r.log.Errorf(errors.SchemaFailedToGetTables.Args(r.orm.Name(), err).Error())
+		r.log.Errorf(errors.SchemaFailedToGetViews.Args(r.orm.Name(), err).Error())
 		return false
 	}
 
 	for _, view := range views {
-		if view.Name == name {
+		if view.Name == viewName {
 			return true
 		}
 	}

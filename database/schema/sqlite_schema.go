@@ -83,7 +83,11 @@ func (r *SqliteSchema) DropAllViews() error {
 	if _, err := query.Exec(r.grammar.CompileEnableWriteableSchema()); err != nil {
 		return err
 	}
-	if _, err := query.Exec(r.grammar.CompileDropAllViews(nil)); err != nil {
+	dropSQL, compileErr := r.grammar.CompileDropAllViews(nil)
+	if compileErr != nil {
+		return compileErr
+	}
+	if _, err := query.Exec(dropSQL); err != nil {
 		return err
 	}
 	if _, err := query.Exec(r.grammar.CompileDisableWriteableSchema()); err != nil {

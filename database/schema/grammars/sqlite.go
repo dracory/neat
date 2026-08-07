@@ -122,6 +122,30 @@ func (r *Sqlite) CompileDropAllViews(views []string) (string, error) {
 	return "delete from sqlite_master where type in ('view')", nil
 }
 
+func (r *Sqlite) CompileCreateView(view schema.View) (string, error) {
+	name, err := r.wrap.Table(view.Name)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("create view %s as %s", name, view.Definition), nil
+}
+
+func (r *Sqlite) CompileDropView(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop view %s", name), nil
+}
+
+func (r *Sqlite) CompileDropViewIfExists(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop view if exists %s", name), nil
+}
+
 func (r *Sqlite) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
 	// Requires SQLite 3.35+ for DROP COLUMN support
 	table, err := r.wrap.Table(blueprint.GetTableName())

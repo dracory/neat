@@ -88,6 +88,18 @@ func (m *MockGrammar) CompileDropAllViews(views []string) (string, error) {
 	return "DROP ALL VIEWS", nil
 }
 
+func (m *MockGrammar) CompileCreateView(view schema.View) (string, error) {
+	return "CREATE VIEW " + view.Name + " AS " + view.Definition, nil
+}
+
+func (m *MockGrammar) CompileDropView(view string) (string, error) {
+	return "DROP VIEW " + view, nil
+}
+
+func (m *MockGrammar) CompileDropViewIfExists(view string) (string, error) {
+	return "DROP VIEW IF EXISTS " + view, nil
+}
+
 func (m *MockGrammar) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
 	if m.compileDropColumnFunc != nil {
 		return m.compileDropColumnFunc(blueprint, command)

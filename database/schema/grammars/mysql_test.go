@@ -5,33 +5,15 @@ import (
 	"testing"
 
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/schema/grammars"
 )
 
-func newSqliteGrammar() *grammars.Sqlite {
-	return grammars.NewSqlite(log.NewNoopLogger(), "")
+func newMysqlGrammar() *grammars.Mysql {
+	return grammars.NewMysql("")
 }
 
-func TestSqliteCompileColumns(t *testing.T) {
-	g := newSqliteGrammar()
-	sql := g.CompileColumns("", "users")
-
-	if !strings.Contains(sql, "pragma_table_xinfo") {
-		t.Errorf("Expected pragma_table_xinfo in CompileColumns, got: %s", sql)
-	}
-
-	if !strings.Contains(sql, "'' as collation") {
-		t.Errorf("Expected single-quoted empty string '' as collation, got: %s", sql)
-	}
-
-	if strings.Contains(sql, `"" as collation`) {
-		t.Errorf("CompileColumns must not use double-quoted empty string for collation, got: %s", sql)
-	}
-}
-
-func TestSqliteCompileCreateView(t *testing.T) {
-	g := newSqliteGrammar()
+func TestMysqlCompileCreateView(t *testing.T) {
+	g := newMysqlGrammar()
 
 	// Plain name
 	sql, err := g.CompileCreateView(contractsschema.View{Name: "user_view", Definition: "select * from users"})
@@ -41,25 +23,25 @@ func TestSqliteCompileCreateView(t *testing.T) {
 	if !strings.HasPrefix(sql, "create view ") {
 		t.Errorf("Expected 'create view' prefix, got: %s", sql)
 	}
-	if !strings.Contains(sql, `"user_view"`) {
-		t.Errorf("Expected quoted view name, got: %s", sql)
+	if !strings.Contains(sql, "`user_view`") {
+		t.Errorf("Expected backtick-quoted view name, got: %s", sql)
 	}
 	if !strings.Contains(sql, "as select * from users") {
 		t.Errorf("Expected view definition, got: %s", sql)
 	}
 
-	// Schema-qualified name
-	sql, err = g.CompileCreateView(contractsschema.View{Name: "main.my_view", Definition: "select 1"})
+	// Schema-qualified name (database.table on MySQL)
+	sql, err = g.CompileCreateView(contractsschema.View{Name: "mydb.my_view", Definition: "select 1"})
 	if err != nil {
 		t.Fatalf("CompileCreateView returned error for schema-qualified name: %v", err)
 	}
-	if !strings.Contains(sql, `"main"."my_view"`) {
+	if !strings.Contains(sql, "`mydb`.`my_view`") {
 		t.Errorf("Expected schema-quoted name, got: %s", sql)
 	}
 }
 
-func TestSqliteCompileDropView(t *testing.T) {
-	g := newSqliteGrammar()
+func TestMysqlCompileDropView(t *testing.T) {
+	g := newMysqlGrammar()
 
 	sql, err := g.CompileDropView("user_view")
 	if err != nil {
@@ -68,13 +50,13 @@ func TestSqliteCompileDropView(t *testing.T) {
 	if !strings.Contains(sql, "drop view") {
 		t.Errorf("Expected 'drop view', got: %s", sql)
 	}
-	if !strings.Contains(sql, `"user_view"`) {
-		t.Errorf("Expected quoted view name, got: %s", sql)
+	if !strings.Contains(sql, "`user_view`") {
+		t.Errorf("Expected backtick-quoted view name, got: %s", sql)
 	}
 }
 
-func TestSqliteCompileDropViewIfExists(t *testing.T) {
-	g := newSqliteGrammar()
+func TestMysqlCompileDropViewIfExists(t *testing.T) {
+	g := newMysqlGrammar()
 
 	// Plain name
 	sql, err := g.CompileDropViewIfExists("user_view")
@@ -84,22 +66,22 @@ func TestSqliteCompileDropViewIfExists(t *testing.T) {
 	if !strings.Contains(sql, "drop view if exists") {
 		t.Errorf("Expected 'drop view if exists', got: %s", sql)
 	}
-	if !strings.Contains(sql, `"user_view"`) {
-		t.Errorf("Expected quoted view name, got: %s", sql)
+	if !strings.Contains(sql, "`user_view`") {
+		t.Errorf("Expected backtick-quoted view name, got: %s", sql)
 	}
 
 	// Schema-qualified name
-	sql, err = g.CompileDropViewIfExists("main.my_view")
+	sql, err = g.CompileDropViewIfExists("mydb.my_view")
 	if err != nil {
 		t.Fatalf("CompileDropViewIfExists returned error for schema-qualified name: %v", err)
 	}
-	if !strings.Contains(sql, `"main"."my_view"`) {
+	if !strings.Contains(sql, "`mydb`.`my_view`") {
 		t.Errorf("Expected schema-quoted name, got: %s", sql)
 	}
 }
 
-func TestSqliteCompileCreateViewInjection(t *testing.T) {
-	g := newSqliteGrammar()
+func TestMysqlCompileCreateViewInjection(t *testing.T) {
+	g := newMysqlGrammar()
 
 	_, err := g.CompileCreateView(contractsschema.View{Name: "users; DROP TABLE users; --", Definition: "select 1"})
 	if err == nil {

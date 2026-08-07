@@ -136,6 +136,30 @@ func (r *Sqlserver) CompileDropAllViews(_ []string) (string, error) {
 	EXEC sp_executesql @sql;`, nil
 }
 
+func (r *Sqlserver) CompileCreateView(view schema.View) (string, error) {
+	name, err := r.wrap.Table(view.Name)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("create view %s as %s", name, view.Definition), nil
+}
+
+func (r *Sqlserver) CompileDropView(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop view %s", name), nil
+}
+
+func (r *Sqlserver) CompileDropViewIfExists(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("if object_id(%s, 'V') is not null drop view %s", r.wrap.Quote(name), name), nil
+}
+
 func (r *Sqlserver) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
 	columns, err := r.wrap.Columns(command.Columns)
 	if err != nil {

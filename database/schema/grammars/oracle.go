@@ -173,6 +173,45 @@ func (r *Oracle) CompileDropAllViews(views []string) (string, error) {
 	return strings.Join(statements, "; "), nil
 }
 
+func (r *Oracle) CompileCreateView(view schema.View) (string, error) {
+	name, err := r.wrap.Table(view.Name)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("create or replace force view %s as %s", name, view.Definition), nil
+}
+
+func (r *Oracle) CompileDropView(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop view %s", name), nil
+}
+
+func (r *Oracle) CompileDropViewIfExists(view string) (string, error) {
+	// Validate the identifier via wrap.Table (rejects injection attempts),
+	// then use the unquoted uppercased form inside EXECUTE IMMEDIATE.
+	// This matches the pattern of CompileDropIfExists for tables: the go-ora
+	// driver's PL/SQL parser mishandles double-quoted identifiers inside the
+	// single-quoted EXECUTE IMMEDIATE string, so we embed the bare uppercased
+	// name instead. Oracle treats unquoted identifiers as uppercase by default.
+	//
+	// Note: The schema layer's DropViewIfExists uses a check-then-drop approach
+	// instead of this PL/SQL block, because go-ora cannot execute PL/SQL
+	// anonymous blocks via Exec(). This method remains available for direct use
+	// and generates correct PL/SQL for drivers that support it.
+	if _, err := r.wrap.Table(view); err != nil {
+		return "", err
+	}
+	viewName := strings.ToUpper(view)
+	return fmt.Sprintf(
+		"BEGIN EXECUTE IMMEDIATE 'DROP VIEW %s'; EXCEPTION WHEN OTHERS THEN "+
+			"IF SQLCODE != -942 THEN RAISE; END IF; END;",
+		viewName,
+	), nil
+}
+
 func (r *Oracle) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
 	columns, err := r.wrap.Columns(command.Columns)
 	if err != nil {
@@ -402,8 +441,12 @@ func (r *Oracle) CompileUnique(blueprint schema.Blueprint, command *schema.Comma
 	return r.compileKey(blueprint, command, "unique")
 }
 
-func (r *Oracle) CompileViews(database string) string {
-	return fmt.Sprintf("select view_name as name, text as definition from all_views where owner = upper(%s) order by view_name", r.wrap.Quote(database))
+func (r *Oracle) CompileViews(_ string) string {
+	// Use user_views (consistent with CompileTables using user_tables) to list
+	// only views owned by the current user. The previous all_views + owner filter
+	// compared against the database/SID name (e.g. "XE") rather than the actual
+	// schema owner (e.g. "SYSTEM"), causing HasView to always return false.
+	return "select view_name as name, text as definition from user_views order by view_name"
 }
 
 func (r *Oracle) GetAttributeCommands() []string {

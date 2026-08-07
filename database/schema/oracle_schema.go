@@ -113,7 +113,11 @@ func (r *OracleSchema) DropAllViews() error {
 	if query == nil {
 		return fmt.Errorf("query not initialized")
 	}
-	_, err = query.Exec(r.grammar.CompileDropAllViews(dropViews))
+	dropSQL, compileErr := r.grammar.CompileDropAllViews(dropViews)
+	if compileErr != nil {
+		return compileErr
+	}
+	_, err = query.Exec(dropSQL)
 
 	return err
 }

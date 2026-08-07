@@ -161,6 +161,30 @@ func (r *Postgres) CompileDropAllViews(views []string) (string, error) {
 	return fmt.Sprintf("drop view %s cascade", columnized), nil
 }
 
+func (r *Postgres) CompileCreateView(view schema.View) (string, error) {
+	name, err := r.wrap.Table(view.Name)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("create or replace view %s as %s", name, view.Definition), nil
+}
+
+func (r *Postgres) CompileDropView(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop view %s", name), nil
+}
+
+func (r *Postgres) CompileDropViewIfExists(view string) (string, error) {
+	name, err := r.wrap.Table(view)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("drop view if exists %s", name), nil
+}
+
 func (r *Postgres) CompileDropColumn(blueprint schema.Blueprint, command *schema.Command) ([]string, error) {
 	columns, err := r.wrap.Columns(command.Columns)
 	if err != nil {

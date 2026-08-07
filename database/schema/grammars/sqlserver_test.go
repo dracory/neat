@@ -5,33 +5,15 @@ import (
 	"testing"
 
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/schema/grammars"
 )
 
-func newSqliteGrammar() *grammars.Sqlite {
-	return grammars.NewSqlite(log.NewNoopLogger(), "")
+func newSqlserverGrammar() *grammars.Sqlserver {
+	return grammars.NewSqlserver("")
 }
 
-func TestSqliteCompileColumns(t *testing.T) {
-	g := newSqliteGrammar()
-	sql := g.CompileColumns("", "users")
-
-	if !strings.Contains(sql, "pragma_table_xinfo") {
-		t.Errorf("Expected pragma_table_xinfo in CompileColumns, got: %s", sql)
-	}
-
-	if !strings.Contains(sql, "'' as collation") {
-		t.Errorf("Expected single-quoted empty string '' as collation, got: %s", sql)
-	}
-
-	if strings.Contains(sql, `"" as collation`) {
-		t.Errorf("CompileColumns must not use double-quoted empty string for collation, got: %s", sql)
-	}
-}
-
-func TestSqliteCompileCreateView(t *testing.T) {
-	g := newSqliteGrammar()
+func TestSqlserverCompileCreateView(t *testing.T) {
+	g := newSqlserverGrammar()
 
 	// Plain name
 	sql, err := g.CompileCreateView(contractsschema.View{Name: "user_view", Definition: "select * from users"})
@@ -49,17 +31,17 @@ func TestSqliteCompileCreateView(t *testing.T) {
 	}
 
 	// Schema-qualified name
-	sql, err = g.CompileCreateView(contractsschema.View{Name: "main.my_view", Definition: "select 1"})
+	sql, err = g.CompileCreateView(contractsschema.View{Name: "dbo.my_view", Definition: "select 1"})
 	if err != nil {
 		t.Fatalf("CompileCreateView returned error for schema-qualified name: %v", err)
 	}
-	if !strings.Contains(sql, `"main"."my_view"`) {
+	if !strings.Contains(sql, `"dbo"."my_view"`) {
 		t.Errorf("Expected schema-quoted name, got: %s", sql)
 	}
 }
 
-func TestSqliteCompileDropView(t *testing.T) {
-	g := newSqliteGrammar()
+func TestSqlserverCompileDropView(t *testing.T) {
+	g := newSqlserverGrammar()
 
 	sql, err := g.CompileDropView("user_view")
 	if err != nil {
@@ -73,33 +55,36 @@ func TestSqliteCompileDropView(t *testing.T) {
 	}
 }
 
-func TestSqliteCompileDropViewIfExists(t *testing.T) {
-	g := newSqliteGrammar()
+func TestSqlserverCompileDropViewIfExists(t *testing.T) {
+	g := newSqlserverGrammar()
 
 	// Plain name
 	sql, err := g.CompileDropViewIfExists("user_view")
 	if err != nil {
 		t.Fatalf("CompileDropViewIfExists returned error: %v", err)
 	}
-	if !strings.Contains(sql, "drop view if exists") {
-		t.Errorf("Expected 'drop view if exists', got: %s", sql)
+	if !strings.Contains(sql, "if object_id(") {
+		t.Errorf("Expected 'if object_id(' guard, got: %s", sql)
 	}
-	if !strings.Contains(sql, `"user_view"`) {
-		t.Errorf("Expected quoted view name, got: %s", sql)
+	if !strings.Contains(sql, "'V'") {
+		t.Errorf("Expected 'V' type filter, got: %s", sql)
+	}
+	if !strings.Contains(sql, "drop view") {
+		t.Errorf("Expected 'drop view', got: %s", sql)
 	}
 
 	// Schema-qualified name
-	sql, err = g.CompileDropViewIfExists("main.my_view")
+	sql, err = g.CompileDropViewIfExists("dbo.my_view")
 	if err != nil {
 		t.Fatalf("CompileDropViewIfExists returned error for schema-qualified name: %v", err)
 	}
-	if !strings.Contains(sql, `"main"."my_view"`) {
+	if !strings.Contains(sql, `"dbo"."my_view"`) {
 		t.Errorf("Expected schema-quoted name, got: %s", sql)
 	}
 }
 
-func TestSqliteCompileCreateViewInjection(t *testing.T) {
-	g := newSqliteGrammar()
+func TestSqlserverCompileCreateViewInjection(t *testing.T) {
+	g := newSqlserverGrammar()
 
 	_, err := g.CompileCreateView(contractsschema.View{Name: "users; DROP TABLE users; --", Definition: "select 1"})
 	if err == nil {

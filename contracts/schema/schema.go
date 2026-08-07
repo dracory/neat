@@ -11,12 +11,20 @@ type Schema interface {
 	Connection(name string) Schema
 	// Create a new table on the schema.
 	Create(table string, callback func(table Blueprint)) error
+	// CreateView Create a new view on the schema from a query builder.
+	CreateView(name string, q orm.Query) error
+	// CreateViewRaw Create a new view on the schema from a raw select SQL string.
+	CreateViewRaw(name string, selectSQL string) error
 	// Drop a table from the schema.
 	Drop(table string) error
 	// DropColumns Drop columns from a table on the schema.
 	DropColumns(table string, columns []string) error
 	// DropIfExists Drop a table from the schema if exists.
 	DropIfExists(table string) error
+	// DropView Drop a view from the schema.
+	DropView(name string) error
+	// DropViewIfExists Drop a view from the schema if exists.
+	DropViewIfExists(name string) error
 	// GetColumnListing Get the column listing for a given table.
 	GetColumnListing(table string) []string
 	// GetConnection Get the connection of the schema.
