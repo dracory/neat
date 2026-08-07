@@ -372,7 +372,7 @@ func (r *Schema) HasView(name string) bool {
 	// to the last segment of a schema-qualified name. This mirrors HasTable's
 	// handling and keeps the CreateView → HasView round-trip consistent when a
 	// prefix is configured.
-	viewName := name
+	var viewName string
 	if strings.Contains(name, ".") {
 		lastDotIndex := strings.LastIndex(name, ".")
 		viewName = name[:lastDotIndex+1] + r.prefix + name[lastDotIndex+1:]
