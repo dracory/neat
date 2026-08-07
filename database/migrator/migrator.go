@@ -534,7 +534,7 @@ func (s *Migrator) logMigration(query contractsorm.Query, id, description string
 }
 
 func (s *Migrator) getMigrationsByBatch(query contractsorm.Query, batch int) ([]MigrationTracker, error) {
-	var trackers []MigrationTracker
+	trackers := make([]MigrationTracker, 0)
 	if err := query.Table(s.tableName).Where("batch = ?", batch).Get(&trackers); err != nil {
 		return nil, err
 	}
@@ -542,7 +542,7 @@ func (s *Migrator) getMigrationsByBatch(query contractsorm.Query, batch int) ([]
 }
 
 func (s *Migrator) getLastMigrations(query contractsorm.Query, step int) ([]MigrationTracker, error) {
-	var trackers []MigrationTracker
+	trackers := make([]MigrationTracker, 0)
 	if err := query.Table(s.tableName).OrderBy("id", "desc").Limit(step).Get(&trackers); err != nil {
 		return nil, err
 	}
@@ -584,7 +584,7 @@ func (s *Migrator) getMigrations() ([]MigrationTracker, error) {
 }
 
 func (s *Migrator) getMigrationsWithQuery(query contractsorm.Query) ([]MigrationTracker, error) {
-	var trackers []MigrationTracker
+	trackers := make([]MigrationTracker, 0)
 	if err := query.Table(s.tableName).OrderBy("id", "asc").Get(&trackers); err != nil {
 		return nil, err
 	}

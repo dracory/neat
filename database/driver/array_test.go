@@ -268,7 +268,7 @@ func TestArraySchemaMismatch(t *testing.T) {
 
 	err = driver.Populate(ctx, db, source)
 	if err == nil {
-		t.Error("Expected error for schema/row mismatch, got nil")
+		t.Fatalf("Expected error for schema/row mismatch, got nil")
 	}
 	if !strings.Contains(err.Error(), "contains key \"extra\" which is not in the explicit schema") {
 		t.Errorf("Expected mismatch error message, got: %v", err)

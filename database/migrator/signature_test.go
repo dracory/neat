@@ -165,7 +165,7 @@ func TestValidateMigrationSignature_Custom_Invalid(t *testing.T) {
 func TestValidateMigrationSignature_UnknownFormat(t *testing.T) {
 	err := ValidateMigrationSignature("test", SignatureFormat("unknown"))
 	if err == nil {
-		t.Error("Expected error for unknown format")
+		t.Fatalf("Expected error for unknown format")
 	}
 	if !containsSubstringHelper(err.Error(), "unknown migration signature format") {
 		t.Errorf("Expected 'unknown migration signature format' error, got '%s'", err.Error())

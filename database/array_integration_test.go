@@ -52,7 +52,7 @@ func TestArrayDriverIntegration(t *testing.T) {
 	}
 
 	if len(users) != 2 {
-		t.Errorf("expected 2 users, got %d", len(users))
+		t.Fatalf("expected 2 users, got %d", len(users))
 	}
 
 	if users[0].Name != "John" || users[1].Name != "Jane" {

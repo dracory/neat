@@ -261,7 +261,7 @@ func TestMixedStyles(t *testing.T) {
 		t.Fatalf("mixed style query failed: %v", err)
 	}
 	if len(results) != 1 {
-		t.Errorf("expected 1 expensive active electronic, got %d", len(results))
+		t.Fatalf("expected 1 expensive active electronic, got %d", len(results))
 	}
 	if results[0]["name"] != "Laptop" {
 		t.Errorf("expected 'Laptop', got '%v'", results[0]["name"])

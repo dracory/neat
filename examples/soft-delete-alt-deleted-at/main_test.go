@@ -257,7 +257,7 @@ func TestDeletedAtSoftDelete_OnlySoftDeleted(t *testing.T) {
 		t.Fatalf("failed to get active posts: %v", err)
 	}
 	if len(activePosts) != 1 {
-		t.Errorf("expected 1 active post, got %d", len(activePosts))
+		t.Fatalf("expected 1 active post, got %d", len(activePosts))
 	}
 	if activePosts[0].Title != "Active Post" {
 		t.Errorf("expected 'Active Post', got '%s'", activePosts[0].Title)

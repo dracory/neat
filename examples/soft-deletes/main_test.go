@@ -252,7 +252,7 @@ func TestSoftDelete_OnlySoftDeleted(t *testing.T) {
 		t.Fatalf("failed to get active products: %v", err)
 	}
 	if len(activeProducts) != 1 {
-		t.Errorf("expected 1 active product, got %d", len(activeProducts))
+		t.Fatalf("expected 1 active product, got %d", len(activeProducts))
 	}
 	if activeProducts[0].Name != "Active Product" {
 		t.Errorf("expected 'Active Product', got '%s'", activeProducts[0].Name)

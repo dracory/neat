@@ -230,7 +230,7 @@ func TestAddMigration_Duplicate(t *testing.T) {
 	// Second registration with same signature fails
 	err = migrator.AddMigration(migration)
 	if err == nil {
-		t.Error("expected error on duplicate migration, got nil")
+		t.Fatalf("expected error on duplicate migration, got nil")
 	}
 	if err.Error() != "duplicate migration signature: test_migration" {
 		t.Errorf("unexpected error message: %v", err)
@@ -258,7 +258,7 @@ func TestAddMigration_EmptySignature(t *testing.T) {
 
 	err = migrator.AddMigration(migration)
 	if err == nil {
-		t.Error("expected error on empty signature, got nil")
+		t.Fatalf("expected error on empty signature, got nil")
 	}
 	if err.Error() != "migration signature cannot be empty" {
 		t.Errorf("unexpected error message: %v", err)
@@ -281,7 +281,7 @@ func TestAddMigrations_DuplicateInSlice(t *testing.T) {
 
 	err = migrator.AddMigrations(migrations)
 	if err == nil {
-		t.Error("expected error on duplicate in slice, got nil")
+		t.Fatalf("expected error on duplicate in slice, got nil")
 	}
 	if err.Error() != "duplicate migration signature: migration_1" {
 		t.Errorf("unexpected error message: %v", err)
@@ -318,7 +318,7 @@ func TestAddMigrations_DuplicateAcrossCalls(t *testing.T) {
 
 	err = migrator.AddMigrations(secondBatch)
 	if err == nil {
-		t.Error("expected error on duplicate across calls, got nil")
+		t.Fatalf("expected error on duplicate across calls, got nil")
 	}
 	if err.Error() != "duplicate migration signature: migration_1" {
 		t.Errorf("unexpected error message: %v", err)
@@ -917,7 +917,6 @@ func TestStatus_WithMigrations(t *testing.T) {
 	}
 }
 
-
 func TestStatus_WithPendingMigrations(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1090,7 +1089,6 @@ func TestStatus_AllCompleted(t *testing.T) {
 		}
 	}
 }
-
 
 func TestNewMigratorWithOptions_NilOpts(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
