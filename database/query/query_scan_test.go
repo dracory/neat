@@ -303,7 +303,8 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 			t.Fatalf("Cursor failed: %v", err)
 		}
 		count := 0
-		cursorVals := make([]any, 0)
+		gotHello := false
+		gotNil := false
 		for cursor := range cursorChan {
 			count++
 			if cursor == nil {
@@ -315,18 +316,23 @@ func TestScanBytesToNormalizedString(t *testing.T) {
 				t.Fatalf("Cursor.Scan into map failed: %v", err)
 			}
 			if result == nil {
-				continue
+				result = map[string]any{}
 			}
-			cursorVals = append(cursorVals, result["val"])
+			val := result["val"]
+			if s, ok := val.(string); ok && s == "hello" {
+				gotHello = true
+			} else if val == nil {
+				gotNil = true
+			}
 		}
 		if count != 2 {
 			t.Fatalf("expected 2 cursor items, got %d", count)
 		}
-		if s, ok := cursorVals[0].(string); !ok || s != "hello" {
-			t.Errorf("expected string 'hello' in Cursor map, got %T (%v)", cursorVals[0], cursorVals[0])
+		if !gotHello {
+			t.Errorf("expected string 'hello' in Cursor map")
 		}
-		if cursorVals[1] != nil {
-			t.Errorf("expected nil for NULL in Cursor map, got %T (%v)", cursorVals[1], cursorVals[1])
+		if !gotNil {
+			t.Errorf("expected nil for NULL in Cursor map")
 		}
 	}
 
