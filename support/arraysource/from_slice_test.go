@@ -1,7 +1,7 @@
 package arraysource
 
 import (
-	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -42,7 +42,7 @@ func TestNewArraySourceFrom_Structs(t *testing.T) {
 		t.Fatal("expected model to not be nil")
 	}
 
-	if !reflect.DeepEqual(model.TableName()[:13], "array_status_") {
+	if !strings.HasPrefix(model.TableName(), "array_status_") {
 		t.Errorf("expected table name starting with array_status_, got %s", model.TableName())
 	}
 
@@ -158,7 +158,87 @@ func TestNewArraySourceFrom_MapSlice(t *testing.T) {
 	rows, _ := model.Rows()
 
 	if len(rows) != 1 || rows[0]["name"] != "Alice" {
-		t.Errorf("expectedAlice, got %v", rows)
+		t.Errorf("expected Alice, got %v", rows)
+	}
+}
+
+func TestNewArraySourceFrom_MapSlice_SnapshotSemantics(t *testing.T) {
+	items := []map[string]any{
+		{"id": 1, "name": "Alice"},
+	}
+
+	model := NewArraySourceFrom(items)
+	items[0]["name"] = "Bob" // mutate original map
+
+	rows, _ := model.Rows()
+	if rows[0]["name"] != "Alice" {
+		t.Errorf("expected snapshot semantics, got mutated value: %v", rows[0]["name"])
+	}
+}
+
+func TestNewArraySourceFrom_StructsWithTags(t *testing.T) {
+	type TaggedStruct struct {
+		ID         int    `db:"custom_id"`
+		NeatVal    string `neat:"custom_neat_val"`
+		GormVal    string `gorm:"column:custom_gorm_val"`
+		DefaultVal string
+	}
+
+	items := []TaggedStruct{
+		{ID: 123, NeatVal: "neat", GormVal: "gorm", DefaultVal: "default"},
+	}
+
+	model := NewArraySourceFrom(items)
+	rows, _ := model.Rows()
+
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(rows))
+	}
+
+	row := rows[0]
+	if row["custom_id"] != 123 {
+		t.Errorf("expected 'custom_id' field, got: %v", row)
+	}
+	if row["custom_neat_val"] != "neat" {
+		t.Errorf("expected 'custom_neat_val' field, got: %v", row)
+	}
+	if row["custom_gorm_val"] != "gorm" {
+		t.Errorf("expected 'custom_gorm_val' field, got: %v", row)
+	}
+	if row["default_val"] != "default" {
+		t.Errorf("expected 'default_val' field, got: %v", row)
+	}
+}
+
+func TestNewArraySourceFrom_TimeTime(t *testing.T) {
+	type TimeStruct struct {
+		ID       int
+		ValTime  time.Time
+		PtrTime  *time.Time
+		NilTime  *time.Time
+	}
+
+	now := time.Now()
+	items := []TimeStruct{
+		{ID: 1, ValTime: now, PtrTime: &now, NilTime: nil},
+	}
+
+	model := NewArraySourceFrom(items)
+	rows, _ := model.Rows()
+
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(rows))
+	}
+
+	row := rows[0]
+	if !row["val_time"].(time.Time).Equal(now) {
+		t.Errorf("expected 'val_time' to be %v, got %v", now, row["val_time"])
+	}
+	if !row["ptr_time"].(time.Time).Equal(now) {
+		t.Errorf("expected 'ptr_time' to be %v, got %v", now, row["ptr_time"])
+	}
+	if row["nil_time"] != nil {
+		t.Errorf("expected 'nil_time' to be nil, got %v", row["nil_time"])
 	}
 }
 
@@ -168,7 +248,7 @@ func TestNewArraySourceFrom_PointerSlice(t *testing.T) {
 	}
 
 	model := NewArraySourceFrom(items)
-	if !reflect.DeepEqual(model.TableName()[:13], "array_status_") {
+	if !strings.HasPrefix(model.TableName(), "array_status_") {
 		t.Errorf("expected array_status_ table name, got %s", model.TableName())
 	}
 }
