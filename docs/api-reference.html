@@ -74,6 +74,14 @@ type PoolConfig struct {
         <li><code>Seed(seeders []Seeder) error</code> - Run seeders</li>
     </ul>
 
+    <h3>Array Source Helpers</h3>
+
+    <ul class="method-list">
+        <li><code>NewArraySourceFrom(items []T) *ArraySourceModel</code> - Creates an array-backed data source from a slice of structs or maps with zero setup.</li>
+        <li><code>NewArraySource(rows []map[string]any) *ArraySourceModel</code> - Creates an array-backed data source from dynamic maps with an auto-generated table name.</li>
+        <li><code>NewArraySourceWithSchema(rows []map[string]any, schema map[string]string) *ArraySourceModel</code> - Creates an array-backed data source with explicit column types (useful for empty datasets).</li>
+    </ul>
+
     <h2>Query Builder</h2>
 
     <h3>Selection Methods</h3>
