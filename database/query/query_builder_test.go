@@ -141,6 +141,17 @@ func TestDistinctWithColumnsSQLGeneration(t *testing.T) {
 	}
 }
 
+func TestDistinct_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Distinct("users.name")
+
+	// The dotted column should be stored in distinctCols
+	if len(q.distinctCols) != 1 || q.distinctCols[0] != "users.name" {
+		t.Errorf("Expected distinctCols to contain 'users.name', got: %v", q.distinctCols)
+	}
+}
+
 func TestDistinctWithAggregateCount(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Table("users")
@@ -302,6 +313,215 @@ func TestOrderByDescSQLGeneration(t *testing.T) {
 	}
 }
 
+// --- Dotted column reference tests (table.column) ---
+// These test that OrderBy, OrderByDesc, and Group accept dotted
+// identifiers like "users.name" — standard SQL for JOIN queries.
+
+func TestOrderBy_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.OrderBy("users.name", "asc")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+}
+
+func TestOrderByDesc_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.OrderByDesc("users.created_at")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "created_at") {
+		t.Errorf("Expected SQL to contain 'users.created_at', got: %s", sql)
+	}
+	if !strings.Contains(sql, "desc") {
+		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)
+	}
+}
+
+func TestGroup_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("orders")
+	q.Group("users.name")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "GROUP BY") {
+		t.Errorf("Expected SQL to contain 'GROUP BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+}
+
+func TestGroup_MultipleDottedColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("orders")
+	q.Group("users.name").Group("orders.status")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "GROUP BY") {
+		t.Errorf("Expected SQL to contain 'GROUP BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+	if !strings.Contains(sql, "orders") || !strings.Contains(sql, "status") {
+		t.Errorf("Expected SQL to contain 'orders.status', got: %s", sql)
+	}
+}
+
+// TestOrderBy_DottedColumn_RejectsInjection ensures that dotted column
+// support doesn't open a SQL injection vector. Malicious input with
+// quotes, semicolons, or spaces should still be rejected.
+func TestOrderBy_DottedColumn_RejectsInjection(t *testing.T) {
+	malicious := []string{
+		"users.name; DROP TABLE users",
+		"users.name--",
+		"users.name' OR '1'='1",
+		"users.name UNION SELECT * FROM users",
+		"users.name /* comment */",
+		"users.name ",
+		".name",
+		"users.",
+		"users..name",
+		"users.name.extra",
+	}
+
+	for _, input := range malicious {
+		t.Run(input, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+			q.Table("users")
+			q.OrderBy(input, "asc")
+
+			// The order clause should be silently dropped (no panic, no SQL injection)
+			wrapped := WrapQuery(q)
+			sql, _ := wrapped.BuildSelectSQL()
+
+			// SQL should NOT contain the malicious input
+			if strings.Contains(sql, "DROP") || strings.Contains(sql, "UNION") ||
+				strings.Contains(sql, "OR '1'='1") || strings.Contains(sql, "--") ||
+				strings.Contains(sql, "/*") {
+				t.Errorf("SQL injection not blocked for input %q: %s", input, sql)
+			}
+		})
+	}
+}
+
+// --- Dotted column SQL generation per dialect ---
+// These tests verify that dotted column references produce correct
+// dialect-specific quoting in ORDER BY and GROUP BY clauses, without
+// needing a live database connection.
+
+func TestDottedColumn_OrderBy_PerDialect(t *testing.T) {
+	dialects := []struct {
+		name      string
+		dialect   string
+		wantInSQL string // substring that must appear in the generated SQL
+	}{
+		{"sqlite", "sqlite", `"users"."name"`},
+		{"mysql", "mysql", "`users`.`name`"},
+		{"postgres", "postgres", `"users"."name"`},
+		{"oracle", "oracle", `"USERS"."NAME"`},
+		{"sqlserver", "sqlserver", `"users"."name"`},
+		{"turso", "turso", `"users"."name"`},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			drv := &FakeDriver{DialectName: d.dialect}
+			q := NewQuery(context.TODO(), nil, drv, "users", nil, nil)
+			q.OrderBy("users.name", "asc")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !strings.Contains(sql, d.wantInSQL) {
+				t.Errorf("dialect %s: expected SQL to contain %q, got: %s", d.dialect, d.wantInSQL, sql)
+			}
+		})
+	}
+}
+
+func TestDottedColumn_GroupBy_PerDialect(t *testing.T) {
+	dialects := []struct {
+		name      string
+		dialect   string
+		wantInSQL string
+	}{
+		{"sqlite", "sqlite", `"users"."name"`},
+		{"mysql", "mysql", "`users`.`name`"},
+		{"postgres", "postgres", `"users"."name"`},
+		{"oracle", "oracle", `"USERS"."NAME"`},
+		{"sqlserver", "sqlserver", `"users"."name"`},
+		{"turso", "turso", `"users"."name"`},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			drv := &FakeDriver{DialectName: d.dialect}
+			q := NewQuery(context.TODO(), nil, drv, "orders", nil, nil)
+			q.Group("users.name")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !strings.Contains(sql, d.wantInSQL) {
+				t.Errorf("dialect %s: expected SQL to contain %q, got: %s", d.dialect, d.wantInSQL, sql)
+			}
+		})
+	}
+}
+
+func TestDottedColumn_OrderByDesc_PerDialect(t *testing.T) {
+	dialects := []struct {
+		name      string
+		dialect   string
+		wantInSQL string
+	}{
+		{"sqlite", "sqlite", `"users"."created_at"`},
+		{"mysql", "mysql", "`users`.`created_at`"},
+		{"postgres", "postgres", `"users"."created_at"`},
+		{"oracle", "oracle", `"USERS"."CREATED_AT"`},
+		{"sqlserver", "sqlserver", `"users"."created_at"`},
+		{"turso", "turso", `"users"."created_at"`},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			drv := &FakeDriver{DialectName: d.dialect}
+			q := NewQuery(context.TODO(), nil, drv, "users", nil, nil)
+			q.OrderByDesc("users.created_at")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !strings.Contains(sql, d.wantInSQL) {
+				t.Errorf("dialect %s: expected SQL to contain %q, got: %s", d.dialect, d.wantInSQL, sql)
+			}
+			if !strings.Contains(sql, "desc") {
+				t.Errorf("dialect %s: expected 'desc' in SQL, got: %s", d.dialect, sql)
+			}
+		})
+	}
+}
+
 func TestLimit(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	result := q.Limit(10)
@@ -456,6 +676,41 @@ func TestOrderDescSQLGeneration(t *testing.T) {
 
 	if !strings.Contains(sql, "ORDER BY") {
 		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "desc") {
+		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)
+	}
+}
+
+func TestOrder_DottedColumn_Asc(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Order("users.name ASC")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+}
+
+func TestOrder_DottedColumn_Desc(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Order("users.created_at DESC")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "created_at") {
+		t.Errorf("Expected SQL to contain 'users.created_at', got: %s", sql)
 	}
 	if !strings.Contains(sql, "desc") {
 		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)

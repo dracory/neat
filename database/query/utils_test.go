@@ -507,6 +507,55 @@ func TestIsPrimaryKeyZero(t *testing.T) {
 	}
 }
 
+func TestIsValidColumnReference(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		// Simple identifiers — should pass
+		{"simple name", "name", true},
+		{"simple with underscore", "user_name", true},
+		{"single letter", "a", true},
+
+		// Dotted identifiers — should pass (the whole point of this function)
+		{"table.column", "users.name", true},
+		{"table.column with underscore", "user_orders.total", true},
+		{"alias.column", "u.name", true},
+
+		// Injection attempts — should fail
+		{"empty", "", false},
+		{"only dot", ".", false},
+		{"leading dot", ".name", false},
+		{"trailing dot", "users.", false},
+		{"double dot", "users..name", false},
+		{"triple part", "schema.table.column", false},
+		{"semicolon injection", "users.name; DROP TABLE users", false},
+		{"comment injection", "users.name--", false},
+		{"quote injection", "users.name' OR '1'='1", false},
+		{"union injection", "users.name UNION SELECT 1", false},
+		{"block comment", "users.name /* comment */", false},
+		{"trailing space", "users.name ", false},
+		{"leading space", " users.name", false},
+		{"contains space in part", "users.na me", false},
+		{"contains hyphen", "users.user-name", false},
+		{"contains special char", "users.name@", false},
+		{"starts with digit in first part", "1users.name", false},
+		{"starts with digit in second part", "users.1name", false},
+		{"contains parentheses", "users.COUNT(*)", false},
+		{"contains comma", "users.name,users.email", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidColumnReference(tt.input)
+			if result != tt.expected {
+				t.Errorf("isValidColumnReference(%q) = %v, expected %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestIsShortIDModel(t *testing.T) {
 	type User struct {
 		ID uint

@@ -586,6 +586,43 @@ func TestWhereColumn_SqlOutput(t *testing.T) {
 	}
 }
 
+func TestWhereColumn_DottedColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
+	q.Join("orders ON users.id = orders.user_id")
+	q.WhereColumn("users.id", "=", "orders.user_id")
+
+	builder := NewBuilder(q)
+	sql, _ := builder.BuildSelect()
+
+	// The WHERE clause should contain the dotted column comparison,
+	// not just the JOIN clause. Check for the actual comparison expression.
+	if !contains(sql, "users.id") || !contains(sql, "orders.user_id") {
+		t.Errorf("Expected dotted column comparison in WHERE clause, got: %s", sql)
+	}
+	// Verify buildError was not set
+	if q.buildError != nil {
+		t.Errorf("Expected no build error, got: %v", q.buildError)
+	}
+}
+
+func TestOrWhereColumn_DottedColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
+	q.Join("orders ON users.id = orders.user_id")
+	q.WhereColumn("users.id", "=", "orders.user_id")
+	q.OrWhereColumn("users.id", "=", "orders.backup_id")
+
+	builder := NewBuilder(q)
+	sql, _ := builder.BuildSelect()
+
+	// Check for the OR comparison with dotted columns
+	if !contains(sql, "orders.backup_id") {
+		t.Errorf("Expected 'orders.backup_id' in WHERE clause, got: %s", sql)
+	}
+	if q.buildError != nil {
+		t.Errorf("Expected no build error, got: %v", q.buildError)
+	}
+}
+
 func TestWhereNot_SqlOutput(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, driver.NewSQLite(), "users", nil, nil)
 	q.WhereNot("id = ?", 1)
