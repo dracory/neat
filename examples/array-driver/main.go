@@ -26,9 +26,9 @@ func (s *StatusSource) Rows() ([]map[string]any, error) {
 
 // Status represents the model for querying the statuses table.
 type Status struct {
-	ID    int
-	Name  string
-	Color string
+	ID    int    `db:"id"`
+	Name  string `db:"name"`
+	Color string `db:"color"`
 }
 
 func main() {
@@ -59,12 +59,27 @@ func RunExample() error {
 		}
 	}()
 
-	// Querying the array-backed model
-	fmt.Println("=== Querying Array-Backed Data ===")
-	var statuses []Status
+	// Querying the array-backed model using the legacy interface-based approach
+	fmt.Println("=== Legacy Interface-Backed Query ===")
+	var legacyStatuses []Status
+	err = database.Query().Model(&StatusSource{}).OrderBy("id", "asc").Get(&legacyStatuses)
+	if err != nil {
+		return fmt.Errorf("failed to query legacy statuses: %w", err)
+	}
+	for _, s := range legacyStatuses {
+		fmt.Printf("Legacy Status #%d: %s (Color: %s)\n", s.ID, s.Name, s.Color)
+	}
 
-	// Just by passing the ArraySource to Model(), Neat automatically populates the table
-	err = database.Query().Model(&StatusSource{}).OrderBy("id", "asc").Get(&statuses)
+	// Querying using the new NewArraySourceFrom slice helper (primary, day-to-day entry point)
+	fmt.Println("\n=== New Slice-Backed Query (NewArraySourceFrom) ===")
+	staticData := []Status{
+		{ID: 1, Name: "Pending", Color: "yellow"},
+		{ID: 2, Name: "Active", Color: "green"},
+		{ID: 3, Name: "Inactive", Color: "red"},
+	}
+
+	var statuses []Status
+	err = database.Query().Model(neat.NewArraySourceFrom(staticData)).OrderBy("id", "asc").Get(&statuses)
 	if err != nil {
 		return fmt.Errorf("failed to query statuses: %w", err)
 	}
@@ -73,10 +88,10 @@ func RunExample() error {
 		fmt.Printf("Status #%d: %s (Color: %s)\n", s.ID, s.Name, s.Color)
 	}
 
-	// You can use all standard query builder methods
-	fmt.Println("\n=== Filtering Array Data ===")
+	// You can use all standard query builder methods with the helper
+	fmt.Println("\n=== Filtering Array Data with Slice Helper ===")
 	var activeStatus Status
-	err = database.Query().Model(&StatusSource{}).Where("name = ?", "Active").First(&activeStatus)
+	err = database.Query().Model(neat.NewArraySourceFrom(staticData)).Where("name = ?", "Active").First(&activeStatus)
 	if err != nil {
 		return fmt.Errorf("failed to find active status: %w", err)
 	}

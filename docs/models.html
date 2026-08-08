@@ -465,6 +465,39 @@ func (u *User) FullName() string {
         <li><strong>Use associations</strong> for relationships instead of manual joins</li>
     </ul>
 
+    <h2>In-Memory Array Data Sources</h2>
+
+    <p>Neat provides support for querying in-memory array data sources (e.g. static configuration, statuses, or mock data) using the <code>array</code> driver. The easiest way to construct these is using the <code>neat.NewArraySourceFrom</code> helper.</p>
+
+    <h3>Primary Usage: <code>NewArraySourceFrom</code></h3>
+
+    <p>You can pass a slice of structs or maps directly to <code>NewArraySourceFrom</code> without defining any custom structs or implementing the <code>ArraySource</code> interface. The table name is automatically generated based on the struct type name, and all standard query builder methods are supported.</p>
+
+    <pre><code>statuses := []Status{
+    {ID: 1, Name: "Pending", Color: "yellow"},
+    {ID: 2, Name: "Active", Color: "green"},
+}
+
+// Queries the static slice of structs directly!
+err := db.Query().Model(neat.NewArraySourceFrom(statuses)).OrderBy("id", "asc").Get(&amp;out)</code></pre>
+
+    <h3>Low-Level / Dynamic Creators</h3>
+
+    <p>For more control, or when working with empty datasets or dynamic columns, Neat provides additional constructors:</p>
+
+    <ul>
+        <li><code>neat.NewArraySource(rows []map[string]any)</code> - Creates an array source from map slices.</li>
+        <li><code>neat.NewArraySourceWithSchema(rows []map[string]any, schema map[string]string)</code> - Specify explicit column types (useful for empty/type-ambiguous datasets).</li>
+    </ul>
+
+    <p>You can also customize the auto-generated table name by chaining the <code>.Table("custom_name")</code> method:</p>
+
+    <pre><code>source := neat.NewArraySource(rows).Table("custom_statuses")</code></pre>
+
+    <blockquote>
+        <strong>Note:</strong> Each auto-generated array-backed table persists in the SQLite connection memory until <code>db.Close()</code> is called. If you are pointing at a persistent file-based SQLite database rather than the default in-memory driver, be aware that auto-generated tables will persist on disk and will not be automatically deleted.
+    </blockquote>
+
     <div class="footer">
         <p>Neat ORM Documentation</p>
     </div>

@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/dracory/neat/support/structref"
 )
 
 // toCamelCase converts snake_case to CamelCase
@@ -52,41 +54,12 @@ func getPrimaryKeyValue(value any) int64 {
 // structFieldColumnName returns the column name for a struct field by checking
 // db, neat, gorm tags (in that order), then falling back to a snake_case of the field name.
 func structFieldColumnName(f reflect.StructField) string {
-	for _, tag := range []string{"db", "neat", "gorm"} {
-		if v := f.Tag.Get(tag); v != "" && v != "-" {
-			// take the first semicolon-delimited part; for gorm it may be "column:name"
-			parts := strings.SplitN(v, ";", 2)
-			if len(parts) == 0 {
-				continue
-			}
-			part := parts[0]
-			if strings.HasPrefix(part, "column:") {
-				return strings.TrimPrefix(part, "column:")
-			}
-			// db and neat tags use the value directly as the column name
-			if tag == "db" || tag == "neat" {
-				return part
-			}
-		}
-	}
-	// snake_case the Go field name
-	return camelToSnake(f.Name)
+	return structref.FieldColumnName(f)
 }
 
 // camelToSnake converts CamelCase to snake_case.
 func camelToSnake(s string) string {
-	var out []rune
-	for i, r := range s {
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			// Don't add underscore if previous char is also uppercase (acronym handling)
-			prev := s[i-1]
-			if prev < 'A' || prev > 'Z' {
-				out = append(out, '_')
-			}
-		}
-		out = append(out, []rune(strings.ToLower(string(r)))...)
-	}
-	return string(out)
+	return structref.CamelToSnake(s)
 }
 
 func getColumnToIndexPath(t reflect.Type) map[string][]int {
