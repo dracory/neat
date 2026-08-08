@@ -77,10 +77,10 @@ func (q *Query) OrWhereNull(column string) orm.Query {
 
 // WhereColumn adds a where column clause to the query.
 func (q *Query) WhereColumn(first, operator, second string) orm.Query {
-	// Validate column names
-	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
+	// Validate column names (allow table.column dotted references)
+	if !isValidColumnReference(first) || !isValidColumnReference(second) {
 		if q.buildError == nil {
-			q.buildError = fmt.Errorf("invalid column name in WhereColumn: column names must be simple identifiers")
+			q.buildError = fmt.Errorf("invalid column name in WhereColumn: column names must be valid identifiers")
 		}
 		return q
 	}
@@ -100,9 +100,9 @@ func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 
 // OrWhereColumn adds an or where column clause to the query.
 func (q *Query) OrWhereColumn(first, operator, second string) orm.Query {
-	// Validate column names
-	if !isSimpleIdentifier(first) || !isSimpleIdentifier(second) {
-		q.buildError = fmt.Errorf("invalid column name in OrWhereColumn: column names must be simple identifiers")
+	// Validate column names (allow table.column dotted references)
+	if !isValidColumnReference(first) || !isValidColumnReference(second) {
+		q.buildError = fmt.Errorf("invalid column name in OrWhereColumn: column names must be valid identifiers")
 		return q
 	}
 	// Validate operator against allowed whitelist

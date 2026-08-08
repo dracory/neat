@@ -210,14 +210,14 @@ func (q *Query) OrWhere(query any, args ...any) orm.Query {
 func (q *Query) Order(value any) orm.Query {
 	expr := fmt.Sprintf("%v", value)
 	upperExpr := strings.ToUpper(expr)
-	if strings.Contains(upperExpr, " DESC") {
+	if strings.HasSuffix(upperExpr, " DESC") {
 		expr = strings.TrimSuffix(expr, " DESC")
 		expr = strings.TrimSuffix(expr, " desc")
 		if !isValidColumnReference(expr) {
 			return q
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirDesc})
-	} else if strings.Contains(upperExpr, " ASC") {
+	} else if strings.HasSuffix(upperExpr, " ASC") {
 		expr = strings.TrimSuffix(expr, " ASC")
 		expr = strings.TrimSuffix(expr, " asc")
 		if !isValidColumnReference(expr) {
@@ -278,8 +278,8 @@ func (q *Query) Distinct(args ...any) orm.Query {
 		q.distinctCols = make([]string, 0)
 		for _, arg := range args {
 			col := fmt.Sprintf("%v", arg)
-			// Validate column name is a simple identifier
-			if isSimpleIdentifier(col) {
+			// Validate column name is a valid identifier or table.column reference
+			if isValidColumnReference(col) {
 				q.distinctCols = append(q.distinctCols, col)
 			}
 		}

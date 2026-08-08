@@ -141,6 +141,17 @@ func TestDistinctWithColumnsSQLGeneration(t *testing.T) {
 	}
 }
 
+func TestDistinct_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Distinct("users.name")
+
+	// The dotted column should be stored in distinctCols
+	if len(q.distinctCols) != 1 || q.distinctCols[0] != "users.name" {
+		t.Errorf("Expected distinctCols to contain 'users.name', got: %v", q.distinctCols)
+	}
+}
+
 func TestDistinctWithAggregateCount(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Table("users")
@@ -567,6 +578,41 @@ func TestOrderDescSQLGeneration(t *testing.T) {
 
 	if !strings.Contains(sql, "ORDER BY") {
 		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "desc") {
+		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)
+	}
+}
+
+func TestOrder_DottedColumn_Asc(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Order("users.name ASC")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+}
+
+func TestOrder_DottedColumn_Desc(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.Order("users.created_at DESC")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "created_at") {
+		t.Errorf("Expected SQL to contain 'users.created_at', got: %s", sql)
 	}
 	if !strings.Contains(sql, "desc") {
 		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)
