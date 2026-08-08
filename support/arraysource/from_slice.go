@@ -193,20 +193,18 @@ func nextTableName[T any]() string {
 	n := atomic.AddUint64(&arrayCounter, 1)
 	var name string
 	t := reflect.TypeFor[T]()
-	if t != nil {
-		// Handle pointer types: []*Status → "status", not ""
+	// Handle pointer types: []*Status → "status", not ""
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	// Handle slice types (shouldn't happen in practice, but be safe)
+	if t.Kind() == reflect.Slice {
+		t = t.Elem()
 		if t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
-		// Handle slice types (shouldn't happen in practice, but be safe)
-		if t.Kind() == reflect.Slice {
-			t = t.Elem()
-			if t.Kind() == reflect.Pointer {
-				t = t.Elem()
-			}
-		}
-		name = strings.ToLower(t.Name())
 	}
+	name = strings.ToLower(t.Name())
 	if name == "" {
 		name = "array"
 	}
