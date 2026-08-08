@@ -424,6 +424,104 @@ func TestOrderBy_DottedColumn_RejectsInjection(t *testing.T) {
 	}
 }
 
+// --- Dotted column SQL generation per dialect ---
+// These tests verify that dotted column references produce correct
+// dialect-specific quoting in ORDER BY and GROUP BY clauses, without
+// needing a live database connection.
+
+func TestDottedColumn_OrderBy_PerDialect(t *testing.T) {
+	dialects := []struct {
+		name      string
+		dialect   string
+		wantInSQL string // substring that must appear in the generated SQL
+	}{
+		{"sqlite", "sqlite", `"users"."name"`},
+		{"mysql", "mysql", "`users`.`name`"},
+		{"postgres", "postgres", `"users"."name"`},
+		{"oracle", "oracle", `"USERS"."NAME"`},
+		{"sqlserver", "sqlserver", `"users"."name"`},
+		{"turso", "turso", `"users"."name"`},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			drv := &FakeDriver{DialectName: d.dialect}
+			q := NewQuery(context.TODO(), nil, drv, "users", nil, nil)
+			q.OrderBy("users.name", "asc")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !strings.Contains(sql, d.wantInSQL) {
+				t.Errorf("dialect %s: expected SQL to contain %q, got: %s", d.dialect, d.wantInSQL, sql)
+			}
+		})
+	}
+}
+
+func TestDottedColumn_GroupBy_PerDialect(t *testing.T) {
+	dialects := []struct {
+		name      string
+		dialect   string
+		wantInSQL string
+	}{
+		{"sqlite", "sqlite", `"users"."name"`},
+		{"mysql", "mysql", "`users`.`name`"},
+		{"postgres", "postgres", `"users"."name"`},
+		{"oracle", "oracle", `"USERS"."NAME"`},
+		{"sqlserver", "sqlserver", `"users"."name"`},
+		{"turso", "turso", `"users"."name"`},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			drv := &FakeDriver{DialectName: d.dialect}
+			q := NewQuery(context.TODO(), nil, drv, "orders", nil, nil)
+			q.Group("users.name")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !strings.Contains(sql, d.wantInSQL) {
+				t.Errorf("dialect %s: expected SQL to contain %q, got: %s", d.dialect, d.wantInSQL, sql)
+			}
+		})
+	}
+}
+
+func TestDottedColumn_OrderByDesc_PerDialect(t *testing.T) {
+	dialects := []struct {
+		name      string
+		dialect   string
+		wantInSQL string
+	}{
+		{"sqlite", "sqlite", `"users"."created_at"`},
+		{"mysql", "mysql", "`users`.`created_at`"},
+		{"postgres", "postgres", `"users"."created_at"`},
+		{"oracle", "oracle", `"USERS"."CREATED_AT"`},
+		{"sqlserver", "sqlserver", `"users"."created_at"`},
+		{"turso", "turso", `"users"."created_at"`},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			drv := &FakeDriver{DialectName: d.dialect}
+			q := NewQuery(context.TODO(), nil, drv, "users", nil, nil)
+			q.OrderByDesc("users.created_at")
+
+			builder := NewBuilder(q)
+			sql, _ := builder.BuildSelect()
+
+			if !strings.Contains(sql, d.wantInSQL) {
+				t.Errorf("dialect %s: expected SQL to contain %q, got: %s", d.dialect, d.wantInSQL, sql)
+			}
+			if !strings.Contains(sql, "desc") {
+				t.Errorf("dialect %s: expected 'desc' in SQL, got: %s", d.dialect, sql)
+			}
+		})
+	}
+}
+
 func TestLimit(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	result := q.Limit(10)
