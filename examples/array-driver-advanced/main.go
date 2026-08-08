@@ -32,10 +32,6 @@ func main() {
 // RunAdvancedExample demonstrates advanced array-driver queries: JOINs
 // between two array sources, GROUP BY with aggregates, HAVING, and
 // aggregate functions (Count, Sum).
-//
-// Note: The query builder's Group() method currently rejects dotted
-// identifiers like "users.name" (treats them as invalid). To work around
-// this, GROUP BY uses the column alias from the Select clause instead.
 func RunAdvancedExample() error {
 	database, err := newDatabase()
 	if err != nil {
@@ -221,15 +217,11 @@ type OrderCount struct {
 // ExampleGroupByWithCount demonstrates GROUP BY with COUNT(*) aggregate.
 // Groups orders by user and counts how many orders each user has.
 //
-// Note: The query builder's Group() method rejects dotted identifiers
-// (e.g. "users.name"). Use the column alias from the Select clause
-// instead ("user_name").
-//
 //	database.Query().
 //	    Model(orderSource).
 //	    Join("users ON users.id = orders.user_id").
 //	    Select("users.name as user_name, COUNT(*) as order_count").
-//	    Group("user_name").
+//	    Group("users.name").
 //	    Get(&results)
 func ExampleGroupByWithCount(database *neat.Database) error {
 	fmt.Println("\n=== GROUP BY + COUNT: Orders per user ===")
@@ -247,8 +239,8 @@ func ExampleGroupByWithCount(database *neat.Database) error {
 		Model(orderSource).
 		Join("users ON users.id = orders.user_id").
 		Select("users.name as user_name, COUNT(*) as order_count").
-		Group("user_name").
-		OrderBy("user_name", "asc").
+		Group("users.name").
+		OrderBy("users.name", "asc").
 		Get(&results)
 	if err != nil {
 		return fmt.Errorf("failed to group by with count: %w", err)
@@ -274,7 +266,7 @@ type UserTotal struct {
 //	    Model(orderSource).
 //	    Join("users ON users.id = orders.user_id").
 //	    Select("users.name as user_name, SUM(orders.total) as total_sum").
-//	    Group("user_name").
+//	    Group("users.name").
 //	    Having("total_sum > ?", 100).
 //	    Get(&results)
 func ExampleGroupByWithSumAndHaving(database *neat.Database) error {
@@ -293,7 +285,7 @@ func ExampleGroupByWithSumAndHaving(database *neat.Database) error {
 		Model(orderSource).
 		Join("users ON users.id = orders.user_id").
 		Select("users.name as user_name, SUM(orders.total) as total_sum").
-		Group("user_name").
+		Group("users.name").
 		Having("total_sum > ?", 100).
 		OrderBy("total_sum", "desc").
 		Get(&results)

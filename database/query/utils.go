@@ -567,6 +567,32 @@ func isSimpleIdentifier(s string) bool {
 	return true
 }
 
+// isValidColumnReference checks if a string is a valid column reference,
+// allowing dotted notation like "table.column" for use in ORDER BY and
+// GROUP BY clauses. Each dot-separated part must be a simple identifier.
+// At most one dot is allowed (exactly two parts).
+//
+// This is used by OrderBy, OrderByDesc, and Group where table-qualified
+// column names are legitimate. isSimpleIdentifier is kept strict (no dots)
+// for table names, savepoint names, and other contexts where dots would
+// be a SQL injection vector.
+func isValidColumnReference(s string) bool {
+	if s == "" {
+		return false
+	}
+	parts := strings.Split(s, ".")
+	// At most one dot → exactly two parts
+	if len(parts) > 2 {
+		return false
+	}
+	for _, part := range parts {
+		if !isSimpleIdentifier(part) {
+			return false
+		}
+	}
+	return true
+}
+
 // normalizeScanValue converts []byte to string.
 func normalizeScanValue(v any) any {
 	if b, ok := v.([]byte); ok {

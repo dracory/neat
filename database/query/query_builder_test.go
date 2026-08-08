@@ -302,6 +302,117 @@ func TestOrderByDescSQLGeneration(t *testing.T) {
 	}
 }
 
+// --- Dotted column reference tests (table.column) ---
+// These test that OrderBy, OrderByDesc, and Group accept dotted
+// identifiers like "users.name" — standard SQL for JOIN queries.
+
+func TestOrderBy_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.OrderBy("users.name", "asc")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+}
+
+func TestOrderByDesc_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("users")
+	q.OrderByDesc("users.created_at")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "ORDER BY") {
+		t.Errorf("Expected SQL to contain 'ORDER BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "created_at") {
+		t.Errorf("Expected SQL to contain 'users.created_at', got: %s", sql)
+	}
+	if !strings.Contains(sql, "desc") {
+		t.Errorf("Expected SQL to contain 'desc', got: %s", sql)
+	}
+}
+
+func TestGroup_DottedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("orders")
+	q.Group("users.name")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "GROUP BY") {
+		t.Errorf("Expected SQL to contain 'GROUP BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+}
+
+func TestGroup_MultipleDottedColumns(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Table("orders")
+	q.Group("users.name").Group("orders.status")
+
+	wrapped := WrapQuery(q)
+	sql, _ := wrapped.BuildSelectSQL()
+
+	if !strings.Contains(sql, "GROUP BY") {
+		t.Errorf("Expected SQL to contain 'GROUP BY', got: %s", sql)
+	}
+	if !strings.Contains(sql, "users") || !strings.Contains(sql, "name") {
+		t.Errorf("Expected SQL to contain 'users.name', got: %s", sql)
+	}
+	if !strings.Contains(sql, "orders") || !strings.Contains(sql, "status") {
+		t.Errorf("Expected SQL to contain 'orders.status', got: %s", sql)
+	}
+}
+
+// TestOrderBy_DottedColumn_RejectsInjection ensures that dotted column
+// support doesn't open a SQL injection vector. Malicious input with
+// quotes, semicolons, or spaces should still be rejected.
+func TestOrderBy_DottedColumn_RejectsInjection(t *testing.T) {
+	malicious := []string{
+		"users.name; DROP TABLE users",
+		"users.name--",
+		"users.name' OR '1'='1",
+		"users.name UNION SELECT * FROM users",
+		"users.name /* comment */",
+		"users.name ",
+		".name",
+		"users.",
+		"users..name",
+		"users.name.extra",
+	}
+
+	for _, input := range malicious {
+		t.Run(input, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+			q.Table("users")
+			q.OrderBy(input, "asc")
+
+			// The order clause should be silently dropped (no panic, no SQL injection)
+			wrapped := WrapQuery(q)
+			sql, _ := wrapped.BuildSelectSQL()
+
+			// SQL should NOT contain the malicious input
+			if strings.Contains(sql, "DROP") || strings.Contains(sql, "UNION") ||
+				strings.Contains(sql, "OR '1'='1") || strings.Contains(sql, "--") ||
+				strings.Contains(sql, "/*") {
+				t.Errorf("SQL injection not blocked for input %q: %s", input, sql)
+			}
+		})
+	}
+}
+
 func TestLimit(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	result := q.Limit(10)
