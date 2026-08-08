@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neat ORM vs Jone Developer Experience Comparison</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; margin-top: 2rem; }
+        h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h4 { color: #7f8c8d; margin-top: 1.2rem; }
+        p { margin-bottom: 1rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+        th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; font-weight: 600; color: #2c3e50; }
+        td { border: 1px solid #dee2e6; padding: 0.75rem; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e9ecef; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 5px; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        ul, ol { margin: 1rem 0; padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin: 1rem 0; color: #666; font-style: italic; }
+        strong { color: #2c3e50; }
+        em { color: #7f8c8d; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Comparisons</a>
+    <h1>Neat ORM vs Jone Developer Experience Comparison</h1>
+    <p><strong>Date</strong>: August 8, 2026</p>
+    <h2>Overview</h2>
+    <p>This document compares the developer experience, ease of use, and features of Neat ORM with Jone, a Go database query builder with a migration CLI that supports PostgreSQL and MySQL.</p>
+    <h2>Why Neat Wins?</h2>
+    <p><strong>Neat ORM wins when you need a full ORM with models, associations, observers, soft deletes, factories, and seeders rather than just a query builder with migrations.</strong> Jone is a capable query builder with an excellent migration CLI, but it is not an ORM. It lacks models, relationships, lifecycle hooks, soft deletes, and testing tools. Neat provides a complete ORM solution with BelongsTo, HasMany, HasOne associations, observers, soft deletes, built-in factories, and seeders. If you need a full-featured ORM with all standard capabilities, Neat is the clear winner.</p>
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;">
+        <h3 style="color: white; margin-top: 0;">🚀 Neat ORM's Migration Advantage</h3>
+        <p style="margin-bottom: 0;"><strong>Most Go ORMs lack comprehensive schema migration support.</strong> Neat ORM includes a complete migration system with schema builder, rollback support, and ORM driver integration - something most competitors either lack entirely or require third-party tools for.</p>
+    </div>
+    <h2>Jone Overview</h2>
+    <p>Jone is a Go database query builder with a dedicated migration CLI. It is <strong>not a full ORM</strong> - it's a query builder with a schema builder and migration tooling. It returns results as <code>map[string]any</code> rather than mapping to Go structs with relationships. It supports PostgreSQL and MySQL, with a polished CLI (<code>jone init</code>, <code>migrate:make</code>, <code>migrate:latest</code>, <code>migrate:rollback</code>) that provides a Laravel-like migration workflow.</p>
+    <h2>Architecture Comparison</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Full ORM</strong>: Complete ORM with models, relationships, migrations</li>
+    <li><strong>Runtime query builder</strong>: Fluent interface for building queries at runtime</li>
+    <li><strong>ORM pattern</strong>: Object-relational mapping with models</li>
+    <li><strong>Reflection-based</strong>: Uses Go reflection for model mapping</li>
+    <li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+    <li><strong>Struct mapping</strong>: Type-safe mapping to Go structs via tags</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>Query builder</strong>: Fluent query building library (not a full ORM)</li>
+    <li><strong>Migration CLI</strong>: Dedicated CLI tool for migrations</li>
+    <li><strong>Map-based results</strong>: Returns <code>map[string]any</code> / <code>[]map[string]any</code></li>
+    <li><strong>Lazy connection</strong>: Connects automatically on first query</li>
+    <li><strong>Lightweight</strong>: Minimal dependencies (only <code>spf13/cobra</code> for CLI)</li>
+    <li><strong>Schema builder</strong>: Fluent schema builder for migrations</li>
+    </ul>
+    <h2>Developer Experience</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Laravel Eloquent-like API</strong>: Familiar syntax for developers coming from PHP/Laravel</li>
+    <li><strong>Full ORM experience</strong>: Complete ORM with all standard features</li>
+    <li><strong>Quick setup</strong>: Simple configuration and immediate usage</li>
+    <li><strong>Flexible queries</strong>: Dynamic query construction at runtime</li>
+    <li><strong>Clear documentation</strong>: Comprehensive docs with examples</li>
+    <li><strong>ORM familiarity</strong>: Traditional ORM experience</li>
+    <li><strong>Type-safe</strong>: Struct-based model mapping with compile-time safety</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>Migration CLI</strong>: Polished CLI with Laravel-like commands (<code>migrate:make</code>, <code>migrate:latest</code>, <code>migrate:rollback</code>)</li>
+    <li><strong>Dry-run support</strong>: <code>--dry-run</code> flag to preview SQL without executing</li>
+    <li><strong>Lightweight</strong>: Minimal setup and dependencies</li>
+    <li><strong>Lazy connection</strong>: No explicit connection management needed</li>
+    <li><strong>Map-based</strong>: Convenient for dynamic data without struct definitions</li>
+    <li><strong>Simple learning curve</strong>: Easy to learn for SQL developers</li>
+    <li><strong>Not an ORM</strong>: No ORM features to learn</li>
+    </ul>
+    <h2>Feature Comparison</h2>
+    <table>
+    <thead>
+    <tr>
+    <th>Feature</th>
+    <th>Neat ORM</th>
+    <th>Jone</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td><strong>Type</strong></td>
+    <td>Full ORM</td>
+    <td>Query builder + migration CLI (not ORM)</td>
+    </tr>
+    <tr>
+    <td><strong>Query Builder</strong></td>
+    <td>Fluent Eloquent-like API</td>
+    <td>Fluent query builder API</td>
+    </tr>
+    <tr>
+    <td><strong>ORM Features</strong></td>
+    <td>Models, relationships, hooks</td>
+    <td>None (query builder only)</td>
+    </tr>
+    <tr>
+    <td><strong>Associations</strong></td>
+    <td>BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</td>
+    <td>Not supported</td>
+    </tr>
+    <tr>
+    <td><strong>Migrations</strong></td>
+    <td>Built-in migration system (programmatic)</td>
+    <td>Built-in migration CLI with batch tracking, rollback, dry-run</td>
+    </tr>
+    <tr>
+    <td><strong>Migration CLI</strong></td>
+    <td>Not included (programmatic only)</td>
+    <td>Dedicated <code>jone</code> CLI</td>
+    </tr>
+    <tr>
+    <td><strong>Soft Deletes</strong></td>
+    <td>Built-in soft delete support (multiple strategies)</td>
+    <td>Not included</td>
+    </tr>
+    <tr>
+    <td><strong>Observers</strong></td>
+    <td>Model lifecycle observers</td>
+    <td>Not included</td>
+    </tr>
+    <tr>
+    <td><strong>Factories/Seeders</strong></td>
+    <td>Built-in factories and seeders</td>
+    <td>Not included</td>
+    </tr>
+    <tr>
+    <td><strong>Transactions</strong></td>
+    <td>Full transaction support with savepoints</td>
+    <td>Not documented</td>
+    </tr>
+    <tr>
+    <td><strong>Context Support</strong></td>
+    <td>Full <code>context.Context</code> throughout</td>
+    <td>Not documented</td>
+    </tr>
+    <tr>
+    <td><strong>Database Support</strong></td>
+    <td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+    <td>PostgreSQL, MySQL (SQLite for init)</td>
+    </tr>
+    <tr>
+    <td><strong>Data Mapping</strong></td>
+    <td>Struct-based with tags (type-safe)</td>
+    <td><code>map[string]any</code> (untyped)</td>
+    </tr>
+    <tr>
+    <td><strong>ToSql Interface</strong></td>
+    <td>Yes (SQL generation without execution)</td>
+    <td><code>--dry-run</code> flag on CLI</td>
+    </tr>
+    <tr>
+    <td><strong>Security Hardening</strong></td>
+    <td>SQL injection prevention, identifier validation</td>
+    <td>Parameterized queries</td>
+    </tr>
+    <tr>
+    <td><strong>Learning Curve</strong></td>
+    <td>Easy for ORM users</td>
+    <td>Easy for SQL developers</td>
+    </tr>
+    <tr>
+    <td><strong>Dependencies</strong></td>
+    <td>Built from scratch (no GORM)</td>
+    <td>Only <code>spf13/cobra</code></td>
+    </tr>
+    <tr>
+    <td><strong>Scope</strong></td>
+    <td>Complete ORM solution</td>
+    <td>Query building + migrations</td>
+    </tr>
+    </tbody>
+    </table>
+    <h2>Query Building</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Fluent interface</strong>: Chainable query builder methods</li>
+    <li><strong>Runtime construction</strong>: Queries built at runtime</li>
+    <li><strong>Dynamic conditions</strong>: Conditions can be added dynamically</li>
+    <li><strong>Laravel-like API</strong>: Similar to Laravel Eloquent</li>
+    <li><strong>ORM integration</strong>: Queries work with models</li>
+    <li><strong>Method aliases</strong>: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)</li>
+    <li><strong>Sugar methods</strong>: Convenience methods (CountAsVar, FirstAsVar) returning values directly</li>
+    <li><strong>Easy to learn</strong>: Familiar pattern for many developers</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>Fluent query builder</strong>: Chainable query building methods</li>
+    <li><strong>Advanced features</strong>: CTEs (<code>With</code>), <code>UNION</code>, row locking (<code>ForUpdate().SkipLocked()</code>)</li>
+    <li><strong>Derived tables</strong>: Subqueries with <code>As()</code> aliasing</li>
+    <li><strong>Nested conditions</strong>: <code>WhereGroup</code> for parenthesized groups</li>
+    <li><strong>ON CONFLICT</strong>: <code>OnConflict().Ignore()</code> for upserts</li>
+    <li><strong>RETURNING</strong>: PostgreSQL <code>RETURNING</code> support</li>
+    <li><strong>Qualified columns</strong>: Automatic quoting (<code>"users.id"</code> → <code>"users"."id"</code>)</li>
+    <li><strong>Map-based results</strong>: Returns <code>map[string]any</code> directly</li>
+    <li><strong>No ORM integration</strong>: Works with maps, not models</li>
+    </ul>
+    <h2>Model Support</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Full ORM models</strong>: Complete model support with relationships</li>
+    <li><strong>Struct tags</strong>: Schema defined via Go struct tags</li>
+    <li><strong>Relationships</strong>: BelongsTo, HasMany, HasOne associations</li>
+    <li><strong>Soft deletes</strong>: Built-in soft delete support</li>
+    <li><strong>Observers</strong>: Model lifecycle observers</li>
+    <li><strong>Timestamps</strong>: Automatic timestamp management</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>Struct inserts</strong>: Can use structs for inserts via <code>db</code> tags</li>
+    <li><strong>No relationships</strong>: No association support</li>
+    <li><strong>No lifecycle hooks</strong>: No observer pattern</li>
+    <li><strong>Manual schema</strong>: Manual schema management</li>
+    <li><strong>Map-based reads</strong>: Results returned as maps, not structs</li>
+    <li><strong>No ORM features</strong>: Not an ORM</li>
+    </ul>
+    <h2>Migration Support</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Built-in migrations</strong>: Schema builder for migrations</li>
+    <li><strong>ORM driver</strong>: Migration system with ORM support</li>
+    <li><strong>Schema builder</strong>: Fluent API for schema changes</li>
+    <li><strong>Rollback support</strong>: Migration rollback capabilities</li>
+    <li><strong>Integrated</strong>: Migrations integrated with ORM</li>
+    <li><strong>Programmatic</strong>: Migrations run via Go code (no CLI)</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>Dedicated CLI</strong>: <code>jone init</code>, <code>migrate:make</code>, <code>migrate:latest</code>, <code>migrate:up</code>, <code>migrate:down</code></li>
+    <li><strong>Batch tracking</strong>: Migrations tracked in batches with rollback support</li>
+    <li><strong>Dry-run</strong>: <code>--dry-run</code> flag to preview SQL without executing</li>
+    <li><strong>Rollback</strong>: <code>migrate:rollback</code> with <code>--all</code> option</li>
+    <li><strong>Status listing</strong>: <code>migrate:list</code> / <code>migrate:status</code></li>
+    <li><strong>Schema builder</strong>: Fluent schema builder with column types, indexes, foreign keys</li>
+    <li><strong>Raw SQL</strong>: <code>s.Raw()</code> for custom statements with parameters</li>
+    <li><strong>No ORM integration</strong>: Migrations are standalone, not tied to models</li>
+    </ul>
+    <h2>Testing Support</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Factories</strong>: Built-in factory pattern for test data</li>
+    <li><strong>Seeders</strong>: Database seeding for test data</li>
+    <li><strong>Integration tests</strong>: Docker Compose setup for testing</li>
+    <li><strong>Transaction rollback</strong>: Test transaction support</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>No factories</strong>: Not included</li>
+    <li><strong>No seeders</strong>: Not included</li>
+    <li><strong>Manual testing</strong>: Manual test setup required</li>
+    <li><strong>Transaction support</strong>: Not documented</li>
+    </ul>
+    <h2>Performance</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li><strong>Runtime overhead</strong>: Reflection and validation at runtime</li>
+    <li><strong>Query builder</strong>: Fluent interface overhead</li>
+    <li><strong>Dynamic queries</strong>: Flexibility with some performance cost</li>
+    <li><strong>Recent optimization</strong>: Performance considerations in design</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li><strong>Minimal overhead</strong>: Lightweight query building</li>
+    <li><strong>Lazy connection</strong>: Connects only on first query</li>
+    <li><strong>No reflection</strong>: No reflection overhead (map-based)</li>
+    <li><strong>Performance-focused</strong>: Designed for performance</li>
+    </ul>
+    <h2>Strengths</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li>Laravel Eloquent-like API (familiar to many)</li>
+    <li>Full ORM with all standard features</li>
+    <li>Built-in migrations, factories, and seeders</li>
+    <li>Associations and relationships</li>
+    <li>Model lifecycle observers</li>
+    <li>Soft deletes support (multiple strategies)</li>
+    <li>Comprehensive documentation</li>
+    <li>Complete ORM solution</li>
+    <li>6 database engines supported</li>
+    <li>Type-safe struct mapping</li>
+    <li>Full context.Context support</li>
+    <li>Transactions with savepoints</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li>Excellent migration CLI (Laravel-like workflow)</li>
+    <li>Dry-run support for migrations</li>
+    <li>Advanced query builder (CTEs, UNION, row locking, derived tables)</li>
+    <li>ON CONFLICT and RETURNING support</li>
+    <li>Lazy database connection</li>
+    <li>Lightweight and focused</li>
+    <li>Minimal dependencies (only cobra)</li>
+    <li>Map-based results for dynamic data</li>
+    <li>Simple learning curve</li>
+    <li>Qualified column auto-quoting</li>
+    </ul>
+    <h2>Weaknesses</h2>
+    <h3>Neat ORM</h3>
+    <ul>
+    <li>More complex (full ORM)</li>
+    <li>Runtime overhead from features</li>
+    <li>Reflection overhead</li>
+    <li>Newer codebase (less battle-tested)</li>
+    <li>Smaller community</li>
+    <li>No dedicated migration CLI (programmatic only)</li>
+    </ul>
+    <h3>Jone</h3>
+    <ul>
+    <li>Not a full ORM (limited features)</li>
+    <li>No associations or relationships</li>
+    <li>No models (map-based results, untyped)</li>
+    <li>No observers or hooks</li>
+    <li>No soft deletes</li>
+    <li>No factories or seeders</li>
+    <li>Limited database support (PostgreSQL, MySQL only)</li>
+    <li>No documented transaction support</li>
+    <li>No documented context.Context support</li>
+    <li>Limited to query building and migrations</li>
+    </ul>
+    <h2>Use Case Recommendations</h2>
+    <h3>Choose Neat ORM If:</h3>
+    <ul>
+    <li>You need a full ORM with all standard features</li>
+    <li>You need associations and relationships</li>
+    <li>You need built-in migrations integrated with ORM</li>
+    <li>You need factories and seeders for testing</li>
+    <li>You prefer Laravel Eloquent-like API</li>
+    <li>You need model lifecycle observers</li>
+    <li>You need soft deletes</li>
+    <li>You want a complete ORM solution</li>
+    <li>You need type-safe struct mapping</li>
+    <li>You need transactions with savepoints</li>
+    <li>You need context.Context support</li>
+    <li>You need broad database support (6 engines)</li>
+    <li>You're building a full application</li>
+    </ul>
+    <h3>Choose Jone If:</h3>
+    <ul>
+    <li>You only need a SQL query builder with migrations</li>
+    <li>You want a dedicated migration CLI</li>
+    <li>You want dry-run migration previews</li>
+    <li>You don't need ORM features</li>
+    <li>You want minimal dependencies</li>
+    <li>You prefer map-based results over structs</li>
+    <li>You need advanced query features (CTEs, UNION, row locking)</li>
+    <li>You only need PostgreSQL or MySQL</li>
+    <li>You want a lazy database connection</li>
+    <li>You're building a simple data access layer</li>
+    <li>You prefer lightweight solutions</li>
+    <li>You want to avoid ORM overhead</li>
+    </ul>
+    <h2>Conclusion</h2>
+    <p>Neat ORM and Jone serve different purposes:</p>
+    <p><strong>Neat ORM</strong>: Full-featured ORM with Laravel Eloquent-like API. Offers complete ORM solution with models, relationships, migrations, factories, observers, soft deletes, and broad database support. Ideal for developers building full applications who need a comprehensive ORM with type-safe struct mapping.</p>
+    <p><strong>Jone</strong>: Query builder with a migration CLI (not an ORM). Offers lightweight, focused SQL query building with an excellent migration CLI featuring dry-run support, batch tracking, and rollback. Ideal for developers who only need query building and migrations, want a CLI-driven workflow, and want to avoid ORM overhead.</p>
+    <p>The choice depends on your needs:
+    - <strong>Full ORM with all features</strong>: Neat ORM
+    - <strong>Lightweight query builder + migration CLI</strong>: Jone</p>
+    <p><strong>Important</strong>: Jone is not an ORM. If you need ORM features like associations, hooks, soft deletes, or model mapping, Neat ORM is the appropriate choice. However, Jone's migration CLI is a notable DX advantage that provides a Laravel-like migration workflow out of the box.</p>
+    <h2>References</h2>
+    <ul>
+    <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
+    <li>Jone GitHub: https://github.com/Grandbusta/jone</li>
+    <li>Jone Package: https://pkg.go.dev/github.com/Grandbusta/jone</li>
+    <li>Laravel Eloquent Documentation: https://laravel.com/docs/eloquent</li>
+    </ul>
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+        <p>Generated HTML documentation from markdown sources</p>
+    </div>
+</body>
+</html>
