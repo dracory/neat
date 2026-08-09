@@ -1,13 +1,14 @@
 package database
 
 const (
+	DriverArray     Driver = "array"
+	DriverCSVDB     Driver = "csvdb"
 	DriverMysql     Driver = "mysql"
+	DriverOracle    Driver = "oracle"
 	DriverPostgres  Driver = "postgres"
 	DriverSqlite    Driver = "sqlite"
 	DriverSqlserver Driver = "sqlserver"
 	DriverTurso     Driver = "turso"
-	DriverOracle    Driver = "oracle"
-	DriverArray     Driver = "array"
 )
 
 type Driver string

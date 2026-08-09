@@ -63,6 +63,9 @@ _ = s.Up(ctx)
 ## [Unreleased]
 
 ### Added
+- CSVDB driver (`csvdb`) — query a directory of CSV files as database tables with automatic type inference, BOM stripping, duplicate column detection, ragged row validation, table name collision detection, MaxCSVRows limit, and transaction-wrapped bulk loading
+- CSVDB integration tests (`integration_tests/csvdb/`) — query, JOIN, aggregate, and type inference tests
+- CSVDB example (`examples/csvdb-driver/`) — working example with sample CSV data
 - Observer pattern for model lifecycle events
 - Soft delete functionality with SoftDeletes struct
 - Max-date sentinel soft delete strategy (SoftDeletesMaxDate, DeletedAtMaxDate) for NOT NULL column compatibility

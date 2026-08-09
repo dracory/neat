@@ -15,13 +15,14 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Migrations**: Complete database migration system with the `Migrator` package, schema builder, rollback support, and automatic tracking (major advantage over most Go ORMs)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
-- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle
+- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB
 - **Transactions**: Robust transaction support
 - **Observers**: Model lifecycle event system
 - **Soft Deletes**: Soft delete functionality with multiple strategies (NULL-based and max-date sentinel)
 - **Associations**: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany relationships with eager and lazy loading
 - **Views**: Create, drop, and introspect database views via `CreateView`, `CreateViewRaw`, `DropView`, `DropViewIfExists`, `HasView` across all supported drivers
 - **Array-Backed Sources**: Query in-memory slices of structs or `[]map[string]any` as if they were database tables using `NewArraySourceFrom` — zero boilerplate, no custom `ArraySource` struct required
+- **CSVDB Driver**: Query a directory of CSV files as if they were database tables — each `.csv` file becomes a table, with automatic type inference, BOM stripping, and transaction-wrapped bulk loading
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
 - **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
@@ -300,6 +301,31 @@ err := db.Query().
 
 `NewArraySourceFrom` accepts a slice of structs or `[]map[string]any`. The table name is auto-generated and the schema is inferred from the data. See [Array Source Documentation](./docs/array-source.html) and the [array driver examples](./examples/array-driver).
 
+## CSVDB Driver
+
+Query a directory of CSV files as if they were database tables — useful for data exports, reports, test fixtures, and datasets. The directory is the database; each `.csv` file is a table; the filename (without `.csv`) is the table name.
+
+```go
+config := neat.DBConfig{
+    Default: "csv_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "csv_db": {
+            Driver:   "csvdb",
+            Database: "data/",   // directory path
+        },
+    },
+}
+
+db, _ := neat.New(config)
+defer db.Close()
+
+// data/users.csv → "users" table
+var users []User
+err := db.Query().Model(&User{}).Where("active = ?", true).Get(&users)
+```
+
+Column types are inferred from the CSV data (INTEGER, REAL, DATETIME, TEXT). The CSV header row defines column names. All tables are loaded into an in-memory SQLite database at connection open time, so the full query builder works: WHERE, JOIN, ORDER BY, aggregates, etc. See the [csvdb-driver example](./examples/csvdb-driver) and the [proposal](./docs/proposals/csv-directory-driver.md).
+
 ## Supported Databases
 
 - MySQL 5.7+
@@ -308,35 +334,37 @@ err := db.Query().
 - SQL Server 2017+
 - Turso (SQLite edge)
 - Oracle
+- CSVDB (CSV directory as database)
 
 ### Driver Compatibility Matrix
 
-| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server |
-|---------|--------|-------|------------|--------|-------|------------|
+| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server | CSVDB |
+|---------|--------|-------|------------|--------|-------|------------|-------|
 | **Basic Operations** |
-| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Transactions** |
-| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Isolation Levels | Limited | Full | Full | Full | Limited | Full |
+| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Isolation Levels | Limited | Full | Full | Full | Limited | Full | Limited |
 | **Placeholder Style** |
-| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` |
+| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` | `?` |
 | **DSN Support** |
-| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
 | **Connection Pool** |
-| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) |
+| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) |
+| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Optimizations** |
-| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ |
-| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ |
+| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ | ❌ |
 
 **Notes:**
 - **Turso** is a SQLite edge database, so it shares SQLite's placeholder style and PRAGMA support
+- **CSVDB** uses in-memory SQLite under the hood, so it shares SQLite's placeholder style, PRAGMA support, and single-connection constraint. The `Database` field holds a directory path (not a file path or DSN)
 - **Transaction Isolation Levels**: SQLite has limited isolation level support (SERIALIZABLE only), MySQL/PostgreSQL/Oracle/SQL Server support all standard levels
 - **Savepoints**: All drivers support savepoints through the standard `database/sql` interface
 - **Connection Pool**: All drivers support standard `database/sql` connection pooling parameters
@@ -565,13 +593,14 @@ Neat ORM is actively developed with the following features implemented:
 - ✅ Advanced Migration system (`Migrator` package)
 - ✅ Seeder system for data seeding
 - ✅ Factory pattern for test data
-- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle)
+- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB)
 - ✅ Transaction support with savepoints and callbacks
 - ✅ Observer system for model events
 - ✅ Soft deletes with multiple strategies (NULL and Max-Date)
 - ✅ Associations (BelongsTo, HasMany, HasOne, Polymorphic)
 - ✅ View management (CreateView, CreateViewRaw, DropView, DropViewIfExists, HasView)
 - ✅ Array-backed sources (NewArraySourceFrom for struct and map slices)
+- ✅ CSVDB driver (query CSV directory as database with type inference)
 - ✅ Connection pooling
 - ✅ Context support
 

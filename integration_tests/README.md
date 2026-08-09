@@ -11,6 +11,7 @@ Integration tests require actual database connections to be set up. The tests ca
 - SQL Server
 - SQLite
 - Turso
+- CSVDB (no external database required — uses temp directories with CSV fixtures)
 
 ## Environment Variables
 
@@ -66,6 +67,9 @@ go test -tags=integration ./integration_tests/sqlite/...
 
 # Run Turso integration tests
 go test -tags=integration ./integration_tests/turso/...
+
+# Run CSVDB integration tests (no external database needed)
+go test ./integration_tests/csvdb/...
 
 # Run common integration tests
 go test -tags=integration ./integration_tests/common/...

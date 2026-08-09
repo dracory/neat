@@ -31,7 +31,8 @@
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
         <h2 style="color: white; margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 0.5rem;">🚀 Key Advantages</h2>
         <p style="margin-bottom: 1rem;"><strong>Complete Migration System.</strong> Most Go ORMs lack comprehensive schema migration support. Neat ORM includes a complete migration system with schema builder, rollback support, and automatic tracking - something most competitors either lack entirely or require third-party tools for.</p>
-        <p style="margin-bottom: 0;"><strong>Flat-File Querying.</strong> No other Go ORM lets you query CSV, JSON, JSONL, and XML files directly with the full query builder API. No manual parsing, no external dependencies, no loading into a database first. Just <code>Model(neat.NewCsvFileSource("data.csv"))</code> and query.</p>
+        <p style="margin-bottom: 1rem;"><strong>Flat-File Querying.</strong> No other Go ORM lets you query CSV, JSON, JSONL, and XML files directly with the full query builder API. No manual parsing, no external dependencies, no loading into a database first. Just <code>Model(neat.NewCsvFileSource("data.csv"))</code> and query.</p>
+        <p style="margin-bottom: 0;"><strong>CSVDB Driver.</strong> No other Go ORM lets you point at a directory of CSV files and query them as database tables with automatic type inference, BOM stripping, and transaction-wrapped bulk loading. Just set <code>Driver: "csvdb"</code> and <code>Database: "data/"</code>.</p>
     </div>
 
     <div class="section-title">Core Documentation</div>
