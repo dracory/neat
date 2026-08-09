@@ -5,26 +5,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dracory/neat/support/jsonsource"
+	"github.com/dracory/neat/support/xmlsource"
 )
 
-// populateJSONFile reads a JSON/JSONL file, infers schema, creates a table,
+// populateXMLFile reads an XML file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
 // case-insensitive duplicates, and row limits.
-func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
-	// Parse the file using the support/jsonsource package
-	rawRows, err := jsonsource.ParseJSONFile(filePath)
+func populateXMLFile(db *sql.DB, tableName string, filePath string) error {
+	// Parse the file using the support/xmlsource package
+	rows, err := xmlsource.ParseXMLFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	// If empty array or no data, skip creating the table (Option B - no data = no table)
-	if len(rawRows) == 0 {
+	// If empty array or no data, skip creating the table (no data = no table)
+	if len(rows) == 0 {
 		return nil
 	}
-
-	// Normalize rows (converting timestamps, nested arrays/objects, whole floats to int64)
-	rows := jsonsource.NormalizeRows(rawRows)
 
 	// Validate table name (SQL injection prevention)
 	if !isSimpleIdentifier(tableName) {
@@ -34,8 +31,7 @@ func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
 	// Infer columns and their types
 	columns, colTypes := inferMapSchema(rows)
 
-	// If no columns could be inferred (e.g. [{}] or [null]), skip the table
-	// — consistent with the empty-array behavior (no schema = no table)
+	// If no columns could be inferred (e.g. empty elements only), skip the table
 	if len(columns) == 0 {
 		return nil
 	}
@@ -44,7 +40,7 @@ func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
 	seenColsLower := make(map[string]string) // lowerColName -> originalColName
 	for _, col := range columns {
 		if !isSimpleIdentifier(col) {
-			return fmt.Errorf("invalid column name in JSON keys: %s", col)
+			return fmt.Errorf("invalid column name in XML keys: %s", col)
 		}
 		lowerCol := strings.ToLower(col)
 		if prevCol, exists := seenColsLower[lowerCol]; exists {
