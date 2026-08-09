@@ -66,6 +66,14 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm) (*Schema
 		driverSchema = NewSqliteSchema(sqliteGrammar, orm, prefix)
 		grammar = sqliteGrammar
 		processor = processors.NewSqlite()
+	case contractsdatabase.DriverJSONDB:
+		// JSONDB uses SQLite grammar since Dialect() returns "sqlite".
+		// The schema builder is rarely used for JSONDB (tables are created
+		// at Open time from JSON files), but it must not error during New().
+		sqliteGrammar := grammars.NewSqlite(log, prefix)
+		driverSchema = NewSqliteSchema(sqliteGrammar, orm, prefix)
+		grammar = sqliteGrammar
+		processor = processors.NewSqlite()
 	case contractsdatabase.DriverTurso:
 		sqliteGrammar := grammars.NewSqlite(log, prefix)
 		driverSchema = NewSqliteSchema(sqliteGrammar, orm, prefix)

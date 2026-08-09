@@ -14,6 +14,10 @@ import (
 	"github.com/dracory/neat/support/arraysource"
 )
 
+// MaxJSONRows limits the number of data rows (objects) that can be loaded
+// from a single JSON/JSONL file to prevent unbounded memory/CPU consumption.
+const MaxJSONRows = 100000
+
 // NewJsonSource parses a JSON or JSONL string and returns an array-backed
 // data source ready for querying with the array driver.
 //
@@ -46,12 +50,12 @@ import (
 // cannot produce a queryable table. This is a programmer error, not a
 // runtime condition.
 func NewJsonSource(jsonString string, tableName string, isJSONL bool) *arraysource.Model {
-	rows, err := parseJSONString(jsonString, isJSONL)
+	rows, err := ParseJSONString(jsonString, isJSONL)
 	if err != nil {
 		panic(fmt.Sprintf("jsonsource: failed to parse JSON string: %v", err))
 	}
 
-	mapRows := normalizeRows(rows)
+	mapRows := NormalizeRows(rows)
 
 	if len(mapRows) == 0 {
 		panic("jsonsource: empty JSON array or no objects found — cannot infer schema without data rows")
@@ -90,13 +94,13 @@ func NewJsonSource(jsonString string, tableName string, isJSONL bool) *arraysour
 // JSON array cannot produce a queryable table. These are programmer errors
 // (wrong path, malformed file), not runtime conditions.
 func NewJsonFileSource(filePath string) *arraysource.Model {
-	rows, err := parseJSONFile(filePath)
+	rows, err := ParseJSONFile(filePath)
 	if err != nil {
 		panic(fmt.Sprintf("jsonsource: failed to parse %s: %v", filePath, err))
 	}
 
-	tableName := deriveTableName(filePath)
-	mapRows := normalizeRows(rows)
+	tableName := DeriveTableName(filePath)
+	mapRows := NormalizeRows(rows)
 
 	if len(mapRows) == 0 {
 		panic(fmt.Sprintf("jsonsource: %s contains no data rows — cannot infer schema without data", filePath))
@@ -105,46 +109,47 @@ func NewJsonFileSource(filePath string) *arraysource.Model {
 	return arraysource.New(mapRows).Table(tableName)
 }
 
-// deriveTableName extracts the table name from the file path by taking
+// DeriveTableName extracts the table name from the file path by taking
 // the base filename and removing the extension.
 // "data/users.json" → "users", "events.jsonl" → "events"
-func deriveTableName(filePath string) string {
+func DeriveTableName(filePath string) string {
 	base := filepath.Base(filePath)
 	ext := filepath.Ext(base)
 	return strings.TrimSuffix(base, ext)
 }
 
-// isJSONLFile checks if the file extension indicates JSONL/NDJSON format.
-func isJSONLFile(filePath string) bool {
+// IsJSONLFile checks if the file extension indicates JSONL/NDJSON format.
+func IsJSONLFile(filePath string) bool {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	return ext == ".jsonl" || ext == ".ndjson"
 }
 
-// parseJSONString parses a JSON or JSONL string and returns raw rows.
-func parseJSONString(content string, isJSONL bool) ([]map[string]any, error) {
+// ParseJSONString parses a JSON or JSONL string and returns raw rows.
+func ParseJSONString(content string, isJSONL bool) ([]map[string]any, error) {
 	if isJSONL {
-		return parseJSONLReader(strings.NewReader(content))
+		return ParseJSONLReader(strings.NewReader(content))
 	}
-	return parseJSONArrayReader(bytes.NewReader([]byte(content)))
+	return ParseJSONArrayReader(bytes.NewReader([]byte(content)))
 }
 
-// parseJSONFile reads a JSON or JSONL file and returns raw rows.
-func parseJSONFile(filePath string) ([]map[string]any, error) {
+// ParseJSONFile reads a JSON or JSONL file and returns raw rows.
+func ParseJSONFile(filePath string) ([]map[string]any, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
-	if isJSONLFile(filePath) {
-		return parseJSONLReader(f)
+	if IsJSONLFile(filePath) {
+		return ParseJSONLReader(f)
 	}
-	return parseJSONArrayReader(f)
+	return ParseJSONArrayReader(f)
 }
 
-// parseJSONArrayReader parses a JSON array of objects from any io.Reader.
+// ParseJSONArrayReader parses a JSON array of objects from any io.Reader.
 // Returns an error if there is trailing data after the closing bracket.
-func parseJSONArrayReader(r io.Reader) ([]map[string]any, error) {
+// Enforces MaxJSONRows limit incrementally during decoding.
+func ParseJSONArrayReader(r io.Reader) ([]map[string]any, error) {
 	dec := json.NewDecoder(r)
 
 	// Read the opening bracket
@@ -163,6 +168,9 @@ func parseJSONArrayReader(r io.Reader) ([]map[string]any, error) {
 			return nil, fmt.Errorf("JSON decode error: %w", err)
 		}
 		rows = append(rows, row)
+		if len(rows) > MaxJSONRows {
+			return nil, fmt.Errorf("JSON file exceeds the limit of %d data rows", MaxJSONRows)
+		}
 	}
 
 	// Consume the closing bracket
@@ -182,9 +190,10 @@ func parseJSONArrayReader(r io.Reader) ([]map[string]any, error) {
 	return rows, nil
 }
 
-// parseJSONLReader parses JSONL (one JSON object per line) from any io.Reader.
+// ParseJSONLReader parses JSONL (one JSON object per line) from any io.Reader.
 // Empty lines are skipped.
-func parseJSONLReader(r io.Reader) ([]map[string]any, error) {
+// Enforces MaxJSONRows limit incrementally during decoding.
+func ParseJSONLReader(r io.Reader) ([]map[string]any, error) {
 	var rows []map[string]any
 	scanner := bufio.NewScanner(r)
 	// Increase buffer for long lines (default 64KB is too small for some data)
@@ -201,6 +210,9 @@ func parseJSONLReader(r io.Reader) ([]map[string]any, error) {
 			return nil, fmt.Errorf("JSONL decode error: %w", err)
 		}
 		rows = append(rows, row)
+		if len(rows) > MaxJSONRows {
+			return nil, fmt.Errorf("JSON file exceeds the limit of %d data rows", MaxJSONRows)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -210,12 +222,12 @@ func parseJSONLReader(r io.Reader) ([]map[string]any, error) {
 	return rows, nil
 }
 
-// normalizeRows processes raw JSON rows to make them compatible with the
+// NormalizeRows processes raw JSON rows to make them compatible with the
 // array driver:
 //   - String values matching RFC3339 are converted to time.Time
 //   - Nested maps and arrays are stored as JSON strings
 //   - Other values (int, float64, bool, nil, string) are kept as-is
-func normalizeRows(rows []map[string]any) []map[string]any {
+func NormalizeRows(rows []map[string]any) []map[string]any {
 	if len(rows) == 0 {
 		return nil
 	}
@@ -224,14 +236,14 @@ func normalizeRows(rows []map[string]any) []map[string]any {
 	for i, row := range rows {
 		m := make(map[string]any, len(row))
 		for k, v := range row {
-			m[k] = normalizeValue(v)
+			m[k] = NormalizeValue(v)
 		}
 		normalized[i] = m
 	}
 	return normalized
 }
 
-// normalizeValue converts a JSON-native value into a form the array driver
+// NormalizeValue converts a JSON-native value into a form the array driver
 // can handle:
 //   - float64 with integer value → int64 (JSON has no int type, but the
 //     array driver infers INTEGER columns from int64 values)
@@ -239,7 +251,7 @@ func normalizeRows(rows []map[string]any) []map[string]any {
 //   - []any → JSON string (via json.Marshal)
 //   - string matching RFC3339 → time.Time
 //   - everything else → unchanged
-func normalizeValue(v any) any {
+func NormalizeValue(v any) any {
 	switch val := v.(type) {
 	case float64:
 		// encoding/json decodes all numbers as float64. Convert whole

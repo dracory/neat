@@ -3,6 +3,7 @@ package database
 const (
 	DriverArray     Driver = "array"
 	DriverCSVDB     Driver = "csvdb"
+	DriverJSONDB    Driver = "jsondb"
 	DriverMysql     Driver = "mysql"
 	DriverOracle    Driver = "oracle"
 	DriverPostgres  Driver = "postgres"
