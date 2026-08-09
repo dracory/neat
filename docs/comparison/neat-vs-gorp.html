@@ -61,6 +61,8 @@
 <li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
 <li><strong>Flat-File Sources</strong>: Query CSV, JSON, JSONL, and XML files directly with the full query builder — no other Go ORM does this</li>
 <li><strong>CSVDB Driver</strong>: Query a directory of CSV files as database tables with automatic type inference - no other Go ORM does this</li>
+<li><strong>JSONDB Driver</strong>: Query a directory of JSON/JSONL files as database tables with native type inference - no other Go ORM does this</li>
+<li><strong>XMLDB Driver</strong>: Query a directory of XML files as database tables with attribute and element type inference - no other Go ORM does this</li>
 <li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
 <li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
 <li><strong>ToSql Interface</strong>: SQL generation without execution</li>
@@ -184,6 +186,16 @@
 <td>Not available</td>
 </tr>
 <tr>
+<td><strong>JSONDB Driver</strong></td>
+<td>Query a directory of JSON/JSONL files as database tables with native type inference</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>XMLDB Driver</strong></td>
+<td>Query a directory of XML files as database tables with attribute and element type inference</td>
+<td>Not available</td>
+</tr>
+<tr>
 <td><strong>Query Method Aliases</strong></td>
 <td>Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)</td>
 <td>Single API style</td>
@@ -270,7 +282,7 @@
 <p><strong>Important</strong>: GORP explicitly states it's not a full ORM. If you need ORM features like associations, Neat ORM is the appropriate choice.</p>
 <h2>Conclusion</h2>
 <p>Neat ORM and GORP serve different purposes:</p>
-<p><strong>Neat ORM</strong>: Full-featured ORM with associations, migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, view management, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, and CSVDB.</p>
+<p><strong>Neat ORM</strong>: Full-featured ORM with associations, migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, view management, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, and XMLDB.</p>
 <p><strong>GORP</strong>: Lightweight ORM-ish library with a simple code-first approach. Ideal for developers who only need basic persistence without full ORM overhead.</p>
 <p>The choice depends on your needs:
 - <strong>Full ORM with comprehensive features</strong>: Neat ORM
@@ -379,6 +391,21 @@
 <td>❌</td>
 </tr>
 <tr>
+<td><strong>CSVDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>JSONDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>XMLDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
 <td><strong>Transactions</strong></td>
 <td>✅</td>
 <td>✅</td>
@@ -445,11 +472,6 @@
 </tr>
 <tr>
 <td><strong>XML Source</strong></td>
-<td>✅</td>
-<td>❌</td>
-</tr>
-<tr>
-<td><strong>CSVDB Driver</strong></td>
 <td>✅</td>
 <td>❌</td>
 </tr>

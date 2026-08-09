@@ -61,6 +61,8 @@
 <li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
 <li><strong>Flat-File Sources</strong>: Query CSV, JSON, JSONL, and XML files directly with the full query builder — no other Go ORM does this</li>
 <li><strong>CSVDB Driver</strong>: Query a directory of CSV files as database tables with automatic type inference - no other Go ORM does this</li>
+<li><strong>JSONDB Driver</strong>: Query a directory of JSON/JSONL files as database tables with native type inference - no other Go ORM does this</li>
+<li><strong>XMLDB Driver</strong>: Query a directory of XML files as database tables with attribute and element type inference - no other Go ORM does this</li>
 <li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
 <li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
 <li><strong>ToSql Interface</strong>: SQL generation without execution</li>
@@ -105,7 +107,7 @@
 <tbody>
 <tr>
 <td><strong>Database Support</strong></td>
-<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB</td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB</td>
 <td>PostgreSQL only</td>
 </tr>
 <tr>
@@ -186,6 +188,16 @@
 <tr>
 <td><strong>CSVDB Driver</strong></td>
 <td>Query a directory of CSV files as database tables with type inference</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>JSONDB Driver</strong></td>
+<td>Query a directory of JSON/JSONL files as database tables with native type inference</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>XMLDB Driver</strong></td>
+<td>Query a directory of XML files as database tables with attribute and element type inference</td>
 <td>Not available</td>
 </tr>
 <tr>
@@ -274,7 +286,7 @@
 <p><strong>Recommendation</strong>: For new projects, consider Bun (the official successor to go-pg) rather than go-pg due to its maintenance status.</p>
 <p>The choice depends on your priorities:
 - <strong>Feature breadth</strong>: Neat ORM has more built-in features (schema builder, seeders, factories, views, array-backed sources, sugar methods, security hardening, polymorphic associations, savepoints)
-- <strong>Database breadth</strong>: Neat ORM supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, and CSVDB; go-pg supports PostgreSQL only
+- <strong>Database breadth</strong>: Neat ORM supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, and XMLDB; go-pg supports PostgreSQL only
 - <strong>PostgreSQL-specific features</strong>: go-pg offers arrays, hstore, and composite types
 - <strong>Relationship types</strong>: go-pg supports ManyToMany; Neat ORM does not
 - <strong>Development status</strong>: Neat ORM is actively developed; go-pg is in maintenance mode</p>
@@ -383,6 +395,21 @@
 <td>❌</td>
 </tr>
 <tr>
+<td><strong>CSVDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>JSONDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>XMLDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
 <td><strong>Transactions</strong></td>
 <td>✅</td>
 <td>✅</td>
@@ -449,11 +476,6 @@
 </tr>
 <tr>
 <td><strong>XML Source</strong></td>
-<td>✅</td>
-<td>❌</td>
-</tr>
-<tr>
-<td><strong>CSVDB Driver</strong></td>
 <td>✅</td>
 <td>❌</td>
 </tr>

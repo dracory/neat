@@ -61,6 +61,8 @@
 <li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
 <li><strong>Flat-File Sources</strong>: Query CSV, JSON, JSONL, and XML files directly with the full query builder — no other Go ORM does this</li>
 <li><strong>CSVDB Driver</strong>: Query a directory of CSV files as database tables with automatic type inference - no other Go ORM does this</li>
+<li><strong>JSONDB Driver</strong>: Query a directory of JSON/JSONL files as database tables with native type inference - no other Go ORM does this</li>
+<li><strong>XMLDB Driver</strong>: Query a directory of XML files as database tables with attribute and element type inference - no other Go ORM does this</li>
 <li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
 <li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
 <li><strong>ToSql Interface</strong>: SQL generation without execution</li>
@@ -120,7 +122,7 @@
 </tr>
 <tr>
 <td><strong>Database Support</strong></td>
-<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB</td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB</td>
 <td>Redis only</td>
 </tr>
 <tr>
@@ -186,6 +188,16 @@
 <tr>
 <td><strong>CSVDB Driver</strong></td>
 <td>Query a directory of CSV files as database tables with type inference</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>JSONDB Driver</strong></td>
+<td>Query a directory of JSON/JSONL files as database tables with native type inference</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>XMLDB Driver</strong></td>
+<td>Query a directory of XML files as database tables with attribute and element type inference</td>
 <td>Not available</td>
 </tr>
 <tr>
@@ -283,7 +295,7 @@
 <p><strong>Important</strong>: Zoom is Redis-based and stores data in memory. If you need SQL databases or disk-based persistence, Neat ORM is the appropriate choice.</p>
 <h2>Conclusion</h2>
 <p>Neat ORM and Zoom serve completely different purposes:</p>
-<p><strong>Neat ORM</strong>: Traditional SQL ORM with migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, views, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, and CSVDB with disk-based persistence.</p>
+<p><strong>Neat ORM</strong>: Traditional SQL ORM with migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, views, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, and XMLDB with disk-based persistence.</p>
 <p><strong>Zoom</strong>: Redis-based in-memory ORM with excellent performance and low latency. Ideal for applications that need high throughput and can use Redis for storage.</p>
 <p>The choice depends on your storage needs:
 - <strong>SQL databases with comprehensive ORM features</strong>: Neat ORM
@@ -393,6 +405,21 @@
 <td>❌</td>
 </tr>
 <tr>
+<td><strong>CSVDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>JSONDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>XMLDB Driver</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
 <td><strong>Transactions</strong></td>
 <td>✅</td>
 <td>⚠️</td>
@@ -459,11 +486,6 @@
 </tr>
 <tr>
 <td><strong>XML Source</strong></td>
-<td>✅</td>
-<td>❌</td>
-</tr>
-<tr>
-<td><strong>CSVDB Driver</strong></td>
 <td>✅</td>
 <td>❌</td>
 </tr>
