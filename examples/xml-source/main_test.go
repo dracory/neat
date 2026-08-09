@@ -25,7 +25,7 @@ func TestXMLFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	// Query active users
 	var users []User

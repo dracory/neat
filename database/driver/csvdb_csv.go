@@ -30,7 +30,7 @@ func parseCSV(filePath string) (columns []string, rows [][]string, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	reader := csv.NewReader(f)
 	reader.LazyQuotes = true
@@ -265,7 +265,7 @@ func populateCSVFile(db *sql.DB, tableName string, filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback() // safe to call after Commit (no-op)
+	defer func() { _ = tx.Rollback() }() // safe to call after Commit (no-op)
 
 	// INSERT rows in batches (SQLite parameter limit is ~999)
 	batchSize := 500 / colCount

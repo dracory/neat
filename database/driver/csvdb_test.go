@@ -45,7 +45,7 @@ func TestCSVDBOpenEmptyString(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(\"\") failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Should be a valid, empty in-memory SQLite database
 	var count int
@@ -63,7 +63,7 @@ func TestCSVDBOpenMemory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(\":memory:\") failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count); err != nil {
@@ -82,7 +82,7 @@ func TestCSVDBOpenEmptyDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(empty dir) failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count); err != nil {
@@ -122,7 +122,7 @@ func TestCSVDBOpenValidDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Both tables should exist
 	for _, table := range []string{"users", "products"} {
@@ -146,7 +146,7 @@ func TestCSVDBTableNameMatchesFilename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", "orders").Scan(&count); err != nil {
@@ -166,13 +166,13 @@ func TestCSVDBColumnNamesFromHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows, err := db.Query("PRAGMA table_info(items)")
 	if err != nil {
 		t.Fatalf("PRAGMA failed: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var cols []string
 	for rows.Next() {
@@ -206,7 +206,7 @@ func TestCSVDBTypeInferenceInt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var ctype string
 	if err := db.QueryRow("SELECT type FROM pragma_table_info('nums') WHERE name='count'").Scan(&ctype); err != nil {
@@ -226,7 +226,7 @@ func TestCSVDBTypeInferenceFloat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var ctype string
 	if err := db.QueryRow("SELECT type FROM pragma_table_info('nums') WHERE name='price'").Scan(&ctype); err != nil {
@@ -246,7 +246,7 @@ func TestCSVDBTypeInferenceBool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// bool is stored as INTEGER (0/1)
 	var ctype string
@@ -282,7 +282,7 @@ func TestCSVDBTypeInferenceTime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var ctype string
 	if err := db.QueryRow("SELECT type FROM pragma_table_info('events') WHERE name='created'").Scan(&ctype); err != nil {
@@ -302,7 +302,7 @@ func TestCSVDBTypeInferenceString(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var ctype string
 	if err := db.QueryRow("SELECT type FROM pragma_table_info('items') WHERE name='name'").Scan(&ctype); err != nil {
@@ -323,7 +323,7 @@ func TestCSVDBTypeWideningIntFloatToReal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var ctype string
 	if err := db.QueryRow("SELECT type FROM pragma_table_info('mixed') WHERE name='value'").Scan(&ctype); err != nil {
@@ -344,7 +344,7 @@ func TestCSVDBTypeWideningIntStringToText(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var ctype string
 	if err := db.QueryRow("SELECT type FROM pragma_table_info('mixed') WHERE name='value'").Scan(&ctype); err != nil {
@@ -364,7 +364,7 @@ func TestCSVDBEmptyCSVHeaderOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Table should exist with 0 rows
 	var count int
@@ -385,7 +385,7 @@ func TestCSVDBEmptyCellsBecomeNull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var note sql.NullString
 	if err := db.QueryRow("SELECT note FROM data WHERE id=1").Scan(&note); err != nil {
@@ -427,7 +427,7 @@ func TestCSVDBNonCSVFilesSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Only "users" table should exist
 	var count int
@@ -454,7 +454,7 @@ func TestCSVDBSubdirectoriesSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Only "users" table should exist, not "subdir"
 	var count int
@@ -476,7 +476,7 @@ func TestCSVDBCaseInsensitiveExtension(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	for _, table := range []string{"upper", "mixed"} {
 		var count int
@@ -552,7 +552,7 @@ func TestCSVDBRaggedRowFewerFieldsThanHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM data").Scan(&count); err != nil {
@@ -588,7 +588,7 @@ func TestCSVDBBOMStripped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed (BOM not stripped?): %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM bom").Scan(&count); err != nil {

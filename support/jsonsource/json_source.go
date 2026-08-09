@@ -134,7 +134,7 @@ func parseJSONFile(filePath string) ([]map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if isJSONLFile(filePath) {
 		return parseJSONLReader(f)

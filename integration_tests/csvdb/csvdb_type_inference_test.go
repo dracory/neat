@@ -123,7 +123,7 @@ func TestCSVDBIntegrationTypeInferenceColumnTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PRAGMA failed: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	type colInfo struct {
 		name    string

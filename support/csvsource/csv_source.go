@@ -138,7 +138,7 @@ func parseCSVFileWithDelimiter(filePath string, delimiter rune) ([]string, [][]s
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return parseCSVReader(f, delimiter)
 }
 

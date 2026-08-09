@@ -56,11 +56,11 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 	// Verify directory exists
 	info, err := os.Stat(dirPath)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("csvdb: cannot access directory %s: %w", dirPath, err)
 	}
 	if !info.IsDir() {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("csvdb: %s is not a directory", dirPath)
 	}
 
@@ -70,7 +70,7 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 	// and users.csv would produce colliding SQLite table names.
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("csvdb: cannot read directory %s: %w", dirPath, err)
 	}
 
@@ -89,13 +89,13 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 
 		lowerName := strings.ToLower(tableName)
 		if prevFile, exists := seenTables[lowerName]; exists {
-			db.Close()
+			_ = db.Close()
 			return nil, fmt.Errorf("csvdb: table name collision: %s and %s produce the same table name (case-insensitive)", prevFile, entry.Name())
 		}
 		seenTables[lowerName] = entry.Name()
 
 		if err := populateCSVFile(db, tableName, filePath); err != nil {
-			db.Close()
+			_ = db.Close()
 			return nil, fmt.Errorf("csvdb: failed to populate table %s from %s: %w", tableName, filePath, err)
 		}
 	}
