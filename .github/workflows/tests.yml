@@ -267,7 +267,6 @@ jobs:
     - name: Run gosec security scanning
       if: always()
       run: |
-        go mod download all
         go install github.com/securego/gosec/v2/cmd/gosec@latest
         $(go env GOPATH)/bin/gosec ./... || true
 
