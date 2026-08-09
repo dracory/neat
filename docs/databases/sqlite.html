@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
+        th { background: #f8f9fa; }
+        .callout { background: #fff8e1; border-left: 4px solid #f39c12; padding: 1rem 1.25rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0; }
+        .callout p { margin: 0.5rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Supported Databases</a>
+
+    <h1>SQLite</h1>
+
+    <p>SQLite is the embedded, file-based (or in-memory) backend. Neat ORM uses the pure-Go <code>modernc.org/sqlite</code> driver, so no CGO is required. SQLite is ideal for tests, prototypes, single-process services, and the local side of Turso.</p>
+
+    <h2>Connection</h2>
+
+    <pre><code>// In-memory database
+dsn := "sqlite://:memory:?multi_stmts=true"
+db, err := neat.NewFromDSN(dsn)
+
+// File-based database
+config := neat.DBConfig{
+    Default: "sqlite",
+    Connections: map[string]neat.ConnectionConfig{
+        "sqlite": {
+            Driver:   "sqlite",
+            Database: "/var/data/app.db", // file path; empty = :memory:
+        },
+    },
+}</code></pre>
+
+    <p>If <code>Database</code> is empty, Neat ORM defaults to <code>:memory:</code>. The <code>multi_stmts=true</code> query parameter enables multi-statement execution, which is required for some schema operations.</p>
+
+    <h2>Driver-Specific Options</h2>
+
+    <ul>
+        <li><code>Database</code> - file path, or empty for an in-memory database</li>
+    </ul>
+
+    <h2>Placeholder Format</h2>
+
+    <p>SQLite uses positional <code>?</code> placeholders, identical to MySQL.</p>
+
+    <h2>Type Mappings</h2>
+
+    <p>SQLite uses a flexible type affinity system. Most blueprint types collapse to a small set of storage classes:</p>
+
+    <table>
+        <thead><tr><th>Blueprint Type</th><th>SQLite Type</th></tr></thead>
+        <tbody>
+            <tr><td>bigInteger / integer / mediumInteger / smallInteger / tinyInteger</td><td><code>integer</code></td></tr>
+            <tr><td>boolean</td><td><code>tinyint(1)</code></td></tr>
+            <tr><td>char / string / tinyText</td><td><code>varchar</code> / <code>text</code></td></tr>
+            <tr><td>date / dateTime / dateTimeTz / timestamp / timestampTz</td><td><code>datetime</code> (or <code>date</code> for date)</td></tr>
+            <tr><td>decimal</td><td><code>numeric</code></td></tr>
+            <tr><td>double / float</td><td><code>double</code> / <code>float</code></td></tr>
+            <tr><td>enum</td><td><code>varchar check ("col" in (...))</code></td></tr>
+            <tr><td>json / jsonb</td><td><code>text</code></td></tr>
+            <tr><td>longText / mediumText / text</td><td><code>text</code></td></tr>
+            <tr><td>time / timeTz</td><td><code>time</code></td></tr>
+        </tbody>
+    </table>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> SQLite has no native JSON type. <code>json</code> and <code>jsonb</code> both produce a <code>text</code> column. Use the <code>json1</code> extension functions (compiled in by default) to query JSON values at runtime.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> SQLite has no dedicated <code>tinyint</code>, <code>mediumint</code>, or <code>bigint</code> storage class. All integer blueprint types map to <code>integer</code>, which uses 1, 2, 3, 4, 6, or 8 bytes depending on the value. The exception is <code>boolean</code>, which maps to <code>tinyint(1)</code> for compatibility with drivers that special-case that declaration.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> <code>dateTimeTz</code> and <code>timestampTz</code> map to the same <code>datetime</code> type as their non-Tz counterparts. SQLite has no timezone-aware datetime type; timezone handling is the application's responsibility.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> <code>enum</code> is emulated with a <code>check</code> constraint on a <code>varchar</code> column. SQLite enforces check constraints at write time.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> SQLite has no spatial types. Blueprint calls for <code>geometry</code>, <code>point</code>, <code>polygon</code>, etc. are not mapped by the SQLite grammar and will produce empty type strings. Use a geometry extension such as SpatiaLite if you need spatial support.</p>
+    </div>
+
+    <h2>Behavior Notes</h2>
+
+    <ul>
+        <li><strong>Concurrency:</strong> SQLite serializes writes. For concurrent test runs, use separate in-memory databases per test or enable WAL mode on file-based databases.</li>
+        <li><strong>Foreign keys:</strong> Foreign key enforcement is off by default in SQLite. Enable it per connection with <code>PRAGMA foreign_keys = ON;</code> if you rely on FK constraints.</li>
+        <li><strong>Auto-increment:</strong> <code>INTEGER PRIMARY KEY</code> columns auto-increment. The <code>AUTOINCREMENT</code> keyword is rarely needed and imposes a small overhead.</li>
+        <li><strong>Transactions:</strong> Savepoints are supported natively (<code>SAVEPOINT name</code>).</li>
+        <li><strong>DDL in transactions:</strong> SQLite allows schema changes inside a transaction, which is useful for test setup and teardown.</li>
+    </ul>
+
+    <h2>Default Ports</h2>
+
+    <p>SQLite is embedded - there is no network port. The "address" is a file path or <code>:memory:</code>.</p>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

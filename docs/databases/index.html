@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supported Databases - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        .subtitle { color: #666; font-size: 1.1rem; margin-bottom: 2rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .card { border: 1px solid #eee; border-radius: 8px; padding: 1.5rem; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit; display: block; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); border-color: #16a085; }
+        .card h2 { margin-top: 0; color: #16a085; font-size: 1.25rem; }
+        .card p { margin-bottom: 0; font-size: 0.9rem; color: #666; }
+        .badge { display: inline-block; background: #16a085; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-bottom: 0.5rem; }
+        .badge.compatible { background: #27ae60; }
+        .badge.wire { background: #2980b9; }
+        .badge.embedded { background: #8e44ad; }
+        .badge.cloud { background: #d35400; }
+        .section-title { color: #7f8c8d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin: 2rem 0 1rem 0; font-weight: 600; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+        .footer a { color: #3498db; text-decoration: none; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">&#8592; Back to Documentation</a>
+    <h1>Supported Databases</h1>
+    <p class="subtitle">Database-specific quirks, type mappings, and configuration notes for each backend supported by Neat ORM</p>
+
+    <div style="background: linear-gradient(135deg, #16a085 0%, #1abc9c 100%); color: white; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <h2 style="color: white; margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 0.5rem;">One ORM, Many Backends</h2>
+        <p style="margin-bottom: 0;">Neat ORM ships with first-class drivers for six databases and is wire-compatible with several more. Each backend has its own dialect, placeholder style, type mappings, and edge cases. Use the per-database pages below to understand the quirks before you deploy.</p>
+    </div>
+
+    <div class="section-title">First-Class Drivers</div>
+    <div class="grid">
+        <a href="mysql.html" class="card">
+            <span class="badge wire">Wire Protocol</span>
+            <h2>MySQL</h2>
+            <p>Primary SQL backend. Also drives MariaDB and TiDB via the MySQL wire protocol.</p>
+        </a>
+        <a href="postgres.html" class="card">
+            <span class="badge wire">Wire Protocol</span>
+            <h2>PostgreSQL</h2>
+            <p>Advanced type system with JSONB, arrays, and PostGIS geometry. Drives CockroachDB and YugabyteDB.</p>
+        </a>
+        <a href="sqlite.html" class="card">
+            <span class="badge embedded">Embedded</span>
+            <h2>SQLite</h2>
+            <p>Embedded file-based database. Great for tests, prototypes, and single-process workloads.</p>
+        </a>
+        <a href="sqlserver.html" class="card">
+            <span class="badge wire">Wire Protocol</span>
+            <h2>SQL Server</h2>
+            <p>Microsoft SQL Server with named placeholders and nvarchar-based text storage.</p>
+        </a>
+        <a href="oracle.html" class="card">
+            <span class="badge wire">Wire Protocol</span>
+            <h2>Oracle</h2>
+            <p>Enterprise database with NUMBER-based typing, CLOB for text, and SDO_GEOMETRY for spatial data.</p>
+        </a>
+        <a href="turso.html" class="card">
+            <span class="badge cloud">Edge / Cloud</span>
+            <h2>Turso</h2>
+            <p>SQLite-based edge database over the libsql protocol. Local file or remote replica.</p>
+        </a>
+    </div>
+
+    <div class="section-title">Wire-Compatible Databases</div>
+    <div class="grid">
+        <a href="tidb.html" class="card">
+            <span class="badge compatible">MySQL-Compatible</span>
+            <h2>TiDB</h2>
+            <p>Distributed SQL with high MySQL compatibility. Notable divergences in spatial types, savepoints, and locking.</p>
+        </a>
+        <a href="mysql.html#mariadb" class="card">
+            <span class="badge compatible">MySQL-Compatible</span>
+            <h2>MariaDB</h2>
+            <p>Nearly 100% MySQL-compatible. Uses the MySQL driver directly. See the MySQL page for notes.</p>
+        </a>
+        <a href="postgres.html#cockroachdb" class="card">
+            <span class="badge compatible">PostgreSQL-Compatible</span>
+            <h2>CockroachDB</h2>
+            <p>Distributed PostgreSQL-compatible database. Uses the PostgreSQL driver. See the PostgreSQL page for notes.</p>
+        </a>
+        <a href="postgres.html#yugabytedb" class="card">
+            <span class="badge compatible">PostgreSQL-Compatible</span>
+            <h2>YugabyteDB</h2>
+            <p>Distributed PostgreSQL-compatible database. Uses the PostgreSQL driver. See the PostgreSQL page for notes.</p>
+        </a>
+    </div>
+
+    <div class="footer">
+        <p>Neat ORM - <a href="https://github.com/dracory/neat">GitHub Repository</a></p>
+    </div>
+</body>
+</html>
