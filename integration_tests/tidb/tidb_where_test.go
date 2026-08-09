@@ -1,0 +1,502 @@
+package tidb_test
+
+import (
+	"testing"
+
+	"github.com/dracory/neat/integration_tests/models"
+)
+
+// TestTiDBIntegrationWhereIn tests WhereIn operation
+func TestTiDBIntegrationWhereIn(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "where_in_user1", Avatar: "avatar1"},
+		{Name: "where_in_user2", Avatar: "avatar2"},
+		{Name: "where_in_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_in_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
+	// Test WhereIn with multiple IDs
+	var foundUsers []models.User
+	ids := []any{createdUsers[0].ID, createdUsers[1].ID}
+	err := query.Model(&models.User{}).WhereIn("id", ids).Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with WhereIn: %v", err)
+	}
+
+	if len(foundUsers) != 2 {
+		t.Errorf("Expected 2 users, got %d", len(foundUsers))
+	}
+}
+
+// TestTiDBIntegrationOrWhereIn tests OrWhereIn operation
+func TestTiDBIntegrationOrWhereIn(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "or_where_in_user1", Avatar: "avatar1"},
+		{Name: "or_where_in_user2", Avatar: "avatar2"},
+		{Name: "or_where_in_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "or_where_in_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
+	// Test OrWhereIn
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("id = ?", -1).OrWhereIn("id", []any{createdUsers[0].ID, createdUsers[1].ID}).Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with OrWhereIn: %v", err)
+	}
+
+	if len(foundUsers) != 2 {
+		t.Errorf("Expected 2 users, got %d", len(foundUsers))
+	}
+}
+
+// TestTiDBIntegrationWhereNotIn tests WhereNotIn operation
+func TestTiDBIntegrationWhereNotIn(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "where_not_in_user1", Avatar: "avatar1"},
+		{Name: "where_not_in_user2", Avatar: "avatar2"},
+		{Name: "where_not_in_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_not_in_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 3 {
+		t.Fatalf("Expected at least 3 created users, got %d", len(createdUsers))
+	}
+
+	// Test WhereNotIn
+	var foundUser models.User
+	err := query.Model(&models.User{}).Where("id = ?", createdUsers[2].ID).WhereNotIn("id", []any{createdUsers[0].ID, createdUsers[1].ID}).First(&foundUser)
+	if err != nil {
+		t.Fatalf("Failed to find user with WhereNotIn: %v", err)
+	}
+
+	if foundUser.ID != createdUsers[2].ID {
+		t.Errorf("Expected user[2], got %d", foundUser.ID)
+	}
+}
+
+// TestTiDBIntegrationOrWhereNotIn tests OrWhereNotIn operation
+func TestTiDBIntegrationOrWhereNotIn(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "or_where_not_in_user1", Avatar: "avatar1"},
+		{Name: "or_where_not_in_user2", Avatar: "avatar2"},
+		{Name: "or_where_not_in_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "or_where_not_in_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
+	// Test OrWhereNotIn
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("id = ?", -1).OrWhereNotIn("id", []any{createdUsers[0].ID, createdUsers[1].ID}).Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with OrWhereNotIn: %v", err)
+	}
+
+	// Should find user[2] since it's not in the excluded list
+	user2Found := false
+	for _, user := range foundUsers {
+		if user.ID == createdUsers[2].ID {
+			user2Found = true
+		}
+	}
+
+	if !user2Found {
+		t.Error("Expected to find user[2] with OrWhereNotIn")
+	}
+}
+
+// TestTiDBIntegrationWhereBetween tests WhereBetween operation
+func TestTiDBIntegrationWhereBetween(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "where_between_user1", Avatar: "avatar1"},
+		{Name: "where_between_user2", Avatar: "avatar2"},
+		{Name: "where_between_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_between_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 3 {
+		t.Fatalf("Expected at least 3 created users, got %d", len(createdUsers))
+	}
+
+	// Test WhereBetween with IDs
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).WhereBetween("id", createdUsers[0].ID, createdUsers[2].ID).Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with WhereBetween: %v", err)
+	}
+
+	if len(foundUsers) != 3 {
+		t.Errorf("Expected 3 users, got %d", len(foundUsers))
+	}
+}
+
+// TestTiDBIntegrationWhereNotBetween tests WhereNotBetween operation
+func TestTiDBIntegrationWhereNotBetween(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "where_not_between_user1", Avatar: "avatar1"},
+		{Name: "where_not_between_user2", Avatar: "avatar2"},
+		{Name: "where_not_between_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_not_between_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 3 {
+		t.Fatalf("Expected at least 3 created users, got %d", len(createdUsers))
+	}
+
+	// Test WhereNotBetween - exclude first two users
+	var foundUser models.User
+	err := query.Model(&models.User{}).Where("name = ?", "where_not_between_user3").WhereNotBetween("id", createdUsers[0].ID, createdUsers[1].ID).First(&foundUser)
+	if err != nil {
+		t.Fatalf("Failed to find user with WhereNotBetween: %v", err)
+	}
+
+	if foundUser.ID != createdUsers[2].ID {
+		t.Errorf("Expected user[2], got %d", foundUser.ID)
+	}
+}
+
+// TestTiDBIntegrationOrWhereBetween tests OrWhereBetween operation
+func TestTiDBIntegrationOrWhereBetween(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "or_where_between_user1", Avatar: "avatar1"},
+		{Name: "or_where_between_user2", Avatar: "avatar2"},
+		{Name: "or_where_between_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "or_where_between_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
+	// Test OrWhereBetween
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("name = ?", "or_where_between_user3").OrWhereBetween("id", createdUsers[0].ID, createdUsers[1].ID).Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with OrWhereBetween: %v", err)
+	}
+
+	if len(foundUsers) != 3 {
+		t.Errorf("Expected 3 users, got %d", len(foundUsers))
+	}
+}
+
+// TestTiDBIntegrationOrWhereNotBetween tests OrWhereNotBetween operation
+func TestTiDBIntegrationOrWhereNotBetween(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "or_where_not_between_user1", Avatar: "avatar1"},
+		{Name: "or_where_not_between_user2", Avatar: "avatar2"},
+		{Name: "or_where_not_between_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "or_where_not_between_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
+	// Test OrWhereNotBetween
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("name = ?", "or_where_not_between_user3").OrWhereNotBetween("id", createdUsers[0].ID, createdUsers[1].ID).Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with OrWhereNotBetween: %v", err)
+	}
+
+	// Should find user[3] since it matches the first condition
+	if len(foundUsers) != 1 {
+		t.Errorf("Expected 1 user, got %d", len(foundUsers))
+	}
+
+	if len(foundUsers) >= 1 && foundUsers[0].ID != createdUsers[2].ID {
+		t.Errorf("Expected user[2], got %d", foundUsers[0].ID)
+	}
+}
+
+// TestTiDBIntegrationWhereNull tests WhereNull operation
+func TestTiDBIntegrationWhereNull(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users with and without bio
+	bio := "test_bio"
+	users := []models.User{
+		{Name: "where_null_user1", Avatar: "avatar1", Bio: &bio},
+		{Name: "where_null_user2", Avatar: "avatar2"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_null_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 2 {
+		t.Fatalf("Expected at least 2 created users, got %d", len(createdUsers))
+	}
+
+	// Test WhereNull
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("name = ?", "where_null_user2").WhereNull("bio").Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with WhereNull: %v", err)
+	}
+
+	if len(foundUsers) != 1 {
+		t.Errorf("Expected 1 user, got %d", len(foundUsers))
+	}
+
+	if len(foundUsers) >= 1 && foundUsers[0].ID != createdUsers[1].ID {
+		t.Errorf("Expected user[1], got %d", foundUsers[0].ID)
+	}
+}
+
+// TestTiDBIntegrationWhereNotNull tests WhereNotNull operation
+func TestTiDBIntegrationWhereNotNull(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users with and without bio
+	bio := "test_bio"
+	users := []models.User{
+		{Name: "where_not_null_user1", Avatar: "avatar1", Bio: &bio},
+		{Name: "where_not_null_user2", Avatar: "avatar2"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "where_not_null_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
+	}
+
+	// Test WhereNotNull
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("name = ?", "where_not_null_user1").WhereNotNull("bio").Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with WhereNotNull: %v", err)
+	}
+
+	if len(foundUsers) != 1 {
+		t.Errorf("Expected 1 user, got %d", len(foundUsers))
+	}
+
+	if len(foundUsers) >= 1 && foundUsers[0].ID != createdUsers[0].ID {
+		t.Errorf("Expected user[0], got %d", foundUsers[0].ID)
+	}
+}
+
+// TestTiDBIntegrationOrWhereNull tests OrWhereNull operation
+func TestTiDBIntegrationOrWhereNull(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users with and without bio
+	bio := "test_bio"
+	users := []models.User{
+		{Name: "or_where_null_user1", Avatar: "avatar1", Bio: &bio},
+		{Name: "or_where_null_user2", Avatar: "avatar2"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Test OrWhereNull
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("name = ?", "or_where_null_user1").OrWhereNull("bio").Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with OrWhereNull: %v", err)
+	}
+
+	if len(foundUsers) < 2 {
+		t.Errorf("Expected at least 2 users, got %d", len(foundUsers))
+	}
+}
+
+// TestTiDBIntegrationOrWhere tests OrWhere operation
+func TestTiDBIntegrationOrWhere(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "or_where_user1", Avatar: "avatar1"},
+		{Name: "or_where_user2", Avatar: "avatar2"},
+		{Name: "or_where_user3", Avatar: "avatar3"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Test OrWhere
+	var foundUsers []models.User
+	err := query.Model(&models.User{}).Where("name = ?", "or_where_user1").OrWhere("avatar = ?", "avatar2").Find(&foundUsers)
+	if err != nil {
+		t.Fatalf("Failed to find users with OrWhere: %v", err)
+	}
+
+	if len(foundUsers) != 2 {
+		t.Errorf("Expected 2 users, got %d", len(foundUsers))
+	}
+}
+
+// TestTiDBIntegrationWhereColumnOperator tests where with column operator variations
+func TestTiDBIntegrationWhereColumnOperator(t *testing.T) {
+
+	db := SetupTiDBTest(t)
+	query := db.Query()
+
+	// Create users
+	users := []models.User{
+		{Name: "column_op_user1", Avatar: "avatar1"},
+		{Name: "column_op_user2", Avatar: "avatar2"},
+	}
+	if err := query.Model(&models.User{}).Create(&users); err != nil {
+		t.Fatalf("Failed to create users: %v", err)
+	}
+
+	// Get the created users to get their IDs
+	var createdUsers []models.User
+	if err := query.Model(&models.User{}).Where("name LIKE ?", "column_op_user%").Find(&createdUsers); err != nil {
+		t.Fatalf("Failed to get created users: %v", err)
+	}
+
+	if len(createdUsers) < 1 {
+		t.Fatalf("Expected at least 1 created user, got %d", len(createdUsers))
+	}
+
+	// Test where with different operators
+	var foundUser models.User
+	err := query.Model(&models.User{}).Where("name = ?", "column_op_user1").First(&foundUser)
+	if err != nil {
+		t.Fatalf("Failed to find user: %v", err)
+	}
+
+	if foundUser.ID != createdUsers[0].ID {
+		t.Errorf("Expected user[0], got %d", foundUser.ID)
+	}
+}
