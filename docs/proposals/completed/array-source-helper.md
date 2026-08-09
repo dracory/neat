@@ -1,7 +1,7 @@
 # Proposal: Array Source Helper with `NewArraySourceFrom[T]`
 
 **Date**: August 8, 2026
-**Status**: Proposal
+**Status**: Completed
 **Priority**: Medium
 
 ## Problem
