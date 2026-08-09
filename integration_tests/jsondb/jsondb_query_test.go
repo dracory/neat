@@ -22,6 +22,28 @@ func TestJSONDBIntegrationBasicQuery(t *testing.T) {
 	}
 }
 
+func TestJSONDBIntegrationProductAndOrderModels(t *testing.T) {
+	db := SetupJSONDBTest(t)
+
+	var products []jsondbProduct
+	err := db.Query().Model(&jsondbProduct{}).Get(&products)
+	if err != nil {
+		t.Fatalf("Failed to query products model: %v", err)
+	}
+	if len(products) != 3 {
+		t.Errorf("Expected 3 products, got %d", len(products))
+	}
+
+	var orders []jsondbOrder
+	err = db.Query().Model(&jsondbOrder{}).Get(&orders)
+	if err != nil {
+		t.Fatalf("Failed to query orders model: %v", err)
+	}
+	if len(orders) != 3 {
+		t.Errorf("Expected 3 orders, got %d", len(orders))
+	}
+}
+
 func TestJSONDBIntegrationWhereEquals(t *testing.T) {
 	db := SetupJSONDBTest(t)
 
