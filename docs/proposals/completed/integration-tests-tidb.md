@@ -1,7 +1,7 @@
 # Proposal: TiDB Integration Tests
 
 **Date**: August 8, 2026
-**Status**: Proposal
+**Status**: Completed
 **Priority**: Medium
 
 ## Problem
