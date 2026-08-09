@@ -14,6 +14,10 @@ import (
 	"github.com/dracory/neat/support/arraysource"
 )
 
+// MaxXMLRows limits the number of data rows (child elements) that can be
+// loaded from a single XML file to prevent unbounded memory/CPU consumption.
+const MaxXMLRows = 100000
+
 // NewXmlSource parses an XML string and returns an array-backed data source
 // ready for querying with the array driver.
 //
@@ -49,7 +53,7 @@ import (
 //
 // Panics if the XML cannot be parsed or has no child elements.
 func NewXmlSource(xmlString string, tableName string) *arraysource.Model {
-	rows, err := parseXMLString(xmlString)
+	rows, err := ParseXMLString(xmlString)
 	if err != nil {
 		panic(fmt.Sprintf("xmlsource: failed to parse XML string: %v", err))
 	}
@@ -78,7 +82,7 @@ func NewXmlSource(xmlString string, tableName string) *arraysource.Model {
 //
 // Panics if the file cannot be opened, parsed, or has no child elements.
 func NewXmlFileSource(filePath string) *arraysource.Model {
-	rows, err := parseXMLFile(filePath)
+	rows, err := ParseXMLFile(filePath)
 	if err != nil {
 		panic(fmt.Sprintf("xmlsource: failed to parse %s: %v", filePath, err))
 	}
@@ -100,25 +104,25 @@ func deriveTableName(filePath string) string {
 	return strings.TrimSuffix(base, ext)
 }
 
-// parseXMLString parses an XML string and returns rows.
-func parseXMLString(content string) ([]map[string]any, error) {
-	return parseXMLReader(strings.NewReader(content))
+// ParseXMLString parses an XML string and returns rows.
+func ParseXMLString(content string) ([]map[string]any, error) {
+	return ParseXMLReader(strings.NewReader(content))
 }
 
-// parseXMLFile reads an XML file and returns rows.
-func parseXMLFile(filePath string) ([]map[string]any, error) {
+// ParseXMLFile reads an XML file and returns rows.
+func ParseXMLFile(filePath string) ([]map[string]any, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
-	return parseXMLReader(f)
+	return ParseXMLReader(f)
 }
 
-// parseXMLReader parses XML from any io.Reader. It finds the root element,
+// ParseXMLReader parses XML from any io.Reader. It finds the root element,
 // then treats each direct child element as a row. Attributes and leaf
 // sub-elements become columns.
-func parseXMLReader(r io.Reader) ([]map[string]any, error) {
+func ParseXMLReader(r io.Reader) ([]map[string]any, error) {
 	dec := xml.NewDecoder(r)
 
 	// Find and skip the root element (advances decoder past root's opening tag)
@@ -150,6 +154,9 @@ func parseXMLReader(r io.Reader) ([]map[string]any, error) {
 				return nil, err
 			}
 			rows = append(rows, row)
+			if len(rows) > MaxXMLRows {
+				return nil, fmt.Errorf("XML file exceeds the limit of %d data rows", MaxXMLRows)
+			}
 		case xml.EndElement:
 			// End of root element — done
 			return rows, nil
@@ -180,7 +187,7 @@ func parseElement(dec *xml.Decoder, start xml.StartElement) (map[string]any, err
 
 	// Add attributes as columns
 	for _, attr := range start.Attr {
-		row[attr.Name.Local] = inferAndConvert(attr.Value)
+		row[attr.Name.Local] = InferAndConvert(attr.Value)
 	}
 
 	// Parse sub-elements and text content
@@ -199,7 +206,7 @@ func parseElement(dec *xml.Decoder, start xml.StartElement) (map[string]any, err
 			}
 			if isLeaf {
 				// Leaf element: text content becomes the column value
-				row[t.Name.Local] = inferAndConvert(text)
+				row[t.Name.Local] = InferAndConvert(text)
 			} else {
 				// Nested element: store as JSON string
 				b, err := json.Marshal(childRow)
@@ -232,7 +239,7 @@ func parseChildElement(dec *xml.Decoder, start xml.StartElement) (map[string]any
 
 	// Add attributes
 	for _, attr := range start.Attr {
-		row[attr.Name.Local] = inferAndConvert(attr.Value)
+		row[attr.Name.Local] = InferAndConvert(attr.Value)
 	}
 
 	for {
@@ -249,7 +256,7 @@ func parseChildElement(dec *xml.Decoder, start xml.StartElement) (map[string]any
 				return nil, false, "", err
 			}
 			if isLeaf {
-				row[t.Name.Local] = inferAndConvert(text)
+				row[t.Name.Local] = InferAndConvert(text)
 			} else {
 				b, err := json.Marshal(childRow)
 				if err != nil {
@@ -269,10 +276,10 @@ func parseChildElement(dec *xml.Decoder, start xml.StartElement) (map[string]any
 	}
 }
 
-// inferAndConvert tries to convert a string value to its native Go type
+// InferAndConvert tries to convert a string value to its native Go type
 // (int64, float64, bool, time.Time), falling back to string.
 // This mirrors the CSV source's type inference logic.
-func inferAndConvert(val string) any {
+func InferAndConvert(val string) any {
 	if val == "" {
 		return nil
 	}

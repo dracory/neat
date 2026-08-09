@@ -284,40 +284,40 @@ func TestNewXmlFileSource_PanicsOnEmptyFile(t *testing.T) {
 
 func TestInferAndConvert(t *testing.T) {
 	// int
-	if v := inferAndConvert("42"); v != int64(42) {
-		t.Errorf("inferAndConvert(\"42\") = %v, want int64(42)", v)
+	if v := InferAndConvert("42"); v != int64(42) {
+		t.Errorf("InferAndConvert(\"42\") = %v, want int64(42)", v)
 	}
 	// negative int
-	if v := inferAndConvert("-456"); v != int64(-456) {
-		t.Errorf("inferAndConvert(\"-456\") = %v, want int64(-456)", v)
+	if v := InferAndConvert("-456"); v != int64(-456) {
+		t.Errorf("InferAndConvert(\"-456\") = %v, want int64(-456)", v)
 	}
 	// float
-	if v := inferAndConvert("19.99"); v != 19.99 {
-		t.Errorf("inferAndConvert(\"19.99\") = %v, want 19.99", v)
+	if v := InferAndConvert("19.99"); v != 19.99 {
+		t.Errorf("InferAndConvert(\"19.99\") = %v, want 19.99", v)
 	}
 	// bool true → int64(1)
-	if v := inferAndConvert("true"); v != int64(1) {
-		t.Errorf("inferAndConvert(\"true\") = %v, want int64(1)", v)
+	if v := InferAndConvert("true"); v != int64(1) {
+		t.Errorf("InferAndConvert(\"true\") = %v, want int64(1)", v)
 	}
 	// bool false → int64(0)
-	if v := inferAndConvert("false"); v != int64(0) {
-		t.Errorf("inferAndConvert(\"false\") = %v, want int64(0)", v)
+	if v := InferAndConvert("false"); v != int64(0) {
+		t.Errorf("InferAndConvert(\"false\") = %v, want int64(0)", v)
 	}
 	// RFC3339 → time.Time
-	if v, ok := inferAndConvert("2024-01-15T10:30:00Z").(time.Time); !ok {
-		t.Errorf("inferAndConvert(\"2024-01-15T10:30:00Z\") expected time.Time, got %T", v)
+	if v, ok := InferAndConvert("2024-01-15T10:30:00Z").(time.Time); !ok {
+		t.Errorf("InferAndConvert(\"2024-01-15T10:30:00Z\") expected time.Time, got %T", v)
 	}
 	// date only → time.Time
-	if v, ok := inferAndConvert("2024-01-15").(time.Time); !ok {
-		t.Errorf("inferAndConvert(\"2024-01-15\") expected time.Time, got %T", v)
+	if v, ok := InferAndConvert("2024-01-15").(time.Time); !ok {
+		t.Errorf("InferAndConvert(\"2024-01-15\") expected time.Time, got %T", v)
 	}
 	// string
-	if v := inferAndConvert("hello"); v != "hello" {
-		t.Errorf("inferAndConvert(\"hello\") = %v, want 'hello'", v)
+	if v := InferAndConvert("hello"); v != "hello" {
+		t.Errorf("InferAndConvert(\"hello\") = %v, want 'hello'", v)
 	}
 	// empty → nil
-	if v := inferAndConvert(""); v != nil {
-		t.Errorf("inferAndConvert(\"\") = %v, want nil", v)
+	if v := InferAndConvert(""); v != nil {
+		t.Errorf("InferAndConvert(\"\") = %v, want nil", v)
 	}
 }
 
