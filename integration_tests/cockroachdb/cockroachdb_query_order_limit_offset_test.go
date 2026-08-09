@@ -1,0 +1,328 @@
+package cockroachdb_test
+
+import (
+	"testing"
+
+	"github.com/dracory/neat/integration_tests/common"
+	"github.com/dracory/neat/integration_tests/models"
+)
+
+func TestCockroachDBIntegrationOrderByAscending(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Get(&results)
+	if err != nil {
+		t.Errorf("OrderBy ascending failed: %v", err)
+	}
+	if len(results) != 5 {
+		t.Errorf("Expected 5 results, got %d", len(results))
+	}
+	if len(results) >= 3 {
+		if results[0].Name != "user_a" {
+			t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_b" {
+			t.Errorf("Expected 'user_b', got '%s'", results[1].Name)
+		}
+		if results[2].Name != "user_c" {
+			t.Errorf("Expected 'user_c', got '%s'", results[2].Name)
+		}
+	}
+}
+
+func TestCockroachDBIntegrationOrderByDescending(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderBy("name", "desc").Get(&results)
+	if err != nil {
+		t.Errorf("OrderBy descending failed: %v", err)
+	}
+	if len(results) != 5 {
+		t.Errorf("Expected 5 results, got %d", len(results))
+	}
+	if len(results) >= 3 {
+		if results[0].Name != "user_e" {
+			t.Errorf("Expected 'user_e', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_d" {
+			t.Errorf("Expected 'user_d', got '%s'", results[1].Name)
+		}
+		if results[2].Name != "user_c" {
+			t.Errorf("Expected 'user_c', got '%s'", results[2].Name)
+		}
+	}
+}
+
+func TestCockroachDBIntegrationOrderByDescMethod(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderByDesc("name").Get(&results)
+	if err != nil {
+		t.Errorf("OrderByDesc method failed: %v", err)
+	}
+	if len(results) != 5 {
+		t.Errorf("Expected 5 results, got %d", len(results))
+	}
+	if len(results) >= 1 && results[0].Name != "user_e" {
+		t.Errorf("Expected 'user_e', got '%s'", results[0].Name)
+	}
+}
+
+func TestCockroachDBIntegrationMultipleOrderByClauses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	query := db.Query()
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
+		t.Fatalf("Failed to create additional user: %v", err)
+	}
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").OrderBy("avatar", "asc").Get(&results)
+	if err != nil {
+		t.Errorf("Multiple OrderBy clauses failed: %v", err)
+	}
+
+	var userAEntries []models.User
+	for _, u := range results {
+		if u.Name == "user_a" {
+			userAEntries = append(userAEntries, u)
+		}
+	}
+	if len(userAEntries) != 2 {
+		t.Errorf("Expected 2 user_a entries, got %d", len(userAEntries))
+	}
+	if len(userAEntries) >= 2 {
+		if userAEntries[0].Avatar != "avatar0" {
+			t.Errorf("Expected 'avatar0', got '%s'", userAEntries[0].Avatar)
+		}
+		if userAEntries[1].Avatar != "avatar1" {
+			t.Errorf("Expected 'avatar1', got '%s'", userAEntries[1].Avatar)
+		}
+	}
+}
+
+func TestCockroachDBIntegrationOrderByWithExpressions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).Order("LENGTH(name) DESC").OrderBy("name", "asc").Get(&results)
+	if err != nil {
+		t.Errorf("OrderBy with expressions failed: %v", err)
+	}
+	if len(results) == 0 {
+		t.Error("Expected non-empty results")
+	}
+}
+
+func TestCockroachDBIntegrationLimitClause(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).Limit(2).Get(&results)
+	if err != nil {
+		t.Errorf("Limit clause failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+}
+
+func TestCockroachDBIntegrationLimitWithOrderBy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	query := db.Query()
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
+		t.Fatalf("Failed to create additional user: %v", err)
+	}
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Limit(2).Get(&results)
+	if err != nil {
+		t.Errorf("Limit with OrderBy failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+	if len(results) >= 2 {
+		if results[0].Name != "user_a" {
+			t.Errorf("Expected 'user_a', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_a" {
+			t.Errorf("Expected 'user_a', got '%s'", results[1].Name)
+		}
+	}
+}
+
+func TestCockroachDBIntegrationLimitEdgeCaseZero(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).Limit(0).Get(&results)
+	if err != nil {
+		t.Errorf("Limit edge case (zero) failed: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results, got %d", len(results))
+	}
+}
+
+func TestCockroachDBIntegrationLimitEdgeCaseNegative(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	t.Skip("Skipping Limit edge case (negative) test - CockroachDB does not allow negative LIMIT values")
+}
+
+func TestCockroachDBIntegrationOffsetClause(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	query := db.Query()
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
+		t.Fatalf("Failed to create additional user: %v", err)
+	}
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Offset(2).Get(&results)
+	if err != nil {
+		t.Errorf("Offset clause failed: %v", err)
+	}
+	if len(results) != 4 {
+		t.Errorf("Expected 4 results, got %d", len(results))
+	}
+}
+
+func TestCockroachDBIntegrationOffsetWithLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	query := db.Query()
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
+		t.Fatalf("Failed to create additional user: %v", err)
+	}
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).OrderBy("name", "asc").Offset(2).Limit(2).Get(&results)
+	if err != nil {
+		t.Errorf("Offset with Limit failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(results))
+	}
+	if len(results) >= 2 {
+		if results[0].Name != "user_b" {
+			t.Errorf("Expected 'user_b', got '%s'", results[0].Name)
+		}
+		if results[1].Name != "user_c" {
+			t.Errorf("Expected 'user_c', got '%s'", results[1].Name)
+		}
+	}
+}
+
+func TestCockroachDBIntegrationInRandomOrderMethod(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	query := db.Query()
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
+		t.Fatalf("Failed to create additional user: %v", err)
+	}
+
+	var results1 []models.User
+	err := db.Query().Model(&models.User{}).InRandomOrder().Get(&results1)
+	if err != nil {
+		t.Errorf("InRandomOrder method failed: %v", err)
+	}
+
+	var results2 []models.User
+	err = db.Query().Model(&models.User{}).InRandomOrder().Get(&results2)
+	if err != nil {
+		t.Errorf("InRandomOrder method (second) failed: %v", err)
+	}
+
+	if len(results1) != 6 {
+		t.Errorf("Expected 6 results, got %d", len(results1))
+	}
+	if len(results2) != 6 {
+		t.Errorf("Expected 6 results, got %d", len(results2))
+	}
+}
+
+func TestCockroachDBIntegrationRandomOrderingWithLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	db := SetupCockroachDBTest(t)
+	query := db.Query()
+	common.SeedOrderLimitOffsetTestData(t, db)
+
+	if err := query.Model(&models.User{}).Create(&models.User{Name: "user_a", Avatar: "avatar0"}); err != nil {
+		t.Fatalf("Failed to create additional user: %v", err)
+	}
+
+	var results []models.User
+	err := db.Query().Model(&models.User{}).InRandomOrder().Limit(3).Get(&results)
+	if err != nil {
+		t.Errorf("Random ordering with Limit failed: %v", err)
+	}
+	if len(results) != 3 {
+		t.Errorf("Expected 3 results, got %d", len(results))
+	}
+}

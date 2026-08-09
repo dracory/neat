@@ -70,3 +70,27 @@ services:
       interval: 10s
       timeout: 5s
       retries: 15
+
+  cockroachdb:
+    image: cockroachdb/cockroach:v24.3.0
+    container_name: neat-cockroachdb-test
+    command: start-single-node --insecure --listen-addr=localhost:26257 --advertise-addr=localhost:26257
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    environment:
+      COCKROACH_DATABASE: test
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8080/health?ready=yes"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  cockroachdb-init:
+    image: cockroachdb/cockroach:v24.3.0
+    container_name: neat-cockroachdb-init
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+    command: sql --insecure --host cockroachdb:26257 -e "CREATE DATABASE IF NOT EXISTS test;"
+    restart: "no"

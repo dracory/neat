@@ -73,6 +73,16 @@ jobs:
           --health-timeout=5s
           --health-retries=15
 
+      cockroachdb:
+        image: cockroachdb/cockroach:v24.3.0
+        ports:
+          - "26257:26257"
+        options: >-
+          --health-cmd="curl -sf http://127.0.0.1:8080/health?ready=yes"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
     env:
       MYSQL_HOST: 127.0.0.1
       MYSQL_PORT: 3306
@@ -99,6 +109,12 @@ jobs:
       TIDB_DATABASE: test
       TIDB_USER: root
       TIDB_PASS: ""
+      COCKROACHDB_HOST: 127.0.0.1
+      COCKROACHDB_PORT: 26257
+      COCKROACHDB_DATABASE: test
+      COCKROACHDB_USER: root
+      COCKROACHDB_PASS: ""
+      COCKROACHDB_SSLMODE: disable
       GITHUB_ACTIONS: true
 
     steps:
@@ -214,6 +230,26 @@ jobs:
     - name: Verify TiDB connection
       run: |
         mysql -h 127.0.0.1 -P 4000 -u root -e "SELECT 1;"
+
+    - name: Wait for CockroachDB service
+      run: |
+        echo "Waiting for CockroachDB to be ready..."
+        for i in {1..30}; do
+          if curl -sf http://127.0.0.1:8080/health?ready=yes > /dev/null 2>&1; then
+            echo "CockroachDB is ready!"
+            break
+          fi
+          echo "Attempt $i: CockroachDB not ready, waiting..."
+          sleep 5
+        done
+
+    - name: Create CockroachDB test database
+      run: |
+        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host 127.0.0.1:26257 -e "CREATE DATABASE IF NOT EXISTS test;"
+
+    - name: Verify CockroachDB connection
+      run: |
+        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host 127.0.0.1:26257 -d test -e "SELECT 1;"
 
     - name: Set up Go
       uses: actions/setup-go@v6

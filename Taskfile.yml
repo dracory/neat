@@ -41,6 +41,11 @@ tasks:
     cmds:
       - go test ./integration_tests/sqlserver/... -v
 
+  test-integration-cockroachdb:
+    desc: Run CockroachDB integration tests
+    cmds:
+      - go test ./integration_tests/cockroachdb/... -v
+
   build:
     desc: Build the project
     cmds:
