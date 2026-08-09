@@ -130,6 +130,12 @@ func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
 	// Infer columns and their types
 	columns, colTypes := inferSchema(rows)
 
+	// If no columns could be inferred (e.g. [{}] or [null]), skip the table
+	// — consistent with the empty-array behavior (no schema = no table)
+	if len(columns) == 0 {
+		return nil
+	}
+
 	// Validate columns for simple identifiers and case-insensitive duplicates
 	seenColsLower := make(map[string]string) // lowerColName -> originalColName
 	for _, col := range columns {
