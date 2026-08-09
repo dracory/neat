@@ -248,13 +248,16 @@
 <li>You value minimal SQL overhead</li>
 </ul>
 <h2>Conclusion</h2>
-<p>Neat ORM and Bun represent different philosophies:</p>
-<p><strong>Neat ORM</strong>: Traditional ORM with Laravel Eloquent-like API and multi-database support. Ideal for developers who want familiar ORM abstraction and database flexibility.</p>
-<p><strong>Bun</strong>: SQL-first ORM with excellent performance and compile-time type safety. Ideal for developers who embrace SQL and need performance optimization for PostgreSQL/MySQL.</p>
-<p>The choice depends on your philosophy:
-- <strong>ORM abstraction with database flexibility</strong>: Neat ORM
-- <strong>SQL-first with performance focus</strong>: Bun</p>
-<p>Both are excellent choices but for different development styles and needs.</p>
+<p>Both Neat ORM and Bun provide excellent developer experiences for Go database operations. The key differences are:</p>
+<p><strong>Neat ORM</strong>: Feature-rich Laravel Eloquent-like API with built-in schema builder, seeders, factories, view management, array-backed sources, sugar methods, savepoints, and security hardening. Supports more databases (SQL Server, Turso). Ideal for developers who want a comprehensive ORM with modern conveniences.</p>
+<p><strong>Bun</strong>: SQL-first ORM with excellent performance, compile-time type safety, and ManyToMany support. Ideal for developers who embrace SQL and need performance optimization for PostgreSQL/MySQL.</p>
+<p>The choice depends on your priorities:
+- <strong>API style</strong>: Neat ORM offers Laravel Eloquent-like ORM abstraction; Bun is SQL-first
+- <strong>Feature breadth</strong>: Neat ORM has more built-in features (schema builder, seeders, factories, views, array-backed sources, sugar methods, security hardening, polymorphic associations, savepoints)
+- <strong>Performance</strong>: Bun has minimal overhead over raw SQL
+- <strong>Database breadth</strong>: Neat ORM supports SQL Server and Turso; Bun supports MariaDB
+- <strong>Relationship types</strong>: Bun supports ManyToMany; Neat ORM does not
+- <strong>Type safety</strong>: Bun provides compile-time type safety</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -331,6 +334,31 @@
 <tr>
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
 <td>❌</td>
 </tr>
 <tr>

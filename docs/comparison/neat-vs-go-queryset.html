@@ -246,11 +246,11 @@
 </ul>
 <h2>Conclusion</h2>
 <p>Neat ORM and go-queryset represent different API patterns:</p>
-<p><strong>Neat ORM</strong>: Laravel Eloquent-like ORM with comprehensive features and testing tools. Ideal for developers who want familiar Laravel ORM patterns with built-in migrations and factories.</p>
-<p><strong>go-queryset</strong>: Django QuerySet pattern ORM with 100% type safety. Ideal for developers familiar with Django who want compile-time type safety and query reuse patterns.</p>
+<p><strong>Neat ORM</strong>: Laravel Eloquent-like ORM with migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, views, and security hardening. Supports Turso, Oracle, and SQL Server.</p>
+<p><strong>go-queryset</strong>: Django QuerySet pattern ORM with 100% compile-time type safety via code generation and query reuse with custom methods. Ideal for developers familiar with Django.</p>
 <p>The choice depends on your background:
-- <strong>Laravel Eloquent patterns</strong>: Neat ORM
-- <strong>Django QuerySet patterns</strong>: go-queryset</p>
+- <strong>Comprehensive features with Laravel Eloquent patterns</strong>: Neat ORM
+- <strong>Compile-time type safety with Django QuerySet patterns</strong>: go-queryset</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -327,6 +327,31 @@
 <tr>
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>⚠️</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
 <td>❌</td>
 </tr>
 <tr>

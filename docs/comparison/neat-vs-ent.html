@@ -334,13 +334,16 @@
 <li>You're building a large, complex schema</li>
 </ul>
 <h2>Conclusion</h2>
-<p>Neat ORM and Ent represent different approaches to ORM development:</p>
-<p><strong>Neat ORM</strong>: Traditional runtime query builder with Laravel Eloquent-like API. Offers flexibility and quick setup without code generation. Ideal for developers who want a familiar ORM experience.</p>
-<p><strong>Ent</strong>: Code-first ORM with compile-time type safety and Facebook backing. Provides type-safe operations through code generation with excellent IDE support. Ideal for projects that value compile-time safety and type hints.</p>
-<p>The choice depends on your philosophy:
-- <strong>Runtime flexibility with simple setup</strong>: Neat ORM
-- <strong>Compile-time safety with code generation</strong>: Ent</p>
-<p>Both provide excellent developer experiences but through different approaches (runtime query builder vs code generation).</p>
+<p>Both Neat ORM and Ent provide excellent developer experiences for Go database operations. The key differences are:</p>
+<p><strong>Neat ORM</strong>: Feature-rich Laravel Eloquent-like API with built-in migrations, seeders, factories, view management, array-backed sources, sugar methods, savepoints, and security hardening. Ideal for developers who want a comprehensive ORM with modern conveniences and no code generation step.</p>
+<p><strong>Ent</strong>: Code-first ORM with compile-time type safety, code generation, and Meta backing. Supports more databases (MariaDB, TiDB, CockroachDB) and ManyToMany relationships. Ideal for projects that value compile-time safety, type hints, and IDE support.</p>
+<p>The choice depends on your priorities:
+- <strong>API familiarity</strong>: Neat ORM offers Laravel Eloquent-like API
+- <strong>Compile-time safety</strong>: Ent provides type-safe code generation with excellent IDE support
+- <strong>Feature breadth</strong>: Neat ORM has more built-in features (views, array-backed sources, sugar methods, security hardening, polymorphic associations, savepoints, seeders)
+- <strong>Database breadth</strong>: Ent supports more databases (MariaDB, TiDB, CockroachDB); Neat ORM supports Turso and full Oracle
+- <strong>Relationship types</strong>: Ent supports ManyToMany; Neat ORM does not
+- <strong>Build step</strong>: Neat ORM requires no code generation; Ent requires code generation</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -418,6 +421,31 @@
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
 <td>⚠️</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
 </tr>
 <tr>
 <td><strong>Transactions</strong></td>

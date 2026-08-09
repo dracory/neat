@@ -241,10 +241,16 @@
 </ul>
 <p><strong>Important</strong>: If starting a new project, consider Bun (the recommended successor to go-pg) instead of go-pg.</p>
 <h2>Conclusion</h2>
-<p>Neat ORM and go-pg serve different purposes:</p>
-<p><strong>Neat ORM</strong>: Multi-database ORM with Laravel Eloquent-like API and active development. Ideal for projects that need database flexibility and modern ORM features.</p>
-<p><strong>go-pg</strong>: PostgreSQL-focused ORM with deep PostgreSQL feature support but in maintenance mode. Ideal for existing PostgreSQL projects that need PostgreSQL-specific features.</p>
+<p>Both Neat ORM and go-pg provide ORM capabilities for Go, but serve different needs:</p>
+<p><strong>Neat ORM</strong>: Feature-rich multi-database ORM with Laravel Eloquent-like API, built-in migrations, seeders, factories, view management, array-backed sources, sugar methods, savepoints, and security hardening. Ideal for projects that need database flexibility and modern ORM features.</p>
+<p><strong>go-pg</strong>: PostgreSQL-focused ORM with deep PostgreSQL feature support (arrays, hstore, composite types) and ManyToMany relationships, but in maintenance mode. Ideal for existing PostgreSQL projects that need PostgreSQL-specific features.</p>
 <p><strong>Recommendation</strong>: For new projects, consider Bun (the official successor to go-pg) rather than go-pg due to its maintenance status.</p>
+<p>The choice depends on your priorities:
+- <strong>Feature breadth</strong>: Neat ORM has more built-in features (schema builder, seeders, factories, views, array-backed sources, sugar methods, security hardening, polymorphic associations, savepoints)
+- <strong>Database breadth</strong>: Neat ORM supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, and Oracle; go-pg supports PostgreSQL only
+- <strong>PostgreSQL-specific features</strong>: go-pg offers arrays, hstore, and composite types
+- <strong>Relationship types</strong>: go-pg supports ManyToMany; Neat ORM does not
+- <strong>Development status</strong>: Neat ORM is actively developed; go-pg is in maintenance mode</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -322,6 +328,31 @@
 <tr>
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
 <td>❌</td>
 </tr>
 <tr>

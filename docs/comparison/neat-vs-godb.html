@@ -246,11 +246,11 @@
 <p><strong>Important</strong>: godb explicitly states it's not a full-featured ORM and doesn't manage relationships. If you need ORM features like associations, Neat ORM is the appropriate choice.</p>
 <h2>Conclusion</h2>
 <p>Neat ORM and godb serve different purposes:</p>
-<p><strong>Neat ORM</strong>: Full-featured ORM with Laravel Eloquent-like API and complete ORM features. Ideal for developers building full applications who need a comprehensive ORM.</p>
-<p><strong>godb</strong>: Simple query builder and struct mapper without full ORM features. Ideal for developers who only need basic database operations without the overhead of a full ORM.</p>
+<p><strong>Neat ORM</strong>: Full-featured ORM with associations, migrations, seeders, factories, savepoints, observers, soft deletes, views, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, and Oracle.</p>
+<p><strong>godb</strong>: Simple, lightweight query builder and struct mapper without full ORM features. Ideal for developers who only need basic database operations without ORM overhead.</p>
 <p>The choice depends on your needs:
-- <strong>Full ORM with all features</strong>: Neat ORM
-- <strong>Simple query builder</strong>: godb</p>
+- <strong>Full ORM with comprehensive features</strong>: Neat ORM
+- <strong>Simple, lightweight query builder</strong>: godb</p>
 <p><strong>Important</strong>: godb is explicitly not a full-featured ORM. If you need standard ORM features, Neat ORM is the better choice.</p>
 <h2>References</h2>
 <ul>
@@ -327,6 +327,31 @@
 <tr>
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>⚠️</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
 <td>❌</td>
 </tr>
 <tr>

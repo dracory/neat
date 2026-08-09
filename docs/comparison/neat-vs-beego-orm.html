@@ -247,11 +247,11 @@
 </ul>
 <h2>Conclusion</h2>
 <p>Neat ORM and Beego ORM serve different purposes:</p>
-<p><strong>Neat ORM</strong>: Standalone ORM with Laravel Eloquent-like API and modern features. Ideal for developers who want a focused ORM library without framework dependencies.</p>
-<p><strong>Beego ORM</strong>: Framework ORM with Django-like API integrated into Beego framework. Ideal for developers using the Beego framework who need framework integration.</p>
+<p><strong>Neat ORM</strong>: Standalone ORM with Laravel Eloquent-like API and a broad feature set — migrations, seeders, factories, observers, soft deletes, polymorphic associations, views, array-backed sources, savepoints, and Turso/Oracle/SQL Server support. Ideal for developers who want a full-featured standalone ORM without framework dependencies.</p>
+<p><strong>Beego ORM</strong>: Framework ORM with Django-like API integrated into the Beego framework. Offers basic associations and core database support (MySQL, PostgreSQL, SQLite, partial MariaDB). Ideal for developers already using Beego who value framework integration.</p>
 <p>The choice depends on your needs:
-- <strong>Standalone ORM with Laravel-like API</strong>: Neat ORM
-- <strong>Framework ORM with Django-like API</strong>: Beego ORM</p>
+- <strong>Standalone ORM with comprehensive features and broad database support</strong>: Neat ORM
+- <strong>Framework ORM with Django-like API and Beego integration</strong>: Beego ORM</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -329,6 +329,31 @@
 <tr>
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>⚠️</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
 <td>❌</td>
 </tr>
 <tr>

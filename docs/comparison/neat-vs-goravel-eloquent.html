@@ -279,13 +279,15 @@
 <li>You're starting a new project from scratch</li>
 </ul>
 <h2>Conclusion</h2>
-<p>Neat ORM and Goravel serve different purposes:</p>
-<p><strong>Neat ORM</strong>: Standalone ORM with Laravel Eloquent-like API. Ideal for developers who want a focused ORM library they can use in any Go project without framework dependencies.</p>
-<p><strong>Goravel</strong>: Full-stack web framework with GORM ORM. Ideal for developers building complete web applications who want an all-in-one solution with auth, routing, and more.</p>
-<p>The choice depends on your project needs:
-- <strong>Standalone ORM</strong>: Neat ORM offers focused database operations with familiar Eloquent API
-- <strong>Full framework</strong>: Goravel provides complete web framework with GORM ORM and additional features</p>
-<p>Both provide excellent developer experiences but for different use cases (standalone ORM vs full-stack framework).</p>
+<p>Both Neat ORM and Goravel provide excellent developer experiences, but serve different use cases:</p>
+<p><strong>Neat ORM</strong>: Feature-rich standalone ORM with Laravel Eloquent-like API, built-in schema builder, seeders, factories, view management, array-backed sources, sugar methods, savepoints, and security hardening. Ideal for developers who want a comprehensive ORM they can use in any Go project without framework dependencies.</p>
+<p><strong>Goravel</strong>: Full-stack web framework with GORM ORM, supporting more databases (MariaDB, TiDB, ClickHouse, GaussDB) and ManyToMany relationships. Ideal for developers building complete web applications who want an all-in-one solution with auth, routing, and more.</p>
+<p>The choice depends on your priorities:
+- <strong>Standalone vs framework</strong>: Neat ORM is a standalone ORM; Goravel is a full-stack web framework
+- <strong>Feature breadth</strong>: Neat ORM has more built-in ORM features (schema builder, seeders, factories, views, array-backed sources, sugar methods, security hardening, polymorphic associations, savepoints)
+- <strong>Database breadth</strong>: Goravel supports more databases (MariaDB, TiDB, ClickHouse, GaussDB); Neat ORM supports Turso and full Oracle
+- <strong>Relationship types</strong>: Goravel supports ManyToMany; Neat ORM does not
+- <strong>Framework features</strong>: Goravel provides auth, routing, middleware, and validation</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -363,6 +365,31 @@
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
 <td>⚠️</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
 </tr>
 <tr>
 <td><strong>Transactions</strong></td>

@@ -345,12 +345,14 @@
 </ul>
 <h2>Conclusion</h2>
 <p>Both Neat ORM and GORM provide excellent developer experiences for Go database operations. The key differences are:</p>
-<p><strong>Neat ORM</strong>: Laravel Eloquent-like API with clean, focused feature set. Ideal for developers familiar with Eloquent who want a straightforward ORM in Go.</p>
-<p><strong>GORM</strong>: Mature, feature-rich ORM with large community and extensive ecosystem. Ideal for projects that need advanced features and community support.</p>
+<p><strong>Neat ORM</strong>: Feature-rich Laravel Eloquent-like API with built-in migrations, seeders, factories, view management, array-backed sources, sugar methods, and security hardening. Ideal for developers who want a comprehensive ORM with modern conveniences.</p>
+<p><strong>GORM</strong>: Mature ORM with large community, extensive ecosystem, and wide database support (including MariaDB, TiDB, ClickHouse, GaussDB). Ideal for projects that need ecosystem plugins, ManyToMany relationships, or community support.</p>
 <p>The choice depends on your priorities:
 - <strong>API familiarity</strong>: Neat ORM offers Laravel Eloquent-like API
 - <strong>Maturity and community</strong>: GORM has years of production use and large community
-- <strong>Feature needs</strong>: GORM has more advanced features and relationship types
+- <strong>Feature breadth</strong>: Neat ORM has more built-in features (views, array-backed sources, sugar methods, security hardening, polymorphic associations)
+- <strong>Database breadth</strong>: GORM supports more databases (MariaDB, TiDB, ClickHouse, GaussDB)
+- <strong>Relationship types</strong>: GORM supports ManyToMany; Neat ORM does not
 - <strong>Ecosystem needs</strong>: GORM has extensive plugins and extensions
 - <strong>Learning curve</strong>: Neat ORM may be easier for Eloquent users</p>
 <h2>References</h2>
@@ -429,6 +431,31 @@
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
 <td>⚠️</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
 </tr>
 <tr>
 <td><strong>Transactions</strong></td>

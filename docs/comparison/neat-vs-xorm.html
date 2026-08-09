@@ -247,12 +247,15 @@
 <li>You want code efficiency</li>
 </ul>
 <h2>Conclusion</h2>
-<p>Neat ORM and Xorm are both capable ORMs with different strengths:</p>
-<p><strong>Neat ORM</strong>: Laravel Eloquent-like API with modern design and built-in migrations, factories, and seeders. Ideal for developers who want a familiar ORM experience with comprehensive testing support.</p>
-<p><strong>Xorm</strong>: Simple and powerful ORM with caching, optimistic locking, and reverse engineering. Ideal for developers who need these specific features and value code efficiency.</p>
-<p>The choice depends on your specific feature needs:
-- <strong>Laravel-like API with testing tools</strong>: Neat ORM
-- <strong>Caching and optimistic locking</strong>: Xorm</p>
+<p>Both Neat ORM and Xorm are capable ORMs with different strengths:</p>
+<p><strong>Neat ORM</strong>: Feature-rich Laravel Eloquent-like API with built-in migrations, seeders, factories, view management, array-backed sources, sugar methods, savepoints, and security hardening. Ideal for developers who want a comprehensive ORM with modern conveniences.</p>
+<p><strong>Xorm</strong>: Mature ORM with caching, optimistic locking, and reverse engineering. Supports more databases (MariaDB, TiDB, CockroachDB). Ideal for developers who need these specific features and value an established codebase.</p>
+<p>The choice depends on your priorities:
+- <strong>API familiarity</strong>: Neat ORM offers Laravel Eloquent-like API
+- <strong>Feature breadth</strong>: Neat ORM has more built-in features (schema builder, migrations, seeders, factories, views, array-backed sources, sugar methods, security hardening, polymorphic associations, savepoints)
+- <strong>Database breadth</strong>: Xorm supports more databases (MariaDB, TiDB, CockroachDB); Neat ORM supports Turso and full Oracle
+- <strong>Maturity</strong>: Xorm has an established codebase with years of use
+- <strong>Specific features</strong>: Xorm offers caching, optimistic locking, and reverse engineering</p>
 <h2>References</h2>
 <ul>
 <li>Neat ORM Documentation: See <code>docs/</code> directory</li>
@@ -330,6 +333,31 @@
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
 <td>⚠️</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
 </tr>
 <tr>
 <td><strong>Transactions</strong></td>

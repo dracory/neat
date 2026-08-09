@@ -256,11 +256,11 @@
 <p><strong>Important</strong>: Zoom is Redis-based and stores data in memory. If you need SQL databases or disk-based persistence, Neat ORM is the appropriate choice.</p>
 <h2>Conclusion</h2>
 <p>Neat ORM and Zoom serve completely different purposes:</p>
-<p><strong>Neat ORM</strong>: Traditional SQL ORM with Laravel Eloquent-like API and disk-based persistence. Ideal for applications that need SQL databases, data durability, and traditional ORM features.</p>
-<p><strong>Zoom</strong>: Redis-based in-memory ORM with excellent performance. Ideal for applications that need high performance, low latency, and can use Redis for storage.</p>
+<p><strong>Neat ORM</strong>: Traditional SQL ORM with migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, views, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, and Oracle with disk-based persistence.</p>
+<p><strong>Zoom</strong>: Redis-based in-memory ORM with excellent performance and low latency. Ideal for applications that need high throughput and can use Redis for storage.</p>
 <p>The choice depends on your storage needs:
-- <strong>SQL databases with persistence</strong>: Neat ORM
-- <strong>Redis in-memory with performance</strong>: Zoom</p>
+- <strong>SQL databases with comprehensive ORM features</strong>: Neat ORM
+- <strong>Redis in-memory with high performance</strong>: Zoom</p>
 <p><strong>Important</strong>: These are fundamentally different technologies (SQL vs Redis). Choose based on your storage requirements, not just ORM features.</p>
 <h2>References</h2>
 <ul>
@@ -338,6 +338,31 @@
 <tr>
 <td><strong>Oracle Support</strong></td>
 <td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>MariaDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>TiDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CockroachDB Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>ClickHouse Support</strong></td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>GaussDB Support</strong></td>
+<td>❌</td>
 <td>❌</td>
 </tr>
 <tr>
