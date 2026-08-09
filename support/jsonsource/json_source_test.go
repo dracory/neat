@@ -1,9 +1,11 @@
 package jsonsource
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -290,48 +292,48 @@ func TestNewJsonFileSource_PanicsOnInvalidJSON(t *testing.T) {
 // --- Internal function tests ---
 
 func TestNormalizeValue(t *testing.T) {
-	if v := normalizeValue("hello"); v != "hello" {
-		t.Errorf("normalizeValue(string) = %v, want 'hello'", v)
+	if v := NormalizeValue("hello"); v != "hello" {
+		t.Errorf("NormalizeValue(string) = %v, want 'hello'", v)
 	}
-	if v, ok := normalizeValue("2024-01-15T10:30:00Z").(time.Time); !ok {
-		t.Errorf("normalizeValue(RFC3339) expected time.Time, got %T", v)
+	if v, ok := NormalizeValue("2024-01-15T10:30:00Z").(time.Time); !ok {
+		t.Errorf("NormalizeValue(RFC3339) expected time.Time, got %T", v)
 	}
-	if v := normalizeValue("just text"); v != "just text" {
-		t.Errorf("normalizeValue(plain string) = %v, want 'just text'", v)
+	if v := NormalizeValue("just text"); v != "just text" {
+		t.Errorf("NormalizeValue(plain string) = %v, want 'just text'", v)
 	}
-	if v := normalizeValue(float64(42)); v != int64(42) {
-		t.Errorf("normalizeValue(float64(42)) = %v (%T), want int64(42)", v, v)
+	if v := NormalizeValue(float64(42)); v != int64(42) {
+		t.Errorf("NormalizeValue(float64(42)) = %v (%T), want int64(42)", v, v)
 	}
-	if v := normalizeValue(float64(19.99)); v != float64(19.99) {
-		t.Errorf("normalizeValue(float64(19.99)) = %v (%T), want float64(19.99)", v, v)
+	if v := NormalizeValue(float64(19.99)); v != float64(19.99) {
+		t.Errorf("NormalizeValue(float64(19.99)) = %v (%T), want float64(19.99)", v, v)
 	}
-	if v := normalizeValue(true); v != true {
-		t.Errorf("normalizeValue(bool) = %v, want true", v)
+	if v := NormalizeValue(true); v != true {
+		t.Errorf("NormalizeValue(bool) = %v, want true", v)
 	}
-	if v := normalizeValue(nil); v != nil {
-		t.Errorf("normalizeValue(nil) = %v, want nil", v)
+	if v := NormalizeValue(nil); v != nil {
+		t.Errorf("NormalizeValue(nil) = %v, want nil", v)
 	}
 
 	m := map[string]any{"city": "NYC"}
-	v := normalizeValue(m)
+	v := NormalizeValue(m)
 	s, ok := v.(string)
 	if !ok {
-		t.Fatalf("normalizeValue(map) expected string, got %T", v)
+		t.Fatalf("NormalizeValue(map) expected string, got %T", v)
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(s), &parsed); err != nil {
-		t.Errorf("normalizeValue(map) produced invalid JSON: %v", err)
+		t.Errorf("NormalizeValue(map) produced invalid JSON: %v", err)
 	}
 
 	arr := []any{"red", "blue"}
-	v = normalizeValue(arr)
+	v = NormalizeValue(arr)
 	s, ok = v.(string)
 	if !ok {
-		t.Fatalf("normalizeValue(slice) expected string, got %T", v)
+		t.Fatalf("NormalizeValue(slice) expected string, got %T", v)
 	}
 	var parsedArr []any
 	if err := json.Unmarshal([]byte(s), &parsedArr); err != nil {
-		t.Errorf("normalizeValue(slice) produced invalid JSON: %v", err)
+		t.Errorf("NormalizeValue(slice) produced invalid JSON: %v", err)
 	}
 }
 
@@ -347,9 +349,9 @@ func TestDeriveTableName_JSON(t *testing.T) {
 		{"events.ndjson", "events"},
 	}
 	for _, tt := range tests {
-		got := deriveTableName(tt.path)
+		got := DeriveTableName(tt.path)
 		if got != tt.want {
-			t.Errorf("deriveTableName(%q) = %q, want %q", tt.path, got, tt.want)
+			t.Errorf("DeriveTableName(%q) = %q, want %q", tt.path, got, tt.want)
 		}
 	}
 }
@@ -367,9 +369,45 @@ func TestIsJSONLFile(t *testing.T) {
 		{"data.csv", false},
 	}
 	for _, tt := range tests {
-		got := isJSONLFile(tt.path)
+		got := IsJSONLFile(tt.path)
 		if got != tt.want {
-			t.Errorf("isJSONLFile(%q) = %v, want %v", tt.path, got, tt.want)
+			t.Errorf("IsJSONLFile(%q) = %v, want %v", tt.path, got, tt.want)
 		}
+	}
+}
+
+// Test MaxJSONRows limit enforcement in ParseJSONArrayReader and ParseJSONLReader
+func TestParseJSON_MaxJSONRowsLimit(t *testing.T) {
+	// Create a JSON array with MaxJSONRows + 1 rows
+	var buf bytes.Buffer
+	buf.WriteString("[")
+	for i := 0; i <= MaxJSONRows; i++ {
+		if i > 0 {
+			buf.WriteString(",")
+		}
+		buf.WriteString(`{"id": 1}`)
+	}
+	buf.WriteString("]")
+
+	_, err := ParseJSONArrayReader(&buf)
+	if err == nil {
+		t.Fatal("Expected error for exceeding MaxJSONRows in ParseJSONArrayReader, got nil")
+	}
+	if !strings.Contains(err.Error(), "exceeds the limit") {
+		t.Errorf("Expected limit error message, got: %v", err)
+	}
+
+	// Create a JSONL with MaxJSONRows + 1 rows
+	var buf2 bytes.Buffer
+	for i := 0; i <= MaxJSONRows; i++ {
+		buf2.WriteString(`{"id": 1}` + "\n")
+	}
+
+	_, err = ParseJSONLReader(&buf2)
+	if err == nil {
+		t.Fatal("Expected error for exceeding MaxJSONRows in ParseJSONLReader, got nil")
+	}
+	if !strings.Contains(err.Error(), "exceeds the limit") {
+		t.Errorf("Expected limit error message, got: %v", err)
 	}
 }

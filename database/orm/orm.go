@@ -267,7 +267,7 @@ func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName string, conne
 // readers alongside the single writer.
 // Remote Turso (libsql://) supports concurrent connections via HTTP.
 func configureConnectionPool(ctx context.Context, sqlDB *sql.DB, connConfig *db.ConnectionConfig, dbConfig *db.DBConfig) {
-	pinSingleConn := connConfig.Driver == "sqlite" || connConfig.Driver == "array" || connConfig.Driver == "csvdb"
+	pinSingleConn := connConfig.Driver == "sqlite" || connConfig.Driver == "array" || connConfig.Driver == "csvdb" || connConfig.Driver == "jsondb"
 	if connConfig.Driver == "turso" {
 		pinSingleConn = strings.HasPrefix(connConfig.Dsn, "file:") || strings.HasPrefix(connConfig.Database, "file:")
 	}
@@ -311,6 +311,8 @@ func createDriver(driverName string) driver.Driver {
 		return driver.NewArray()
 	case "csvdb":
 		return driver.NewCSVDB()
+	case "jsondb":
+		return driver.NewJSONDB()
 	default:
 		return driver.NewMySQL() // Default to MySQL
 	}
