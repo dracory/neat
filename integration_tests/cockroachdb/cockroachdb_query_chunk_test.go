@@ -12,6 +12,7 @@ func TestCockroachDBIntegrationChunkBasic(t *testing.T) {
 	}
 
 	db := SetupCockroachDBTest(t)
+	common.SeedChunkTestData(t, db)
 	common.TestChunkBasic(t, db)
 }
 
@@ -21,6 +22,7 @@ func TestCockroachDBIntegrationChunkCustomBatchSize(t *testing.T) {
 	}
 
 	db := SetupCockroachDBTest(t)
+	common.SeedChunkTestData(t, db)
 	common.TestChunkCustomBatchSize(t, db)
 }
 
@@ -30,5 +32,6 @@ func TestCockroachDBIntegrationChunkErrorHandling(t *testing.T) {
 	}
 
 	db := SetupCockroachDBTest(t)
+	common.SeedChunkTestData(t, db)
 	common.TestChunkErrorHandling(t, db)
 }

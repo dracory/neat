@@ -74,14 +74,12 @@ services:
   cockroachdb:
     image: cockroachdb/cockroach:v24.3.0
     container_name: neat-cockroachdb-test
-    command: start-single-node --insecure --listen-addr=localhost:26257 --advertise-addr=localhost:26257
+    command: start-single-node --insecure
     ports:
       - "26257:26257"
       - "8080:8080"
-    environment:
-      COCKROACH_DATABASE: test
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8080/health?ready=yes"]
+      test: ["CMD-SHELL", "cockroach sql --insecure --host=127.0.0.1:26257 -e 'SELECT 1'"]
       interval: 5s
       timeout: 5s
       retries: 15
