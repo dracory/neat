@@ -1,13 +1,15 @@
-# Flat-File Driver
+# Flat-File Source Adapters
 
-**Date**: June 24, 2026
+**Date**: August 9, 2026 (revised from June 24, 2026)
 **Status**: Proposal
 **Priority**: Medium
 **Supersedes**: `csv-driver.md`, `json-driver.md`
+**Revisions**:
+- **v2 (2026-08-09)**: Replaced the standalone `flatfile` driver design with array-source adapters. The array source helper (`NewArraySourceFrom`, completed 2026-08-08) and the existing array driver now provide all SQLite orchestration. This revision deletes ~250 lines of duplicated driver logic, 10 integration points, and a new driver registration. The only array-driver change required is adding an optional `ArrayPrimaryKey` interface.
 
 ## Problem Statement
 
-The array driver allows querying in-memory data via SQLite, but it requires the user to manually define `Rows()` as `[]map[string]any`. There is no built-in way to query flat-file data formats — CSV, JSON, JSONL/NDJSON, YAML, or Markdown with frontmatter — without first parsing and converting them into Go data structures.
+The array driver allows querying in-memory data via SQLite, but it requires the user to supply `Rows()` as `[]map[string]any`. The `NewArraySourceFrom` helper (completed 2026-08-08) eliminated boilerplate for **Go structs and map literals**, but there is still no built-in way to query flat-file data formats — CSV, JSON, JSONL/NDJSON, YAML, or Markdown with frontmatter — without first parsing and converting them into Go data structures.
 
 Users who have flat-file data (exports, config, test fixtures, datasets, content files) must write boilerplate parsing code before they can use the ORM's query builder.
 
@@ -19,7 +21,7 @@ Users who have flat-file data (exports, config, test fixtures, datasets, content
 - No directory-based mode (one file per record, like Orbit and Laravel Paper)
 - No file-metadata timestamps (e.g., file mtime as `updated_at`)
 - No soft delete support for file-backed records
-- No primary key declaration for file-backed tables
+- No primary key declaration for file-backed tables (the array driver itself has no PK support)
 - No custom column names for headerless files
 - No header/schema validation to detect drift
 - No streaming for large files
@@ -31,7 +33,7 @@ config := neat.DBConfig{
     Default: "ff_db",
     Connections: map[string]neat.ConnectionConfig{
         "ff_db": {
-            Driver: "flatfile",
+            Driver: "array", // flat-file sources run on the array driver
         },
     },
 }
@@ -42,7 +44,7 @@ defer database.Close()
 // Query a CSV file directly
 var users []User
 err := database.Query().
-    Model(&UserSource{FilePath: "data/users.csv"}).
+    Model(flatfile.NewFromCSV("data/users.csv", "users")).
     Where("country = ?", "US").
     OrderBy("name", "asc").
     Get(&users)
@@ -50,14 +52,18 @@ err := database.Query().
 // Query a JSON file directly
 var products []Product
 err = database.Query().
-    Model(&ProductSource{FilePath: "data/products.json"}).
+    Model(flatfile.NewFromJSON("data/products.json", "products")).
     Where("price > ?", 50).
     Get(&products)
 
 // Query a directory of JSON files (one file per record)
 var posts []Post
 err = database.Query().
-    Model(&PostSource{FilePath: "content/posts"}).
+    Model(flatfile.NewFromDirectory("content/posts", "posts",
+        flatfile.WithPrimaryKey("slug"),
+        flatfile.WithTimestamps(),
+        flatfile.WithSoftDeletes(),
+    )).
     Where("published = ?", true).
     OrderBy("updated_at", "desc").
     Get(&posts)
@@ -65,9 +71,28 @@ err = database.Query().
 
 ## Proposed Solution
 
-Implement a single `flatfile` driver that mirrors the array driver architecture: it uses an in-memory SQLite database under the hood. Instead of requiring `Rows()` from the user, it reads and parses flat files at populate time using **pluggable format parsers**.
+Implement flat-file support as **`ArraySource` adapters** in a new `support/flatfile` package, plus a small extension to the array driver for primary key support.
 
-The driver handles all shared concerns (directory mode, timestamps, soft deletes, primary key, schema inference, batched inserts, concurrency). Format-specific parsing is delegated to `FileParser` implementations — built-in parsers for CSV and JSON, with extensibility for YAML, Markdown, and custom formats.
+The existing array driver already handles every shared concern: SQLite embedding, schema inference, type widening, batched inserts, concurrency via `sync.Map`, cleanup, and all 10 ORM integration points (driver registration, DSN, config validation, placeholders, the `Model()` hook, connection pool config, PRAGMAs, `Close()` cleanup, `detectDatabaseName`). Flat-file sources reuse all of it by implementing `ArraySource`.
+
+What this proposal adds:
+1. **`ArrayPrimaryKey`** — one optional interface on the array driver's contracts, plus a small `createTable` change to honor it. Benefits both array and flat-file sources.
+2. **`flatfile.Source`** — an `ArraySource` implementation that reads files via pluggable parsers. Handles directory mode, file-metadata timestamps, soft deletes, and primary key value injection inside `Rows()`.
+3. **`FileParser` interface + registry** — format-specific parsing (CSV, JSON, JSONL) with auto-detection from file extension. Extensible to YAML, Markdown, TOML without touching the array driver.
+4. **Constructor helpers** — `NewFromCSV`, `NewFromJSON`, `NewFromDirectory` for ergonomic one-liner usage.
+
+What this proposal does **not** add (inherited from the array driver):
+- A new driver registration
+- A new dialect
+- DSN builder cases
+- Config validation cases
+- Placeholder func entries
+- Connection pool configuration
+- SQLite PRAGMA optimizations
+- `detectDatabaseName` cases
+- `Model()` hook changes
+- `Close()` cleanup changes
+- Schema inference, type widening, batched inserts, concurrency, cleanup
 
 ### Architecture
 
@@ -75,27 +100,39 @@ The driver handles all shared concerns (directory mode, timestamps, soft deletes
 contracts/
   database/
     orm/
-      flatfile_source.go       // FlatFileSource, FlatFileSchema, FlatFileDir,
-                               // FlatFilePrimaryKey, FlatFileTimestamps,
-                               // FlatFileSoftDeletes, FlatFileOptions,
-                               // FlatFileConfig, FlatFilePopulator,
-                               // FileParser, FileParserRegistry
+      array_source.go          // ADD: ArrayPrimaryKey interface (one method)
 
 database/
   driver/
-    flatfile.go                // FlatFile driver (embeds *SQLite, orchestrates)
-    flatfile_csv.go            // CSV parser (implements FileParser)
-    flatfile_json.go           // JSON parser (implements FileParser)
-    flatfile_test.go           // Driver unit tests
-    flatfile_csv_test.go       // CSV parser tests
-    flatfile_json_test.go      // JSON parser tests
-  flatfile_integration_test.go // Integration test via Database.Query()
+    array.go                   // MODIFY: createTable honors ArrayPrimaryKey
+    array_test.go              // ADD: primary key constraint tests
+
+support/
+  flatfile/
+    source.go                  // Source struct (implements ArraySource + ArraySchema + ArrayPrimaryKey)
+    source_test.go
+    options.go                 // Option functions (WithTimestamps, WithSoftDeletes, etc.)
+    options_test.go
+    csv_parser.go              // CSV parser (implements FileParser)
+    csv_parser_test.go
+    json_parser.go             // JSON / JSONL parser (implements FileParser)
+    json_parser_test.go
+    parser_registry.go         // FileParserRegistry
+    parser_registry_test.go
+    constructors.go            // NewFromCSV, NewFromJSON, NewFromDirectory
+    constructors_test.go
+    directory.go               // directory-mode reading helper
+    directory_test.go
+    timestamps.go              // file mtime/ctime helper
+    timestamps_test.go
+    flatten.go                 // JSON nested-object flattening helper
+    flatten_test.go
 
 examples/
-  flatfile-driver/
+  flatfile-sources/
     main.go                    // Example usage (CSV, JSON, directory mode)
-    main_test.go               // Example test
-    README.md                  // Documentation
+    main_test.go
+    README.md
     data/
       users.csv                // Sample CSV (single-file mode)
       products.json            // Sample JSON (single-file mode)
@@ -105,139 +142,306 @@ examples/
         my-second-post.json
 ```
 
-### Interface Design
+No files are added under `database/driver/` for flat-file logic. The `database/driver/array.go` file receives one small modification (primary key support). All flat-file code lives under `support/flatfile/`, mirroring the existing `support/arraysource/` pattern.
+
+## Array Driver Extension: Primary Key
+
+The array driver's `createTable` currently emits columns without any `PRIMARY KEY` constraint. This proposal adds one optional interface to the array contracts and a small change to `createTable` to honor it.
+
+### Contract Addition
 
 ```go
-// contracts/database/orm/flatfile_source.go
+// contracts/database/orm/array_source.go (addition)
 
-package orm
-
-import (
-    "context"
-    "database/sql"
-    "io"
-)
-
-// ----------------------------------------------------------------------------
-// Source Interfaces (implemented by user models)
-// ----------------------------------------------------------------------------
-
-// FlatFileSource is implemented by any model that wants flat-file-backed storage.
-// The driver detects the format from the file extension (or via FlatFileOptions)
-// and delegates parsing to the appropriate FileParser.
+// ArrayPrimaryKey is an optional interface for sources that want a PRIMARY KEY
+// constraint on a column. The driver appends "PRIMARY KEY" to the declared
+// column's definition when creating the SQLite table.
 //
-// In single-file mode, FilePath() points to a data file.
-// In directory mode (when FlatFileDir is implemented), FilePath() points to
-// a directory containing one file per record.
-type FlatFileSource interface {
-    TableName() string
-    FilePath() string
-}
-
-// FlatFileDir is an optional interface that enables directory mode.
-// Instead of reading a single file with all rows, the driver reads all
-// files matching the configured extension in the specified directory.
-// Each file is one record. The filename (without extension) is used as
-// the primary key column value.
-//
-// This is similar to Orbit's file-per-record approach and Laravel Paper's
-// slug-as-filename pattern.
-type FlatFileDir interface {
-    IsDirectory() bool // if true, FilePath() points to a directory
-}
-
-// FlatFileSchema is an optional interface for specifying column types explicitly.
-// If not implemented, the driver infers types from the parsed data.
-type FlatFileSchema interface {
-    Schema() map[string]string // column -> type ("string", "int", "float", "bool", "time")
-}
-
-// FlatFileColumns is an optional interface for providing custom column names.
-// For CSV: used when HasHeader is false (overrides generated col_N names).
-// For JSON: overrides JSON keys as column names.
-// For directory mode: provides names for flattened nested fields.
-type FlatFileColumns interface {
-    Columns() []string // custom column names
-}
-
-// FlatFilePrimaryKey is an optional interface for declaring a primary key column.
-// The driver adds a PRIMARY KEY constraint to the declared column when
-// creating the SQLite table.
-//
-// In directory mode, the filename (without extension) is automatically
-// inserted as the value for this column. For example, a file named
-// "hello-world.json" with PrimaryKey() = "slug" produces slug = "hello-world".
-type FlatFilePrimaryKey interface {
+// This benefits both array sources (e.g., NewArraySourceFrom with a struct
+// whose ID field should be the PK) and flat-file sources (e.g., directory
+// mode where the filename becomes the PK value).
+type ArrayPrimaryKey interface {
     PrimaryKey() string // column name to mark as PRIMARY KEY
 }
+```
 
-// FlatFileTimestamps is an optional interface that enables file-metadata
-// timestamps. When enabled, the driver adds two columns:
-//   - created_at: set to the file's creation time (or mtime if ctime unavailable)
-//   - updated_at: set to the file's modification time (mtime)
+### Driver Modification
+
+```go
+// database/driver/array.go — createTable (modified)
+
+func (a *Array) createTable(ctx context.Context, db *sql.DB, tableName string, schema map[string]string, sortedCols []string, pkCol string) error {
+    var columns []string
+
+    for _, col := range sortedCols {
+        sqlType := schema[col]
+        // ... existing type conversion switch unchanged ...
+        colDef := fmt.Sprintf("\"%s\" %s", col, sqlType)
+        if col == pkCol && pkCol != "" {
+            colDef += " PRIMARY KEY"
+        }
+        columns = append(columns, colDef)
+    }
+
+    sql := fmt.Sprintf("CREATE TABLE IF NOT EXISTS \"%s\" (%s)", tableName, strings.Join(columns, ", "))
+    _, err := db.ExecContext(ctx, sql)
+    return err
+}
+```
+
+The `Populate` method passes the primary key column name (if the source implements `ArrayPrimaryKey`) to `createTable`:
+
+```go
+// database/driver/array.go — Populate (addition near line 76)
+
+var pkCol string
+if pks, ok := source.(contractsorm.ArrayPrimaryKey); ok {
+    pkCol = pks.PrimaryKey()
+    if pkCol != "" && !a.isSimpleIdentifier(pkCol) {
+        return fmt.Errorf("invalid primary key column name: %s", pkCol)
+    }
+    if pkCol != "" {
+        if _, ok := schema[pkCol]; !ok {
+            return fmt.Errorf("primary key column %q not found in schema", pkCol)
+        }
+    }
+}
+
+// ... later:
+if err := a.createTable(ctx, db, tableName, schema, sortedCols, pkCol); err != nil {
+    return fmt.Errorf("failed to create table %s: %w", tableName, err)
+}
+```
+
+This is a backward-compatible change: existing array sources don't implement `ArrayPrimaryKey`, so `pkCol` is empty and `createTable` behaves exactly as before.
+
+## Flat-File Source Adapter
+
+### Source Struct
+
+```go
+// support/flatfile/source.go
+
+package flatfile
+
+import (
+    "os"
+    "path/filepath"
+    "strings"
+
+    contractsorm "github.com/dracory/neat/contracts/database/orm"
+)
+
+// Source implements contractsorm.ArraySource, ArraySchema, and ArrayPrimaryKey.
+// It reads flat file(s) via a FileParser and returns []map[string]any from Rows().
 //
-// These values come from the filesystem, not from the file content.
-// This is similar to Laravel Paper's #[Timestamps] attribute.
+// Use the constructor helpers (NewFromCSV, NewFromJSON, NewFromDirectory) instead
+// of constructing Source directly.
+type Source struct {
+    table      string
+    filePath   string
+    isDir      bool
+    parser     FileParser
+    config     Config
+    schema     map[string]string // optional explicit schema (nil = infer)
+    pkCol      string            // primary key column ("" = none)
+    timestamps bool              // add created_at/updated_at from file metadata
+    softDeletes bool             // respect deleted_at field
+    columns    []string          // custom column names (headerless CSV, etc.)
+}
+
+// TableName returns the SQLite table name.
+func (s *Source) TableName() string { return s.table }
+
+// Rows reads and parses the file(s), applies directory mode, timestamps,
+// soft deletes, and primary key injection, then returns the rows.
+// The array driver handles schema inference, table creation, and insertion.
+func (s *Source) Rows() ([]map[string]any, error) {
+    if s.isDir {
+        return s.readDirectory()
+    }
+    return s.readSingleFile()
+}
+
+// Schema returns an explicit schema if set, satisfying ArraySchema.
+// Returns nil if not set, letting the array driver infer from rows.
+func (s *Source) Schema() map[string]string { return s.schema }
+
+// PrimaryKey returns the primary key column name, satisfying ArrayPrimaryKey.
+// Returns "" if no primary key is declared.
+func (s *Source) PrimaryKey() string { return s.pkCol }
+```
+
+### Reading a Single File
+
+```go
+// support/flatfile/source.go (continued)
+
+func (s *Source) readSingleFile() ([]map[string]any, error) {
+    f, err := os.Open(s.filePath)
+    if err != nil {
+        return nil, fmt.Errorf("flatfile: cannot open %s: %w", s.filePath, err)
+    }
+    defer f.Close()
+
+    rows, err := s.parser.ParseFile(f, s.config)
+    if err != nil {
+        return nil, fmt.Errorf("flatfile: parse error in %s: %w", s.filePath, err)
+    }
+
+    if s.timestamps {
+        stat, err := os.Stat(s.filePath)
+        if err != nil {
+            return nil, fmt.Errorf("flatfile: cannot stat %s: %w", s.filePath, err)
+        }
+        applyTimestamps(rows, stat)
+    }
+
+    if s.softDeletes {
+        rows = filterSoftDeleted(rows)
+    }
+
+    return rows, nil
+}
+```
+
+### Reading a Directory (One File Per Record)
+
+```go
+// support/flatfile/directory.go
+
+// readDirectory reads all files matching the configured extension in the
+// directory. Each file is one record. The filename (without extension) is
+// inserted as the primary key column value.
 //
-// In directory mode, each record gets its own timestamps from its individual file.
-// In single-file mode, all rows share the same timestamp (the file's mtime).
-type FlatFileTimestamps interface {
-    Timestamps() bool // if true, add created_at and updated_at from file metadata
+// This mirrors Orbit's file-per-record approach and Laravel Paper's
+// slug-as-filename pattern:
+//   content/posts/hello-world.json → slug = "hello-world"
+func (s *Source) readDirectory() ([]map[string]any, error) {
+    entries, err := os.ReadDir(s.filePath)
+    if err != nil {
+        return nil, fmt.Errorf("flatfile: cannot read directory %s: %w", s.filePath, err)
+    }
+
+    ext := s.config.FileExtension
+    if ext == "" {
+        // auto-detect from first matching file, or default to parser's extensions
+        ext = s.parser.Extensions()[0]
+    }
+
+    var rows []map[string]any
+    for _, entry := range entries {
+        if entry.IsDir() {
+            continue // skip subdirectories
+        }
+        if !strings.HasSuffix(entry.Name(), ext) {
+            continue
+        }
+
+        fullPath := filepath.Join(s.filePath, entry.Name())
+        f, err := os.Open(fullPath)
+        if err != nil {
+            return nil, fmt.Errorf("flatfile: cannot open %s: %w", fullPath, err)
+        }
+
+        records, err := s.parser.ParseFile(f, s.config)
+        f.Close()
+        if err != nil {
+            return nil, fmt.Errorf("flatfile: parse error in %s: %w", fullPath, err)
+        }
+
+        // Each file is one record. If the parser returns multiple rows,
+        // use only the first (or error — see Design Decisions).
+        if len(records) == 0 {
+            continue
+        }
+        row := records[0]
+
+        // Inject filename as primary key value
+        if s.pkCol != "" {
+            base := strings.TrimSuffix(entry.Name(), ext)
+            row[s.pkCol] = base
+        }
+
+        if s.timestamps {
+            stat, err := os.Stat(fullPath)
+            if err != nil {
+                return nil, fmt.Errorf("flatfile: cannot stat %s: %w", fullPath, err)
+            }
+            applyTimestamps([]map[string]any{row}, stat)
+        }
+
+        if s.softDeletes && isSoftDeleted(row) {
+            continue
+        }
+
+        rows = append(rows, row)
+    }
+
+    return rows, nil
+}
+```
+
+### Timestamps and Soft Deletes Helpers
+
+```go
+// support/flatfile/timestamps.go
+
+// applyTimestamps adds created_at and updated_at to each row from file metadata.
+// updated_at = mtime, created_at = ctime (falls back to mtime on platforms
+// where ctime is unavailable).
+func applyTimestamps(rows []map[string]any, stat os.FileInfo) {
+    mtime := stat.ModTime()
+    // ctime is platform-dependent; on most Unix systems stat.Sys() exposes it.
+    // For portability, fall back to mtime if ctime cannot be determined.
+    ctime := fileCreationTime(stat) // returns mtime if ctime unavailable
+    for _, row := range rows {
+        row["created_at"] = ctime
+        row["updated_at"] = mtime
+    }
 }
 
-// FlatFileSoftDeletes is an optional interface that enables soft delete
-// support. When enabled, the driver checks for a "deleted_at" field/column
-// in the parsed data. If present and non-null/non-empty, the record is
-// considered soft-deleted and excluded from query results by default.
+// filterSoftDeleted removes rows where deleted_at is non-null and non-empty.
+// Soft-deleted rows are excluded from the SQLite table entirely.
 //
-// This is similar to Orbit's SoftDeletes trait.
-type FlatFileSoftDeletes interface {
-    SoftDeletes() bool // if true, respect deleted_at for soft deletion
+// Note: this is a simpler model than the ORM's soft-delete infrastructure
+// (which loads rows and filters via WHERE). For flat files, excluding at
+// parse time is cleaner — the file is the source of truth. Users who want
+// to query soft-deleted records can construct a second Source without
+// WithSoftDeletes().
+func filterSoftDeleted(rows []map[string]any) []map[string]any {
+    out := rows[:0]
+    for _, row := range rows {
+        if !isSoftDeleted(row) {
+            out = append(out, row)
+        }
+    }
+    return out
 }
 
-// FlatFileOptions is an optional interface for customizing parsing behavior.
-// The returned FlatFileConfig applies to both the driver and the format parser.
-type FlatFileOptions interface {
-    Options() FlatFileConfig
+func isSoftDeleted(row map[string]any) bool {
+    v, ok := row["deleted_at"]
+    if !ok || v == nil {
+        return false
+    }
+    if s, ok := v.(string); ok && s == "" {
+        return false
+    }
+    return true
 }
+```
 
-// FlatFileConfig holds shared and format-specific parsing configuration.
-// Format-specific fields are used only by the relevant parser.
-type FlatFileConfig struct {
-    // Shared
-    FileExtension string // File extension for directory mode (default: auto-detect from FilePath)
+## FileParser Interface and Registry
 
-    // CSV-specific
-    Comma         rune   // Field delimiter (default: ',')
-    Comment       rune   // Comment character (default: 0 = no comments)
-    HasHeader     bool   // Whether the first row is a header (default: true)
-    SkipRows      int    // Number of rows to skip before header/data (default: 0)
-    NullIf        string // Treat this string as NULL (default: "")
-    TrimSpace     bool   // Trim leading/trailing whitespace from fields (default: false)
-    LazyQuotes    bool   // Allow quotes to appear in unquoted fields and vice versa (default: false)
-
-    // JSON-specific
-    RootPath      string // Dot-separated path to row array in nested JSON (e.g., "data.users")
-    IsJSONL       bool   // Parse as JSONL/NDJSON (one object per line)
-    Flatten       bool   // Flatten nested objects with dot notation
-    FlattenDepth  int    // Max nesting depth for flattening (0 = unlimited; default: 3)
-    NullIfMissing bool   // Treat missing keys as NULL (default: false, missing keys default to zero value)
-    TrimStrings   bool   // Trim leading/trailing whitespace from string values (default: false)
-
-    // Header validation (CSV)
-    ExpectedHeaders []string // Headers the file must contain (CSV only)
-    StrictHeaders   bool     // If true, error if headers don't match exactly (CSV only)
-}
-
-// ----------------------------------------------------------------------------
-// Parser Interface (implemented by format-specific parsers)
-// ----------------------------------------------------------------------------
+```go
+// support/flatfile/source.go (interface declarations)
 
 // FileParser is implemented by each format parser (CSV, JSON, YAML, etc.).
-// The driver calls these methods to read data from files.
+// A parser reads a file and returns rows as []map[string]any with Go-native
+// types (int, float64, bool, string, time.Time, nil, nested maps/slices).
 //
-// Parsers are registered via FileParserRegistry and selected based on file
-// extension or explicit configuration.
+// In single-file mode, ParseFile is called once for the entire file.
+// In directory mode, ParseFile is called once per file (each file = one record).
 type FileParser interface {
     // Format returns the parser's format name (e.g., "csv", "json", "yaml").
     Format() string
@@ -245,156 +449,134 @@ type FileParser interface {
     // Extensions returns the file extensions this parser handles (e.g., [".csv", ".tsv"]).
     Extensions() []string
 
-    // ParseFile reads a single file and returns all rows.
-    // Each row is a map[string]any where keys are column names and values are
-    // Go-native types (int, float64, bool, string, time.Time, nil, or nested maps/slices).
-    //
+    // ParseFile reads from reader and returns rows.
     // config provides format-specific options.
-    // In directory mode, this is called once per file (each file = one record).
-    // In single-file mode, this is called once for the entire file.
-    ParseFile(reader io.Reader, config FlatFileConfig) ([]map[string]any, error)
+    ParseFile(reader io.Reader, config Config) ([]map[string]any, error)
 }
 
 // FileParserRegistry manages available format parsers.
-// Parsers are registered at init time or via RegisterParser().
-type FileParserRegistry interface {
-    Register(parser FileParser)
-    Get(format string) (FileParser, bool)
-    GetByExtension(ext string) (FileParser, bool)
-    Formats() []string
+type FileParserRegistry struct {
+    parsers      map[string]FileParser   // by format name
+    byExtension  map[string]FileParser   // by extension
 }
 
-// ----------------------------------------------------------------------------
-// Populator Interface (implemented by the driver)
-// ----------------------------------------------------------------------------
-
-// FlatFilePopulator is implemented by the flatfile driver.
-type FlatFilePopulator interface {
-    Populate(ctx context.Context, db *sql.DB, source FlatFileSource) error
-}
+func NewParserRegistry() *FileParserRegistry { ... }
+func (r *FileParserRegistry) Register(parser FileParser) { ... }
+func (r *FileParserRegistry) Get(format string) (FileParser, bool) { ... }
+func (r *FileParserRegistry) GetByExtension(ext string) (FileParser, bool) { ... }
+func (r *FileParserRegistry) Formats() []string { ... }
 ```
 
-### Driver Implementation
+### Config
 
 ```go
-// database/driver/flatfile.go
+// support/flatfile/options.go
 
-package driver
+// Config holds shared and format-specific parsing configuration.
+// Format-specific fields are used only by the relevant parser.
+type Config struct {
+    // Shared
+    FileExtension string // File extension for directory mode (default: auto-detect)
 
-import (
-    "context"
-    "database/sql"
-    "fmt"
-    "os"
-    "path/filepath"
-    "sort"
-    "strings"
-    "sync"
+    // CSV-specific
+    Comma         rune
+    Comment       rune
+    HasHeader     bool   // default: true
+    SkipRows      int
+    NullIf        string
+    TrimSpace     bool
+    LazyQuotes    bool
+    ExpectedHeaders []string
+    StrictHeaders   bool
 
-    contractsorm "github.com/dracory/neat/contracts/database/orm"
-)
-
-// FlatFile implements the Driver interface for flat-file-backed storage using SQLite.
-// It delegates format-specific parsing to FileParser implementations.
-type FlatFile struct {
-    *SQLite
-    populated sync.Map // map[string]bool, key is "dbPointer-tableName"
-    locks     sync.Map // map[string]*sync.Mutex, key is "dbPointer-tableName"
-    locksMu   sync.Mutex
-    parsers   FileParserRegistry
+    // JSON-specific
+    RootPath      string // dot-separated path to row array (e.g., "data.users")
+    IsJSONL       bool
+    Flatten       bool
+    FlattenDepth  int    // 0 = unlimited; default: 3
+    NullIfMissing bool
+    TrimStrings   bool
 }
 
-// NewFlatFile creates a new FlatFile driver with built-in CSV and JSON parsers.
-func NewFlatFile() *FlatFile {
-    registry := NewParserRegistry()
-    registry.Register(&csvParser{})
-    registry.Register(&jsonParser{})
-    return &FlatFile{
-        SQLite:  NewSQLite(),
-        parsers: registry,
+// Option is a functional option for configuring a Source.
+type Option func(*Source)
+
+func WithSchema(schema map[string]string) Option { ... }
+func WithPrimaryKey(col string) Option { ... }
+func WithTimestamps() Option { ... }
+func WithSoftDeletes() Option { ... }
+func WithColumns(cols []string) Option { ... }
+func WithConfig(cfg Config) Option { ... }
+func WithParser(p FileParser) Option { ... }
+```
+
+### Constructor Helpers
+
+```go
+// support/flatfile/constructors.go
+
+// NewFromCSV creates a Source that reads a CSV file.
+// Table name is used as the SQLite table name.
+func NewFromCSV(filePath, table string, opts ...Option) *Source {
+    s := &Source{
+        table:    table,
+        filePath: filePath,
+        parser:   &csvParser{},
+        config:   Config{HasHeader: true, Comma: ','},
     }
+    for _, opt := range opts {
+        opt(s)
+    }
+    return s
 }
 
-// Dialect returns the dialect name.
-func (f *FlatFile) Dialect() string {
-    return "flatfile"
+// NewFromJSON creates a Source that reads a JSON or JSONL file.
+// Format (JSON vs JSONL) is auto-detected from the file extension, or set
+// via WithConfig(Config{IsJSONL: true}).
+func NewFromJSON(filePath, table string, opts ...Option) *Source {
+    s := &Source{
+        table:    table,
+        filePath: filePath,
+        parser:   &jsonParser{},
+        config:   Config{FlattenDepth: 3},
+    }
+    if strings.HasSuffix(filePath, ".jsonl") || strings.HasSuffix(filePath, ".ndjson") {
+        s.config.IsJSONL = true
+    }
+    for _, opt := range opts {
+        opt(s)
+    }
+    return s
 }
 
-// MaxFlatFileRows limits the number of rows that can be populated from a single
-// file (or directory) to prevent unbounded memory/CPU consumption.
-const MaxFlatFileRows = 100000
-
-// Populate reads flat file(s), creates an in-memory SQLite table, and inserts
-// the parsed rows. It follows the same pattern as Array.Populate.
-func (f *FlatFile) Populate(ctx context.Context, db *sql.DB, source contractsorm.FlatFileSource) error {
-    // 1. Validate table name and file path
-    // 2. Check if already populated (sync.Map, same as Array)
-    // 3. Acquire per-table mutex
-    // 4. Determine parser:
-    //    a. If FlatFileOptions specifies a format, use that parser
-    //    b. Otherwise, auto-detect from file extension
-    // 5. Determine mode:
-    //    a. If FlatFileDir.IsDirectory(): directory mode
-    //    b. Otherwise: single-file mode
-    // 6. Parse data:
-    //    Directory mode:
-    //      - Read all files matching the configured extension in the directory
-    //      - Each file is one record (call parser.ParseFile)
-    //      - Filename (without extension) becomes the primary key value
-    //      - If FlatFileTimestamps: read file mtime/ctime for created_at/updated_at
-    //      - If FlatFileSoftDeletes: check for deleted_at field, skip if soft-deleted
-    //    Single-file mode:
-    //      - Open file and call parser.ParseFile
-    //      - If FlatFileTimestamps: read file mtime for all rows
-    //      - If FlatFileSoftDeletes: check for deleted_at field in each row
-    // 7. Resolve column names:
-    //    a. If FlatFileColumns: use custom names
-    //    b. Otherwise: merge all keys from all rows (like array driver)
-    // 8. Handle format-specific post-processing:
-    //    a. CSV: header validation if FlatFileConfig.StrictHeaders is true
-    //    b. JSON: nested object flattening if FlatFileConfig.Flatten is true
-    // 9. Infer or use explicit schema (FlatFileSchema)
-    // 10. Determine primary key if source implements FlatFilePrimaryKey
-    // 11. Create SQLite table (with PRIMARY KEY constraint if declared)
-    // 12. Insert rows in batches
-    // 13. Mark as populated
-    // ...
-}
-
-// inferSchema infers column types from Go-native values in the parsed rows.
-// For JSON, types are native (int, float64, bool, string, nil).
-// For CSV, the parser converts strings to Go types during parsing.
-// Type widening applies the same rules as the array driver.
-func (f *FlatFile) inferSchema(rows []map[string]any) (map[string]string, error) {
-    // ...
-}
-
-// readDirectory reads all files from a directory using the specified parser
-// and returns them as rows. The filename (without extension) is set as the
-// primary key value. If timestamps is true, file mtime/ctime are included.
-func (f *FlatFile) readDirectory(dirPath string, parser contractsorm.FileParser, config contractsorm.FlatFileConfig, pkCol string, timestamps, softDeletes bool) ([]map[string]any, error) {
-    // ...
-}
-
-// detectParser determines which parser to use based on file extension or config.
-func (f *FlatFile) detectParser(filePath string, config contractsorm.FlatFileConfig) (contractsorm.FileParser, error) {
-    // ...
-}
-
-// Cleanup removes cached entries — same pattern as Array.Cleanup.
-func (f *FlatFile) Cleanup(db *sql.DB) {
-    // ...
+// NewFromDirectory creates a Source in directory mode.
+// Each file in the directory is one record. The parser is auto-detected
+// from the file extension, or set via WithParser.
+func NewFromDirectory(dirPath, table string, opts ...Option) *Source {
+    s := &Source{
+        table:    table,
+        filePath: dirPath,
+        isDir:    true,
+        parser:   nil, // auto-detect per file
+    }
+    for _, opt := range opts {
+        opt(s)
+    }
+    if s.parser == nil {
+        s.parser = defaultRegistry.GetByExtension(s.config.FileExtension)
+    }
+    return s
 }
 ```
 
-### Built-in Parsers
+## Built-in Parsers
 
-#### CSV Parser
+### CSV Parser
 
 ```go
-// database/driver/flatfile_csv.go
+// support/flatfile/csv_parser.go
 
-package driver
+package flatfile
 
 import (
     "encoding/csv"
@@ -402,21 +584,19 @@ import (
     "strconv"
     "strings"
     "time"
-
-    contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
 // csvParser implements FileParser for CSV files.
 type csvParser struct{}
 
-func (p *csvParser) Format() string         { return "csv" }
-func (p *csvParser) Extensions() []string   { return []string{".csv", ".tsv"} }
+func (p *csvParser) Format() string       { return "csv" }
+func (p *csvParser) Extensions() []string { return []string{".csv", ".tsv"} }
 
-func (p *csvParser) ParseFile(reader io.Reader, config contractsorm.FlatFileConfig) ([]map[string]any, error) {
+func (p *csvParser) ParseFile(reader io.Reader, config Config) ([]map[string]any, error) {
     // 1. Create csv.Reader with config (Comma, Comment, LazyQuotes)
     // 2. If HasHeader: read first row as column names
-    //    If !HasHeader and FlatFileColumns: use custom names
-    //    If !HasHeader and no FlatFileColumns: generate col_0, col_1, ...
+    //    If !HasHeader and config provides custom columns: use those
+    //    If !HasHeader and no custom columns: generate col_0, col_1, ...
     // 3. If StrictHeaders: validate against ExpectedHeaders
     // 4. Read all records
     // 5. Convert string values to Go-native types:
@@ -437,29 +617,27 @@ func (p *csvParser) ParseFile(reader io.Reader, config contractsorm.FlatFileConf
 - `LazyQuotes` for messy CSV quoting
 - String-to-type inference (all CSV values are strings; parser converts)
 
-#### JSON Parser
+### JSON Parser
 
 ```go
-// database/driver/flatfile_json.go
+// support/flatfile/json_parser.go
 
-package driver
+package flatfile
 
 import (
     "bufio"
     "encoding/json"
     "io"
     "strings"
-
-    contractsorm "github.com/dracory/neat/contracts/database/orm"
 )
 
 // jsonParser implements FileParser for JSON and JSONL files.
 type jsonParser struct{}
 
-func (p *jsonParser) Format() string         { return "json" }
-func (p *jsonParser) Extensions() []string   { return []string{".json", ".jsonl"} }
+func (p *jsonParser) Format() string       { return "json" }
+func (p *jsonParser) Extensions() []string { return []string{".json", ".jsonl", ".ndjson"} }
 
-func (p *jsonParser) ParseFile(reader io.Reader, config contractsorm.FlatFileConfig) ([]map[string]any, error) {
+func (p *jsonParser) ParseFile(reader io.Reader, config Config) ([]map[string]any, error) {
     // 1. Determine mode:
     //    a. If IsJSONL: read line by line with bufio.Scanner, parse each as JSON object
     //    b. Otherwise: parse entire file as JSON
@@ -488,15 +666,13 @@ func flattenObject(prefix string, obj map[string]any, depth, maxDepth int) map[s
 - Missing key handling (`NullIfMissing` for SQL NULL vs zero values)
 - Nested objects/arrays stored as JSON strings by default (queryable via SQLite JSON functions)
 
-### Type Inference
+## Type Inference
 
-Type inference happens in two stages:
+Type inference happens in two stages, split across the parser and the array driver:
 
-**Stage 1 — Parser converts to Go-native types**:
+**Stage 1 — Parser converts to Go-native types** (in `support/flatfile/`):
 - CSV: String values are parsed (try int → float → bool → time → string)
 - JSON: Native types are preserved directly (no parsing needed)
-
-**Stage 2 — Driver infers SQLite column types from Go-native values**:
 
 ```
 Go type               → SQLite type
@@ -511,18 +687,22 @@ time.Time             → DATETIME
 map, []any            → TEXT (stored as JSON string)
 ```
 
-Type widening applies the same rules as the array driver:
+**Stage 2 — Array driver infers SQLite column types from Go-native values** (in `database/driver/array.go`, already implemented):
+- `inferSchema` scans all rows and applies type widening
 - `INTEGER` + `REAL` → `REAL`
 - Any incompatible mix → `TEXT`
+- Overridable via `ArraySchema` (which `flatfile.Source` implements)
 
-### Directory Mode (One File Per Record)
+Stage 2 is inherited from the array driver with no changes. This is a key benefit of the adapter approach: the flat-file package never touches SQLite type mapping.
 
-In directory mode (enabled via `FlatFileDir`), each file in the directory is one record. This is the approach used by both **Orbit** and **Laravel Paper**:
+## Directory Mode (One File Per Record)
+
+In directory mode (enabled via `NewFromDirectory`), each file in the directory is one record. This is the approach used by both **Orbit** and **Laravel Paper**:
 
 - **Orbit**: Stores each record as a separate file (`.md`, `.json`, `.yaml`) in a content directory. The filename is derived from the primary key.
 - **Laravel Paper**: The filename (without extension) becomes the slug, which is the primary key. E.g., `content/posts/hello-world.md` → slug = `"hello-world"`.
 
-The neat flat-file driver applies the same pattern:
+The neat flat-file source applies the same pattern:
 
 ```
 content/posts/
@@ -531,7 +711,7 @@ content/posts/
   └── draft-post.json       → slug = "draft-post"
 ```
 
-The filename (without extension) is automatically inserted as the value for the primary key column declared via `FlatFilePrimaryKey`. If no `FlatFilePrimaryKey` is declared, a default `slug` column is used.
+The filename (without extension) is automatically inserted as the value for the primary key column declared via `WithPrimaryKey`. If no primary key is declared, no slug column is added.
 
 The parser is selected per-file based on extension, so a directory could theoretically contain mixed formats (though this is uncommon and not recommended).
 
@@ -540,9 +720,9 @@ Directory mode is particularly useful for:
 - **Configuration**: Each config entity in its own file for easier editing and version control
 - **Git-friendly workflows**: Individual files diff cleanly in version control
 
-### File-Metadata Timestamps
+## File-Metadata Timestamps
 
-When `FlatFileTimestamps` is enabled, the driver adds `created_at` and `updated_at` columns derived from the filesystem:
+When `WithTimestamps()` is enabled, the source adds `created_at` and `updated_at` columns derived from the filesystem:
 
 - **`updated_at`**: Set to the file's modification time (`mtime`)
 - **`created_at`**: Set to the file's creation time (`ctime`), or falls back to `mtime` if the platform doesn't support `ctime`
@@ -551,170 +731,62 @@ This is similar to Laravel Paper's `#[Timestamps]` attribute. Note that Git chec
 
 In directory mode, each record gets its own timestamps from its individual file. In single-file mode, all rows share the same timestamp (the file's mtime).
 
-### Soft Deletes
+## Soft Deletes
 
-When `FlatFileSoftDeletes` is enabled, the driver checks for a `deleted_at` field in each parsed record. If present and non-null/non-empty, the record is considered soft-deleted:
+When `WithSoftDeletes()` is enabled, the source checks for a `deleted_at` field in each parsed record. If present and non-null/non-empty, the record is **excluded from the rows returned by `Rows()`** — it never enters the SQLite table.
 
-- The record is still loaded into the SQLite table (with `deleted_at` populated)
-- A default `WHERE deleted_at IS NULL` filter is applied to all queries
-- Users can explicitly query soft-deleted records with `Where("deleted_at IS NOT NULL")`
+This is a simpler model than the ORM's soft-delete infrastructure (which loads rows and filters via `WHERE deleted_at IS NULL`). For flat files, excluding at parse time is cleaner because the file is the source of truth. Users who want to query soft-deleted records can construct a second `Source` without `WithSoftDeletes()`.
 
-This is similar to Orbit's `SoftDeletes` trait. The neat ORM's existing soft delete infrastructure can be leveraged for this feature.
+This is similar to Orbit's `SoftDeletes` trait.
 
-### Custom Parsers
+## Custom Parsers
 
 Users can register custom parsers for additional formats (YAML, Markdown with frontmatter, TOML, XML, etc.):
 
 ```go
-// Register a custom YAML parser at init time
-func init() {
-    if ff, ok := database.GetDriver("flatfile").(*driver.FlatFile); ok {
-        ff.parsers.Register(&yamlParser{})
-    }
-}
+// Register a custom YAML parser
+flatfile.RegisterParser(&yamlParser{})
 
-// yamlParser implements contractsorm.FileParser
+// yamlParser implements flatfile.FileParser
 type yamlParser struct{}
 
 func (p *yamlParser) Format() string       { return "yaml" }
 func (p *yamlParser) Extensions() []string { return []string{".yaml", ".yml"} }
 
-func (p *yamlParser) ParseFile(reader io.Reader, config contractsorm.FlatFileConfig) ([]map[string]any, error) {
+func (p *yamlParser) ParseFile(reader io.Reader, config flatfile.Config) ([]map[string]any, error) {
     // Parse YAML and return []map[string]any with Go-native types
     // ...
 }
 ```
 
-The driver auto-detects the parser from the file extension. If the extension is ambiguous, the format can be specified explicitly via `FlatFileConfig.FileExtension` or a future `FlatFileFormat` interface.
+The source auto-detects the parser from the file extension. If the extension is ambiguous, the parser can be specified explicitly via `WithParser()`.
 
-### Flat-File Parsing Flow
+## Parsing Flow
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
-│ FlatFileSource│───▶│ Detect Parser│────▶│  Determine Mode │────▶│  Parse Data  │
-│  .FilePath() │     │ (by extension│     │  (dir or file)  │     │  (FileParser)│
+│ Source.Rows()│───▶│ Detect Parser│────▶│  Determine Mode │────▶│  Parse Data  │
+│              │     │ (by extension│     │  (dir or file)  │     │  (FileParser)│
 └──────────────┘     │  or config)  │     └─────────────────┘     └──────────────┘
                      └──────────────┘                                      │
                                                                            ▼
 ┌──────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
-│  Mark as     │◀────│  Insert Rows │◀────│  Create SQLite  │◀────│  Resolve     │
-│  Populated   │     │  (batched)   │     │  Table          │     │  Schema/Cols │
-└──────────────┘     └──────────────┘     └─────────────────┘     └──────────────┘
-                                                  ▲
-                                                  │
-                                          ┌──────────────┐
-                                          │  Post-process│
-                                          │  (flatten,   │
-                                          │   validate,  │
-                                          │   timestamps)│
-                                          └──────────────┘
+│  Return      │◀────│  Apply       │◀────│  Apply          │◀────│  Apply       │
+│  []map       │     │  Soft Deletes│     │  Timestamps     │     │  PK Injection│
+│  (to array   │     │  (filter)    │     │  (file mtime)   │     │  (dir mode)  │
+│   driver)    │     └──────────────┘     └─────────────────┘     └──────────────┘
+└──────────────┘
+                     ┌──────────────────────────────────────────────────────────┐
+                     │  Array driver handles: schema inference, CREATE TABLE,   │
+                     │  batched INSERT, concurrency, cleanup, PK constraint     │
+                     └──────────────────────────────────────────────────────────┘
 ```
 
-### Integration Points
+The flat-file source is responsible only for producing `[]map[string]any`. Everything from schema inference onward is the array driver's job.
 
-#### 1. Driver Registration
+## Example Usage
 
-```go
-// database/orm/orm.go — createDriver()
-case "flatfile":
-    return driver.NewFlatFile()
-
-// database/query/query_clone.go — newDriverForDialect()
-case "flatfile":
-    return driver.NewFlatFile()
-```
-
-#### 2. DSN Builder
-
-```go
-// database/db/config_builder.go — BuildDSN()
-case "flatfile":
-    return b.buildSQLiteDSN() // flatfile uses SQLite in-memory, same as array
-```
-
-#### 3. Config Validation
-
-```go
-// database/db/config_builder.go — ConnectionConfig.Validate()
-case "flatfile":
-    // database path is optional; empty defaults to :memory:
-    return nil
-```
-
-#### 4. Placeholder Funcs
-
-```go
-// database/driver/placeholder.go — PlaceholderFuncs
-"flatfile": sqlitePlaceholder,
-```
-
-#### 5. Query Builder — Model() Hook
-
-```go
-// database/query/query_model.go — Model()
-if q.driver != nil && q.driver.Dialect() == "flatfile" {
-    if source, ok := value.(contractsorm.FlatFileSource); ok {
-        tableName := source.TableName()
-        // ... same populate-once pattern as array driver
-        if ffDriver, ok := q.driver.(contractsorm.FlatFilePopulator); ok {
-            if err := ffDriver.Populate(q.ctx, q.db, source); err != nil {
-                q.buildError = err
-            }
-        }
-    }
-}
-```
-
-#### 6. Connection Pool Configuration
-
-```go
-// database/orm/orm.go — buildQuery()
-if connConfig.Driver == "sqlite" || connConfig.Driver == "array" || connConfig.Driver == "flatfile" {
-    sqlDB.SetMaxOpenConns(1)
-    sqlDB.SetMaxIdleConns(1)
-}
-```
-
-#### 7. SQLite PRAGMA Optimizations
-
-```go
-// database/orm/orm.go — buildQuery()
-if connConfig.Driver == "sqlite" || connConfig.Driver == "array" || connConfig.Driver == "flatfile" {
-    _, _ = sqlDB.ExecContext(ctx, "PRAGMA journal_mode=WAL;")
-    _, _ = sqlDB.ExecContext(ctx, "PRAGMA synchronous=NORMAL;")
-    _, _ = sqlDB.ExecContext(ctx, "PRAGMA foreign_keys=ON;")
-    _, _ = sqlDB.ExecContext(ctx, "PRAGMA busy_timeout=5000;")
-}
-```
-
-#### 8. Database.Close() — Cleanup
-
-The `Cleanupper` interface handles the flatfile driver automatically:
-
-```go
-// database/orm/orm.go — Close()
-if drv, ok := r.drivers[r.connection]; ok {
-    if c, ok := drv.(Cleanupper); ok {
-        c.Cleanup(db)
-    }
-}
-```
-
-#### 9. detectDatabaseName
-
-```go
-// database/db.go — detectDatabaseName()
-case "sqlite", "turso", "array", "flatfile":
-    return "main"
-```
-
-#### 10. detectDriverName — NOT Needed
-
-Same reasoning as the array driver: `detectDriverName()` reflects on `sqlDB.Driver().Type()`, which will always return `"sqlite"` since the flatfile driver embeds SQLite. When using `NewFromSQLDB` with a flatfile-backed `*sql.DB`, the caller must use `WithDriver("flatfile")` explicitly.
-
-### Example Usage
-
-#### CSV — Single File
+### CSV — Single File
 
 ```go
 package main
@@ -725,28 +797,9 @@ import (
     "time"
 
     "github.com/dracory/neat"
+    "github.com/dracory/neat/support/flatfile"
     _ "modernc.org/sqlite"
 )
-
-// UserSource implements FlatFileSource to point to a CSV file.
-type UserSource struct{}
-
-func (s *UserSource) TableName() string { return "users" }
-func (s *UserSource) FilePath() string  { return "data/users.csv" }
-
-// Explicit schema for CSV type inference override
-func (s *UserSource) Schema() map[string]string {
-    return map[string]string{
-        "id":      "int",
-        "name":    "string",
-        "email":   "string",
-        "active":  "bool",
-        "created": "time",
-    }
-}
-
-// Declare primary key
-func (s *UserSource) PrimaryKey() string { return "id" }
 
 type User struct {
     ID      int
@@ -760,7 +813,7 @@ func main() {
     config := neat.DBConfig{
         Default: "ff_db",
         Connections: map[string]neat.ConnectionConfig{
-            "ff_db": {Driver: "flatfile"},
+            "ff_db": {Driver: "array"},
         },
     }
 
@@ -772,7 +825,16 @@ func main() {
 
     var users []User
     err = database.Query().
-        Model(&UserSource{}).
+        Model(flatfile.NewFromCSV("data/users.csv", "users",
+            flatfile.WithPrimaryKey("id"),
+            flatfile.WithSchema(map[string]string{
+                "id":      "int",
+                "name":    "string",
+                "email":   "string",
+                "active":  "bool",
+                "created": "time",
+            }),
+        )).
         Where("active = ?", true).
         OrderBy("name", "asc").
         Get(&users)
@@ -786,158 +848,77 @@ func main() {
 }
 ```
 
-#### CSV — Headerless with Custom Column Names
+### CSV — Headerless with Custom Column Names
 
 ```go
-// SensorSource reads a headerless CSV with custom column names
-type SensorSource struct{}
-
-func (s *SensorSource) TableName() string { return "sensors" }
-func (s *SensorSource) FilePath() string  { return "data/sensors.csv" }
-
-func (s *SensorSource) Columns() []string {
-    return []string{"timestamp", "temperature", "humidity", "pressure"}
-}
-
-func (s *SensorSource) Options() contractsorm.FlatFileConfig {
-    return contractsorm.FlatFileConfig{
+src := flatfile.NewFromCSV("data/sensors.csv", "sensors",
+    flatfile.WithColumns([]string{"timestamp", "temperature", "humidity", "pressure"}),
+    flatfile.WithConfig(flatfile.Config{
         HasHeader: false,
         Comma:     ';',
         NullIf:    "N/A",
-    }
-}
-
-type Sensor struct {
-    Timestamp   time.Time
-    Temperature float64
-    Humidity    float64
-    Pressure    float64
-}
+    }),
+)
 ```
 
-#### CSV — Header Validation (Schema Drift Detection)
+### CSV — Header Validation (Schema Drift Detection)
 
 ```go
-// ProductSource validates that the CSV file has the expected headers
-type ProductSource struct{}
-
-func (s *ProductSource) TableName() string { return "products" }
-func (s *ProductSource) FilePath() string  { return "data/products.csv" }
-
-func (s *ProductSource) Options() contractsorm.FlatFileConfig {
-    return contractsorm.FlatFileConfig{
+src := flatfile.NewFromCSV("data/products.csv", "products",
+    flatfile.WithConfig(flatfile.Config{
         ExpectedHeaders: []string{"id", "name", "price", "category"},
         StrictHeaders:   true,
-    }
-}
+    }),
+)
 ```
 
-#### JSON — Single File
+### JSON — Single File with Flattening
 
 ```go
-// OrderSource reads JSON with nested objects and flattens them
-type OrderSource struct{}
-
-func (s *OrderSource) TableName() string { return "orders" }
-func (s *OrderSource) FilePath() string  { return "data/orders.json" }
-
-func (s *OrderSource) Options() contractsorm.FlatFileConfig {
-    return contractsorm.FlatFileConfig{
+src := flatfile.NewFromJSON("data/orders.json", "orders",
+    flatfile.WithConfig(flatfile.Config{
         Flatten:      true,
         FlattenDepth: 2,
-    }
-}
-
-func (s *OrderSource) Schema() map[string]string {
-    return map[string]string{
+    }),
+    flatfile.WithSchema(map[string]string{
         "id":             "int",
         "customer_name":  "string",
         "customer_email": "string",
         "total":          "float",
         "address_city":   "string",
         "address_zip":    "string",
-    }
-}
-
-type Order struct {
-    ID            int
-    CustomerName  string
-    CustomerEmail string
-    Total         float64
-    AddressCity   string
-    AddressZip    string
-}
+    }),
+)
 ```
 
-#### JSON — JSONL / NDJSON
+### JSON — JSONL / NDJSON
 
 ```go
-// EventSource reads a JSONL file (one event per line)
-type EventSource struct{}
-
-func (s *EventSource) TableName() string { return "events" }
-func (s *EventSource) FilePath() string  { return "data/events.jsonl" }
-
-func (s *EventSource) Options() contractsorm.FlatFileConfig {
-    return contractsorm.FlatFileConfig{
-        IsJSONL:       true,
+src := flatfile.NewFromJSON("data/events.jsonl", "events",
+    flatfile.WithConfig(flatfile.Config{
         NullIfMissing: true,
-    }
-}
-
-type Event struct {
-    ID        int
-    Type      string
-    Timestamp time.Time
-    Payload   string // stored as JSON string
-}
+    }),
+)
 ```
 
-#### JSON — Root Path Extraction
+### JSON — Root Path Extraction
 
 ```go
-// ConfigSource reads a nested JSON file with metadata wrapper
-type ConfigSource struct{}
-
-func (s *ConfigSource) TableName() string { return "config" }
-func (s *ConfigSource) FilePath() string  { return "data/config.json" }
-
-func (s *ConfigSource) Options() contractsorm.FlatFileConfig {
-    return contractsorm.FlatFileConfig{
+src := flatfile.NewFromJSON("data/config.json", "config",
+    flatfile.WithConfig(flatfile.Config{
         RootPath: "settings.items",
-    }
-}
+    }),
+)
 ```
 
-#### Directory Mode (One File Per Record)
+### Directory Mode (One File Per Record)
 
 ```go
-// PostSource reads a directory of JSON files, one post per file
-type PostSource struct{}
-
-func (s *PostSource) TableName() string { return "posts" }
-func (s *PostSource) FilePath() string  { return "content/posts" }
-
-// Enable directory mode
-func (s *PostSource) IsDirectory() bool { return true }
-
-// Use "slug" as primary key (filename becomes the slug value)
-func (s *PostSource) PrimaryKey() string { return "slug" }
-
-// Derive timestamps from file metadata
-func (s *PostSource) Timestamps() bool { return true }
-
-// Enable soft deletes (respect deleted_at field in JSON)
-func (s *PostSource) SoftDeletes() bool { return true }
-
-type Post struct {
-    Slug        string
-    Title       string
-    Content     string
-    Published   bool
-    CreatedAt   time.Time
-    UpdatedAt   time.Time
-}
+src := flatfile.NewFromDirectory("content/posts", "posts",
+    flatfile.WithPrimaryKey("slug"),
+    flatfile.WithTimestamps(),
+    flatfile.WithSoftDeletes(),
+)
 ```
 
 Directory structure:
@@ -957,7 +938,7 @@ Each file contains one JSON object:
 }
 ```
 
-The driver reads all `.json` files, adds `slug` from the filename, and adds `created_at`/`updated_at` from file metadata.
+The source reads all `.json` files, adds `slug` from the filename, and adds `created_at`/`updated_at` from file metadata.
 
 ### Sample Data Files
 
@@ -980,136 +961,126 @@ id,name,email,active,created
 
 ## Implementation Plan
 
-### Phase 1: Contracts and Core Driver
-1. Create `contracts/database/orm/flatfile_source.go` with all interfaces: `FlatFileSource`, `FlatFileDir`, `FlatFileSchema`, `FlatFileColumns`, `FlatFilePrimaryKey`, `FlatFileTimestamps`, `FlatFileSoftDeletes`, `FlatFileOptions`, `FlatFileConfig`, `FlatFilePopulator`, `FileParser`, `FileParserRegistry`
-2. Extract `isSimpleIdentifier` as a shared package-level function in `database/driver/` (used by both `Array` and `FlatFile`)
-3. Implement `database/driver/flatfile.go` — driver struct, `NewFlatFile()`, `Dialect()`, `Populate()`, `Cleanup()`, parser registry, `detectParser()`, `readDirectory()`
-4. Implement `FileParserRegistry` (register, get by format, get by extension)
+### Phase 1: Array Driver Primary Key Support
+1. Add `ArrayPrimaryKey` interface to `contracts/database/orm/array_source.go`
+2. Modify `Array.Populate` to detect `ArrayPrimaryKey` and validate the column name
+3. Modify `Array.createTable` to accept a `pkCol` parameter and append `PRIMARY KEY`
+4. Add tests in `database/driver/array_test.go`:
+   - Primary key constraint is emitted when `ArrayPrimaryKey` is implemented
+   - No constraint when not implemented (backward compatibility)
+   - Invalid PK column name → error
+   - PK column not in schema → error
 
-### Phase 2: Built-in Parsers
-1. Implement `database/driver/flatfile_csv.go` — `csvParser`:
+### Phase 2: Flat-File Source and Parser Framework
+1. Create `support/flatfile/source.go` — `Source` struct implementing `ArraySource`, `ArraySchema`, `ArrayPrimaryKey`
+2. Create `support/flatfile/options.go` — `Config`, `Option`, `With*` functions
+3. Create `support/flatfile/parser_registry.go` — `FileParserRegistry`, `RegisterParser`
+4. Create `support/flatfile/constructors.go` — `NewFromCSV`, `NewFromJSON`, `NewFromDirectory`
+5. Create `support/flatfile/timestamps.go` — `applyTimestamps`, `fileCreationTime`
+6. Create `support/flatfile/directory.go` — `readDirectory` with filename-as-PK injection
+7. Soft deletes filtering in `source.go` (`filterSoftDeleted`, `isSoftDeleted`)
+
+### Phase 3: Built-in Parsers
+1. Implement `support/flatfile/csv_parser.go`:
    - CSV parsing with `encoding/csv` (Comma, Comment, LazyQuotes)
-   - Header detection / headerless mode with `FlatFileColumns` / generated `col_N`
-   - Header validation (`StrictHeaders`, `ExpectedHeaders`)
-   - String-to-type inference (int, float, bool, time, string)
-   - `SkipRows`, `NullIf`, `TrimSpace`
-2. Implement `database/driver/flatfile_json.go` — `jsonParser`:
-   - JSON array parsing with `encoding/json`
-   - JSONL/NDJSON mode with `bufio.Scanner`
+   - Header detection / headerless mode with custom or generated column names
+   - Header validation (StrictHeaders, ExpectedHeaders)
+   - SkipRows
+   - String-to-type inference (int → float → bool → time → string)
+   - NullIf and TrimSpace
+2. Implement `support/flatfile/json_parser.go`:
+   - JSON array parsing with native type preservation
+   - JSONL/NDJSON parsing with `bufio.Scanner`
    - Root path extraction (`navigatePath`)
    - Nested object flattening (`flattenObject` with depth control)
-   - `NullIfMissing`, `TrimStrings`
-   - Native type preservation (no string parsing needed)
+   - NullIfMissing, TrimStrings
+3. Implement `support/flatfile/flatten.go` — flattening helper
 
-### Phase 3: Shared Features
-1. Implement directory mode (`readDirectory`) — read all matching files, filename as primary key
-2. Implement file-metadata timestamps (`FlatFileTimestamps`) — `os.Stat` for mtime/ctime
-3. Implement soft deletes (`FlatFileSoftDeletes`) — check `deleted_at`, add default `WHERE deleted_at IS NULL`
-4. Implement primary key support (`FlatFilePrimaryKey`) — add `PRIMARY KEY` constraint in `createTable`
-5. Implement schema inference (`inferSchema`) from Go-native values returned by parsers
-6. Implement batched inserts using `batchSize := 500 / len(sortedCols)` (same formula as array driver)
-
-### Phase 4: Integration
-1. Register `flatfile` driver in `createDriver()` and `newDriverForDialect()`
-2. Add `flatfile` case to `BuildDSN()` and `ConnectionConfig.Validate()`
-3. Add `flatfile` to `PlaceholderFuncs` map
-4. Add `flatfile` to `detectDatabaseName()` (add to existing `"sqlite", "turso", "array"` case)
-5. Add `flatfile` to connection pool configuration in `orm.go` (`SetMaxOpenConns(1)`, `SetMaxIdleConns(1)`)
-6. Add `flatfile` to SQLite PRAGMA optimizations in `orm.go`
-7. Add `Model()` hook in `query_model.go` for `FlatFileSource` detection
-8. Refactor `Orm.Close()` to use `Cleanupper` interface instead of per-driver type assertions
-
-### Phase 5: Tests
-1. Driver unit tests in `database/driver/flatfile_test.go`:
-   - Parser registry (register, get by format, get by extension)
-   - Parser auto-detection from file extension
-   - Directory mode (read all files, filename as primary key)
+### Phase 4: Tests
+1. Source tests in `support/flatfile/source_test.go`:
+   - Single-file mode (CSV, JSON)
+   - Directory mode (read all files, filename as PK)
    - Timestamps (file mtime/ctime)
-   - Soft deletes
-   - Primary key constraint
-   - Invalid identifiers (SQL injection prevention)
-   - Concurrent population
-   - Cleanup method
-   - MaxFlatFileRows limit enforcement
+   - Soft deletes (filtering)
+   - Primary key value injection (directory mode)
+   - Custom column names
+   - Explicit schema via `WithSchema`
    - File not found / directory not found errors
-2. CSV parser tests in `database/driver/flatfile_csv_test.go`:
+2. CSV parser tests in `support/flatfile/csv_parser_test.go`:
    - Basic CSV parsing
    - Type inference (int, float, bool, time, text)
-   - Schema inference with mixed types (widening)
-   - Schema inference skips empty strings and NullIf values
-   - Explicit schema via `FlatFileSchema`
-   - Empty CSV (table created, zero rows)
    - Custom delimiter (tab, semicolon)
    - HasHeader = false with generated column names
-   - HasHeader = false with custom column names via `FlatFileColumns`
-   - HasHeader = false with invalid identifier in `FlatFileColumns` (error)
-   - HasHeader = true with `FlatFileColumns` (ignored)
-   - Header validation: strict mode passes
-   - Header validation: strict mode error on mismatch
-   - Header validation: non-strict mode ignores mismatch
+   - HasHeader = false with custom column names
+   - Header validation: strict mode passes / fails
    - SkipRows
    - NullIf (empty string → NULL)
    - LazyQuotes
-3. JSON parser tests in `database/driver/flatfile_json_test.go`:
+3. JSON parser tests in `support/flatfile/json_parser_test.go`:
    - Basic JSON array parsing
-   - Type inference from native JSON types (int, float, bool, string, null)
+   - Type inference from native JSON types
    - Time detection from RFC3339 string values
-   - Schema inference with mixed types (widening)
-   - Explicit schema via `FlatFileSchema`
-   - Empty JSON array (table created, zero rows)
    - JSONL parsing (one object per line)
    - JSONL with trailing newline / empty lines (skipped)
    - Root path extraction (nested structure)
    - Root path not found (error)
    - Root path pointing to non-array (error)
    - Nested object flattening with depth limit
-   - Nested object flattening with depth 0 (unlimited)
-   - Nested arrays stored as JSON strings (not flattened)
-   - Missing keys with `NullIfMissing = false` (zero values)
-   - Missing keys with `NullIfMissing = true` (SQL NULL)
-   - Custom column names via `FlatFileColumns`
+   - Missing keys with NullIfMissing = false / true
    - Invalid JSON (parse error)
-4. Directory mode tests:
+4. Directory mode tests in `support/flatfile/directory_test.go`:
    - Basic populate from directory of JSON files
    - Filename as primary key value
    - Custom file extension via `FileExtension`
-   - Empty directory (table created, zero rows)
+   - Empty directory (zero rows)
    - Non-matching file in directory (skipped)
    - Nested subdirectories (skipped)
    - Timestamps: each record gets individual timestamps
    - Soft deletes: records with non-null deleted_at excluded
-   - Soft deletes: explicit query for soft-deleted records
-5. Integration test in `database/flatfile_integration_test.go`
-6. Example in `examples/flatfile-driver/` with sample CSV, JSON, JSONL, and directory-mode files
+5. Array driver primary key tests (from Phase 1)
+6. Integration test: full `database.Query().Model(flatfile.NewFromCSV(...)).Get(&out)` flow
+7. Example in `examples/flatfile-sources/` with sample CSV, JSON, JSONL, and directory-mode files
 
-### Phase 6: Documentation
-1. Create `examples/flatfile-driver/README.md`
-2. Add flatfile driver to main docs (driver-registration page, API reference)
+### Phase 5: Documentation
+1. Create `examples/flatfile-sources/README.md`
+2. Add flat-file sources to main docs (support packages page, API reference)
 3. Document type inference rules, format-specific options, and custom parser registration
 4. Mark `csv-driver.md` and `json-driver.md` as superseded by this proposal
 
 ## Design Decisions
 
-### Why a Single Driver Instead of Separate CSV/JSON Drivers?
+### Why Array Source Adapters Instead of a New `flatfile` Driver?
 
-The CSV and JSON driver proposals shared ~80% of their design:
-- Same SQLite embedding architecture
-- Same `Populate`/`Cleanup` pattern with `sync.Map`
-- Same directory mode, timestamps, soft deletes, primary key features
-- Same 10 integration points (driver registration, DSN, config, placeholders, etc.)
-- Same shared code (`isSimpleIdentifier`, `isPopulated`, `createTable`, `insertRows`)
+The original version of this proposal (June 24, 2026) designed a standalone `flatfile` driver that embedded SQLite and duplicated the array driver's orchestration. At the time, the array source helper (`NewArraySourceFrom`) did not exist — using the array driver required hand-writing a custom struct with `Rows()`. The flat-file driver was motivated by eliminating that boilerplate.
 
-A unified driver eliminates this duplication while keeping format-specific logic cleanly separated via the `FileParser` interface. Adding a new format (YAML, Markdown, TOML) only requires implementing one interface — no new driver, no new integration points, no new config validation.
+The array source helper was completed on August 8, 2026, changing the calculus. The array driver already provides:
+- SQLite embedding and all query builder features (WHERE, JOIN, ORDER BY, aggregates)
+- `Populate`/`Cleanup` pattern with `sync.Map` for concurrency safety
+- Schema inference with type widening
+- Batched inserts (`batchSize := 500 / len(sortedCols)`)
+- `isSimpleIdentifier` validation (SQL injection prevention)
+- Row limit enforcement (`MaxArrayRows = 100000`)
+- All 10 ORM integration points (driver registration, DSN, config, placeholders, `Model()` hook, connection pool, PRAGMAs, `Close()` cleanup, `detectDatabaseName`)
+
+A standalone `flatfile` driver would duplicate all of this — the original proposal's own "Shared Code with Array Driver" section identified ~80% duplication and deferred extraction to a follow-up.
+
+The adapter approach eliminates the duplication entirely:
+- **No new driver** — flat-file sources use `Driver: "array"` in `DBConfig`
+- **No new integration points** — no driver registration, DSN case, config validation, placeholder entry, PRAGMA case, `detectDatabaseName` case, or `Model()` hook change
+- **No duplicated orchestration** — schema inference, table creation, batched inserts, concurrency, and cleanup are inherited
+- **Future array driver improvements inherited for free** — persistent caching, stale-cache detection, and post-migration hooks (proposed in `array-driver-enhancement.md`) will work with flat-file sources automatically once implemented
+
+The only array driver change required is `ArrayPrimaryKey` — one optional interface and a small `createTable` modification. This is a beneficial change for the array driver regardless of flat-file support (e.g., `NewArraySourceFrom(statuses)` with a struct whose `ID` field should be the PK).
 
 ### Why Pluggable Parsers Instead of Hardcoded Format Switch?
 
 A `FileParser` interface with a registry allows:
-- **Extensibility**: Users can register custom parsers for any format without modifying the driver
+- **Extensibility**: Users can register custom parsers for any format without modifying the source
 - **Testability**: Parsers can be unit-tested in isolation
-- **Separation of concerns**: The driver handles shared logic (SQLite, schema, batching, directory mode); parsers handle format-specific parsing
-- **Auto-detection**: Parser selection from file extension is automatic but overridable
+- **Separation of concerns**: The source handles shared logic (directory mode, timestamps, soft deletes, PK injection); parsers handle format-specific parsing
+- **Auto-detection**: Parser selection from file extension is automatic but overridable via `WithParser`
 
-### Why a Single `FlatFileConfig` Instead of Per-Format Configs?
+### Why a Single `Config` Instead of Per-Format Configs?
 
 A single config struct with format-specific fields is simpler than a hierarchy of config types. Fields that don't apply to the selected format are simply ignored. This avoids:
 - Type assertion chains to access format-specific config
@@ -1118,78 +1089,66 @@ A single config struct with format-specific fields is simpler than a hierarchy o
 
 If the config grows too large in the future, it can be refactored into a map of format-specific options.
 
-### Why Embed SQLite (Same as Array Driver)?
+### Why Soft Deletes at Parse Time Instead of WHERE Filtering?
 
-Same reasoning as the array driver — all query builder features work out of the box (WHERE, JOIN, ORDER BY, aggregates, etc.), no need to implement a custom query engine. The driver only handles "how data gets into the table", not "how queries are executed".
+The ORM's soft-delete infrastructure loads rows into SQLite and applies `WHERE deleted_at IS NULL`. For flat files, this would mean loading soft-deleted records into memory and then filtering them out — wasteful when the file is the source of truth.
 
-### Why Not Just Use the Array Driver?
+Excluding at parse time is cleaner: soft-deleted records never enter the SQLite table. Users who want to query soft-deleted records can construct a second `Source` without `WithSoftDeletes()`. This is a deliberate simplification; if WHERE-based soft deletes become necessary, it can be added as a future enhancement.
 
-Users could parse files themselves and return `[]map[string]any` from an `ArraySource`. However, this requires significant boilerplate:
-- Manual file opening and reading
-- Manual format-specific parsing (CSV delimiters, JSON nesting, JSONL streaming)
-- No standard way to handle directory mode, timestamps, or soft deletes
-- No type inference from file content
+### Why Directory Mode Returns Only the First Record Per File?
 
-The flat-file driver eliminates this boilerplate and provides a standard, tested implementation.
+In directory mode, each file is one record. If a parser returns multiple rows for a single file (e.g., a CSV file in a directory), only the first row is used. This matches the Orbit/Laravel Paper model where one file = one record. A future enhancement could add a `WithMultiRecordDirectory` option if multi-record-per-file directories are needed.
 
 ### Security: File Path Validation
 
-Same as the array driver — the `FilePath()` method returns a path that the driver will open. The driver does NOT restrict file paths by default (the caller controls which files to open). Applications can wrap `FlatFileSource` with path validation logic if needed.
-
-### Shared Code with Array Driver
-
-The following logic is shared across the array and flat-file drivers:
-- `isSimpleIdentifier` — identifier validation (shared package-level function)
-- `isPopulated` / `markPopulated` / `getTableMutex` — sync.Map management
-- `Cleanup` — stale entry removal
-- `createTable` — SQLite table creation from schema
-- `insertRows` — batched SQLite inserts
-- Type widening logic in schema inference
-
-With two drivers sharing the same pattern, extracting a shared `populator` base struct is justified. This can be done as part of this proposal or deferred to a follow-up refactoring.
+The `FilePath` field returns a path that the source will open. The source does NOT restrict file paths by default (the caller controls which files to open). Applications can wrap `Source` with path validation logic if needed. This matches the array driver's stance on `Rows()` content.
 
 ## Benefits
 
 1. **Zero Boilerplate**: Query CSV, JSON, JSONL files directly without manual parsing
-2. **Full Query Builder**: All ORM features work (WHERE, JOIN, ORDER BY, aggregates, etc.)
-3. **Multi-Format**: One driver handles CSV, JSON, JSONL, and any custom format via pluggable parsers
-4. **Extensible**: Register custom parsers for YAML, Markdown, TOML, XML, etc. without modifying the driver
-5. **Type Safety**: Automatic type inference — JSON has native types; CSV uses string-to-type inference; both overridable via `FlatFileSchema`
+2. **Full Query Builder**: All ORM features work (WHERE, JOIN, ORDER BY, aggregates, etc.) — inherited from the array driver
+3. **Multi-Format**: One source family handles CSV, JSON, JSONL, and any custom format via pluggable parsers
+4. **Extensible**: Register custom parsers for YAML, Markdown, TOML, XML, etc. without modifying the source or driver
+5. **Type Safety**: Automatic type inference — JSON has native types; CSV uses string-to-type inference; both overridable via `WithSchema`
 6. **Directory Mode**: One file per record with filename-as-primary-key — Git-friendly, content-management-friendly (like Orbit and Laravel Paper)
 7. **File-Metadata Timestamps**: Derive `created_at`/`updated_at` from file mtime/ctime (like Laravel Paper's `#[Timestamps]`)
 8. **Soft Deletes**: Respect `deleted_at` field for soft-deleted records (like Orbit's `SoftDeletes` trait)
 9. **CSV-Specific**: Custom delimiters, headerless mode, header validation, `LazyQuotes`, `SkipRows`
 10. **JSON-Specific**: JSONL/NDJSON, root path extraction, nested object flattening, missing key handling
-11. **Primary Key Support**: Declare a primary key for faster lookups and ORM association compatibility
-12. **Consistency**: Same architecture and patterns as the array driver
+11. **Primary Key Support**: Declare a primary key for faster lookups and ORM association compatibility — via `ArrayPrimaryKey`, benefiting both array and flat-file sources
+12. **No Driver Duplication**: Reuses the array driver's SQLite orchestration, integration points, and future enhancements (caching, post-migrate hooks)
 13. **Test Fixtures**: Easy to load test data from flat files (common in Go testing)
-14. **Single Integration**: One driver registration, one set of integration points — adding formats doesn't require touching ORM internals
+14. **Consistent Pattern**: Mirrors the existing `support/arraysource/` package structure
 
 ## Risks and Mitigations
 
 ### Risk 1: Memory Usage for Large Files
 - **Issue**: Loading an entire file into in-memory SQLite could consume significant memory
-- **Mitigation**: `MaxFlatFileRows` limit (100,000 rows); JSONL mode with `bufio.Scanner` for streaming; future streaming mode enhancement
+- **Mitigation**: The array driver's `MaxArrayRows` limit (100,000 rows) applies; JSONL mode with `bufio.Scanner` for streaming; future streaming mode enhancement
 
 ### Risk 2: Type Inference Ambiguity (CSV)
 - **Issue**: CSV values like "123" could be int or string (e.g., zip codes with leading zeros)
-- **Mitigation**: `FlatFileSchema` interface allows explicit type declaration; inference is opt-in default
+- **Mitigation**: `WithSchema` allows explicit type declaration; inference is opt-in default
 
 ### Risk 3: File Encoding (CSV)
 - **Issue**: CSV files may use non-UTF-8 encodings (Latin-1, Windows-1252)
-- **Mitigation**: Phase 1 supports UTF-8 only. Encoding support can be added as a future `FlatFileConfig.Encoding` field when needed.
+- **Mitigation**: Phase 1 supports UTF-8 only. Encoding support can be added as a future `Config.Encoding` field when needed.
 
 ### Risk 4: Nested Object Complexity (JSON)
 - **Issue**: Deeply nested JSON can produce many columns when flattened, or complex JSON strings when stored as-is
 - **Mitigation**: `FlattenDepth` limits nesting depth; default strategy (store as JSON string) is safe and queryable via SQLite JSON functions
 
 ### Risk 5: Config Bloat
-- **Issue**: `FlatFileConfig` contains fields for all formats, which could grow large
+- **Issue**: `Config` contains fields for all formats, which could grow large
 - **Mitigation**: Acceptable for now — format-specific fields are clearly documented. If it grows too large, refactor into a map of format-specific options.
 
 ### Risk 6: Custom Parser Quality
 - **Issue**: User-registered custom parsers may produce inconsistent data types or invalid schemas
-- **Mitigation**: The driver validates all column names via `isSimpleIdentifier` and infers schema from Go-native types returned by the parser. Parsers that return invalid data will produce clear errors.
+- **Mitigation**: The array driver validates all column names via `isSimpleIdentifier` and infers schema from Go-native types returned by the parser. Parsers that return invalid data will produce clear errors.
+
+### Risk 7: Array Driver Coupling
+- **Issue**: Flat-file sources depend on the array driver's `Populate` behavior. If the array driver changes `Populate` in a breaking way, flat-file sources break too.
+- **Mitigation**: This is a feature, not a bug — the `ArraySource` contract is stable and shared by `NewArraySourceFrom`, `NewArraySource`, and `NewWithSchema`. Changes to `Populate` are contract-bound. The coupling is the same as the existing array source helper's.
 
 ## Future Enhancements
 
@@ -1207,14 +1166,20 @@ With two drivers sharing the same pattern, extracting a shared `populator` base 
 9. **Relationships Between File-Backed Models**: Support `belongsTo`/`hasMany` between file-backed models (like Laravel Paper's `belongsToPaper`/`hasManyPaper`)
 10. **Remote Sources**: Support HTTP/HTTPS URLs as file paths
 11. **Compressed Files**: Support `.csv.gz`, `.json.gz`, `.jsonl.gz` files with automatic decompression
-12. **File Encoding**: Support non-UTF-8 encodings (Latin-1, Windows-1252) via a `FlatFileConfig.Encoding` field
+12. **File Encoding**: Support non-UTF-8 encodings (Latin-1, Windows-1252) via a `Config.Encoding` field
 13. **Schema Validation**: Validate records against a schema definition (JSON Schema, CSV schema) before populating
-14. **Shared Populator Base**: Extract common logic between array and flat-file drivers into a shared struct
+14. **WHERE-Based Soft Deletes**: Load soft-deleted records into SQLite and filter via `WHERE deleted_at IS NULL` instead of excluding at parse time, enabling runtime toggling
+15. **Persistent Caching** (inherited): Once `array-driver-enhancement.md` is implemented, flat-file sources inherit persistent caching and stale-cache detection for free via `ArrayCache`/`ArrayCacheReference` interfaces
+16. **Post-Migration Hook** (inherited): Once `array-driver-enhancement.md` is implemented, flat-file sources inherit `ArrayPostMigrate` for adding indexes and constraints after table creation
 
 ## References
 
 - Array driver implementation: `database/driver/array.go`
 - Array source contracts: `contracts/database/orm/array_source.go`
+- Array source helper: `support/arraysource/from_slice.go`
+- Struct reflection helper: `support/structref/structref.go`
+- Array source helper proposal: `docs/proposals/completed/array-source-helper.md`
+- Array driver enhancement proposal: `docs/proposals/completed/array-driver-enhancement.md`
 - Go `encoding/csv` package: https://pkg.go.dev/encoding/csv
 - Go `encoding/json` package: https://pkg.go.dev/encoding/json
 - JSON Lines specification: https://jsonlines.org/

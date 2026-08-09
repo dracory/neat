@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turso - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
+        th { background: #f8f9fa; }
+        .callout { background: #fff8e1; border-left: 4px solid #f39c12; padding: 1rem 1.25rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0; }
+        .callout p { margin: 0.5rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Supported Databases</a>
+
+    <h1>Turso</h1>
+
+    <p>Turso is a SQLite-based edge database accessed over the <code>libsql</code> protocol. Neat ORM uses the <code>tursodatabase/libsql-client-go</code> driver for remote connections and falls back to the <code>modernc.org/sqlite</code> driver for local <code>file://</code> databases. Because Turso is SQLite under the hood, the type mappings and most quirks are identical to the <a href="sqlite.html">SQLite page</a>.</p>
+
+    <h2>Connection</h2>
+
+    <pre><code>// Remote Turso database
+config := neat.DBConfig{
+    Default: "turso",
+    Connections: map[string]neat.ConnectionConfig{
+        "turso": {
+            Driver:   "turso",
+            Database: "my-org-my-db.turso.io", // host/database
+            Password: "your-auth-token",       // authToken in the DSN
+        },
+    },
+}
+
+// Local file (development / tests)
+config := neat.DBConfig{
+    Default: "turso",
+    Connections: map[string]neat.ConnectionConfig{
+        "turso": {
+            Driver:   "turso",
+            Database: "file:///var/data/local.db",
+        },
+    },
+}</code></pre>
+
+    <p>The DSN builder prepends <code>libsql://</code> if the <code>Database</code> value does not already start with <code>libsql://</code> or <code>file://</code>. When a <code>Password</code> is provided and the URL is not a <code>file://</code> URL, it is appended as <code>?authToken=...</code> (URL-encoded). Local <code>file://</code> databases never receive an auth token.</p>
+
+    <h2>Driver-Specific Options</h2>
+
+    <ul>
+        <li><code>Database</code> - Turso database URL (e.g. <code>host.turso.io</code>) or local <code>file://</code> path</li>
+        <li><code>Password</code> - Turso auth token, appended as <code>authToken</code> query parameter for remote databases</li>
+    </ul>
+
+    <h2>Placeholder Format</h2>
+
+    <p>Turso uses positional <code>?</code> placeholders, identical to SQLite.</p>
+
+    <h2>Type Mappings</h2>
+
+    <p>Turso inherits the SQLite grammar. See the <a href="sqlite.html#type-mappings">SQLite type mappings table</a> for the full list. Key points:</p>
+
+    <ul>
+        <li>All integer types collapse to <code>integer</code>; <code>boolean</code> uses <code>tinyint(1)</code>.</li>
+        <li><code>json</code> / <code>jsonb</code> map to <code>text</code>. Use the <code>json1</code> extension functions to query JSON at runtime.</li>
+        <li>No spatial types are emitted by the grammar.</li>
+        <li><code>dateTimeTz</code> and <code>timestampTz</code> map to plain <code>datetime</code>.</li>
+    </ul>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> Turso supports embedded replicas - a local <code>file://</code> database that syncs to a remote primary. To use this mode, pass a <code>file://</code> DSN with the appropriate <code>libsql</code> query parameters (<code>authToken</code>, <code>syncUrl</code>, etc.) directly via the <code>Dsn</code> field rather than letting Neat ORM build the DSN.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> The integration test helper falls back to <code>sqlite://:memory:?multi_stmts=true</code> when <code>TURSO_URL</code> and <code>TURSO_AUTH_TOKEN</code> are not set. This means tests run against pure SQLite unless a real Turso endpoint is configured, which is convenient for CI but does not exercise the <code>libsql</code> network protocol.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk:</strong> Some SQLite features available locally (e.g. certain PRAGMAs, custom functions) may behave differently or be unavailable on the remote Turso endpoint. Test against the same deployment target you plan to use in production.</p>
+    </div>
+
+    <h2>Behavior Notes</h2>
+
+    <ul>
+        <li><strong>Concurrency:</strong> Remote Turso databases handle concurrent reads and serialized writes server-side. Local <code>file://</code> databases follow SQLite's normal concurrency rules.</li>
+        <li><strong>Foreign keys:</strong> Foreign key enforcement follows SQLite defaults - off unless <code>PRAGMA foreign_keys = ON</code> is set per connection.</li>
+        <li><strong>Transactions:</strong> Savepoints are supported, inherited from SQLite.</li>
+        <li><strong>Schema migrations:</strong> Schema changes are subject to SQLite's DDL rules. Turso replicates schema changes to replicas automatically.</li>
+    </ul>
+
+    <h2>Default Ports</h2>
+
+    <ul>
+        <li>Remote Turso: HTTPS (<code>443</code>) to <code>*.turso.io</code></li>
+        <li>Local file: no port (embedded)</li>
+    </ul>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

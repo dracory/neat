@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiDB - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
+        th { background: #f8f9fa; }
+        .callout { background: #fff8e1; border-left: 4px solid #f39c12; padding: 1rem 1.25rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0; }
+        .callout p { margin: 0.5rem 0; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Supported Databases</a>
+
+    <h1>TiDB</h1>
+
+    <p>TiDB is a distributed SQL database with very high MySQL compatibility. It speaks the MySQL wire protocol and accepts the <code>go-sql-driver/mysql</code> driver, so Neat ORM's <a href="mysql.html">MySQL driver</a> works with TiDB out of the box. The differences below are why a dedicated set of integration tests exists.</p>
+
+    <h2>Connection</h2>
+
+    <pre><code>config := neat.DBConfig{
+    Default: "tidb",
+    Connections: map[string]neat.ConnectionConfig{
+        "tidb": {
+            Driver:   "mysql", // TiDB uses the MySQL driver
+            Host:     "127.0.0.1",
+            Port:     4000,
+            Database: "test",
+            Username: "root",
+            Password: "",
+            Charset:  "utf8mb4",
+            Loc:      "Local",
+        },
+    },
+}</code></pre>
+
+    <p>Or via a DSN string:</p>
+
+    <pre><code>dsn := "mysql://root:@tcp(127.0.0.1:4000)/test?charset=utf8mb4&amp;parseTime=true&amp;loc=Local"
+db, err := neat.NewFromDSN(dsn)</code></pre>
+
+    <h2>Placeholder Format</h2>
+
+    <p>TiDB uses the MySQL <code>?</code> placeholder format, inherited from the MySQL driver.</p>
+
+    <h2>Type Mappings</h2>
+
+    <p>TiDB uses the MySQL grammar, so the <a href="mysql.html#type-mappings">MySQL type mappings table</a> applies. The divergences listed below affect which types actually succeed at <code>CREATE TABLE</code> time.</p>
+
+    <h2>Quirks and Divergences from MySQL</h2>
+
+    <p>These are the documented differences that affect Neat ORM users. They are mirrored in the integration test suite under <code>integration_tests/tidb/</code>.</p>
+
+    <div class="callout">
+        <p><strong>Quirk - Spatial types:</strong> TiDB has limited spatial type support. The schema builder generates a <code>point</code> column type that TiDB's parser rejects with <code>Error 1064</code>. The <code>tidb_query_spatial_test.go</code> integration test is skipped for this reason. See <a href="https://docs.pingcap.com/tidb/stable/mysql-compatibility">TiDB MySQL compatibility</a>.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - Savepoints:</strong> TiDB does not support the <code>SAVEPOINT</code> syntax. Neat ORM's transaction layer emulates savepoints, which the TiDB transaction tests verify. Application code that calls <code>Savepoint()</code> / <code>RollbackToSavepoint()</code> works because the emulation handles the missing syntax.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - Shared locks:</strong> <code>LOCK IN SHARE MODE</code> is a no-op by default and requires <code>tidb_enable_noop_functions=1</code> to be enabled. The <code>tidb_query_lock_test.go</code> shared-lock test is skipped for this reason. <code>FOR UPDATE</code> (used by <code>LockForUpdate()</code>) works normally.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - Foreign keys:</strong> TiDB v6.6+ supports foreign keys, but enforcement behavior may differ from MySQL. Test your specific constraint patterns before relying on them in production.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - Auto-increment:</strong> TiDB's <code>AUTO_INCREMENT</code> is not guaranteed to be sequential because IDs are allocated across the distributed cluster. Tests must not assert on sequential IDs - only on uniqueness and non-zero values.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - JSON:</strong> TiDB supports a subset of MySQL's JSON functions. JSON tests focus on basic store, retrieve, and query operations rather than the full MySQL JSON function set.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - Collation:</strong> TiDB defaults to <code>utf8mb4_bin</code> (case-sensitive), while MySQL 8 defaults to <code>utf8mb4_0900_ai_ci</code> (case-insensitive). Comparisons in <code>WHERE</code> clauses may return different results for the same data. Set the column or table collation explicitly if your application depends on case-insensitive matching.</p>
+    </div>
+
+    <div class="callout">
+        <p><strong>Quirk - Isolation levels:</strong> TiDB does not support the <code>SERIALIZABLE</code> isolation level. Attempting to begin a transaction with <code>sql.LevelSerializable</code> returns <code>Error 8048 (HY000): The isolation level 'SERIALIZABLE' is not supported</code>. Setting <code>tidb_skip_isolation_level_check=1</code> causes TiDB to silently downgrade <code>SERIALIZABLE</code> to <code>REPEATABLE-READ</code>. The <code>tidb_transaction_test.go</code> isolation-level test only covers <code>ReadCommitted</code> and <code>RepeatableRead</code> for this reason.</p>
+    </div>
+
+    <h2>Behavior Notes</h2>
+
+    <ul>
+        <li><strong>Distributed transactions:</strong> TiDB supports distributed transactions across nodes with snapshot isolation by default. Neat ORM's <code>Transaction()</code> API works as expected.</li>
+        <li><strong>DDL:</strong> TiDB executes DDL online but some operations may take longer than on single-node MySQL because schema changes propagate across the cluster.</li>
+        <li><strong>Concurrent access:</strong> <code>LockForUpdate()</code> blocks other transactions from acquiring the same row lock, as demonstrated in <code>tidb_query_lock_test.go</code>.</li>
+    </ul>
+
+    <h2>Default Ports</h2>
+
+    <ul>
+        <li>TiDB (MySQL protocol): <code>4000</code></li>
+        <li>TiDB status API: <code>10080</code></li>
+    </ul>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>

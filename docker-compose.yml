@@ -56,3 +56,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  tidb:
+    image: pingcap/tidb:v8.5.0
+    container_name: neat-tidb-test
+    ports:
+      - "4000:4000"
+    # The pingcap/tidb image is minimal and does not ship mysqladmin/mysql.
+    # TiDB exposes a status/metrics HTTP API on port 10080 that returns 200
+    # once the server is ready to accept MySQL connections on port 4000.
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:10080/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
