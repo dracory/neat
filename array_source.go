@@ -4,6 +4,7 @@ import (
 	"github.com/dracory/neat/support/arraysource"
 	"github.com/dracory/neat/support/csvsource"
 	"github.com/dracory/neat/support/jsonsource"
+	"github.com/dracory/neat/support/xmlsource"
 )
 
 type ArraySourceModel = arraysource.Model
@@ -90,4 +91,35 @@ func NewJsonSource(jsonString string, tableName string, isJSONL bool) *arraysour
 // Panics if the file cannot be opened or parsed.
 func NewJsonFileSource(filePath string) *arraysource.Model {
 	return jsonsource.NewJsonFileSource(filePath)
+}
+
+// NewXmlSource parses an XML string and returns an array-backed data source.
+// The XML must have a root element containing repeated child elements. Each
+// child becomes a row. Attributes and leaf sub-elements become columns.
+// Nested sub-elements are stored as JSON strings. Column types are inferred
+// (int, float, bool, time, string). The table name must be provided explicitly.
+//
+//	database.Query().
+//	    Model(neat.NewXmlSource(xmlString, "users")).
+//	    Where("active = ?", true).
+//	    Get(&users)
+//
+// Panics if the XML cannot be parsed or has no child elements.
+func NewXmlSource(xmlString string, tableName string) *arraysource.Model {
+	return xmlsource.NewXmlSource(xmlString, tableName)
+}
+
+// NewXmlFileSource reads an XML file and returns an array-backed data source.
+// The XML must have a root element containing repeated child elements. Each
+// child becomes a row. Attributes and leaf sub-elements become columns.
+// The table name is derived from the filename (e.g., "data/users.xml" → "users").
+//
+//	database.Query().
+//	    Model(neat.NewXmlFileSource("data/users.xml")).
+//	    Where("active = ?", true).
+//	    Get(&users)
+//
+// Panics if the file cannot be opened, parsed, or has no child elements.
+func NewXmlFileSource(filePath string) *arraysource.Model {
+	return xmlsource.NewXmlFileSource(filePath)
 }

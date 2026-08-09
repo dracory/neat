@@ -159,6 +159,21 @@ err := db.Query().Model(&amp;StatusSource{}).Get(&amp;results)</code></pre>
         <li><a href="../examples/array-driver-dotted-columns">array-driver-dotted-columns</a> &mdash; dotted <code>table.column</code> references with array-backed sources</li>
     </ul>
 
+    <h2>Flat-File Sources</h2>
+
+    <p>Neat ORM also provides flat-file source constructors that parse CSV, JSON, JSONL, and XML files and return <code>*arraysource.Model</code> instances &mdash; the same type returned by the constructors above. This means you can query flat-file data with the full query builder API without writing any parsing code:</p>
+
+    <pre><code>// Query a CSV file
+db.Query().Model(neat.NewCsvFileSource("data/users.csv")).Get(&amp;users)
+
+// Query a JSON file
+db.Query().Model(neat.NewJsonFileSource("data/products.json")).Get(&amp;products)
+
+// Query an XML file
+db.Query().Model(neat.NewXmlFileSource("data/orders.xml")).Get(&amp;orders)</code></pre>
+
+    <p>See the <a href="flat-file-sources.html">Flat-File Sources</a> page for full documentation.</p>
+
     <div class="footer">
         <p>Neat ORM Documentation</p>
     </div>

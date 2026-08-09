@@ -82,6 +82,18 @@ type PoolConfig struct {
         <li><code>NewArraySourceWithSchema(rows []map[string]any, schema map[string]string) *ArraySourceModel</code> - Creates an array-backed data source with explicit column types (useful for empty datasets).</li>
     </ul>
 
+    <h3>Flat-File Source Helpers</h3>
+
+    <ul class="method-list">
+        <li><code>NewCsvSource(csvString string, tableName string) *ArraySourceModel</code> - Parses a CSV string and returns an array-backed data source with type inference.</li>
+        <li><code>NewCsvFileSource(filePath string) *ArraySourceModel</code> - Reads a CSV file and returns an array-backed data source. Table name derived from filename.</li>
+        <li><code>NewCsvFileSourceWithDelimiter(filePath string, delimiter rune) *ArraySourceModel</code> - Like NewCsvFileSource but with a custom delimiter (e.g. '\t' for TSV).</li>
+        <li><code>NewJsonSource(jsonString string, tableName string, isJSONL bool) *ArraySourceModel</code> - Parses a JSON or JSONL string and returns an array-backed data source.</li>
+        <li><code>NewJsonFileSource(filePath string) *ArraySourceModel</code> - Reads a JSON or JSONL file (auto-detected from extension) and returns an array-backed data source.</li>
+        <li><code>NewXmlSource(xmlString string, tableName string) *ArraySourceModel</code> - Parses an XML string and returns an array-backed data source.</li>
+        <li><code>NewXmlFileSource(filePath string) *ArraySourceModel</code> - Reads an XML file and returns an array-backed data source.</li>
+    </ul>
+
     <h2>Query Builder</h2>
 
     <h3>Selection Methods</h3>

@@ -1,11 +1,12 @@
 # Flat-File Source Adapters
 
 **Date**: August 9, 2026 (revised from June 24, 2026)
-**Status**: Proposal
+**Status**: Superseded — implemented as per-file source packages (see notes below)
 **Priority**: Medium
 **Supersedes**: `csv-driver.md`, `json-driver.md`
 **Revisions**:
 - **v2 (2026-08-09)**: Replaced the standalone `flatfile` driver design with array-source adapters. The array source helper (`NewArraySourceFrom`, completed 2026-08-08) and the existing array driver now provide all SQLite orchestration. This revision deletes ~250 lines of duplicated driver logic, 10 integration points, and a new driver registration. The only array-driver change required is adding an optional `ArrayPrimaryKey` interface.
+- **v3 (2026-08-09)**: Superseded. The proposed `support/flatfile/` package with `FileParser` interface, parser registry, directory mode, timestamps, soft deletes, and PK injection was replaced by three thin packages using only the Go standard library: `support/csvsource/`, `support/jsonsource/`, `support/xmlsource/`. Each provides `New*Source(content, tableName)` (string input) and `New*FileSource(filePath)` (file input) constructors that return `*arraysource.Model`. No array driver changes or new contracts were needed. Directory-as-database mode is covered by a separate proposal: `csv-directory-driver.md`.
 
 ## Problem Statement
 

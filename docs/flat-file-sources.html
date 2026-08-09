@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flat-File Sources - Neat ORM Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 2rem; color: #666; }
+        .back-link:hover { color: #3498db; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        h2 { color: #34495e; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        h3 { color: #555; margin-top: 1.5rem; }
+        pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; }
+        code { background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, Inconsolata, "Fira Code", monospace; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 2rem; }
+        li { margin: 0.3rem 0; }
+        p { margin: 1rem 0; }
+        strong { color: #2c3e50; }
+        .note { background: #fff8e1; border-left: 4px solid #f39c12; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; }
+        .advantage { background: #e8f5e9; border-left: 4px solid #27ae60; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.6rem 0.8rem; text-align: left; }
+        th { background: #f8f9fa; color: #2c3e50; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&#8592; Back to Index</a>
+
+    <h1>Flat-File Sources</h1>
+
+    <p>Query CSV, JSON, JSONL, and XML files directly with the full power of the ORM query builder &mdash; no manual parsing, no external dependencies. Neat ORM is the <strong>only Go ORM</strong> that lets you query flat-file data formats as if they were database tables, using the same fluent API you use for real databases.</p>
+
+    <div class="advantage">
+        <strong>Unique Feature:</strong> No other Go ORM supports querying CSV, JSON, JSONL, and XML files out of the box. GORM, Ent, sqlc, sqlboiler, Bun, and all other major Go ORMs require you to parse files yourself and write boilerplate to load data into a database before you can query it. Neat ORM does this in one line.
+    </div>
+
+    <h2>How It Works</h2>
+
+    <p>Flat-file sources are thin wrappers around the <a href="array-source.html">array-backed source</a> system. Each constructor parses a file (or raw string), infers column types, and returns an <code>*arraysource.Model</code> that you pass to <code>Model()</code>. The array driver handles the rest &mdash; SQLite table creation, row insertion, and query execution.</p>
+
+    <p>All parsers use only the Go standard library (<code>encoding/csv</code>, <code>encoding/json</code>, <code>encoding/xml</code>). No external dependencies are added.</p>
+
+    <h2>API Overview</h2>
+
+    <table>
+        <tr>
+            <th>Function</th>
+            <th>Input</th>
+            <th>Format</th>
+            <th>Table Name</th>
+        </tr>
+        <tr>
+            <td><code>neat.NewCsvSource(csvString, tableName)</code></td>
+            <td>Raw CSV string</td>
+            <td>CSV</td>
+            <td>Explicit</td>
+        </tr>
+        <tr>
+            <td><code>neat.NewCsvFileSource(filePath)</code></td>
+            <td>File path</td>
+            <td>CSV</td>
+            <td>From filename</td>
+        </tr>
+        <tr>
+            <td><code>neat.NewCsvFileSourceWithDelimiter(filePath, delimiter)</code></td>
+            <td>File path + delimiter</td>
+            <td>TSV/PSV</td>
+            <td>From filename</td>
+        </tr>
+        <tr>
+            <td><code>neat.NewJsonSource(jsonString, tableName, isJSONL)</code></td>
+            <td>Raw JSON/JSONL string</td>
+            <td>JSON / JSONL</td>
+            <td>Explicit</td>
+        </tr>
+        <tr>
+            <td><code>neat.NewJsonFileSource(filePath)</code></td>
+            <td>File path</td>
+            <td>JSON / JSONL</td>
+            <td>From filename</td>
+        </tr>
+        <tr>
+            <td><code>neat.NewXmlSource(xmlString, tableName)</code></td>
+            <td>Raw XML string</td>
+            <td>XML</td>
+            <td>Explicit</td>
+        </tr>
+        <tr>
+            <td><code>neat.NewXmlFileSource(filePath)</code></td>
+            <td>File path</td>
+            <td>XML</td>
+            <td>From filename</td>
+        </tr>
+    </table>
+
+    <p>Each format has two variants: <strong>string</strong> constructors (accept raw content, require explicit table name) and <strong>file</strong> constructors (accept a file path, derive table name from filename).</p>
+
+    <h2>CSV Sources</h2>
+
+    <h3>Query a CSV File</h3>
+
+    <pre><code>type User struct {
+    ID     int    `db:"id"`
+    Name   string `db:"name"`
+    Email  string `db:"email"`
+    Active bool   `db:"active"`
+}
+
+config := neat.DBConfig{
+    Default: "array_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "array_db": {Driver: "array"},
+    },
+}
+db, _ := neat.New(config)
+
+var users []User
+err := db.Query().
+    Model(neat.NewCsvFileSource("data/users.csv")).
+    Where("active = ?", true).
+    OrderBy("name", "asc").
+    Get(&amp;users)</code></pre>
+
+    <p>The first row of the CSV file must be a header defining column names. Column types are inferred from the data:</p>
+    <ul>
+        <li><strong>Integer</strong> &mdash; <code>123</code>, <code>-456</code></li>
+        <li><strong>Float</strong> &mdash; <code>19.99</code>, <code>-0.5</code></li>
+        <li><strong>Bool</strong> &mdash; <code>true</code>, <code>false</code> (stored as 0/1)</li>
+        <li><strong>Datetime</strong> &mdash; RFC3339, <code>2006-01-02</code>, <code>2006-01-02 15:04:05</code>, <code>01/02/2006</code></li>
+        <li><strong>String</strong> &mdash; everything else</li>
+    </ul>
+
+    <p>Type widening applies across rows: a column with mixed int and float values becomes float; any incompatible mix becomes string.</p>
+
+    <h3>Query a CSV String</h3>
+
+    <pre><code>csvString := "id,name,active\n1,Alice,true\n2,Bob,false\n"
+
+var users []User
+err := db.Query().
+    Model(neat.NewCsvSource(csvString, "users")).
+    Where("active = ?", true).
+    Get(&amp;users)</code></pre>
+
+    <h3>TSV and Custom Delimiters</h3>
+
+    <pre><code>err := db.Query().
+    Model(neat.NewCsvFileSourceWithDelimiter("data/events.tsv", '\t')).
+    Get(&amp;events)</code></pre>
+
+    <h2>JSON Sources</h2>
+
+    <h3>Query a JSON File</h3>
+
+    <pre><code>// data/users.json:
+// [{"id": 1, "name": "Alice", "active": true, "created": "2024-01-15T10:30:00Z"}, ...]
+
+type User struct {
+    ID      int       `db:"id"`
+    Name    string    `db:"name"`
+    Active  bool      `db:"active"`
+    Created time.Time `db:"created"`
+}
+
+var users []User
+err := db.Query().
+    Model(neat.NewJsonFileSource("data/users.json")).
+    Where("active = ?", true).
+    OrderBy("name", "asc").
+    Get(&amp;users)</code></pre>
+
+    <p>JSON has native types, so no string-to-type inference is needed. Values are already <code>int64</code>, <code>float64</code>, <code>bool</code>, <code>string</code>, or <code>nil</code>. Integer-valued floats are automatically converted to <code>int64</code> so the array driver infers <code>INTEGER</code> columns. String values matching RFC3339 are converted to <code>time.Time</code>. Nested objects and arrays are stored as JSON strings (queryable via SQLite JSON functions).</p>
+
+    <h3>Query a JSONL File</h3>
+
+    <p>JSONL (JSON Lines) files contain one JSON object per line. The format is auto-detected from the file extension (<code>.jsonl</code> or <code>.ndjson</code>):</p>
+
+    <pre><code>// data/events.jsonl:
+// {"id": 1, "type": "login", "user_id": 42}
+// {"id": 2, "type": "purchase", "user_id": 17, "amount": 49.99}
+
+type Event struct {
+    ID     int     `db:"id"`
+    Type   string  `db:"type"`
+    UserID int     `db:"user_id"`
+    Amount float64 `db:"amount"`
+}
+
+var events []Event
+err := db.Query().
+    Model(neat.NewJsonFileSource("data/events.jsonl")).
+    Where("type = ?", "purchase").
+    OrderBy("id", "asc").
+    Get(&amp;events)</code></pre>
+
+    <h3>Query a JSON String</h3>
+
+    <pre><code>jsonString := `[{"id": 1, "name": "Alice", "active": true}]`
+
+var users []User
+err := db.Query().
+    Model(neat.NewJsonSource(jsonString, "users", false)).
+    Get(&amp;users)
+
+// JSONL string:
+jsonlString := `{"id": 1, "type": "login"}` + "\n" + `{"id": 2, "type": "logout"}`
+var events []Event
+err = db.Query().
+    Model(neat.NewJsonSource(jsonlString, "events", true)).
+    Get(&amp;events)</code></pre>
+
+    <h2>XML Sources</h2>
+
+    <h3>Query an XML File</h3>
+
+    <pre><code>&lt;!-- data/users.xml --&gt;
+&lt;users&gt;
+  &lt;user id="1"&gt;
+    &lt;name&gt;Alice&lt;/name&gt;
+    &lt;email&gt;alice@example.com&lt;/email&gt;
+    &lt;active&gt;true&lt;/active&gt;
+    &lt;created&gt;2024-01-15T10:30:00Z&lt;/created&gt;
+  &lt;/user&gt;
+  &lt;user id="2"&gt;
+    &lt;name&gt;Bob&lt;/name&gt;
+    &lt;email&gt;bob@example.com&lt;/email&gt;
+    &lt;active&gt;false&lt;/active&gt;
+  &lt;/user&gt;
+&lt;/users&gt;</code></pre>
+
+    <pre><code>var users []User
+err := db.Query().
+    Model(neat.NewXmlFileSource("data/users.xml")).
+    Where("active = ?", true).
+    OrderBy("name", "asc").
+    Get(&amp;users)</code></pre>
+
+    <h3>XML Mapping Rules</h3>
+
+    <p>XML is hierarchical, so the mapping to rows and columns follows these rules:</p>
+    <ul>
+        <li><strong>Root element</strong> &mdash; container, skipped (e.g., <code>&lt;users&gt;</code>)</li>
+        <li><strong>Each direct child</strong> &mdash; becomes a row (e.g., each <code>&lt;user&gt;</code>)</li>
+        <li><strong>Attributes</strong> &mdash; become columns (e.g., <code>id="1"</code> &rarr; column <code>id</code>)</li>
+        <li><strong>Leaf sub-elements</strong> &mdash; become columns (e.g., <code>&lt;name&gt;Alice&lt;/name&gt;</code> &rarr; column <code>name</code>)</li>
+        <li><strong>Nested sub-elements</strong> &mdash; stored as JSON strings (e.g., <code>&lt;address&gt;&lt;city&gt;NYC&lt;/city&gt;&lt;/address&gt;</code> &rarr; column <code>address</code> with JSON value <code>{"city":"NYC"}</code>)</li>
+    </ul>
+
+    <p>Column type inference is the same as CSV: int, float, bool, time, string.</p>
+
+    <h3>Query an XML String</h3>
+
+    <pre><code>xmlString := `&lt;users&gt;
+  &lt;user id="1"&gt;&lt;name&gt;Alice&lt;/name&gt;&lt;active&gt;true&lt;/active&gt;&lt;/user&gt;
+  &lt;user id="2"&gt;&lt;name&gt;Bob&lt;/name&gt;&lt;active&gt;false&lt;/active&gt;&lt;/user&gt;
+&lt;/users&gt;`
+
+var users []User
+err := db.Query().
+    Model(neat.NewXmlSource(xmlString, "users")).
+    Where("active = ?", true).
+    Get(&amp;users)</code></pre>
+
+    <h2>Type Inference</h2>
+
+    <p>CSV and XML sources infer column types from string values. The inference tries each type in order, widening as needed:</p>
+
+    <ol>
+        <li><strong>INTEGER</strong> &mdash; <code>strconv.ParseInt</code> succeeds</li>
+        <li><strong>REAL</strong> &mdash; <code>strconv.ParseFloat</code> succeeds</li>
+        <li><strong>INTEGER (bool)</strong> &mdash; <code>true</code>/<code>false</code> stored as 0/1</li>
+        <li><strong>DATETIME</strong> &mdash; RFC3339 or common date formats</li>
+        <li><strong>TEXT</strong> &mdash; fallback for everything else</li>
+    </ol>
+
+    <p>Type widening across rows: <code>INTEGER</code> &rarr; <code>REAL</code> &rarr; <code>TEXT</code>. A column with mixed int and float values becomes <code>REAL</code>. Any incompatible mix becomes <code>TEXT</code>.</p>
+
+    <p>JSON sources don't need type inference &mdash; JSON has native types. Integer-valued <code>float64</code> values (from <code>encoding/json</code>) are automatically converted to <code>int64</code>.</p>
+
+    <h2>Full Query Builder Support</h2>
+
+    <p>Since flat-file sources are array-backed sources, the full query builder API works:</p>
+
+    <ul>
+        <li><code>Where</code>, <code>OrWhere</code>, <code>WhereIn</code>, <code>WhereNull</code></li>
+        <li><code>OrderBy</code>, <code>GroupBy</code>, <code>Having</code></li>
+        <li><code>Limit</code>, <code>Offset</code></li>
+        <li><code>Join</code> (across multiple sources)</li>
+        <li><code>First</code>, <code>Get</code>, <code>Count</code>, <code>Sum</code>, <code>Avg</code>, <code>Max</code>, <code>Min</code></li>
+        <li>Aggregates and <code>GROUP BY</code> with <code>HAVING</code></li>
+    </ul>
+
+    <div class="note">
+        <strong>Note:</strong> Each <code>Model()</code> call with a flat-file source creates a fresh in-memory SQLite table. The table exists for the duration of that query. To query the same file multiple times, pass the same source instance or create a new one &mdash; the array driver caches populated tables per connection.
+    </div>
+
+    <h2>Examples</h2>
+
+    <ul>
+        <li><a href="../examples/csv-source">csv-source</a> &mdash; query a CSV file with <code>Where</code>, <code>OrderBy</code></li>
+        <li><a href="../examples/json-source">json-source</a> &mdash; query JSON and JSONL files</li>
+        <li><a href="../examples/xml-source">xml-source</a> &mdash; query an XML file with attributes and nested elements</li>
+    </ul>
+
+    <h2>Comparison with Other Go ORMs</h2>
+
+    <p>No major Go ORM supports querying flat-file formats directly:</p>
+
+    <table>
+        <tr>
+            <th>ORM</th>
+            <th>CSV</th>
+            <th>JSON</th>
+            <th>JSONL</th>
+            <th>XML</th>
+        </tr>
+        <tr>
+            <td><strong>Neat ORM</strong></td>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>GORM</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Ent</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>sqlc</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>sqlboiler</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Bun</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Goqu</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+        </tr>
+    </table>
+
+    <p>With other ORMs, you must: (1) parse the file yourself, (2) load data into a real database, (3) then query it. Neat ORM does all three in one <code>Model()</code> call.</p>
+
+    <div class="footer">
+        <p>Neat ORM Documentation</p>
+    </div>
+</body>
+</html>
