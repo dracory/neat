@@ -20,6 +20,7 @@ This directory contains examples demonstrating various use cases of the neat Go 
 - **[seeders](./seeders/)** - Database seeding examples
 - **[transactions](./transactions/)** - Transaction handling patterns
 - **[sugar-methods](./sugar-methods/)** - Convenience methods for improved API usability (AsVar methods)
+- **[csvdb-driver](./csvdb-driver/)** - Query a directory of CSV files as database tables with automatic type inference
 
 ## Soft Delete Strategies
 

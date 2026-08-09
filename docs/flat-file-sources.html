@@ -310,7 +310,7 @@ err := db.Query().
 
     <h2>Comparison with Other Go ORMs</h2>
 
-    <p>No major Go ORM supports querying flat-file formats directly:</p>
+    <p>No major Go ORM supports querying flat-file formats directly. Neat ORM also offers a dedicated <code>csvdb</code> driver for querying an entire directory of CSV files as a database:</p>
 
     <table>
         <tr>
@@ -319,6 +319,7 @@ err := db.Query().
             <th>JSON</th>
             <th>JSONL</th>
             <th>XML</th>
+            <th>CSV Directory</th>
         </tr>
         <tr>
             <td><strong>Neat ORM</strong></td>
@@ -326,9 +327,11 @@ err := db.Query().
             <td>Yes</td>
             <td>Yes</td>
             <td>Yes</td>
+            <td>Yes (csvdb driver)</td>
         </tr>
         <tr>
             <td>GORM</td>
+            <td>No</td>
             <td>No</td>
             <td>No</td>
             <td>No</td>
@@ -340,9 +343,11 @@ err := db.Query().
             <td>No</td>
             <td>No</td>
             <td>No</td>
+            <td>No</td>
         </tr>
         <tr>
             <td>sqlc</td>
+            <td>No</td>
             <td>No</td>
             <td>No</td>
             <td>No</td>
@@ -354,9 +359,11 @@ err := db.Query().
             <td>No</td>
             <td>No</td>
             <td>No</td>
+            <td>No</td>
         </tr>
         <tr>
             <td>Bun</td>
+            <td>No</td>
             <td>No</td>
             <td>No</td>
             <td>No</td>
@@ -368,10 +375,11 @@ err := db.Query().
             <td>No</td>
             <td>No</td>
             <td>No</td>
+            <td>No</td>
         </tr>
     </table>
 
-    <p>With other ORMs, you must: (1) parse the file yourself, (2) load data into a real database, (3) then query it. Neat ORM does all three in one <code>Model()</code> call.</p>
+    <p>With other ORMs, you must: (1) parse the file yourself, (2) load data into a real database, (3) then query it. Neat ORM does all three in one <code>Model()</code> call. For querying a directory of CSV files, the <code>csvdb</code> driver does it at connection open time &mdash; see <a href="proposals/csv-directory-driver.html">CSVDB Driver</a>.</p>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>

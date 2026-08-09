@@ -373,42 +373,8 @@ func (a *Array) Cleanup(db *sql.DB) {
 	})
 }
 
-// isSimpleIdentifier checks if a string is a simple SQL identifier (table or
-// column name) that can be safely embedded in a double-quoted SQL identifier.
-//
-// All identifiers are emitted with double quotes in the generated SQL (e.g.
-// ""column_name""), which makes any valid identifier safe regardless of whether
-// it coincides with a SQL keyword. Therefore, we do NOT reject SQL keywords
-// here — doing so would prevent legitimate column names like "order", "group",
-// "index", "level", "date", "key", "type", "user", etc.
-//
-// The check still rejects characters that could break out of the double-quote
-// context: dots (table.column), parentheses (function calls), non-identifier
-// characters, and identifiers starting with a digit.
+// isSimpleIdentifier delegates to the shared package-level implementation.
+// See isSimpleIdentifier in CSVDB_csv.go for the full documentation.
 func (a *Array) isSimpleIdentifier(s string) bool {
-	if s == "" {
-		return false
-	}
-
-	// Check for dots (table.column) or parentheses (function calls)
-	if strings.Contains(s, ".") || strings.Contains(s, "(") || strings.Contains(s, ")") {
-		return false
-	}
-
-	// Check if starts with a number
-	if s[0] >= '0' && s[0] <= '9' {
-		return false
-	}
-
-	// Check if contains only valid identifier characters
-	for _, r := range s {
-		isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
-		isDigit := r >= '0' && r <= '9'
-		isUnderscore := r == '_'
-		if !isLetter && !isDigit && !isUnderscore {
-			return false
-		}
-	}
-
-	return true
+	return isSimpleIdentifier(s)
 }

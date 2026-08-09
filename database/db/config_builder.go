@@ -271,6 +271,8 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 		return b.buildOracleDSN()
 	case "array":
 		return b.buildSQLiteDSN()
+	case "csvdb":
+		return b.buildCSVDBDSN()
 	default:
 		return "", fmt.Errorf("unsupported driver: %s", b.config.Driver)
 	}
@@ -332,6 +334,18 @@ func (b *ConfigBuilder) buildPostgresDSN() (string, error) {
 // buildSQLiteDSN builds a SQLite DSN string.
 func (b *ConfigBuilder) buildSQLiteDSN() (string, error) {
 	// SQLite DSN is just the file path
+	if b.config.Database == "" {
+		return ":memory:", nil
+	}
+	return b.config.Database, nil
+}
+
+// buildCSVDBDSN builds a DSN for the CSVDB driver. The DSN is the directory
+// path containing .csv files. If empty, an empty in-memory SQLite database
+// is returned (no directory scanned). This is semantically distinct from
+// buildSQLiteDSN (which expects a file path), even though the logic is
+// identical — the Database field holds a directory path, not a file path.
+func (b *ConfigBuilder) buildCSVDBDSN() (string, error) {
 	if b.config.Database == "" {
 		return ":memory:", nil
 	}
@@ -429,8 +443,9 @@ func (c *ConnectionConfig) Validate() error {
 		return nil
 	}
 	switch c.Driver {
-	case "sqlite", "array":
+	case "sqlite", "array", "csvdb":
 		// database path is optional; empty defaults to :memory:
+		// For CSVDB, the Database field holds the directory path.
 		return nil
 	case "mysql":
 		if c.Host == "" {

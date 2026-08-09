@@ -32,7 +32,7 @@
 
     <div style="background: linear-gradient(135deg, #16a085 0%, #1abc9c 100%); color: white; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
         <h2 style="color: white; margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 0.5rem;">One ORM, Many Backends</h2>
-        <p style="margin-bottom: 0;">Neat ORM ships with first-class drivers for six databases and is wire-compatible with several more. Each backend has its own dialect, placeholder style, type mappings, and edge cases. Use the per-database pages below to understand the quirks before you deploy.</p>
+        <p style="margin-bottom: 0;">Neat ORM ships with first-class drivers for seven databases and is wire-compatible with several more. Each backend has its own dialect, placeholder style, type mappings, and edge cases. Use the per-database pages below to understand the quirks before you deploy.</p>
     </div>
 
     <div class="section-title">First-Class Drivers</div>
@@ -66,6 +66,11 @@
             <span class="badge cloud">Edge / Cloud</span>
             <h2>Turso</h2>
             <p>SQLite-based edge database over the libsql protocol. Local file or remote replica.</p>
+        </a>
+        <a href="../proposals/csv-directory-driver.html" class="card">
+            <span class="badge embedded">Embedded</span>
+            <h2>CSVDB</h2>
+            <p>CSV directory as database. Each .csv file becomes a table with automatic type inference. In-memory SQLite under the hood.</p>
         </a>
     </div>
 

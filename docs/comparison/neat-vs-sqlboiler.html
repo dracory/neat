@@ -59,6 +59,7 @@
 <li><strong>View Management</strong>: Create, drop, and introspect database views</li>
 <li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
 <li><strong>Flat-File Sources</strong>: Query CSV, JSON, JSONL, and XML files directly with the full query builder — no other Go ORM does this</li>
+<li><strong>CSVDB Driver</strong>: Query a directory of CSV files as database tables with automatic type inference - no other Go ORM does this</li>
 <li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
 <li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
 <li><strong>ToSql Interface</strong>: SQL generation without execution</li>
@@ -148,7 +149,7 @@
 </tr>
 <tr>
 <td><strong>Database Support</strong></td>
-<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB</td>
 <td>Multiple databases</td>
 </tr>
 <tr>
@@ -179,6 +180,11 @@
 <tr>
 <td><strong>XML Source</strong></td>
 <td>NewXmlFileSource for querying XML files</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>CSVDB Driver</strong></td>
+<td>Query a directory of CSV files as database tables with type inference</td>
 <td>Not available</td>
 </tr>
 <tr>
@@ -554,6 +560,11 @@
 </tr>
 <tr>
 <td><strong>XML Source</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>CSVDB Driver</strong></td>
 <td>✅</td>
 <td>❌</td>
 </tr>
