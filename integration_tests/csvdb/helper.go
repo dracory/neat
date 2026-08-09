@@ -30,17 +30,6 @@ type csvdbProduct struct {
 
 func (csvdbProduct) TableName() string { return "products" }
 
-// csvdbOrder maps to the orders.csv fixture.
-type csvdbOrder struct {
-	ID        int     `db:"id"`
-	UserID    int     `db:"user_id"`
-	ProductID int     `db:"product_id"`
-	Quantity  int     `db:"quantity"`
-	Total     float64 `db:"total"`
-}
-
-func (csvdbOrder) TableName() string { return "orders" }
-
 // csvdbOrderWithUser is a view model for JOIN queries across orders and users.
 type csvdbOrderWithUser struct {
 	ID       int     `db:"id"`
