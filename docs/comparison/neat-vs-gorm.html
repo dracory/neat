@@ -56,6 +56,12 @@
 <li>Designed for feature parity with Laravel's Eloquent ORM</li>
 <li>Query builder pattern with fluent interface</li>
 <li>Clean, focused API design</li>
+<li><strong>View Management</strong>: Create, drop, and introspect database views</li>
+<li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
+<li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
+<li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
+<li><strong>ToSql Interface</strong>: SQL generation without execution</li>
+<li><strong>Security Hardening</strong>: SQL injection prevention with identifier validation</li>
 </ul>
 <h3>GORM</h3>
 <ul>
@@ -124,7 +130,7 @@
 </tr>
 <tr>
 <td><strong>Transactions</strong></td>
-<td>Transaction support</td>
+<td>Transaction support with savepoints and callbacks</td>
 <td>Transaction support</td>
 </tr>
 <tr>
@@ -146,6 +152,36 @@
 <td><strong>Factories/Seeders</strong></td>
 <td>Built-in factories and seeders</td>
 <td>Available via plugins</td>
+</tr>
+<tr>
+<td><strong>View Management</strong></td>
+<td>CreateView, CreateViewRaw, DropView, DropViewIfExists, HasView</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Array-Backed Sources</strong></td>
+<td>NewArraySourceFrom for in-memory slices</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Query Method Aliases</strong></td>
+<td>Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)</td>
+<td>Single API style</td>
+</tr>
+<tr>
+<td><strong>Sugar Methods</strong></td>
+<td>CountAsVar, FirstAsVar, etc. (return values directly)</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>ToSql Interface</strong></td>
+<td>SQL generation without execution</td>
+<td>Limited (DryRun mode)</td>
+</tr>
+<tr>
+<td><strong>Security Hardening</strong></td>
+<td>SQL injection prevention with identifier validation</td>
+<td>Standard parameterized queries</td>
 </tr>
 </tbody>
 </table>

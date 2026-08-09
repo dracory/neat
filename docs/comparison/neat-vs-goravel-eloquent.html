@@ -69,15 +69,21 @@
 <ul>
 <li><strong>Query Builder</strong>: Fluent Eloquent-like API</li>
 <li><strong>ORM Features</strong>: Models, relationships, migrations</li>
-<li><strong>Database Support</strong>: MySQL, PostgreSQL, SQLite, SQL Server, Turso</li>
+<li><strong>Database Support</strong>: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle</li>
 <li><strong>Migrations</strong>: Built-in migration system</li>
-<li><strong>Associations</strong>: BelongsTo, HasMany, HasOne</li>
-<li><strong>Soft Deletes</strong>: Built-in soft delete support</li>
-<li><strong>Transactions</strong>: Transaction support</li>
+<li><strong>Associations</strong>: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany</li>
+<li><strong>Soft Deletes</strong>: Built-in soft delete support with multiple strategies (NULL-based and max-date sentinel)</li>
+<li><strong>Transactions</strong>: Transaction support with savepoints and callbacks</li>
 <li><strong>Observers</strong>: Model lifecycle observers</li>
 <li><strong>Factories/Seeders</strong>: Built-in factories and seeders</li>
 <li><strong>Connection Pooling</strong>: Configurable pooling</li>
 <li><strong>Context Support</strong>: Full context.Context support</li>
+<li><strong>View Management</strong>: Create, drop, and introspect database views</li>
+<li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
+<li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
+<li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
+<li><strong>ToSql Interface</strong>: SQL generation without execution</li>
+<li><strong>Security Hardening</strong>: SQL injection prevention with identifier validation</li>
 </ul>
 <h2>Goravel (GORM)</h2>
 <h3>Architecture</h3>
@@ -180,6 +186,36 @@
 <td><strong>Dependencies</strong></td>
 <td>Minimal</td>
 <td>Framework dependencies</td>
+</tr>
+<tr>
+<td><strong>View Management</strong></td>
+<td>CreateView, CreateViewRaw, DropView, DropViewIfExists, HasView</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Array-Backed Sources</strong></td>
+<td>NewArraySourceFrom for in-memory slices</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Query Method Aliases</strong></td>
+<td>Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)</td>
+<td>Single API style</td>
+</tr>
+<tr>
+<td><strong>Sugar Methods</strong></td>
+<td>CountAsVar, FirstAsVar, etc. (return values directly)</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>ToSql Interface</strong></td>
+<td>SQL generation without execution</td>
+<td>Limited (GORM DryRun)</td>
+</tr>
+<tr>
+<td><strong>Security Hardening</strong></td>
+<td>SQL injection prevention with identifier validation</td>
+<td>Standard parameterized queries</td>
 </tr>
 </tbody>
 </table>

@@ -56,6 +56,12 @@
 <li><strong>ORM pattern</strong>: Object-relational mapping with models</li>
 <li><strong>Reflection-based</strong>: Uses Go reflection for model mapping</li>
 <li><strong>Feature-rich</strong>: Associations, observers, migrations, factories, seeders</li>
+<li><strong>View Management</strong>: Create, drop, and introspect database views</li>
+<li><strong>Array-Backed Sources</strong>: Query in-memory slices as database tables</li>
+<li><strong>Query Method Aliases</strong>: Sequelize-style and Django-style method aliases</li>
+<li><strong>Sugar Methods</strong>: CountAsVar, FirstAsVar, etc.</li>
+<li><strong>ToSql Interface</strong>: SQL generation without execution</li>
+<li><strong>Security Hardening</strong>: SQL injection prevention with identifier validation</li>
 </ul>
 <h3>goqu</h3>
 <ul>
@@ -121,7 +127,7 @@
 </tr>
 <tr>
 <td><strong>Soft Deletes</strong></td>
-<td>Built-in soft delete support</td>
+<td>Built-in soft delete support with multiple strategies (NULL-based and max-date sentinel)</td>
 <td>Not included</td>
 </tr>
 <tr>
@@ -148,6 +154,36 @@
 <td><strong>Scope</strong></td>
 <td>Complete ORM solution</td>
 <td>Query building only</td>
+</tr>
+<tr>
+<td><strong>View Management</strong></td>
+<td>CreateView, CreateViewRaw, DropView, DropViewIfExists, HasView</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Array-Backed Sources</strong></td>
+<td>NewArraySourceFrom for in-memory slices</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Query Method Aliases</strong></td>
+<td>Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)</td>
+<td>Single API style</td>
+</tr>
+<tr>
+<td><strong>Sugar Methods</strong></td>
+<td>CountAsVar, FirstAsVar, etc. (return values directly)</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>ToSql Interface</strong></td>
+<td>SQL generation without execution</td>
+<td>Yes (ToSQL() method)</td>
+</tr>
+<tr>
+<td><strong>Security Hardening</strong></td>
+<td>SQL injection prevention with identifier validation</td>
+<td>Standard parameterized queries</td>
 </tr>
 </tbody>
 </table>
