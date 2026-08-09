@@ -110,6 +110,8 @@ db.Query().OrderBy("created_at", "desc")
 // Multiple order by
 db.Query().OrderBy("name", "asc").OrderBy("created_at", "desc")</code></pre>
 
+    <p><strong>Note:</strong> <code>OrderBy</code>, <code>OrderByDesc</code>, <code>Group</code>, <code>Distinct</code>, and <code>WhereColumn</code> also accept dotted <code>table.column</code> references.</p>
+
     <h3>Limit and Offset</h3>
 
     <pre><code>// Limit

@@ -20,11 +20,14 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Observers**: Model lifecycle event system
 - **Soft Deletes**: Soft delete functionality with multiple strategies (NULL-based and max-date sentinel)
 - **Associations**: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany relationships with eager and lazy loading
+- **Views**: Create, drop, and introspect database views via `CreateView`, `CreateViewRaw`, `DropView`, `DropViewIfExists`, `HasView` across all supported drivers
+- **Array-Backed Sources**: Query in-memory slices of structs or `[]map[string]any` as if they were database tables using `NewArraySourceFrom` — zero boilerplate, no custom `ArraySource` struct required
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
 - **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
 - **Sugar Methods**: Convenience methods (`CountAsVar`, `FirstAsVar`, etc.) that return values directly for improved usability
 - **ToSql Interface**: SQL generation without execution
+- **Dotted Column References**: `table.column` syntax supported in `OrderBy`, `OrderByDesc`, `Group`, `Distinct`, and `WhereColumn`
 - **Security Hardening**: SQL injection prevention with identifier validation
 
 ## Key Advantage: Complete Migration System
@@ -41,8 +44,6 @@ go get github.com/dracory/neat
 
 - **[HTML Documentation](https://html-preview.github.io/?url=https://github.com/dracory/neat/blob/main/docs/index.html)** - Browse documentation in your browser
 - **[Examples](./examples)** - Practical examples for various features
-- **[API Reference](./docs/api-reference.html)** - Complete API documentation
-```
 
 ## Quick Start
 
@@ -120,7 +121,7 @@ db, err := neat.New(config)
 
 ### Models
 
-Neat maps Go structs to database tables using struct tags. For detailed information on table names, column names, and tag priority, see [Models Documentation](./docs/models.md).
+Neat maps Go structs to database tables using struct tags. For detailed information on table names, column names, and tag priority, see [Models Documentation](./docs/models.html).
 
 ### Creating Records
 
@@ -182,6 +183,24 @@ err := db.Schema().Create("users", func(table neat.Blueprint) {
     table.Timestamps()
 })
 ```
+
+### Views
+
+```go
+// Create a view from a query builder
+err := db.Schema().CreateView("active_users", db.Query().Table("users").Where("active", true))
+
+// Create a view from raw SQL
+err := db.Schema().CreateViewRaw("user_summary", "SELECT user_id, COUNT(*) FROM orders GROUP BY user_id")
+
+// Check existence
+exists := db.Schema().HasView("active_users")
+
+// Drop (with if-exists guard)
+err := db.Schema().DropViewIfExists("active_users")
+```
+
+See [Views Documentation](./docs/views.html) for per-driver notes.
 
 ## Observers
 
@@ -254,6 +273,33 @@ db.Query().Load(&user, "posts")
 db.Query().Association("posts").Append(&user, &post)
 ```
 
+## Array-Backed Sources
+
+Query in-memory slices as if they were database tables — useful for static data (statuses, countries), mocking in tests, or querying computed datasets.
+
+```go
+type Status struct {
+    ID    int    `db:"id"`
+    Name  string `db:"name"`
+    Color string `db:"color"`
+}
+
+statuses := []Status{
+    {ID: 1, Name: "Pending", Color: "yellow"},
+    {ID: 2, Name: "Active",  Color: "green"},
+    {ID: 3, Name: "Inactive", Color: "red"},
+}
+
+var results []Status
+err := db.Query().
+    Model(neat.NewArraySourceFrom(statuses)).
+    Where("name = ?", "Active").
+    OrderBy("id", "asc").
+    Get(&results)
+```
+
+`NewArraySourceFrom` accepts a slice of structs or `[]map[string]any`. The table name is auto-generated and the schema is inferred from the data. See [Array Source Documentation](./docs/array-source.html) and the [array driver examples](./examples/array-driver).
+
 ## Supported Databases
 
 - MySQL 5.7+
@@ -301,16 +347,31 @@ Neat ORM provides sensible defaults for connection pooling, but you can customiz
 
 ### Pool Configuration Options
 
+Pool settings are configured on the `DBConfig.Pool` field using `neat.PoolConfig` (durations use `time.Duration`):
+
 ```go
-poolConfig := db.PoolConfig{
-    MaxIdleConns:    5,   // Maximum number of idle connections
-    MaxOpenConns:    25,  // Maximum number of open connections
-    ConnMaxLifetime: 3600, // Connection lifetime in seconds (1 hour)
-    ConnMaxIdleTime: 300, // Maximum idle time in seconds (5 minutes)
-    QueryTimeout:    30,  // Query timeout in seconds (default: 30)
+config := neat.DBConfig{
+    Default: "default",
+    Connections: map[string]neat.ConnectionConfig{
+        "default": {
+            Driver:   "mysql",
+            Host:     "localhost",
+            Port:     3306,
+            Database: "mydb",
+            Username: "user",
+            Password: "password",
+        },
+    },
+    Pool: neat.PoolConfig{
+        MaxIdleConns:    5,                    // Maximum number of idle connections
+        MaxOpenConns:    25,                   // Maximum number of open connections
+        ConnMaxLifetime: 3600 * time.Second,   // Connection lifetime (1 hour)
+        ConnMaxIdleTime: 300 * time.Second,    // Maximum idle time (5 minutes)
+        QueryTimeout:    30 * time.Second,     // Query timeout (default: 30 seconds)
+    },
 }
 
-db, err := neat.New(config, neat.WithPool(poolConfig))
+db, err := neat.New(config)
 ```
 
 ### SQLite-Specific Configuration
@@ -365,44 +426,46 @@ These databases support true concurrent connections and can handle larger connec
 
 ### Workload-Specific Recommendations
 
+The examples below show only the `Pool` field of `neat.DBConfig`. Durations use `time.Duration`.
+
 **Read-Heavy Workloads:**
 ```go
-poolConfig := db.PoolConfig{
-    MaxIdleConns:    10,  // More idle connections for quick reads
-    MaxOpenConns:    50,  // Higher open connection limit
-    ConnMaxLifetime: 7200, // Longer lifetime (2 hours)
-    QueryTimeout:    10,  // Shorter timeout for reads
+Pool: neat.PoolConfig{
+    MaxIdleConns:    10,                  // More idle connections for quick reads
+    MaxOpenConns:    50,                  // Higher open connection limit
+    ConnMaxLifetime: 7200 * time.Second,  // Longer lifetime (2 hours)
+    QueryTimeout:    10 * time.Second,    // Shorter timeout for reads
 }
 ```
 
 **Write-Heavy Workloads:**
 ```go
-poolConfig := db.PoolConfig{
-    MaxIdleConns:    5,   // Fewer idle connections
-    MaxOpenConns:    20,  // Moderate open connection limit
-    ConnMaxLifetime: 3600, // Standard lifetime (1 hour)
-    QueryTimeout:    60,  // Longer timeout for writes
+Pool: neat.PoolConfig{
+    MaxIdleConns:    5,                   // Fewer idle connections
+    MaxOpenConns:    20,                  // Moderate open connection limit
+    ConnMaxLifetime: 3600 * time.Second,  // Standard lifetime (1 hour)
+    QueryTimeout:    60 * time.Second,    // Longer timeout for writes
 }
 ```
 
 **High-Concurrency Applications:**
 ```go
-poolConfig := db.PoolConfig{
-    MaxIdleConns:    20,  // Larger idle pool
-    MaxOpenConns:    100, // High open connection limit
-    ConnMaxLifetime: 1800, // Shorter lifetime (30 minutes)
-    ConnMaxIdleTime: 120, // Shorter idle time (2 minutes)
-    QueryTimeout:    30,
+Pool: neat.PoolConfig{
+    MaxIdleConns:    20,                  // Larger idle pool
+    MaxOpenConns:    100,                 // High open connection limit
+    ConnMaxLifetime: 1800 * time.Second,  // Shorter lifetime (30 minutes)
+    ConnMaxIdleTime: 120 * time.Second,   // Shorter idle time (2 minutes)
+    QueryTimeout:    30 * time.Second,
 }
 ```
 
 **Low-Traffic Services:**
 ```go
-poolConfig := db.PoolConfig{
-    MaxIdleConns:    2,   // Minimal idle connections
-    MaxOpenConns:    5,   // Low open connection limit
-    ConnMaxLifetime: 3600, // Standard lifetime
-    QueryTimeout:    30,
+Pool: neat.PoolConfig{
+    MaxIdleConns:    2,                   // Minimal idle connections
+    MaxOpenConns:    5,                   // Low open connection limit
+    ConnMaxLifetime: 3600 * time.Second,  // Standard lifetime
+    QueryTimeout:    30 * time.Second,
 }
 ```
 
@@ -489,7 +552,7 @@ The HTML report can be opened in a browser to see detailed coverage information 
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request. For detailed contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+Contributions are welcome! Please open an issue or submit a pull request.
 
 ## Roadmap
 
@@ -507,6 +570,8 @@ Neat ORM is actively developed with the following features implemented:
 - ✅ Observer system for model events
 - ✅ Soft deletes with multiple strategies (NULL and Max-Date)
 - ✅ Associations (BelongsTo, HasMany, HasOne, Polymorphic)
+- ✅ View management (CreateView, CreateViewRaw, DropView, DropViewIfExists, HasView)
+- ✅ Array-backed sources (NewArraySourceFrom for struct and map slices)
 - ✅ Connection pooling
 - ✅ Context support
 
@@ -523,4 +588,4 @@ Neat ORM is actively developed with the following features implemented:
 - [ ] Query builder debugging tools
 - [ ] Additional database drivers
 
-For detailed implementation plans, see [docs/implementation/plan.md](./docs/implementation/plan.md).
+For detailed implementation plans, see [docs/implementation/gaps.md](./docs/implementation/gaps.md).

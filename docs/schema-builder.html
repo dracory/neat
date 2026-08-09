@@ -362,6 +362,22 @@ exists := db.Schema().HasTable("users")
 // Check if column exists
 hasColumn := db.Schema().HasColumn("users", "email")</code></pre>
 
+    <h2>Views</h2>
+
+    <p>Neat supports creating, dropping, and introspecting database views. See the <a href="views.html">Views documentation</a> for the full API and per-driver notes.</p>
+
+    <pre><code>// Create a view from a query builder
+err := db.Schema().CreateView("active_users", db.Query().Table("users").Where("active", true))
+
+// Create a view from raw SQL
+err := db.Schema().CreateViewRaw("user_summary", "SELECT user_id, COUNT(*) FROM orders GROUP BY user_id")
+
+// Check existence
+exists := db.Schema().HasView("active_users")
+
+// Drop if exists
+err := db.Schema().DropViewIfExists("active_users")</code></pre>
+
     <h2>Primary Key Types</h2>
 
     <h3>Auto-Incrementing ID</h3>
