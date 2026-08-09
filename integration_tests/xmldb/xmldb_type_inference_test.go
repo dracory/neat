@@ -117,3 +117,41 @@ func TestXMLDBIntegrationTypeInferenceNestedObject(t *testing.T) {
 		t.Errorf("Expected row ID 2, got %d", rowsByCity[0].ID)
 	}
 }
+
+func TestXMLDBIntegrationRepeatedElementsAsArray(t *testing.T) {
+	// The typed.xml fixture has <tags><tag>red</tag><tag>blue</tag></tags>
+	// for row 1. Previously, repeated child elements were silently collapsed
+	// (last-wins), losing "red". Now they should be collected into a JSON
+	// array: {"tag":["red","blue"]}.
+	db := SetupXMLDBTest(t)
+
+	var rows []xmldbTypedRow
+	err := db.Query().Model(&xmldbTypedRow{}).Where("id = ?", 1).Get(&rows)
+	if err != nil {
+		t.Fatalf("Query failed: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("Expected 1 row, got %d", len(rows))
+	}
+
+	tagsStr := rows[0].Tags
+	if tagsStr == "" {
+		t.Fatal("Expected tags not to be empty")
+	}
+
+	var tagsObj map[string]any
+	if err := json.Unmarshal([]byte(tagsStr), &tagsObj); err != nil {
+		t.Fatalf("Failed to parse tags JSON string: %v (value: %s)", err, tagsStr)
+	}
+
+	tagArray, ok := tagsObj["tag"].([]any)
+	if !ok {
+		t.Fatalf("Expected tags.tag to be a JSON array, got %T (%v)", tagsObj["tag"], tagsObj["tag"])
+	}
+	if len(tagArray) != 2 {
+		t.Fatalf("Expected 2 tag values (red, blue), got %d: %v", len(tagArray), tagArray)
+	}
+	if tagArray[0] != "red" || tagArray[1] != "blue" {
+		t.Errorf("Expected [red, blue], got %v", tagArray)
+	}
+}

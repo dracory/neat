@@ -182,6 +182,9 @@ func findRootElement(dec *xml.Decoder) (xml.StartElement, error) {
 // parseElement parses a single XML element into a map[string]any row.
 // Attributes become columns. Sub-elements that are leaf nodes (text-only)
 // become columns. Sub-elements with nested children are stored as JSON strings.
+// Repeated child elements with the same name are collected into a JSON array
+// string (e.g. <tags><tag>red</tag><tag>blue</tag></tags> → "tags" column
+// holds the JSON string ["red","blue"]).
 func parseElement(dec *xml.Decoder, start xml.StartElement) (map[string]any, error) {
 	row := make(map[string]any)
 
@@ -204,21 +207,18 @@ func parseElement(dec *xml.Decoder, start xml.StartElement) (map[string]any, err
 			if err != nil {
 				return nil, err
 			}
+			var val any
 			if isLeaf {
 				// Leaf element: text content becomes the column value
-				row[t.Name.Local] = InferAndConvert(text)
+				val = InferAndConvert(text)
 			} else {
-				// Nested element: store as JSON string
-				b, err := json.Marshal(childRow)
-				if err != nil {
-					row[t.Name.Local] = fmt.Sprintf("%v", childRow)
-				} else {
-					row[t.Name.Local] = string(b)
-				}
+				// Nested element: store raw map — finalizeRow will marshal it
+				val = childRow
 			}
+			setOrAppend(row, t.Name.Local, val)
 		case xml.EndElement:
 			// End of this element
-			return row, nil
+			return finalizeRow(row), nil
 		case xml.CharData:
 			// Text directly inside this element (not in a sub-element).
 			// For row elements, this is usually whitespace between child
@@ -232,6 +232,9 @@ func parseElement(dec *xml.Decoder, start xml.StartElement) (map[string]any, err
 //   - childRow: the parsed content (for nested elements)
 //   - isLeaf: true if the element contains only text (no child elements)
 //   - text: the text content (valid when isLeaf is true)
+//
+// Repeated grandchild elements with the same name are collected into a JSON
+// array string, matching the behavior of parseElement.
 func parseChildElement(dec *xml.Decoder, start xml.StartElement) (map[string]any, bool, string, error) {
 	row := make(map[string]any)
 	var textContent strings.Builder
@@ -255,25 +258,66 @@ func parseChildElement(dec *xml.Decoder, start xml.StartElement) (map[string]any
 			if err != nil {
 				return nil, false, "", err
 			}
+			var val any
 			if isLeaf {
-				row[t.Name.Local] = InferAndConvert(text)
+				val = InferAndConvert(text)
 			} else {
-				b, err := json.Marshal(childRow)
-				if err != nil {
-					row[t.Name.Local] = fmt.Sprintf("%v", childRow)
-				} else {
-					row[t.Name.Local] = string(b)
-				}
+				val = childRow
 			}
+			setOrAppend(row, t.Name.Local, val)
 		case xml.EndElement:
 			if !hasChildElements {
 				return nil, true, strings.TrimSpace(textContent.String()), nil
 			}
+			// NOTE: do NOT call finalizeRow here — the caller stores this map
+			// directly, and finalizeRow (at the row level) handles the final
+			// JSON conversion. Converting maps/slices to JSON strings here
+			// would cause double-encoding.
 			return row, false, "", nil
 		case xml.CharData:
 			textContent.Write(t)
 		}
 	}
+}
+
+// setOrAppend sets row[key] = value when key is new, or appends value to an
+// existing []any slice when key already exists. This allows repeated child
+// elements with the same name to be collected into an array instead of
+// silently overwriting each other (last-wins).
+func setOrAppend(row map[string]any, key string, value any) {
+	if existing, ok := row[key]; ok {
+		if slice, isSlice := existing.([]any); isSlice {
+			row[key] = append(slice, value)
+		} else {
+			row[key] = []any{existing, value}
+		}
+		return
+	}
+	row[key] = value
+}
+
+// finalizeRow converts any []any and map[string]any values in the row to
+// JSON strings, so they can be stored in SQLite TEXT columns and queried via
+// json_extract. Native Go types (int64, float64, string, etc.) are left
+// unchanged.
+func finalizeRow(row map[string]any) map[string]any {
+	for k, v := range row {
+		switch v.(type) {
+		case []any, map[string]any:
+			row[k] = marshalJSONValue(v)
+		}
+	}
+	return row
+}
+
+// marshalJSONValue marshals v to a JSON string, falling back to fmt.Sprintf
+// if marshalling fails (e.g. due to unsupported types).
+func marshalJSONValue(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Sprintf("%v", v)
+	}
+	return string(b)
 }
 
 // InferAndConvert tries to convert a string value to its native Go type

@@ -3,106 +3,10 @@ package driver
 import (
 	"database/sql"
 	"fmt"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/dracory/neat/support/xmlsource"
 )
-
-// inferXMLSchema examines all XML rows and returns:
-//   - sorted column names (union of all attributes + leaf element names across all rows)
-//   - SQLite type for each column (inferred from XML types)
-func inferXMLSchema(rows []map[string]any) ([]string, []string) {
-	colMap := make(map[string]string) // columnName -> inferredType
-	for _, row := range rows {
-		for k, v := range row {
-			if v == nil {
-				if _, exists := colMap[k]; !exists {
-					colMap[k] = "" // Initial empty type
-				}
-				continue
-			}
-
-			valType := inferXMLValueType(v)
-			if currentType, exists := colMap[k]; !exists || currentType == "" {
-				colMap[k] = valType
-			} else {
-				colMap[k] = widenType(currentType, valType)
-			}
-		}
-	}
-
-	// Collect column names and sort them alphabetically for deterministic ordering
-	var columns []string
-	for k := range colMap {
-		columns = append(columns, k)
-	}
-	sort.Strings(columns)
-
-	// Build types slice corresponding to sorted columns
-	types := make([]string, len(columns))
-	for i, col := range columns {
-		t := colMap[col]
-		if t == "" {
-			t = "TEXT" // Default to TEXT for columns with only nil values
-		}
-		types[i] = t
-	}
-
-	return columns, types
-}
-
-// inferXMLValueType tries to determine the Go-native type of an XML value.
-func inferXMLValueType(v any) string {
-	switch v.(type) {
-	case int64:
-		return "INTEGER"
-	case float64:
-		return "REAL"
-	case bool:
-		return "INTEGER"
-	case time.Time:
-		return "DATETIME"
-	default:
-		return "TEXT"
-	}
-}
-
-// convertXMLValue converts an XML-native value into a form suitable for
-// database/sql insertion based on the inferred SQL type.
-func convertXMLValue(val any, sqlType string) any {
-	if val == nil {
-		return nil
-	}
-
-	switch sqlType {
-	case "INTEGER":
-		switch v := val.(type) {
-		case bool:
-			if v {
-				return int64(1)
-			}
-			return int64(0)
-		case int64:
-			return v
-		case float64:
-			return int64(v)
-		}
-	case "REAL":
-		switch v := val.(type) {
-		case float64:
-			return v
-		case int64:
-			return float64(v)
-		}
-	case "DATETIME":
-		if t, ok := val.(time.Time); ok {
-			return t
-		}
-	}
-	return val
-}
 
 // populateXMLFile reads an XML file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
@@ -125,7 +29,7 @@ func populateXMLFile(db *sql.DB, tableName string, filePath string) error {
 	}
 
 	// Infer columns and their types
-	columns, colTypes := inferXMLSchema(rows)
+	columns, colTypes := inferMapSchema(rows)
 
 	// If no columns could be inferred (e.g. empty elements only), skip the table
 	if len(columns) == 0 {
@@ -195,7 +99,7 @@ func populateXMLFile(db *sql.DB, tableName string, filePath string) error {
 			for _, col := range columns {
 				val, exists := row[col]
 				if exists {
-					values = append(values, convertXMLValue(val, colTypeMap[col]))
+					values = append(values, convertGoValue(val, colTypeMap[col]))
 				} else {
 					values = append(values, nil)
 				}

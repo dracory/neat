@@ -3,106 +3,10 @@ package driver
 import (
 	"database/sql"
 	"fmt"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/dracory/neat/support/jsonsource"
 )
-
-// inferSchema examines all rows and returns:
-//   - sorted column names (union of all object keys across all rows)
-//   - SQLite type for each column (inferred from native JSON types)
-func inferSchema(rows []map[string]any) ([]string, []string) {
-	colMap := make(map[string]string) // columnName -> inferredType
-	for _, row := range rows {
-		for k, v := range row {
-			if v == nil {
-				if _, exists := colMap[k]; !exists {
-					colMap[k] = "" // Initial empty type
-				}
-				continue
-			}
-
-			valType := inferJSONValueType(v)
-			if currentType, exists := colMap[k]; !exists || currentType == "" {
-				colMap[k] = valType
-			} else {
-				colMap[k] = widenType(currentType, valType)
-			}
-		}
-	}
-
-	// Collect column names and sort them alphabetically for deterministic ordering
-	var columns []string
-	for k := range colMap {
-		columns = append(columns, k)
-	}
-	sort.Strings(columns)
-
-	// Build types slice corresponding to sorted columns
-	types := make([]string, len(columns))
-	for i, col := range columns {
-		t := colMap[col]
-		if t == "" {
-			t = "TEXT" // Default to TEXT for columns with only nil values
-		}
-		types[i] = t
-	}
-
-	return columns, types
-}
-
-// inferJSONValueType tries to determine the Go-native type of a JSON value.
-func inferJSONValueType(v any) string {
-	switch v.(type) {
-	case int64:
-		return "INTEGER"
-	case float64:
-		return "REAL"
-	case bool:
-		return "INTEGER"
-	case time.Time:
-		return "DATETIME"
-	default:
-		return "TEXT"
-	}
-}
-
-// convertJSONValue converts a JSON-native value into a form suitable for
-// database/sql insertion based on the inferred SQL type.
-func convertJSONValue(val any, sqlType string) any {
-	if val == nil {
-		return nil
-	}
-
-	switch sqlType {
-	case "INTEGER":
-		switch v := val.(type) {
-		case bool:
-			if v {
-				return int64(1)
-			}
-			return int64(0)
-		case int64:
-			return v
-		case float64:
-			return int64(v)
-		}
-	case "REAL":
-		switch v := val.(type) {
-		case float64:
-			return v
-		case int64:
-			return float64(v)
-		}
-	case "DATETIME":
-		if t, ok := val.(time.Time); ok {
-			return t
-		}
-	}
-	return val
-}
 
 // populateJSONFile reads a JSON/JSONL file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
@@ -128,7 +32,7 @@ func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
 	}
 
 	// Infer columns and their types
-	columns, colTypes := inferSchema(rows)
+	columns, colTypes := inferMapSchema(rows)
 
 	// If no columns could be inferred (e.g. [{}] or [null]), skip the table
 	// — consistent with the empty-array behavior (no schema = no table)
@@ -199,7 +103,7 @@ func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
 			for _, col := range columns {
 				val, exists := row[col]
 				if exists {
-					values = append(values, convertJSONValue(val, colTypeMap[col]))
+					values = append(values, convertGoValue(val, colTypeMap[col]))
 				} else {
 					values = append(values, nil)
 				}
