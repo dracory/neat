@@ -69,20 +69,7 @@ func RunExample() error {
 
 // newDatabase creates an in-memory array-driver database connection.
 func newDatabase() (*neat.Database, error) {
-	config := neat.DBConfig{
-		Default: "array_db",
-		Connections: map[string]neat.ConnectionConfig{
-			"array_db": {
-				Driver: "array",
-			},
-		},
-	}
-
-	database, err := neat.New(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database: %w", err)
-	}
-	return database, nil
+	return neat.NewMemoryDB()
 }
 
 // staticData returns the shared slice of Status structs used across examples.
