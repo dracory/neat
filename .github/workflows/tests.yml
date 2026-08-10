@@ -77,6 +77,9 @@ jobs:
         image: cockroachdb/cockroach:v24.3.0
         ports:
           - "26257:26257"
+        env:
+          COCKROACH_ARGS: "start-single-node --insecure"
+          COCKROACH_DATABASE: test
         options: >-
           --health-cmd="cockroach sql --insecure --host=127.0.0.1:26257 -e 'SELECT 1'"
           --health-interval=10s
@@ -235,7 +238,7 @@ jobs:
       run: |
         echo "Waiting for CockroachDB to be ready..."
         for i in {1..30}; do
-          if docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host 127.0.0.1:26257 -e "SELECT 1;" > /dev/null 2>&1; then
+          if docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host=127.0.0.1:26257 -e "SELECT 1;" > /dev/null 2>&1; then
             echo "CockroachDB is ready!"
             break
           fi
@@ -245,11 +248,11 @@ jobs:
 
     - name: Create CockroachDB test database
       run: |
-        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host 127.0.0.1:26257 -e "CREATE DATABASE IF NOT EXISTS test;"
+        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host=127.0.0.1:26257 -e "CREATE DATABASE IF NOT EXISTS test;"
 
     - name: Verify CockroachDB connection
       run: |
-        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host 127.0.0.1:26257 -d test -e "SELECT 1;"
+        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host=127.0.0.1:26257 -d test -e "SELECT 1;"
 
     - name: Set up Go
       uses: actions/setup-go@v6
