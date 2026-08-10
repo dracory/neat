@@ -1,4 +1,4 @@
-# NewArrayDB Convenience Constructor
+# NewMemoryDB Convenience Constructor
 
 **Date**: August 10, 2026
 **Status**: Proposal
@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-The array driver is an in-memory, SQLite-backed store that needs no DSN, host, port, or credentials. Yet users must write 8 lines of boilerplate config to use it:
+The array driver is an in-memory, SQLite-backed database that needs no DSN, host, port, or credentials. It powers all in-memory data sources — array slices, CSV, JSON, XML. Yet users must write 8 lines of boilerplate config to use it:
 
 ```go
 config := neat.DBConfig{
@@ -26,26 +26,40 @@ This is the minimum setup shown in `examples/array-driver/main.go:71-86`. The th
 - `neat.NewFromDSN(dsn)` — needs a DSN string (irrelevant for arrays)
 - `neat.NewFromSQLDB(sqlDB)` — needs an open `*sql.DB` (irrelevant for arrays)
 
-None are tailored for the array driver.
+None are tailored for in-memory data sources.
 
 ## Proposed Solution
 
 Add a single convenience function to `config.go`:
 
 ```go
-// NewArrayDB creates an in-memory array-driver Database with zero configuration.
+// NewMemoryDB creates an in-memory database with zero configuration.
 // It is the simplest way to query slices of structs, maps, CSV, JSON, or XML
-// data using the full query builder (Where, OrderBy, First, Get, etc.).
+// data using the full query builder (Where, OrderBy, First, Get, JOINs, etc.).
 //
-//	database, err := neat.NewArrayDB()
+// Multiple sources can be loaded into the same database — each becomes a
+// table, enabling JOINs across them.
+//
+//	database, err := neat.NewMemoryDB()
 //	if err != nil { ... }
 //	defer database.Close()
 //
+//	// Load multiple sources — each becomes a table in the same SQLite DB
 //	database.Query().
 //	    Model(neat.NewArraySourceFrom(statuses)).
 //	    Where("name = ?", "Active").
 //	    First(&result)
-func NewArrayDB(opts ...database.Option) (*Database, error) {
+//
+//	database.Query().
+//	    Model(neat.NewCsvSource(csv, "users")).
+//	    Get(&users)
+//
+//	// JOIN across sources — both tables exist in the same in-memory DB
+//	database.Query().
+//	    Table("statuses").
+//	    LeftJoin("users", "statuses.user_id = users.id").
+//	    Get(&joined)
+func NewMemoryDB(opts ...database.Option) (*Database, error) {
     return New(DBConfig{
         Default: "array_db",
         Connections: map[string]ConnectionConfig{
@@ -79,23 +93,24 @@ func newDatabase() (*neat.Database, error) {
 
 ```go
 func newDatabase() (*neat.Database, error) {
-    return neat.NewArrayDB()
+    return neat.NewMemoryDB()
 }
 ```
 
 ## Design Decisions
 
-- **Name**: `NewArrayDB` conveys that you get a `*Database` backed by the array driver. It follows the `New`/`NewFromDSN`/`NewFromSQLDB` naming pattern.
+- **Name**: `NewMemoryDB` conveys that you get an in-memory `*Database` — not specific to arrays, since it powers all in-memory sources (array slices, CSV, JSON, XML). It follows the `New`/`NewFromDSN`/`NewFromSQLDB` naming pattern.
+- **Multiple tables**: Each `Model()` call with a different source populates a new table in the same SQLite database (see `query_model.go:18-41`). This enables JOINs across sources — e.g., an array source joined with a CSV source.
 - **Options**: Accepts `...database.Option` so users can still pass `database.WithDebug(true)` etc.
 - **No new types**: Reuses existing `DBConfig` internally — no new structs, no new interfaces.
-- **Scope**: Only the array driver. CSV/JSON/XML sources already work through `NewArraySourceFrom` / `NewCsvSource` / etc. at the model level — they don't need a separate `Database`.
+- **Scope**: One constructor for all in-memory sources. The driver name stays `"array"` for backward compatibility — `NewMemoryDB` is just a convenience wrapper.
 
 ## Files Changed
 
 | File | Change |
 |---|---|
-| `config.go` | Add `NewArrayDB()` function (~10 lines) |
-| `examples/array-driver/main.go` | Simplify `newDatabase()` to call `neat.NewArrayDB()` |
+| `config.go` | Add `NewMemoryDB()` function (~10 lines) |
+| `examples/array-driver/main.go` | Simplify `newDatabase()` to call `neat.NewMemoryDB()` |
 
 ## Risks
 
