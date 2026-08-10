@@ -31,6 +31,20 @@
 
     <p>The <code>array</code> driver lets you query in-memory data as if it were a database table. This is useful for static lookup data (statuses, countries, roles), mocking data in tests, or querying computed datasets with the full query builder API.</p>
 
+    <h2>Creating the Database</h2>
+
+    <p>The simplest way to create an in-memory database for array-backed sources is <code>neat.NewMemoryDB()</code> &mdash; zero configuration, no <code>DBConfig</code>, no connection map:</p>
+
+    <pre><code>db, err := neat.NewMemoryDB()
+if err != nil { ... }
+defer db.Close()</code></pre>
+
+    <p>This creates an in-memory SQLite database powered by the <code>array</code> driver. Multiple sources can be loaded into the same database &mdash; each becomes a table, enabling JOINs across them. See the <a href="#multi-table-joins">Multi-Table JOINs</a> section below.</p>
+
+    <div class="note">
+        <strong>Alternative:</strong> You can also use the explicit config approach with <code>neat.New(DBConfig{...})</code> if you need full control over connection settings. See the <a href="../examples/array-driver">array-driver example</a>.
+    </div>
+
     <h2>Constructor Family</h2>
 
     <p>Neat provides three constructors for array-backed sources, in order of ergonomics:</p>
@@ -55,13 +69,7 @@ statuses := []Status{
     {ID: 3, Name: "Inactive", Color: "red"},
 }
 
-config := neat.DBConfig{
-    Default: "array_db",
-    Connections: map[string]neat.ConnectionConfig{
-        "array_db": {Driver: "array"},
-    },
-}
-db, _ := neat.New(config)
+db, _ := neat.NewMemoryDB()
 
 var results []Status
 err := db.Query().
@@ -151,10 +159,28 @@ err := db.Query().Model(&amp;StatusSource{}).Get(&amp;results)</code></pre>
 
     <p><code>NewArraySourceFrom</code> is preferred for new code since it requires no boilerplate.</p>
 
+    <h2 id="multi-table-joins">Multi-Table JOINs</h2>
+
+    <p>Since <code>NewMemoryDB</code> creates a single in-memory SQLite database, you can load multiple sources and JOIN across them. Use <code>NewArraySource().Table("name")</code> to set explicit table names for JOINs &mdash; <code>NewArraySourceFrom</code> auto-generates unique table names (e.g., <code>array_user_1</code>) that are hard to predict.</p>
+
+    <pre><code>db, _ := neat.NewMemoryDB()
+
+// Load two sources as separate tables in the same DB
+db.Query().Model(neat.NewArraySource(statusRows).Table("statuses")).Get(&amp;_)
+db.Query().Model(neat.NewArraySource(userRows).Table("users")).Get(&amp;_)
+
+// JOIN across both tables
+db.Query().
+    Table("users").
+    LeftJoin("statuses ON users.status = statuses.name").
+    Select("users.id", "users.name", "statuses.color").
+    Get(&amp;results)</code></pre>
+
     <h2>Examples</h2>
 
     <ul>
-        <li><a href="../examples/array-driver">array-driver</a> &mdash; basic usage: struct slices, map slices, custom table names, legacy interface</li>
+        <li><a href="../examples/memory-db">memory-db</a> &mdash; zero-config usage with <code>NewMemoryDB</code>: struct slices, Where+First, multi-table JOINs</li>
+        <li><a href="../examples/array-driver">array-driver</a> &mdash; explicit config approach: struct slices, map slices, custom table names, legacy interface</li>
         <li><a href="../examples/array-driver-advanced">array-driver-advanced</a> &mdash; JOINs, GROUP BY, aggregates, HAVING with array-backed sources</li>
         <li><a href="../examples/array-driver-dotted-columns">array-driver-dotted-columns</a> &mdash; dotted <code>table.column</code> references with array-backed sources</li>
     </ul>

@@ -63,7 +63,9 @@ type PoolConfig struct {
 
     <ul class="method-list">
         <li><code>New(config DBConfig) (*Database, error)</code> - Create database from config</li>
+        <li><code>NewMemoryDB(opts ...Option) (*Database, error)</code> - Create zero-config in-memory database for array, CSV, JSON, or XML sources. Supports multiple tables and JOINs.</li>
         <li><code>NewFromDSN(dsn string) (*Database, error)</code> - Create database from DSN string</li>
+        <li><code>NewFromSQLDB(sqlDB *sql.DB) (*Database, error)</code> - Create database from existing *sql.DB connection</li>
         <li><code>Close() error</code> - Close database connection</li>
         <li><code>Query() Query</code> - Get query builder instance</li>
         <li><code>Schema() Schema</code> - Get schema builder instance</li>
