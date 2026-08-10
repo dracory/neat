@@ -347,8 +347,8 @@ func detectDatabaseName(sqlDB *sql.DB, driver string) string {
 		if err := sqlDB.QueryRowContext(ctx, "SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM DUAL").Scan(&schemaName); err == nil {
 			return schemaName
 		}
-	case "sqlite", "turso", "array", "csvdb", "jsondb", "xmldb":
-		// SQLite, Turso, Array, CSVDB, JSONDB and XMLDB do not have a database name concept like server DBs.
+	case "sqlite", "turso", "array", "csvdb", "jsondb", "xmldb", "godb":
+		// SQLite, Turso, Array, CSVDB, JSONDB, XMLDB and GODB do not have a database name concept like server DBs.
 		// Return "main" which is the default schema name.
 		return "main"
 	}

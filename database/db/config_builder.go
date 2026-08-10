@@ -277,9 +277,17 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 		return b.buildJSONDBDSN()
 	case "xmldb":
 		return b.buildXMLDBDSN()
+	case "godb":
+		return b.buildGODBDSN()
 	default:
 		return "", fmt.Errorf("unsupported driver: %s", b.config.Driver)
 	}
+}
+
+// buildGODBDSN builds a DSN for the GODB driver. It always returns ":memory:"
+// because the data is loaded from Go data structures compiled into the binary.
+func (b *ConfigBuilder) buildGODBDSN() (string, error) {
+	return ":memory:", nil
 }
 
 // buildMySQLDSN builds a MySQL DSN string.
@@ -453,6 +461,7 @@ type ConnectionConfig struct {
 	NameReplacer any
 	Read         []ReplicaConfig // read replicas; if non-empty, SELECTs are routed here
 	Write        []ReplicaConfig // write primaries; if non-empty, mutating queries go here
+	Tables       any             // GODB: godb.Tables or []godb.Table; ignored by other drivers
 }
 
 // String returns a string representation of ConnectionConfig with password masked.
@@ -471,9 +480,10 @@ func (c *ConnectionConfig) Validate() error {
 		return nil
 	}
 	switch c.Driver {
-	case "sqlite", "array", "csvdb", "jsondb", "xmldb":
+	case "sqlite", "array", "csvdb", "jsondb", "xmldb", "godb":
 		// database path is optional; empty defaults to :memory:
 		// For CSVDB, JSONDB and XMLDB, the Database field holds the directory path.
+		// For GODB, data is loaded from Tables.
 		return nil
 	case "mysql":
 		if c.Host == "" {

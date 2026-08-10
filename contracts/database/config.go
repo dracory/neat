@@ -5,6 +5,7 @@ const (
 	DriverCSVDB     Driver = "csvdb"
 	DriverJSONDB    Driver = "jsondb"
 	DriverXMLDB     Driver = "xmldb"
+	DriverGODB      Driver = "godb"
 	DriverMysql     Driver = "mysql"
 	DriverOracle    Driver = "oracle"
 	DriverPostgres  Driver = "postgres"
