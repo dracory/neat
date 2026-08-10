@@ -71,15 +71,6 @@ func staticStatuses() []Status {
 	}
 }
 
-// staticUsers returns the shared slice of User structs.
-func staticUsers() []User {
-	return []User{
-		{ID: 1, Name: "Alice", Status: "Active"},
-		{ID: 2, Name: "Bob", Status: "Pending"},
-		{ID: 3, Name: "Charlie", Status: "Active"},
-	}
-}
-
 // ExampleStructSlice demonstrates the simplest usage: create an in-memory
 // database with NewMemoryDB, load a struct slice as a table, and query it.
 //
