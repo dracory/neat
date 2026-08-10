@@ -66,6 +66,17 @@ _ = s.Up(ctx)
 - CSVDB driver (`csvdb`) — query a directory of CSV files as database tables with automatic type inference, BOM stripping, duplicate column detection, ragged row validation, table name collision detection, MaxCSVRows limit, and transaction-wrapped bulk loading
 - CSVDB integration tests (`integration_tests/csvdb/`) — query, JOIN, aggregate, and type inference tests
 - CSVDB example (`examples/csvdb-driver/`) — working example with sample CSV data
+- JSONDB driver (`jsondb`) — query a directory of JSON/JSONL/NDJSON files as database tables with automatic type inference, duplicate column detection, table name collision detection, MaxJSONRows limit, and transaction-wrapped bulk loading
+- JSONDB integration tests (`integration_tests/jsondb/`) — query, JOIN, aggregate, and type inference tests
+- JSONDB example (`examples/jsondb-driver/`) — working example with sample JSON/JSONL data
+- XMLDB driver (`xmldb`) — query a directory of XML files as database tables with attributes and leaf elements mapped to columns, automatic type inference, duplicate column detection, table name collision detection, MaxXMLRows limit, and transaction-wrapped bulk loading
+- XMLDB integration tests (`integration_tests/xmldb/`) — query, JOIN, aggregate, and type inference tests
+- XMLDB example (`examples/xmldb-driver/`) — working example with sample XML data
+- GODB driver (`godb`) — query compiled-in Go data slices (`[]Struct`, `[]map[string]any`) as database tables via the `Tables` config field, with no file I/O, no parsing, and direct Go-type-to-SQLite-type mapping; supports both `godb.Tables` map and `[]godb.Table` slice config styles
+- `support/arraysource.ConvertSliceToRows` — exported non-generic helper for converting `any`-typed data slices to `[]map[string]any`, reusing the existing struct-to-row reflection logic (tag priority `db` > `neat` > `gorm` > snake_case, embedded structs flattened, association fields skipped)
+- Widened `database/driver/schemainfer.go` (`inferGoValueType`, `convertGoValue`) to support the full set of Go basic types (`int`/`int8`-`int64`, `uint`/`uint8`-`uint64`, `float32`/`float64`, `[]byte`, `json.RawMessage`, `*time.Time`) — a strict superset of the previous `int64`/`float64`-only logic, with no behavioral change for JSONDB/XMLDB
+- GODB integration tests (`integration_tests/godb/`) — query, JOIN, aggregate, type preservation, NULL handling, and both config styles
+- GODB example (`examples/godb-driver/`) — working example with sample struct-slice data demonstrating WHERE, JOIN, and aggregate queries
 - Observer pattern for model lifecycle events
 - Soft delete functionality with SoftDeletes struct
 - Max-date sentinel soft delete strategy (SoftDeletesMaxDate, DeletedAtMaxDate) for NOT NULL column compatibility

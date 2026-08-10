@@ -58,6 +58,7 @@ type ConnectionConfig struct {
 	NameReplacer any
 	Read         []ReplicaConfig
 	Write        []ReplicaConfig
+	Tables       any // GODB: godb.Tables or []godb.Table; ignored by other drivers
 }
 
 // String returns a string representation of ConnectionConfig with password masked.
@@ -378,6 +379,7 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 			Singular:     conn.Singular,
 			NoLowerCase:  conn.NoLowerCase,
 			NameReplacer: conn.NameReplacer,
+			Tables:       conn.Tables,
 		}
 		for _, r := range conn.Read {
 			dbConn.Read = append(dbConn.Read, db.ReplicaConfig{

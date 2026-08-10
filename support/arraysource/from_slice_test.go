@@ -271,3 +271,64 @@ func TestNewArraySourceFrom_PanicsOnUnsupportedType(t *testing.T) {
 	}()
 	NewArraySourceFrom([]int{1, 2, 3})
 }
+
+func TestConvertSliceToRows(t *testing.T) {
+	// Test nil
+	rows, err := ConvertSliceToRows(nil)
+	if err != nil || rows != nil {
+		t.Errorf("expected nil, nil, got %v, %v", rows, err)
+	}
+
+	// Test empty slice
+	var empty []Status
+	rows, err = ConvertSliceToRows(empty)
+	if err != nil || rows != nil {
+		t.Errorf("expected nil, nil for empty slice, got %v, %v", rows, err)
+	}
+
+	// Test map slice
+	maps := []map[string]any{
+		{"id": 1, "name": "Alice"},
+	}
+	rows, err = ConvertSliceToRows(maps)
+	if err != nil || len(rows) != 1 || rows[0]["name"] != "Alice" {
+		t.Errorf("failed to convert maps: %v, %v", rows, err)
+	}
+
+	// Snapshot semantics
+	maps[0]["name"] = "Bob"
+	if rows[0]["name"] != "Alice" {
+		t.Errorf("expected snapshot, got %v", rows[0]["name"])
+	}
+
+	// Test struct slice
+	structs := []Status{
+		{ID: 1, Name: "Pending"},
+	}
+	rows, err = ConvertSliceToRows(structs)
+	if err != nil || len(rows) != 1 || rows[0]["id"] != 1 || rows[0]["name"] != "Pending" {
+		t.Errorf("failed to convert structs: %v, %v", rows, err)
+	}
+
+	// Test pointer-to-struct slice with nil
+	ptrStructs := []*Status{
+		{ID: 2, Name: "Active"},
+		nil,
+	}
+	rows, err = ConvertSliceToRows(ptrStructs)
+	if err != nil || len(rows) != 1 || rows[0]["id"] != 2 {
+		t.Errorf("failed to convert pointer structs: %v, %v", rows, err)
+	}
+
+	// Test invalid input type
+	_, err = ConvertSliceToRows(123)
+	if err == nil {
+		t.Error("expected error for non-slice input")
+	}
+
+	// Test slice of invalid element types
+	_, err = ConvertSliceToRows([]int{1, 2})
+	if err == nil {
+		t.Error("expected error for slice of ints")
+	}
+}

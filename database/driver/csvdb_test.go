@@ -185,6 +185,9 @@ func TestCSVDBColumnNamesFromHeader(t *testing.T) {
 		}
 		cols = append(cols, name)
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows iteration failed: %v", err)
+	}
 	if len(cols) != 3 {
 		t.Fatalf("expected 3 columns, got %d: %v", len(cols), cols)
 	}

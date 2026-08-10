@@ -187,6 +187,96 @@ func isAssociationField(fieldValue reflect.Value) bool {
 	}
 }
 
+// ConvertSliceToRows converts a slice of maps, structs, or pointer-to-structs
+// to []map[string]any using reflection.
+// If data is nil, or represents an empty slice, it returns nil, nil.
+// If any element of the slice is not a struct, pointer-to-struct, or map[string]any,
+// it returns an error.
+func ConvertSliceToRows(data any) ([]map[string]any, error) {
+	if data == nil {
+		return nil, nil
+	}
+
+	// Direct type assertion for []map[string]any
+	if rows, ok := data.([]map[string]any); ok {
+		if len(rows) == 0 {
+			return nil, nil
+		}
+		return copyRows(rows), nil
+	}
+
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return nil, nil
+		}
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("arraysource: expected slice, got %T", data)
+	}
+
+	l := v.Len()
+	if l == 0 {
+		return nil, nil
+	}
+
+	rows := make([]map[string]any, 0, l)
+	for i := 0; i < l; i++ {
+		elem := v.Index(i)
+
+		if !elem.IsValid() {
+			continue
+		}
+
+		// Unpack interface if the slice is e.g. []any
+		if elem.Kind() == reflect.Interface {
+			if elem.IsNil() {
+				continue // skip nil elements
+			}
+			elem = elem.Elem()
+		}
+
+		if !elem.IsValid() {
+			continue
+		}
+
+		// Handle pointer elements
+		if elem.Kind() == reflect.Pointer {
+			if elem.IsNil() {
+				continue // skip nil elements
+			}
+			elem = elem.Elem()
+		}
+
+		if !elem.IsValid() {
+			continue
+		}
+
+		// Handle map[string]any elements
+		if m, ok := elem.Interface().(map[string]any); ok {
+			// Copy map to satisfy snapshot semantics
+			cp := make(map[string]any, len(m))
+			for k, val := range m {
+				cp[k] = val
+			}
+			rows = append(rows, cp)
+			continue
+		}
+
+		// Check if it is a struct
+		if elem.Kind() == reflect.Struct {
+			rows = append(rows, structToMap(elem))
+			continue
+		}
+
+		return nil, fmt.Errorf("arraysource: slice element must be a struct, pointer to struct, or map[string]any, got %s", elem.Kind())
+	}
+
+	return rows, nil
+}
+
 var arrayCounter uint64
 
 func nextTableName[T any]() string {

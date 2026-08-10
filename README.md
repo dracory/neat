@@ -15,7 +15,7 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Migrations**: Complete database migration system with the `Migrator` package, schema builder, rollback support, and automatic tracking (major advantage over most Go ORMs)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
-- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB
+- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB, GODB
 - **Transactions**: Robust transaction support
 - **Observers**: Model lifecycle event system
 - **Soft Deletes**: Soft delete functionality with multiple strategies (NULL-based and max-date sentinel)
@@ -23,6 +23,9 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Views**: Create, drop, and introspect database views via `CreateView`, `CreateViewRaw`, `DropView`, `DropViewIfExists`, `HasView` across all supported drivers
 - **Array-Backed Sources**: Query in-memory slices of structs or `[]map[string]any` as if they were database tables using `NewArraySourceFrom` — zero boilerplate, no custom `ArraySource` struct required
 - **CSVDB Driver**: Query a directory of CSV files as if they were database tables — each `.csv` file becomes a table, with automatic type inference, BOM stripping, and transaction-wrapped bulk loading
+- **JSONDB Driver**: Query a directory of JSON/JSONL/NDJSON files as if they were database tables — each file becomes a table, with automatic type inference and transaction-wrapped bulk loading
+- **XMLDB Driver**: Query a directory of XML files as if they were database tables — each `.xml` file becomes a table, with attributes and leaf elements mapped to columns, automatic type inference, and transaction-wrapped bulk loading
+- **GODB Driver**: Query compiled-in Go data slices as if they were database tables — pass `[]Struct` or `[]map[string]any` via config; no file I/O, no parsing, types come from the Go compiler
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
 - **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
@@ -324,7 +327,101 @@ var users []User
 err := db.Query().Model(&User{}).Where("active = ?", true).Get(&users)
 ```
 
-Column types are inferred from the CSV data (INTEGER, REAL, DATETIME, TEXT). The CSV header row defines column names. All tables are loaded into an in-memory SQLite database at connection open time, so the full query builder works: WHERE, JOIN, ORDER BY, aggregates, etc. See the [csvdb-driver example](./examples/csvdb-driver) and the [proposal](./docs/proposals/csv-directory-driver.md).
+Column types are inferred from the CSV data (INTEGER, REAL, DATETIME, TEXT). The CSV header row defines column names. All tables are loaded into an in-memory SQLite database at connection open time, so the full query builder works: WHERE, JOIN, ORDER BY, aggregates, etc. See the [csvdb-driver example](./examples/csvdb-driver) and the [proposal](./docs/proposals/completed/csv-directory-driver.md).
+
+## JSONDB Driver
+
+Query a directory of JSON, JSONL, or NDJSON files as if they were database tables — useful for API exports, NoSQL dumps, test fixtures, and datasets. The directory is the database; each `.json`, `.jsonl`, or `.ndjson` file is a table; the filename (without extension) is the table name.
+
+```go
+config := neat.DBConfig{
+    Default: "json_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "json_db": {
+            Driver:   "jsondb",
+            Database: "data/",   // directory path
+        },
+    },
+}
+
+db, _ := neat.New(config)
+defer db.Close()
+
+// data/users.json → "users" table
+var users []User
+err := db.Query().Model(&User{}).Where("active = ?", true).Get(&users)
+```
+
+Object keys across rows define the column schema, with type inference and widening done automatically. All tables are loaded into an in-memory SQLite database at connection open time, so the full query builder works: WHERE, JOIN, ORDER BY, aggregates, etc. See the [jsondb-driver example](./examples/jsondb-driver) and the [proposal](./docs/proposals/completed/json-directory-driver.md).
+
+## XMLDB Driver
+
+Query a directory of XML files as if they were database tables — useful for legacy data feeds, configuration exports, and datasets stored in XML. The directory is the database; each `.xml` file is a table; the filename (without extension) is the table name.
+
+```go
+config := neat.DBConfig{
+    Default: "xml_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "xml_db": {
+            Driver:   "xmldb",
+            Database: "data/",   // directory path
+        },
+    },
+}
+
+db, _ := neat.New(config)
+defer db.Close()
+
+// data/users.xml → "users" table
+var users []User
+err := db.Query().Model(&User{}).Where("active = ?", true).Get(&users)
+```
+
+Attributes and leaf sub-elements across rows define the column schema, with type inference and widening done automatically. All tables are loaded into an in-memory SQLite database at connection open time, so the full query builder works: WHERE, JOIN, ORDER BY, aggregates, etc. See the [xmldb-driver example](./examples/xmldb-driver) and the [proposal](./docs/proposals/completed/xml-directory-driver.md).
+
+## GODB Driver
+
+Query compiled-in Go data slices as if they were database tables — useful for reference/lookup data, configuration constants, test fixtures, and enum metadata. The data is already in the Go binary (compiled at build time), already typed, and already in memory. No file I/O, no parsing, no type inference ambiguity.
+
+```go
+// pkg/blogs/blogs.go — normal Go source, compiled into the binary
+var Blogs = []Blog{
+    {ID: 1, Title: "Hello World", CategoryID: 1},
+    {ID: 2, Title: "Go Tips", CategoryID: 2},
+}
+```
+
+```go
+config := neat.DBConfig{
+    Default: "go_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "go_db": {
+            Driver: "godb",
+            Tables: driver.Tables{
+                "blogs":      blogs.Blogs,
+                "categories": blogs.Categories,
+            },
+        },
+    },
+}
+
+db, _ := neat.New(config)
+defer db.Close()
+
+// Query blogs — works like any other database
+var blogs []Blog
+db.Query().Model(&Blog{}).Where("category_id = ?", 2).Get(&blogs)
+
+// JOIN across tables — both are in one SQLite DB
+var results []BlogWithCategory
+db.Query().
+    Table("blogs").
+    LeftJoin("categories", "blogs.category_id = categories.id").
+    Select("blogs.id", "blogs.title", "categories.name AS category_name").
+    Get(&results)
+```
+
+Struct slices are converted to rows using the same logic as `NewArraySourceFrom` (tag priority `db` > `neat` > `gorm` > snake_case, embedded structs flattened, association fields skipped). Go types map directly to SQLite types — `int`→INTEGER, `float64`→REAL, `bool`→INTEGER, `time.Time`→DATETIME, `[]byte`→BLOB, `string`→TEXT. An alternative `[]godb.Table` slice config style preserves table declaration order. See the [godb-driver example](./examples/godb-driver) and the [proposal](./docs/proposals/completed/go-directory-driver.md).
 
 ## Supported Databases
 
@@ -335,36 +432,40 @@ Column types are inferred from the CSV data (INTEGER, REAL, DATETIME, TEXT). The
 - Turso (SQLite edge)
 - Oracle
 - CSVDB (CSV directory as database)
+- JSONDB (JSON/JSONL/NDJSON directory as database)
+- XMLDB (XML directory as database)
+- GODB (compiled-in Go data slices as database)
 
 ### Driver Compatibility Matrix
 
-| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server | CSVDB |
-|---------|--------|-------|------------|--------|-------|------------|-------|
+| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server | CSVDB | JSONDB | XMLDB | GODB |
+|---------|--------|-------|------------|--------|-------|------------|-------|--------|-------|------|
 | **Basic Operations** |
-| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Transactions** |
-| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Isolation Levels | Limited | Full | Full | Full | Limited | Full | Limited |
+| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Isolation Levels | Limited | Full | Full | Full | Limited | Full | Limited | Limited | Limited | Limited |
 | **Placeholder Style** |
-| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` | `?` |
+| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` | `?` | `?` | `?` | `?` |
 | **DSN Support** |
-| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
+| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A | N/A | N/A | N/A |
 | **Connection Pool** |
-| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) |
-| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) |
-| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) |
+| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) |
+| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Optimizations** |
-| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
-| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ | ❌ |
-| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ | ❌ |
+| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 **Notes:**
 - **Turso** is a SQLite edge database, so it shares SQLite's placeholder style and PRAGMA support
-- **CSVDB** uses in-memory SQLite under the hood, so it shares SQLite's placeholder style, PRAGMA support, and single-connection constraint. The `Database` field holds a directory path (not a file path or DSN)
+- **CSVDB**, **JSONDB**, and **XMLDB** use in-memory SQLite under the hood, so they share SQLite's placeholder style, PRAGMA support, and single-connection constraint. The `Database` field holds a directory path (not a file path or DSN)
+- **GODB** uses in-memory SQLite under the hood, so it shares SQLite's placeholder style, PRAGMA support, and single-connection constraint. Data is passed via the `Tables` config field (not the `Database` field) — no file I/O, no parsing
 - **Transaction Isolation Levels**: SQLite has limited isolation level support (SERIALIZABLE only), MySQL/PostgreSQL/Oracle/SQL Server support all standard levels
 - **Savepoints**: All drivers support savepoints through the standard `database/sql` interface
 - **Connection Pool**: All drivers support standard `database/sql` connection pooling parameters
@@ -593,7 +694,7 @@ Neat ORM is actively developed with the following features implemented:
 - ✅ Advanced Migration system (`Migrator` package)
 - ✅ Seeder system for data seeding
 - ✅ Factory pattern for test data
-- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB)
+- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB, GODB)
 - ✅ Transaction support with savepoints and callbacks
 - ✅ Observer system for model events
 - ✅ Soft deletes with multiple strategies (NULL and Max-Date)
@@ -601,6 +702,9 @@ Neat ORM is actively developed with the following features implemented:
 - ✅ View management (CreateView, CreateViewRaw, DropView, DropViewIfExists, HasView)
 - ✅ Array-backed sources (NewArraySourceFrom for struct and map slices)
 - ✅ CSVDB driver (query CSV directory as database with type inference)
+- ✅ JSONDB driver (query JSON/JSONL/NDJSON directory as database with type inference)
+- ✅ XMLDB driver (query XML directory as database with type inference)
+- ✅ GODB driver (query compiled-in Go data slices as database, no file I/O)
 - ✅ Connection pooling
 - ✅ Context support
 

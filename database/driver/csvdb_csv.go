@@ -138,9 +138,16 @@ func inferValueType(val string) string {
 // INTEGER → REAL → TEXT is the widening chain.
 // DATETIME is compatible only with itself and TEXT; any mix of DATETIME
 // with INTEGER or REAL widens to TEXT.
+// BLOB mixed with any other type widens to BLOB, because BLOB affinity
+// stores values as-is without conversion — TEXT affinity would corrupt
+// binary []byte values that happen to be valid UTF-8.
 func widenType(current, new string) string {
 	if current == new {
 		return current
+	}
+	// BLOB mixed with any other type → BLOB (preserves binary data integrity)
+	if current == "BLOB" || new == "BLOB" {
+		return "BLOB"
 	}
 	// INTEGER and REAL are compatible — widen to REAL
 	if current == "INTEGER" && new == "REAL" {
