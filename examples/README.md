@@ -21,6 +21,9 @@ This directory contains examples demonstrating various use cases of the neat Go 
 - **[transactions](./transactions/)** - Transaction handling patterns
 - **[sugar-methods](./sugar-methods/)** - Convenience methods for improved API usability (AsVar methods)
 - **[csvdb-driver](./csvdb-driver/)** - Query a directory of CSV files as database tables with automatic type inference
+- **[jsondb-driver](./jsondb-driver/)** - Query a directory of JSON/JSONL/NDJSON files as database tables with automatic type inference
+- **[xmldb-driver](./xmldb-driver/)** - Query a directory of XML files as database tables with automatic type inference
+- **[godb-driver](./godb-driver/)** - Query compiled-in Go data slices as database tables (no file I/O, types from the Go compiler)
 
 ## Soft Delete Strategies
 

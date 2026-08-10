@@ -14,10 +14,10 @@ import (
 //
 // Usage in config:
 //
-//   Tables: godb.Tables{
-//       "blogs":      blogs.Blogs,
-//       "categories": blogs.Categories,
-//   }
+//	Tables: godb.Tables{
+//	    "blogs":      blogs.Blogs,
+//	    "categories": blogs.Categories,
+//	}
 type Tables map[string]any
 
 // Table is an alternative config style that preserves declaration order.
@@ -25,10 +25,10 @@ type Tables map[string]any
 //
 // Usage in config:
 //
-//   Tables: []godb.Table{
-//       {Name: "blogs",      Data: blogs.Blogs},
-//       {Name: "categories", Data: blogs.Categories},
-//   }
+//	Tables: []godb.Table{
+//	    {Name: "blogs",      Data: blogs.Blogs},
+//	    {Name: "categories", Data: blogs.Categories},
+//	}
 type Table struct {
 	Name string
 	Data any
@@ -97,7 +97,7 @@ func populateGODBTable(db *sql.DB, tableName string, data any) error {
 
 	// 5. Validate column names (simple identifiers, no case-insensitive dupes)
 	seenColsLower := make(map[string]string) // lowerColName -> originalColName
-	for i, col := range columns {
+	for _, col := range columns {
 		if !isSimpleIdentifier(col) {
 			return fmt.Errorf("invalid column name in table %s: %s", tableName, col)
 		}
@@ -106,22 +106,6 @@ func populateGODBTable(db *sql.DB, tableName string, data any) error {
 			return fmt.Errorf("duplicate column name (case-insensitive) in table %s: %s and %s", tableName, prevCol, col)
 		}
 		seenColsLower[lowerCol] = col
-
-		// Map internal type names to SQLite types
-		switch strings.ToLower(colTypes[i]) {
-		case "int", "integer":
-			colTypes[i] = "INTEGER"
-		case "float", "real", "double":
-			colTypes[i] = "REAL"
-		case "bool", "boolean":
-			colTypes[i] = "INTEGER"
-		case "string", "text":
-			colTypes[i] = "TEXT"
-		case "time", "datetime", "timestamp":
-			colTypes[i] = "DATETIME"
-		case "blob":
-			colTypes[i] = "BLOB"
-		}
 	}
 
 	// 6. CREATE TABLE with inferred schema

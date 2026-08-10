@@ -164,6 +164,16 @@ func TestWidenType(t *testing.T) {
 		{"INTEGER", "DATETIME", "TEXT"},
 		{"DATETIME", "REAL", "TEXT"},
 		{"REAL", "DATETIME", "TEXT"},
+		// BLOB mixed with any other type → BLOB (preserves binary data integrity)
+		{"BLOB", "BLOB", "BLOB"},
+		{"BLOB", "TEXT", "BLOB"},
+		{"TEXT", "BLOB", "BLOB"},
+		{"BLOB", "INTEGER", "BLOB"},
+		{"INTEGER", "BLOB", "BLOB"},
+		{"BLOB", "REAL", "BLOB"},
+		{"REAL", "BLOB", "BLOB"},
+		{"BLOB", "DATETIME", "BLOB"},
+		{"DATETIME", "BLOB", "BLOB"},
 	}
 	for _, tt := range tests {
 		if got := widenType(tt.current, tt.new); got != tt.want {

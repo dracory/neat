@@ -12,6 +12,9 @@ Integration tests require actual database connections to be set up. The tests ca
 - SQLite
 - Turso
 - CSVDB (no external database required — uses temp directories with CSV fixtures)
+- JSONDB (no external database required — uses temp directories with JSON/JSONL/NDJSON fixtures)
+- XMLDB (no external database required — uses temp directories with XML fixtures)
+- GODB (no external database required — uses compiled-in Go data slices)
 
 ## Environment Variables
 
@@ -69,7 +72,16 @@ go test -tags=integration ./integration_tests/sqlite/...
 go test -tags=integration ./integration_tests/turso/...
 
 # Run CSVDB integration tests (no external database needed)
-go test ./integration_tests/csvdb/...
+go test -tags=integration ./integration_tests/csvdb/...
+
+# Run JSONDB integration tests (no external database needed)
+go test -tags=integration ./integration_tests/jsondb/...
+
+# Run XMLDB integration tests (no external database needed)
+go test -tags=integration ./integration_tests/xmldb/...
+
+# Run GODB integration tests (no external database needed)
+go test -tags=integration ./integration_tests/godb/...
 
 # Run common integration tests
 go test -tags=integration ./integration_tests/common/...

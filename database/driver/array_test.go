@@ -105,6 +105,9 @@ func TestArrayPopulate(t *testing.T) {
 			}
 		}
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows iteration failed: %v", err)
+	}
 
 	// Test idempotency
 	err = driver.Populate(ctx, db, source)
