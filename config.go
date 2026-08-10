@@ -410,3 +410,38 @@ func NewFromDSN(dsn string, opts ...database.Option) (*database.Database, error)
 func NewFromSQLDB(sqlDB *sql.DB, opts ...database.Option) (*database.Database, error) {
 	return database.NewFromSQLDB(sqlDB, opts...)
 }
+
+// NewMemoryDB creates an in-memory database with zero configuration.
+// It is the simplest way to query slices of structs, maps, CSV, JSON, or XML
+// data using the full query builder (Where, OrderBy, First, Get, JOINs, etc.).
+//
+// Multiple sources can be loaded into the same database — each becomes a
+// table, enabling JOINs across them.
+//
+//	database, err := neat.NewMemoryDB()
+//	if err != nil { ... }
+//	defer database.Close()
+//
+//	// Load multiple sources — each becomes a table in the same SQLite DB
+//	database.Query().
+//	    Model(neat.NewArraySourceFrom(statuses)).
+//	    Where("name = ?", "Active").
+//	    First(&result)
+//
+//	database.Query().
+//	    Model(neat.NewCsvSource(csv, "users")).
+//	    Get(&users)
+//
+//	// JOIN across sources — both tables exist in the same in-memory DB
+//	database.Query().
+//	    Table("statuses").
+//	    LeftJoin("users ON statuses.user_id = users.id").
+//	    Get(&joined)
+func NewMemoryDB(opts ...database.Option) (*Database, error) {
+	return New(DBConfig{
+		Default: "array_db",
+		Connections: map[string]ConnectionConfig{
+			"array_db": {Driver: "array"},
+		},
+	}, opts...)
+}

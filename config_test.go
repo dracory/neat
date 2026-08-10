@@ -102,3 +102,39 @@ func TestNewWithLoggerOption(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 }
+
+// TestNewMemoryDB verifies that NewMemoryDB creates a valid in-memory database
+// configured with the "array" driver and can query in-memory data correctly,
+// while also supporting options.
+func TestNewMemoryDB(t *testing.T) {
+	db, err := NewMemoryDB(database.WithDebug())
+	if err != nil {
+		t.Fatalf("NewMemoryDB failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	if db == nil {
+		t.Fatal("expected non-nil *Database from NewMemoryDB")
+	}
+
+	// Simple array source query test to verify everything is working.
+	type Item struct {
+		ID   int    `db:"id"`
+		Name string `db:"name"`
+	}
+
+	items := []Item{
+		{ID: 1, Name: "A"},
+		{ID: 2, Name: "B"},
+	}
+
+	var results []Item
+	err = db.Query().Model(NewArraySourceFrom(items)).OrderBy("id", "asc").Get(&results)
+	if err != nil {
+		t.Fatalf("failed to query using NewMemoryDB database: %v", err)
+	}
+
+	if len(results) != 2 || results[0].Name != "A" || results[1].Name != "B" {
+		t.Errorf("unexpected query results: %+v", results)
+	}
+}
