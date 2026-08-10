@@ -112,6 +112,19 @@ func newDatabase() (*neat.Database, error) {
 | `config.go` | Add `NewMemoryDB()` function (~10 lines) |
 | `examples/array-driver/main.go` | Simplify `newDatabase()` to call `neat.NewMemoryDB()` |
 
+## Relationship to GODB Proposal
+
+The [GODB proposal](go-directory-driver.md) is complementary, not competing. Both create in-memory SQLite databases with multiple tables and JOIN support, but serve different use cases:
+
+| | `NewMemoryDB` (this proposal) | GODB |
+|---|---|---|
+| **Config** | Zero — `neat.NewMemoryDB()` | Explicit — `DBConfig` with `Tables` field |
+| **When tables load** | Lazily — each `Model()` call populates a table | Eagerly — all tables at `Open()` time |
+| **Data source** | Runtime data — slices, CSV strings, JSON strings | Compiled-in Go variables — `blogs.Blogs` |
+| **Table declaration** | Implicit — whatever you pass to `Model()` | Explicit — `godb.Tables{"blogs": Blogs}` |
+
+`NewMemoryDB` is the simple shortcut for ad-hoc runtime data. GODB is the structured approach for compiled-in reference data. If GODB is implemented, it would benefit from a similar convenience constructor (e.g., `NewGODB(tables)`).
+
 ## Risks
 
 - **None**: The function is a pure convenience wrapper around `neat.New` with a hardcoded config. No behavioral change, no new dependencies, no API breakage.
