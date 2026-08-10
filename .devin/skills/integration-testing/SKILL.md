@@ -182,6 +182,23 @@ You can override default database settings using environment variables:
 
 ## CI/CD Integration
 
-The GitHub Actions workflow (`.github/workflows/tests.yml`) has two jobs:
-- **`unit-tests`**: Runs unit tests without any database services, using `grep -v '/integration_tests/'` to exclude integration packages
-- **`integration-tests`**: Spins up MySQL and PostgreSQL service containers then runs all `integration_tests/` suites without any build tags
+The GitHub Actions workflow (`.github/workflows/tests.yml`) is a single job that spins up all database service containers (MySQL, PostgreSQL, SQL Server, Oracle, TiDB, CockroachDB) and runs two test steps:
+
+- **Run unit tests**: `go test -v -coverprofile=coverage_unit.out ./...` — runs without `-tags=integration`, so every file under `integration_tests/` is excluded at build time via the `//go:build integration` tag. No database is needed for this step, but it runs after the service containers are up because they share the same job.
+- **Run integration tests**: `go test -v -tags=integration -coverprofile=coverage_integration.out ./integration_tests/...` — enables the `integration` build tag so the integration test packages become visible and run against the live databases.
+
+### Build tag convention
+
+All `.go` files under `integration_tests/` carry the `//go:build integration` constraint. This means:
+
+- `go test ./...` (default) never compiles or runs integration tests — safe to run locally without any database.
+- `go test -tags=integration ./integration_tests/...` is the only way to run them.
+- `go build ./...` and `go vet ./...` also skip the integration subtree by default.
+
+To add a new integration test file, start it with:
+
+```go
+//go:build integration
+
+package mysql_test // or postgres_test, oracle_test, etc.
+```

@@ -1,3 +1,5 @@
+//go:build integration
+
 package tidb_test
 
 import (
