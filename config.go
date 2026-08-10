@@ -435,7 +435,7 @@ func NewFromSQLDB(sqlDB *sql.DB, opts ...database.Option) (*database.Database, e
 //	// JOIN across sources — both tables exist in the same in-memory DB
 //	database.Query().
 //	    Table("statuses").
-//	    LeftJoin("users", "statuses.user_id = users.id").
+//	    LeftJoin("users ON statuses.user_id = users.id").
 //	    Get(&joined)
 func NewMemoryDB(opts ...database.Option) (*Database, error) {
 	return New(DBConfig{

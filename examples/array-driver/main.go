@@ -68,8 +68,25 @@ func RunExample() error {
 }
 
 // newDatabase creates an in-memory array-driver database connection.
+//
+// This is the explicit config approach. For a simpler zero-config alternative,
+// see the memory-db example which uses neat.NewMemoryDB():
+// https://github.com/dracory/neat/blob/main/examples/memory-db/main.go
 func newDatabase() (*neat.Database, error) {
-	return neat.NewMemoryDB()
+	config := neat.DBConfig{
+		Default: "array_db",
+		Connections: map[string]neat.ConnectionConfig{
+			"array_db": {
+				Driver: "array",
+			},
+		},
+	}
+
+	database, err := neat.New(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create database: %w", err)
+	}
+	return database, nil
 }
 
 // staticData returns the shared slice of Status structs used across examples.
