@@ -6,66 +6,84 @@ Accepted
 
 ## Context
 
-Neat ORM needed to support multiple database drivers (MySQL, PostgreSQL, SQLite, SQL Server, Oracle, Turso) while:
+Neat ORM needed to support multiple database drivers (MySQL, PostgreSQL, SQLite, SQL Server, Oracle, Turso, plus embedded array/CSV/JSON/XML/Go-data sources) while:
 - Avoiding tight coupling to specific driver implementations
-- Allowing users to easily add custom drivers
 - Ensuring driver-specific code is isolated
 - Providing a consistent interface across all drivers
 
 ## Decision
 
-Neat ORM uses a registration-based driver system where drivers implement a common `Driver` interface and register themselves with a central registry:
+Neat ORM uses a switch-based driver factory. Drivers implement a common `Driver` interface and are instantiated by a `createDriver` function in `database/orm/orm.go` that maps a driver name string to the corresponding constructor:
 
 ```go
 // Driver interface defines the contract all drivers must implement
 type Driver interface {
+    Open(dsn string) (*sql.DB, error)
+    Close(db *sql.DB) error
+    Ping(ctx context.Context, db *sql.DB) error
+    BeginTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions) (*sql.Tx, error)
+    Placeholder(n int) string
     Dialect() string
-    Placeholder(i int) string
-    Quote(value string) string
-    // ... other driver-specific methods
 }
 
-// Drivers register themselves during package initialization
-func init() {
-    RegisterDriver("mysql", &MySQLDriver{})
+// createDriver returns the driver implementation for the given name
+func createDriver(driverName string) driver.Driver {
+    switch driverName {
+    case "mysql":
+        return driver.NewMySQL()
+    case "postgres":
+        return driver.NewPostgreSQL()
+    case "sqlite":
+        return driver.NewSQLite()
+    case "sqlserver":
+        return driver.NewSQLServer()
+    case "turso":
+        return driver.NewTurso()
+    case "oracle":
+        return driver.NewOracle()
+    case "array":
+        return driver.NewArray()
+    case "csvdb":
+        return driver.NewCSVDB()
+    case "jsondb":
+        return driver.NewJSONDB()
+    case "xmldb":
+        return driver.NewXMLDB()
+    case "godb":
+        return driver.NewGODB()
+    default:
+        return driver.NewMySQL() // Default to MySQL
+    }
 }
 ```
 
-The `database/driver/` package maintains a registry of available drivers and provides lookup functionality:
-
-```go
-func RegisterDriver(name string, driver Driver)
-func GetDriver(name string) (Driver, error)
-```
+The driver name comes from the `Driver` field of `ConnectionConfig`. The `database/driver/` package contains all driver implementations and constructors.
 
 ## Rationale
 
-The registration system provides several benefits:
+The switch-based factory provides several benefits:
 
-1. **Extensibility**: Users can register custom drivers without modifying core code
-2. **Isolation**: Each driver implementation is self-contained
-3. **Consistency**: All drivers implement the same interface
-4. **Lazy loading**: Drivers are only loaded when needed
-5. **Pluggability**: New drivers can be added as separate packages
-6. **Testability**: Easy to mock drivers for testing
+1. **Simplicity**: A single function maps names to drivers — no registry state to manage
+2. **Isolation**: Each driver implementation is self-contained in its own file
+3. **Consistency**: All drivers implement the same `Driver` interface
+4. **Compile-time safety**: Missing drivers are caught at build time (unlike a runtime registry where a missing import would only fail at runtime)
+5. **Testability**: Easy to mock drivers for testing by passing a custom driver name
 
 ## Consequences
 
 **Positive:**
-- Easy to add new database drivers
+- Simple to understand and maintain
 - Clean separation between driver implementations
 - Consistent API across all supported databases
-- Custom drivers can be added by users
-- Driver-specific code is isolated
+- No initialization order issues (no `init()` functions needed)
+- All drivers are always available — no "driver not registered" runtime errors
 
 **Negative:**
-- Slightly more complex initialization (drivers must register themselves)
-- Potential for driver name collisions
-- Runtime errors if driver not registered (vs compile-time)
-- Additional indirection when using drivers
+- Adding a new driver requires modifying the `createDriver` switch statement
+- No runtime pluggability — users cannot register custom drivers without modifying core code
+- Unknown driver names silently fall back to MySQL instead of failing loudly
 
 **Mitigations:**
-- Built-in drivers register automatically on import
-- Clear naming conventions for driver names
-- Error messages guide users when drivers are missing
-- Documentation explains driver registration process
+- The switch is small and changes are infrequent
+- Users who need a custom driver can implement the `Driver` interface and add a case
+- The MySQL fallback is a deliberate default for backward compatibility

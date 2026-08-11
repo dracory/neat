@@ -1,28 +1,28 @@
 # Neat ORM Implementation Gaps
 
 **Date**: May 30, 2026
-**Last updated**: June 3, 2026
+**Last updated**: August 11, 2026
 **Purpose**: Track implementation gaps in the neat ORM project.
 
 ---
 
 ## Status
 
-Most implementation gaps have been resolved. All critical CRUD operation gaps have been addressed.
+All previously tracked implementation gaps have been resolved. The Oracle integration issues documented below are now fixed.
 
 ---
 
-## Oracle Integration Plan
+## Resolved: Oracle Integration
 
-### Overview
-Oracle database integration has core infrastructure implemented. Schema introspection has been fixed and column type tests are now passing.
+Oracle database integration is complete. Schema introspection, column type tests, and query lock tests all pass.
 
-### Remaining Issues
+**Resolved issues:**
 
-**Schema Tests (unrelated Oracle grammar issues):**
-None
+- **Schema introspection** — fixed; column type tests pass.
+- **Query Lock Tests** (`oracle_query_lock_test.go`, `TestOracleConcurrentAccess`) — fixed by adding a LIMIT check to skip `FOR UPDATE` when `LIMIT` is present (ORA-02014). The test now uses `Get()` instead of `First()` to avoid the `LIMIT` clause.
 
-### Resolved Issues
+---
 
-**Query Lock Tests:**
-- `oracle_query_lock_test.go` (TestOracleConcurrentAccess) - Fixed by adding LIMIT check to skip FOR UPDATE when LIMIT is present (ORA-02014). Test now uses Get() instead of First() to avoid LIMIT clause.
+## Current Gaps
+
+No implementation gaps are currently tracked. See `docs/proposals/` for proposed features that have not yet been started, and `docs/proposals/completed/` for completed work.

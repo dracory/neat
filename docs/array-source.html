@@ -42,7 +42,7 @@ defer db.Close()</code></pre>
     <p>This creates an in-memory SQLite database powered by the <code>array</code> driver. Multiple sources can be loaded into the same database &mdash; each becomes a table, enabling JOINs across them. See the <a href="#multi-table-joins">Multi-Table JOINs</a> section below.</p>
 
     <div class="note">
-        <strong>Alternative:</strong> You can also use the explicit config approach with <code>neat.New(DBConfig{...})</code> if you need full control over connection settings. See the <a href="../examples/array-driver">array-driver example</a>.
+        <strong>Alternative:</strong> You can also use the explicit config approach with <code>neat.New(DBConfig{...})</code> if you need full control over connection settings. See the <a href="../examples/array-driver/README.md">array-driver example</a>.
     </div>
 
     <h2>Constructor Family</h2>
@@ -179,10 +179,10 @@ db.Query().
     <h2>Examples</h2>
 
     <ul>
-        <li><a href="../examples/memory-db">memory-db</a> &mdash; zero-config usage with <code>NewMemoryDB</code>: struct slices, Where+First, multi-table JOINs</li>
-        <li><a href="../examples/array-driver">array-driver</a> &mdash; explicit config approach: struct slices, map slices, custom table names, legacy interface</li>
-        <li><a href="../examples/array-driver-advanced">array-driver-advanced</a> &mdash; JOINs, GROUP BY, aggregates, HAVING with array-backed sources</li>
-        <li><a href="../examples/array-driver-dotted-columns">array-driver-dotted-columns</a> &mdash; dotted <code>table.column</code> references with array-backed sources</li>
+        <li><a href="../examples/memory-db/README.md">memory-db</a> &mdash; zero-config usage with <code>NewMemoryDB</code>: struct slices, Where+First, multi-table JOINs</li>
+        <li><a href="../examples/array-driver/README.md">array-driver</a> &mdash; explicit config approach: struct slices, map slices, custom table names, legacy interface</li>
+        <li><a href="../examples/array-driver-advanced/README.md">array-driver-advanced</a> &mdash; JOINs, GROUP BY, aggregates, HAVING with array-backed sources</li>
+        <li><a href="../examples/array-driver-dotted-columns/README.md">array-driver-dotted-columns</a> &mdash; dotted <code>table.column</code> references with array-backed sources</li>
     </ul>
 
     <h2>Flat-File Sources</h2>

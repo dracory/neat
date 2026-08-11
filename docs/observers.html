@@ -336,12 +336,56 @@ db.Orm().Observe([]neat.ModelToObserver{
 
     <h2>Event Interface</h2>
 
-    <p>The event interface provides access to the model being operated on:</p>
+    <p>The <code>contractsorm.Event</code> interface provides access to the model attributes, original values, dirty tracking, and the query instance:</p>
 
     <pre><code>type Event interface {
-    GetModel() any
-    GetContext() context.Context
+    Context() context.Context
+    GetAttribute(key string) any
+    GetOriginal(key string, def ...any) any
+    IsClean(columns ...string) bool
+    IsDirty(columns ...string) bool
+    Query() Query
+    SetAttribute(key string, value any)
 }</code></pre>
+
+    <p>The concrete <code>observer.Event</code> type also exposes <code>Model() any</code> and <code>EventType() contractsorm.EventType</code> for handlers that need them.</p>
+
+    <h2 id="event-bus">Event Bus</h2>
+
+    <p>Under the hood, observer dispatch is powered by a lightweight <code>EventBus</code> (exported from both the <code>neat</code> and <code>database/orm</code> packages). It registers handlers by event name and dispatches events synchronously in registration order.</p>
+
+    <pre><code>bus := neat.NewEventBus()
+
+// Register a handler
+bus.Listen(neat.EventCreating, func(event any) {
+    log.Println("model creating")
+})
+
+// Dispatch an event to all registered handlers
+bus.Dispatch(neat.EventCreating, myEvent)
+
+// Remove all handlers for an event
+bus.Forget(neat.EventCreating)</code></pre>
+
+    <p>The event name constants exported by the <code>neat</code> and <code>database/orm</code> packages:</p>
+
+    <table>
+        <thead><tr><th>Constant</th><th>Value</th><th>When</th></tr></thead>
+        <tbody>
+            <tr><td><code>EventCreating</code></td><td><code>model.creating</code></td><td>Before a model is created</td></tr>
+            <tr><td><code>EventCreated</code></td><td><code>model.created</code></td><td>After a model is created</td></tr>
+            <tr><td><code>EventUpdating</code></td><td><code>model.updating</code></td><td>Before a model is updated</td></tr>
+            <tr><td><code>EventUpdated</code></td><td><code>model.updated</code></td><td>After a model is updated</td></tr>
+            <tr><td><code>EventSaving</code></td><td><code>model.saving</code></td><td>Before a model is saved (create or update)</td></tr>
+            <tr><td><code>EventSaved</code></td><td><code>model.saved</code></td><td>After a model is saved</td></tr>
+            <tr><td><code>EventDeleting</code></td><td><code>model.deleting</code></td><td>Before a model is deleted</td></tr>
+            <tr><td><code>EventDeleted</code></td><td><code>model.deleted</code></td><td>After a model is deleted</td></tr>
+            <tr><td><code>EventRestoring</code></td><td><code>model.restoring</code></td><td>Before a soft-deleted model is restored</td></tr>
+            <tr><td><code>EventRestored</code></td><td><code>model.restored</code></td><td>After a soft-deleted model is restored</td></tr>
+        </tbody>
+    </table>
+
+    <p>Note: the contracts package (<code>contracts/database/orm</code>) also exports <code>EventType</code> constants (<code>EventForceDeleting</code>, <code>EventForceDeleted</code>, <code>EventSoftDeleteRestoring</code>, <code>EventSoftDeleteRestored</code>, <code>EventRetrieved</code>) used by the observer dispatcher. <code>EventRestoring</code> and <code>EventRestored</code> in the contracts package are deprecated aliases for the <code>EventSoftDelete*</code> variants.</p>
 
     <h2>Practical Example</h2>
 

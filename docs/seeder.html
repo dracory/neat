@@ -119,6 +119,62 @@ if err != nil {
         <li>Combine with Factories for generating realistic test data</li>
     </ul>
 
+    <h2 id="runner">Runner API</h2>
+
+    <p>The <code>seeder.Runner</code> type is the engine behind <code>Database.Seed</code> / <code>Database.SeedOnce</code>. You can also use it directly for finer control over seeder execution:</p>
+
+    <pre><code>import "github.com/dracory/neat/database/seeder"
+
+runner := seeder.NewRunner()
+runner.Register([]contractsseeder.Seeder{
+    &amp;UserSeeder{db: db},
+    &amp;RoleSeeder{db: db},
+})
+
+// Run all registered seeders (re-runnable)
+err := runner.Call(runner.GetSeeders())
+
+// Run each seeder at most once per Runner instance
+err := runner.CallOnce(runner.GetSeeders())
+
+// Reset the CallOnce tracking so seeders can run again
+runner.ResetCallOnce()
+
+// Look up a single seeder by signature
+s := runner.GetSeeder("user_seeder")</code></pre>
+
+    <p>Runner methods:</p>
+
+    <table>
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><code>Register(seeders []seeder.Seeder)</code></td><td>Add seeders to the runner</td></tr>
+            <tr><td><code>GetSeeders() []seeder.Seeder</code></td><td>Return all registered seeders</td></tr>
+            <tr><td><code>GetSeeder(name string) seeder.Seeder</code></td><td>Look up a seeder by signature</td></tr>
+            <tr><td><code>Call(seeders []seeder.Seeder) error</code></td><td>Run the given seeders (re-runnable)</td></tr>
+            <tr><td><code>CallOnce(seeders []seeder.Seeder) error</code></td><td>Run each seeder at most once per Runner instance</td></tr>
+            <tr><td><code>ResetCallOnce()</code></td><td>Clear the CallOnce tracking so seeders can run again</td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="registry">Global Registry</h2>
+
+    <p>The <code>seeder</code> package also exports a process-wide global registry for cases where seeders are registered in package <code>init()</code> functions and invoked later:</p>
+
+    <pre><code>import "github.com/dracory/neat/database/seeder"
+
+// Register a seeder globally
+seeder.RegisterSeeder("user_seeder", &amp;UserSeeder{db: db})
+
+// Look up a seeder by name
+s := seeder.GetSeeder("user_seeder")
+
+// Get all globally registered seeders
+all := seeder.GetSeeders()
+
+// Clear the global registry (useful in tests)
+seeder.ClearRegistry()</code></pre>
+
     <div class="footer">
         <p>Neat ORM Documentation</p>
     </div>

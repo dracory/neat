@@ -383,6 +383,27 @@ for i := 0; i &lt; 100; i++ {
     }
 }</code></pre>
 
+    <h2 id="factory-type">The <code>orm.Factory</code> Type</h2>
+
+    <p>The concrete factory implementation lives in <code>database/orm</code>. It is constructed internally by the ORM and accessed via <code>db.Factory()</code>; you do not normally instantiate it yourself.</p>
+
+    <pre><code>package orm
+
+type Factory struct {
+    // contains filtered or unexported fields
+}
+
+func NewFactory(orm *Orm) *Factory
+
+// Methods
+func (f *Factory) Count(count int) contractsorm.Factory
+func (f *Factory) Table(table string) contractsorm.Factory
+func (f *Factory) Create(value any, attributes ...map[string]any) (any, error)
+func (f *Factory) CreateQuietly(value any, attributes ...map[string]any) (any, error)
+func (f *Factory) Make(value any, attributes ...map[string]any) (any, error)</code></pre>
+
+    <p>The <code>FactoryDefinition</code>, <code>State</code>, <code>Sequence</code>, <code>Trait</code>, and callback features shown in earlier sections on this page are aspirational patterns you can build on top of the factory. The shipped <code>orm.Factory</code> itself only exposes <code>Count</code>, <code>Table</code>, <code>Create</code>, <code>CreateQuietly</code>, and <code>Make</code>.</p>
+
     <div class="footer">
         <p>Neat ORM Documentation</p>
     </div>

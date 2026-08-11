@@ -32,15 +32,20 @@
 
     <h2>Supported Drivers</h2>
 
-    <p>Neat ORM supports the following database drivers:</p>
+    <p>Neat ORM ships with 11 first-class drivers. The first six speak a wire protocol to an external database server; the remaining five are embedded or in-memory sources backed by an in-memory SQLite database:</p>
 
     <ul>
-        <li>MySQL (also supports MariaDB)</li>
-        <li>PostgreSQL</li>
-        <li>SQLite</li>
-        <li>SQL Server</li>
-        <li>Oracle</li>
-        <li>Turso (SQLite edge)</li>
+        <li><strong>MySQL</strong> (wire protocol) &mdash; also drives MariaDB and TiDB</li>
+        <li><strong>PostgreSQL</strong> (wire protocol) &mdash; also drives CockroachDB and YugabyteDB</li>
+        <li><strong>SQLite</strong> (embedded, file-based or in-memory)</li>
+        <li><strong>SQL Server</strong> (wire protocol)</li>
+        <li><strong>Oracle</strong> (wire protocol)</li>
+        <li><strong>Turso</strong> (edge / cloud, libsql protocol)</li>
+        <li><strong>Array</strong> (in-memory) &mdash; query Go slices as tables; see <a href="databases/array.html">Array driver</a></li>
+        <li><strong>CSVDB</strong> (embedded) &mdash; CSV directory as database; see <a href="databases/csvdb.html">CSVDB driver</a></li>
+        <li><strong>GODB</strong> (in-memory) &mdash; Go data compiled into the binary; see <a href="databases/godb.html">GODB driver</a></li>
+        <li><strong>JSONDB</strong> (embedded) &mdash; JSON/JSONL/NDJSON directory; see <a href="databases/jsondb.html">JSONDB driver</a></li>
+        <li><strong>XMLDB</strong> (embedded) &mdash; XML directory; see <a href="databases/xmldb.html">XMLDB driver</a></li>
     </ul>
 
     <h2>Compatible Databases</h2>
@@ -110,7 +115,7 @@
 
     <h2>Custom Drivers</h2>
 
-    <p>Custom drivers can be registered by implementing the Driver interface:</p>
+    <p>Drivers implement a common <code>Driver</code> interface. The built-in drivers are instantiated by a switch statement in <code>database/orm</code> based on the <code>Driver</code> field of <code>ConnectionConfig</code>:</p>
 
     <pre><code>type Driver interface {
     Open(dsn string) (*sql.DB, error)
@@ -120,6 +125,8 @@
     Placeholder(n int) string
     Dialect() string
 }</code></pre>
+
+    <p>To add a custom driver, implement the <code>Driver</code> interface and add a case to the <code>createDriver</code> function in <code>database/orm/orm.go</code>. There is no runtime registration API &mdash; driver selection is resolved at connection time from the config.</p>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>

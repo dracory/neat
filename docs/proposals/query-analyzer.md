@@ -1,8 +1,8 @@
 # Query Analyzer
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
-**Status**: Not Started
+**Last Reviewed**: August 11, 2026
+**Status**: Partially Done
 **Priority**: Medium
 **Impact**: High
 **Effort**: Medium
@@ -17,6 +17,17 @@ Add query analysis and optimization recommendations.
 - Performance tuning
 - Slow query detection
 - Best practices enforcement
+
+## Implemented
+
+- **Slow query detection** — `SlowThreshold` field on `DBConfig` (in milliseconds) configures the threshold. When a query exceeds it, a warning is emitted via the query helpers (`database/query/query_helpers.go`). See also the `Debug` toggle on `DBConfig`.
+
+## Not Yet Implemented
+
+- EXPLAIN parsing and index recommendations
+- Query pattern detection
+- Performance metrics aggregation
+- The `.Explain()` and `.On("slowQuery", ...)` API shown below is still proposed, not implemented
 
 ## Proposed Features
 

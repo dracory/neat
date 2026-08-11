@@ -211,7 +211,24 @@ type Product struct {
 
     <h2>Model Embeds</h2>
 
-    <p>Neat provides several embed structs to add common functionality to your models:</p>
+    <p>Neat provides several embed structs to add common functionality to your models. All are exported from the <code>database/orm</code> package (except soft-delete embeds, which come from <code>database/soft_delete</code>):</p>
+
+    <table>
+        <thead><tr><th>Embed</th><th>Package</th><th>Fields</th><th>Use</th></tr></thead>
+        <tbody>
+            <tr><td><code>orm.Model</code></td><td><code>database/orm</code></td><td><code>ID uint</code> + <code>Timestamps</code></td><td>Default: auto-incrementing integer PK + created/updated timestamps</td></tr>
+            <tr><td><code>orm.ShortID</code></td><td><code>database/orm</code></td><td><code>ID string</code></td><td>URL-friendly client-generated string PK (Crockford Base32 microsecond timestamp)</td></tr>
+            <tr><td><code>orm.Timestamps</code></td><td><code>database/orm</code></td><td><code>CreatedAt time.Time</code>, <code>UpdatedAt time.Time</code></td><td>Add <code>created_at</code> and <code>updated_at</code> columns</td></tr>
+            <tr><td><code>orm.CreatedAt</code></td><td><code>database/orm</code></td><td><code>CreatedAt time.Time</code></td><td>Add only <code>created_at</code></td></tr>
+            <tr><td><code>orm.UpdatedAt</code></td><td><code>database/orm</code></td><td><code>UpdatedAt time.Time</code></td><td>Add only <code>updated_at</code></td></tr>
+            <tr><td><code>orm.SoftDeletes</code></td><td><code>database/orm</code></td><td><code>SoftDeletedAt sql.NullTime</code></td><td>Soft-delete via <code>soft_deleted_at</code> column (Neat convention)</td></tr>
+            <tr><td><code>orm.DeletedAt</code></td><td><code>database/orm</code></td><td><code>DeletedAt sql.NullTime</code></td><td>Soft-delete via <code>deleted_at</code> column (Laravel convention)</td></tr>
+            <tr><td><code>soft_delete.SoftDeletes</code></td><td><code>database/soft_delete</code></td><td><code>SoftDeletedAt sql.NullTime</code></td><td>Same as <code>orm.SoftDeletes</code>; use either</td></tr>
+            <tr><td><code>soft_delete.DeletedAt</code></td><td><code>database/soft_delete</code></td><td><code>DeletedAt sql.NullTime</code></td><td>Same as <code>orm.DeletedAt</code>; use either</td></tr>
+        </tbody>
+    </table>
+
+    <p>Both <code>orm.SoftDeletes</code> and <code>orm.DeletedAt</code> implement <code>SoftDeletedAtColumn() string</code> and <code>DeletedAtColumn() string</code> (the latter is deprecated) so the ORM can locate the soft-delete column regardless of which embed you use.</p>
 
     <h3>Base Model</h3>
 

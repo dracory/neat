@@ -202,6 +202,84 @@ type Post struct {
     Comments []Comment `neat:"polymorphic:Commentable"`
 }</code></pre>
 
+    <h2 id="concrete-types">Concrete Association Types</h2>
+
+    <p>The <code>database/association</code> package exports concrete types for each relationship kind. Each one wraps the base <code>Association</code> and provides the same <code>Find</code>, <code>Append</code>, <code>Replace</code>, <code>Delete</code>, <code>Clear</code>, and <code>Count</code> operations, with relationship-specific key resolution.</p>
+
+    <h3>Association (base)</h3>
+
+    <pre><code>type Association struct {
+    // contains filtered or unexported fields
+}
+
+func NewAssociation(query contractsorm.Query, model any, association string) *Association
+
+// Methods available on every association type:
+func (a *Association) Find(out any, conds ...any) error
+func (a *Association) Append(values ...any) error
+func (a *Association) Replace(values ...any) error
+func (a *Association) Delete(values ...any) error
+func (a *Association) Clear() error
+func (a *Association) Count() int64
+func (a *Association) Query() contractsorm.Query
+func (a *Association) Model() any
+func (a *Association) AssociationName() string</code></pre>
+
+    <h3>BelongsTo</h3>
+
+    <pre><code>type BelongsTo struct {
+    *Association
+    // contains filtered or unexported fields
+}
+
+func NewBelongsTo(query contractsorm.Query, model any, association, foreignKey, otherKey string) *BelongsTo</code></pre>
+
+    <p>Resolves the parent via <code>foreignKey</code> on the child matching <code>otherKey</code> on the parent.</p>
+
+    <h3>HasOne</h3>
+
+    <pre><code>type HasOne struct {
+    *Association
+    // contains filtered or unexported fields
+}
+
+func NewHasOne(query contractsorm.Query, model any, association, foreignKey, localKey string) *HasOne</code></pre>
+
+    <p>Resolves the single related child via <code>foreignKey</code> on the child matching <code>localKey</code> on the parent.</p>
+
+    <h3>HasMany</h3>
+
+    <pre><code>type HasMany struct {
+    *Association
+    // contains filtered or unexported fields
+}
+
+func NewHasMany(query contractsorm.Query, model any, association, foreignKey, localKey string) *HasMany</code></pre>
+
+    <p>Resolves the related children via <code>foreignKey</code> on each child matching <code>localKey</code> on the parent.</p>
+
+    <h3>PolymorphicBelongsTo</h3>
+
+    <pre><code>type PolymorphicBelongsTo struct {
+    *Association
+    // contains filtered or unexported fields
+}
+
+func NewPolymorphicBelongsTo(query contractsorm.Query, model any, association, polymorphicID, polymorphicType string) *PolymorphicBelongsTo</code></pre>
+
+    <p>Resolves the parent by reading <code>polymorphicID</code> and <code>polymorphicType</code> from the child to determine which table to query.</p>
+
+    <h3>PolymorphicHasMany</h3>
+
+    <pre><code>type PolymorphicHasMany struct {
+    *Association
+    // contains filtered or unexported fields
+}
+
+func NewPolymorphicHasMany(query contractsorm.Query, model any, association, polymorphicID, polymorphicType, localKey string) *PolymorphicHasMany</code></pre>
+
+    <p>Resolves the related children where <code>polymorphicID</code> matches <code>localKey</code> and <code>polymorphicType</code> matches the parent's table name.</p>
+
     <div class="footer">
         <p>Neat ORM Documentation</p>
     </div>

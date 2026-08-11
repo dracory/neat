@@ -37,27 +37,84 @@
     <h3>Configuration</h3>
 
     <pre><code>type DBConfig struct {
-    Default     string
-    Connections map[string]ConnectionConfig
-    Migrations  MigrationConfig
+    Default       string
+    Connections   map[string]ConnectionConfig
+    Migrations    MigrationConfig
+    Pool          PoolConfig
+    Debug         bool
+    SlowThreshold int  // milliseconds; queries slower than this emit a warning
 }
 
 type ConnectionConfig struct {
-    Driver   string
+    Driver       string
+    Dsn          string
+    Host         string
+    Port         int
+    Database     string
+    Username     string
+    Password     string
+    Charset      string
+    Schema       string
+    SSLMode      string
+    Loc          string
+    Timezone     string
+    Prefix       string
+    Singular     bool
+    NoLowerCase  bool
+    NameReplacer any
+    Read         []ReplicaConfig
+    Write        []ReplicaConfig
+    Tables       any  // for the godb driver: driver.Tables or []driver.Table
+}
+
+type ReplicaConfig struct {
     Host     string
     Port     int
     Database string
     Username string
     Password string
-    Options  map[string]string
-    Pool     PoolConfig
+}
+
+type MigrationConfig struct {
+    Driver string
+    Table  string
 }
 
 type PoolConfig struct {
-    MaxOpenConns int
-    MaxIdleConns int
-    MaxLifetime  int
-}</code></pre>
+    MaxIdleConns    int
+    MaxOpenConns    int
+    ConnMaxLifetime time.Duration
+    ConnMaxIdleTime time.Duration
+    QueryTimeout    time.Duration
+}
+
+// Database is the type returned by New, NewFromDSN, NewFromSQLDB, and NewMemoryDB.
+type Database = database.Database</code></pre>
+
+    <h3>Constructors</h3>
+
+    <ul class="method-list">
+        <li><code>func New(cfg DBConfig, opts ...database.Option) (*database.Database, error)</code> - Create a database from a config</li>
+        <li><code>func NewFromDSN(dsn string, opts ...database.Option) (*database.Database, error)</code> - Create a database from a DSN string</li>
+        <li><code>func NewFromSQLDB(sqlDB *sql.DB, opts ...database.Option) (*database.Database, error)</code> - Wrap an existing *sql.DB</li>
+        <li><code>func NewMemoryDB(opts ...database.Option) (*Database, error)</code> - Zero-config in-memory database (array driver)</li>
+    </ul>
+
+    <h3>Constants</h3>
+
+    <pre><code>// Sort order constants (alias orm.SortAsc / orm.SortDesc)
+const SortAsc  = "asc"
+const SortDesc = "desc"
+
+// Sentinel values for NULL and max dates
+const NullDate     = "0002-01-01"
+const NullDateTime = "0002-01-01 00:00:00"
+const MaxDate      = "9999-12-31"
+const MaxDateTime  = "9999-12-31 23:59:59"
+
+// Yes/No string constants
+const Yes = "yes"
+const No  = "no"</code></pre>
 
     <h3>Methods</h3>
 
@@ -672,6 +729,59 @@ blueprint.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDele
     <ul class="method-list">
         <li><code>Scan(value any) error</code> - Scan current row</li>
     </ul>
+
+    <h2 id="cursor-package">Cursor Package</h2>
+
+    <p>The <code>database/cursor</code> package wraps <code>*sql.Rows</code> for low-level row-by-row iteration. It is the type returned by the query builder's cursor methods.</p>
+
+    <pre><code>package cursor
+
+type Cursor struct {
+    // contains filtered or unexported fields
+}
+
+func NewCursor(rows *sql.Rows) *Cursor
+
+func (c *Cursor) Scan(dest any) error
+func (c *Cursor) Next() bool
+func (c *Cursor) Close() error
+func (c *Cursor) Err() error
+func (c *Cursor) Columns() ([]string, error)</code></pre>
+
+    <h2 id="db-expressions">Database Expressions and DSN</h2>
+
+    <p>The <code>database/db</code> package exports expression types used internally by the query builder, plus DSN parse/build helpers.</p>
+
+    <h3>Expression Interface and Types</h3>
+
+    <pre><code>type Expression interface {
+    String() string
+    Values() []any
+}
+
+type RawExpression struct{ /* ... */ }
+func NewRawExpression(expr string, args ...any) *RawExpression
+
+type ColumnExpression struct{ /* ... */ }
+func NewColumnExpression(column string) *ColumnExpression
+
+type TableExpression struct{ /* ... */ }
+func NewTableExpression(table string, alias ...string) *TableExpression
+
+type WhereExpression struct{ /* ... */ }
+func NewWhereExpression(column, operator string, value any, boolean ...string) *WhereExpression
+
+// Dialect-aware quoting helpers
+func QuoteIdentifier(identifier string, dialect string) string
+func QuoteValue(value any, dialect string) string</code></pre>
+
+    <h3>DSN Helpers</h3>
+
+    <pre><code>// ParseDSN parses a DSN string into a ConnectionConfig.
+func ParseDSN(dsn string) (ConnectionConfig, error)
+
+// BuildDSN builds a DSN string from a ConnectionConfig.
+func BuildDSN(config ConnectionConfig) (string, error)</code></pre>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>
