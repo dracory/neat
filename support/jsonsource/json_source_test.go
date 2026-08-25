@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -287,6 +288,32 @@ func TestNewJsonFileSource_PanicsOnInvalidJSON(t *testing.T) {
 	}()
 	path := writeTempJSON(t, "bad.json", `{not valid json}`)
 	NewJsonFileSource(path)
+}
+
+// --- NewJsonFSSource (fstest.MapFS) tests ---
+
+func TestNewJsonFSSource_Basic(t *testing.T) {
+	sys := fstest.MapFS{
+		"data/users.json": &fstest.MapFile{
+			Data: []byte(`[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]`),
+		},
+	}
+
+	model := NewJsonFSSource(sys, "data/users.json")
+	if model.TableName() != "users" {
+		t.Errorf("expected table name 'users', got '%s'", model.TableName())
+	}
+
+	rows, err := model.Rows()
+	if err != nil {
+		t.Fatalf("Rows() error: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(rows))
+	}
+	if rows[0]["name"] != "Alice" {
+		t.Errorf("expected name='Alice', got %v", rows[0]["name"])
+	}
 }
 
 // --- Internal function tests ---

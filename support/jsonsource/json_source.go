@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,6 +60,24 @@ func NewJsonSource(jsonString string, tableName string, isJSONL bool) *arraysour
 
 	if len(mapRows) == 0 {
 		panic("jsonsource: empty JSON array or no objects found — cannot infer schema without data rows")
+	}
+
+	return arraysource.New(mapRows).Table(tableName)
+}
+
+// NewJsonFSSource reads a JSON or JSONL file from an embedded filesystem
+// (embed.FS / fs.FS) and returns an array-backed data source ready for querying.
+func NewJsonFSSource(sys fs.FS, filePath string) *arraysource.Model {
+	rows, err := ParseJSONFSFile(sys, filePath)
+	if err != nil {
+		panic(fmt.Sprintf("jsonsource: failed to parse %s from fs: %v", filePath, err))
+	}
+
+	tableName := DeriveTableName(filePath)
+	mapRows := NormalizeRows(rows)
+
+	if len(mapRows) == 0 {
+		panic(fmt.Sprintf("jsonsource: %s contains no data rows — cannot infer schema without data", filePath))
 	}
 
 	return arraysource.New(mapRows).Table(tableName)
@@ -134,9 +153,24 @@ func ParseJSONString(content string, isJSONL bool) ([]map[string]any, error) {
 
 // ParseJSONFile reads a JSON or JSONL file and returns raw rows.
 func ParseJSONFile(filePath string) ([]map[string]any, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot open file: %w", err)
+	return ParseJSONFSFile(nil, filePath)
+}
+
+// ParseJSONFSFile reads a JSON or JSONL file from an fs.FS (or os.Open if sys is nil) and returns raw rows.
+func ParseJSONFSFile(sys fs.FS, filePath string) ([]map[string]any, error) {
+	var f io.ReadCloser
+	if sys != nil {
+		file, err := sys.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot open file: %w", err)
+		}
+		f = file
+	} else {
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot open file: %w", err)
+		}
+		f = file
 	}
 	defer func() { _ = f.Close() }()
 

@@ -3,6 +3,7 @@ package driver
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/dracory/neat/support/jsonsource"
@@ -11,9 +12,14 @@ import (
 // populateJSONFile reads a JSON/JSONL file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
 // case-insensitive duplicates, and row limits.
-func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
-	// Parse the file using the support/jsonsource package
-	rawRows, err := jsonsource.ParseJSONFile(filePath)
+func populateJSONFile(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
+	var rawRows []map[string]any
+	var err error
+	if sys != nil {
+		rawRows, err = jsonsource.ParseJSONFSFile(sys, filePath)
+	} else {
+		rawRows, err = jsonsource.ParseJSONFile(filePath)
+	}
 	if err != nil {
 		return err
 	}

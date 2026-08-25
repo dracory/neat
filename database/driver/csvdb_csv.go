@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"os"
 	"sort"
@@ -18,28 +19,33 @@ import (
 // Array driver's MaxArrayRows limit.
 const MaxCSVRows = 100000
 
-// parseCSV reads a CSV file and returns column names and rows.
-// The first record is treated as the header (column names); all remaining
-// records are data rows. Returns an error if the file is empty or if the
-// row count exceeds MaxCSVRows.
-//
-// A leading UTF-8 BOM (\xEF\xBB\xBF), if present, is stripped from the first
-// header field. CSV files exported from Excel commonly include a BOM.
+// parseCSV reads a CSV file from os or fs.FS and returns column names and rows.
 func parseCSV(filePath string) (columns []string, rows [][]string, err error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, nil, err
+	return parseCSVFS(nil, filePath)
+}
+
+// parseCSVFS reads a CSV file from an optional fs.FS (or os.Open if sys is nil) and returns column names and rows.
+func parseCSVFS(sys fs.FS, filePath string) (columns []string, rows [][]string, err error) {
+	var f io.ReadCloser
+	if sys != nil {
+		file, err := sys.Open(filePath)
+		if err != nil {
+			return nil, nil, err
+		}
+		f = file
+	} else {
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, nil, err
+		}
+		f = file
 	}
 	defer func() { _ = f.Close() }()
 
 	reader := csv.NewReader(f)
 	reader.LazyQuotes = true
-	// Allow rows with fewer fields than the header (missing fields become NULL).
-	// Rows with more fields are rejected by populateCSVFile's ragged row check.
-	// A negative value disables the field count consistency check.
 	reader.FieldsPerRecord = -1
 
-	// Read header (first record)
 	header, err := reader.Read()
 	if err != nil {
 		if err == io.EOF {
@@ -48,13 +54,10 @@ func parseCSV(filePath string) (columns []string, rows [][]string, err error) {
 		return nil, nil, fmt.Errorf("CSV parse error: %w", err)
 	}
 
-	// Strip UTF-8 BOM from the first header field, if present.
 	if len(header) > 0 {
 		header[0] = strings.TrimPrefix(header[0], "\xEF\xBB\xBF")
 	}
 
-	// Read data rows incrementally so we can stop at MaxCSVRows without
-	// loading the entire file into memory.
 	for {
 		record, readErr := reader.Read()
 		if readErr == io.EOF {
@@ -208,8 +211,8 @@ func convertValue(val string, sqlType string) any {
 // populateCSVFile reads a CSV file, infers types, creates a table, and
 // inserts all rows. This is the core logic called by CSVDB.Open for each
 // .csv file in the directory.
-func populateCSVFile(db *sql.DB, tableName string, filePath string) error {
-	columns, rows, err := parseCSV(filePath)
+func populateCSVFile(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
+	columns, rows, err := parseCSVFS(sys, filePath)
 	if err != nil {
 		return err
 	}

@@ -75,6 +75,9 @@ _ = s.Up(ctx)
 - GODB driver (`godb`) — query compiled-in Go data slices (`[]Struct`, `[]map[string]any`) as database tables via the `Tables` config field, with no file I/O, no parsing, and direct Go-type-to-SQLite-type mapping; supports both `godb.Tables` map and `[]godb.Table` slice config styles
 - `support/arraysource.ConvertSliceToRows` — exported non-generic helper for converting `any`-typed data slices to `[]map[string]any`, reusing the existing struct-to-row reflection logic (tag priority `db` > `neat` > `gorm` > snake_case, embedded structs flattened, association fields skipped)
 - Widened `database/driver/schemainfer.go` (`inferGoValueType`, `convertGoValue`) to support the full set of Go basic types (`int`/`int8`-`int64`, `uint`/`uint8`-`uint64`, `float32`/`float64`, `[]byte`, `json.RawMessage`, `*time.Time`) — a strict superset of the previous `int64`/`float64`-only logic, with no behavioral change for JSONDB/XMLDB
+- Embedded filesystem support for CSVDB, JSONDB, and XMLDB drivers — pass `embed.FS` / `fs.FS` via the `FS` field on `ConnectionConfig` to query CSV/JSON/JSONL/NDJSON/XML files compiled into the Go binary
+- FS-backed source constructors: `NewCsvFSSource`, `NewCsvFSSourceWithDelimiter`, `NewJsonFSSource`, `NewXmlFSSource` — read individual embedded files as array-backed data sources
+- Embedded FS integration tests (`integration_tests/csvdb_embedded/`, `integration_tests/jsondb_embedded/`, `integration_tests/xmldb_embedded/`) — basic query, WHERE, JOIN, and connection caching tests using real `embed.FS`
 - GODB integration tests (`integration_tests/godb/`) — query, JOIN, aggregate, type preservation, NULL handling, and both config styles
 - GODB example (`examples/godb-driver/`) — working example with sample struct-slice data demonstrating WHERE, JOIN, and aggregate queries
 - Observer pattern for model lifecycle events

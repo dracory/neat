@@ -68,6 +68,12 @@
             <td>From filename</td>
         </tr>
         <tr>
+            <td><code>neat.NewCsvFSSource(embedFS, filePath)</code></td>
+            <td>Embedded FS + path</td>
+            <td>CSV</td>
+            <td>From filename</td>
+        </tr>
+        <tr>
             <td><code>neat.NewCsvFileSourceWithDelimiter(filePath, delimiter)</code></td>
             <td>File path + delimiter</td>
             <td>TSV/PSV</td>
@@ -86,6 +92,12 @@
             <td>From filename</td>
         </tr>
         <tr>
+            <td><code>neat.NewJsonFSSource(embedFS, filePath)</code></td>
+            <td>Embedded FS + path</td>
+            <td>JSON / JSONL</td>
+            <td>From filename</td>
+        </tr>
+        <tr>
             <td><code>neat.NewXmlSource(xmlString, tableName)</code></td>
             <td>Raw XML string</td>
             <td>XML</td>
@@ -97,9 +109,15 @@
             <td>XML</td>
             <td>From filename</td>
         </tr>
+        <tr>
+            <td><code>neat.NewXmlFSSource(embedFS, filePath)</code></td>
+            <td>Embedded FS + path</td>
+            <td>XML</td>
+            <td>From filename</td>
+        </tr>
     </table>
 
-    <p>Each format has two variants: <strong>string</strong> constructors (accept raw content, require explicit table name) and <strong>file</strong> constructors (accept a file path, derive table name from filename).</p>
+    <p>Each format has three variants: <strong>string</strong> constructors (accept raw content, require explicit table name), <strong>file</strong> constructors (accept a disk file path, derive table name from filename), and <strong>embedded filesystem (embed.FS)</strong> constructors (accept an <code>embed.FS</code> / <code>fs.FS</code> and a relative file path).</p>
 
     <h2>CSV Sources</h2>
 

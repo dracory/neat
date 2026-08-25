@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	_ "modernc.org/sqlite"
 )
@@ -488,5 +489,40 @@ func TestJSONDBDuplicateColumnNames(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "duplicate column name") {
 		t.Errorf("expected 'duplicate column name' in error, got: %v", err)
+	}
+}
+
+func TestJSONDBOpenWithSetFS(t *testing.T) {
+	sys := fstest.MapFS{
+		"data/users.json": &fstest.MapFile{
+			Data: []byte(`[{"id": 1, "name": "Alice"}]`),
+		},
+		"data/events.jsonl": &fstest.MapFile{
+			Data: []byte(`{"id": 100, "type": "click"}`),
+		},
+	}
+
+	d := NewJSONDB()
+	d.SetFS(sys)
+
+	db, err := d.Open("data")
+	if err != nil {
+		t.Fatalf("Open with SetFS failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	var userCount, eventCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount); err != nil {
+		t.Fatalf("query users failed: %v", err)
+	}
+	if userCount != 1 {
+		t.Errorf("expected 1 user, got %d", userCount)
+	}
+
+	if err := db.QueryRow("SELECT COUNT(*) FROM events").Scan(&eventCount); err != nil {
+		t.Fatalf("query events failed: %v", err)
+	}
+	if eventCount != 1 {
+		t.Errorf("expected 1 event, got %d", eventCount)
 	}
 }

@@ -3,6 +3,7 @@ package driver
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/dracory/neat/support/xmlsource"
@@ -11,9 +12,14 @@ import (
 // populateXMLFile reads an XML file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
 // case-insensitive duplicates, and row limits.
-func populateXMLFile(db *sql.DB, tableName string, filePath string) error {
-	// Parse the file using the support/xmlsource package
-	rows, err := xmlsource.ParseXMLFile(filePath)
+func populateXMLFile(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
+	var rows []map[string]any
+	var err error
+	if sys != nil {
+		rows, err = xmlsource.ParseXMLFSFile(sys, filePath)
+	} else {
+		rows, err = xmlsource.ParseXMLFile(filePath)
+	}
 	if err != nil {
 		return err
 	}

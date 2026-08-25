@@ -69,7 +69,24 @@ defer db.Close()</code></pre>
 
     <ul>
         <li><code>Database</code> - directory path containing <code>.json</code>, <code>.jsonl</code>, or <code>.ndjson</code> files, or empty / <code>:memory:</code> for an empty in-memory database.</li>
+        <li><code>FS</code> - optional <code>embed.FS</code> or <code>fs.FS</code> instance for querying embedded JSON directory files compiled into the Go binary.</li>
     </ul>
+
+    <h3>Embedded Filesystem (embed.FS)</h3>
+
+    <pre><code>//go:embed data/*.json
+var jsonFS embed.FS
+
+config := neat.DBConfig{
+    Default: "json_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "json_db": {
+            Driver:   "jsondb",
+            Database: "data", // relative path inside jsonFS
+            FS:       jsonFS,
+        },
+    },
+}</code></pre>
 
     <h2>Placeholder Format</h2>
 

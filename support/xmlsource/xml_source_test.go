@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -278,6 +279,32 @@ func TestNewXmlFileSource_PanicsOnEmptyFile(t *testing.T) {
 	}()
 	path := writeTempXML(t, "empty.xml", "")
 	NewXmlFileSource(path)
+}
+
+// --- NewXmlFSSource (fstest.MapFS) tests ---
+
+func TestNewXmlFSSource_Basic(t *testing.T) {
+	sys := fstest.MapFS{
+		"data/users.xml": &fstest.MapFile{
+			Data: []byte(`<users><user id="1"><name>Alice</name></user><user id="2"><name>Bob</name></user></users>`),
+		},
+	}
+
+	model := NewXmlFSSource(sys, "data/users.xml")
+	if model.TableName() != "users" {
+		t.Errorf("expected table name 'users', got '%s'", model.TableName())
+	}
+
+	rows, err := model.Rows()
+	if err != nil {
+		t.Fatalf("Rows() error: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(rows))
+	}
+	if rows[0]["name"] != "Alice" {
+		t.Errorf("expected name='Alice', got %v", rows[0]["name"])
+	}
 }
 
 // --- Internal function tests ---

@@ -3,7 +3,9 @@ package driver
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,11 +23,17 @@ import (
 // The driver is stateless — all state lives in the in-memory SQLite database.
 type CSVDB struct {
 	*SQLite
+	fs fs.FS
 }
 
 // NewCSVDB creates a new CSVDB driver.
 func NewCSVDB() *CSVDB {
 	return &CSVDB{SQLite: NewSQLite()}
+}
+
+// SetFS configures an embedded filesystem (embed.FS / fs.FS) before Open is called.
+func (c *CSVDB) SetFS(sys fs.FS) {
+	c.fs = sys
 }
 
 // Dialect returns "sqlite" so the query builder generates SQLite-compatible
@@ -48,30 +56,55 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("csvdb: failed to open in-memory SQLite: %w", err)
 	}
 
-	// If no directory path, return empty in-memory DB
-	if dirPath == "" || dirPath == ":memory:" {
-		return db, nil
-	}
+	var entries []fs.DirEntry
+	var cleanPath string
 
-	// Verify directory exists
-	info, err := os.Stat(dirPath)
-	if err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("csvdb: cannot access directory %s: %w", dirPath, err)
-	}
-	if !info.IsDir() {
-		_ = db.Close()
-		return nil, fmt.Errorf("csvdb: %s is not a directory", dirPath)
-	}
+	if c.fs != nil {
+		if dirPath == "" || dirPath == ":memory:" {
+			return db, nil
+		}
+		cleanPath = path.Clean(dirPath)
+		if cleanPath == "/" || cleanPath == "." {
+			cleanPath = "."
+		} else {
+			cleanPath = strings.TrimPrefix(cleanPath, "/")
+		}
 
-	// Scan for .csv files and populate tables.
-	// Table names are tracked case-insensitively to detect collisions on
-	// case-insensitive filesystems (Windows, macOS default) where Users.csv
-	// and users.csv would produce colliding SQLite table names.
-	entries, err := os.ReadDir(dirPath)
-	if err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("csvdb: cannot read directory %s: %w", dirPath, err)
+		info, err := fs.Stat(c.fs, cleanPath)
+		if err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("csvdb: cannot access directory %s: %w", dirPath, err)
+		}
+		if !info.IsDir() {
+			_ = db.Close()
+			return nil, fmt.Errorf("csvdb: %s is not a directory", dirPath)
+		}
+
+		entries, err = fs.ReadDir(c.fs, cleanPath)
+		if err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("csvdb: cannot read directory %s: %w", dirPath, err)
+		}
+	} else {
+		if dirPath == "" || dirPath == ":memory:" {
+			return db, nil
+		}
+
+		info, err := os.Stat(dirPath)
+		if err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("csvdb: cannot access directory %s: %w", dirPath, err)
+		}
+		if !info.IsDir() {
+			_ = db.Close()
+			return nil, fmt.Errorf("csvdb: %s is not a directory", dirPath)
+		}
+
+		entries, err = os.ReadDir(dirPath)
+		if err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("csvdb: cannot read directory %s: %w", dirPath, err)
+		}
 	}
 
 	seenTables := make(map[string]string) // lower(tableName) → original filename
@@ -80,12 +113,28 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 		if entry.IsDir() {
 			continue
 		}
-		if !strings.HasSuffix(strings.ToLower(entry.Name()), ".csv") {
+		var rawExt string
+		if c.fs != nil {
+			rawExt = path.Ext(entry.Name())
+		} else {
+			rawExt = filepath.Ext(entry.Name())
+		}
+
+		if strings.ToLower(rawExt) != ".csv" {
 			continue
 		}
 
-		tableName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-		filePath := filepath.Join(dirPath, entry.Name())
+		var filePath string
+		if c.fs != nil {
+			if cleanPath == "." {
+				filePath = entry.Name()
+			} else {
+				filePath = path.Join(cleanPath, entry.Name())
+			}
+		} else {
+			filePath = filepath.Join(dirPath, entry.Name())
+		}
+		tableName := strings.TrimSuffix(entry.Name(), rawExt)
 
 		lowerName := strings.ToLower(tableName)
 		if prevFile, exists := seenTables[lowerName]; exists {
@@ -94,7 +143,7 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 		}
 		seenTables[lowerName] = entry.Name()
 
-		if err := populateCSVFile(db, tableName, filePath); err != nil {
+		if err := populateCSVFile(db, tableName, c.fs, filePath); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("csvdb: failed to populate table %s from %s: %w", tableName, filePath, err)
 		}

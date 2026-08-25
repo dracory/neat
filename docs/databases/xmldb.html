@@ -81,7 +81,24 @@ defer db.Close()</code></pre>
 
     <ul>
         <li><code>Database</code> - directory path containing <code>.xml</code> files, or empty / <code>:memory:</code> for an empty in-memory database.</li>
+        <li><code>FS</code> - optional <code>embed.FS</code> or <code>fs.FS</code> instance for querying embedded XML directory files compiled into the Go binary.</li>
     </ul>
+
+    <h3>Embedded Filesystem (embed.FS)</h3>
+
+    <pre><code>//go:embed data/*.xml
+var xmlFS embed.FS
+
+config := neat.DBConfig{
+    Default: "xml_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "xml_db": {
+            Driver:   "xmldb",
+            Database: "data", // relative path inside xmlFS
+            FS:       xmlFS,
+        },
+    },
+}</code></pre>
 
     <h2>Placeholder Format</h2>
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	_ "modernc.org/sqlite"
 )
@@ -631,5 +632,40 @@ func TestCSVDBInfNaNNotInferredAsReal(t *testing.T) {
 	// Sanity: real floats should still be REAL
 	if inferValueType("3.14") != "REAL" {
 		t.Errorf("inferValueType(3.14) = %s, want REAL", inferValueType("3.14"))
+	}
+}
+
+func TestCSVDBOpenWithSetFS(t *testing.T) {
+	sys := fstest.MapFS{
+		"data/users.csv": &fstest.MapFile{
+			Data: []byte("id,name\n1,Alice\n2,Bob\n"),
+		},
+		"data/products.csv": &fstest.MapFile{
+			Data: []byte("id,title,price\n10,Widget,19.99\n"),
+		},
+	}
+
+	d := NewCSVDB()
+	d.SetFS(sys)
+
+	db, err := d.Open("data")
+	if err != nil {
+		t.Fatalf("Open with SetFS failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	var userCount, prodCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount); err != nil {
+		t.Fatalf("query users failed: %v", err)
+	}
+	if userCount != 2 {
+		t.Errorf("expected 2 users, got %d", userCount)
+	}
+
+	if err := db.QueryRow("SELECT COUNT(*) FROM products").Scan(&prodCount); err != nil {
+		t.Fatalf("query products failed: %v", err)
+	}
+	if prodCount != 1 {
+		t.Errorf("expected 1 product, got %d", prodCount)
 	}
 }

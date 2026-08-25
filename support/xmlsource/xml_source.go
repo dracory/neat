@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -95,6 +96,22 @@ func NewXmlFileSource(filePath string) *arraysource.Model {
 	return arraysource.New(rows).Table(tableName)
 }
 
+// NewXmlFSSource reads an XML file from an embedded filesystem (embed.FS / fs.FS)
+// and returns an array-backed data source ready for querying.
+func NewXmlFSSource(sys fs.FS, filePath string) *arraysource.Model {
+	rows, err := ParseXMLFSFile(sys, filePath)
+	if err != nil {
+		panic(fmt.Sprintf("xmlsource: failed to parse %s from fs: %v", filePath, err))
+	}
+
+	if len(rows) == 0 {
+		panic(fmt.Sprintf("xmlsource: %s contains no child elements — cannot infer schema without data", filePath))
+	}
+
+	tableName := deriveTableName(filePath)
+	return arraysource.New(rows).Table(tableName)
+}
+
 // deriveTableName extracts the table name from the file path by taking
 // the base filename and removing the extension.
 // "data/users.xml" → "users"
@@ -111,9 +128,24 @@ func ParseXMLString(content string) ([]map[string]any, error) {
 
 // ParseXMLFile reads an XML file and returns rows.
 func ParseXMLFile(filePath string) ([]map[string]any, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot open file: %w", err)
+	return ParseXMLFSFile(nil, filePath)
+}
+
+// ParseXMLFSFile reads an XML file from an fs.FS (or os.Open if sys is nil) and returns rows.
+func ParseXMLFSFile(sys fs.FS, filePath string) ([]map[string]any, error) {
+	var f io.ReadCloser
+	if sys != nil {
+		file, err := sys.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot open file: %w", err)
+		}
+		f = file
+	} else {
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot open file: %w", err)
+		}
+		f = file
 	}
 	defer func() { _ = f.Close() }()
 	return ParseXMLReader(f)

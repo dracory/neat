@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -236,6 +237,50 @@ func TestNewCsvFileSource_PanicsOnEmptyFile(t *testing.T) {
 	}()
 	path := writeTempCSV(t, "empty.csv", "")
 	NewCsvFileSource(path)
+}
+
+// --- NewCsvFSSource (fstest.MapFS) tests ---
+
+func TestNewCsvFSSource_Basic(t *testing.T) {
+	sys := fstest.MapFS{
+		"data/users.csv": &fstest.MapFile{
+			Data: []byte("id,name,active\n1,Alice,true\n2,Bob,false\n"),
+		},
+	}
+
+	model := NewCsvFSSource(sys, "data/users.csv")
+	if model.TableName() != "users" {
+		t.Errorf("expected table name 'users', got '%s'", model.TableName())
+	}
+
+	rows, err := model.Rows()
+	if err != nil {
+		t.Fatalf("Rows() error: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(rows))
+	}
+	if rows[0]["name"] != "Alice" {
+		t.Errorf("expected name='Alice', got %v", rows[0]["name"])
+	}
+}
+
+func TestNewCsvFSSource_WithDelimiter(t *testing.T) {
+	sys := fstest.MapFS{
+		"events.tsv": &fstest.MapFile{
+			Data: []byte("id\tevent\n100\tlogin\n"),
+		},
+	}
+
+	model := NewCsvFSSourceWithDelimiter(sys, "events.tsv", '\t')
+	if model.TableName() != "events" {
+		t.Errorf("expected table name 'events', got '%s'", model.TableName())
+	}
+
+	rows, _ := model.Rows()
+	if len(rows) != 1 || rows[0]["event"] != "login" {
+		t.Errorf("unexpected rows: %v", rows)
+	}
 }
 
 // --- Internal function tests ---

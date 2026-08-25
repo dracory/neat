@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	_ "modernc.org/sqlite"
 )
@@ -488,5 +489,30 @@ func TestXMLDBDuplicateColumnNames(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "duplicate column name") {
 		t.Errorf("expected 'duplicate column name' in error, got: %v", err)
+	}
+}
+
+func TestXMLDBOpenWithSetFS(t *testing.T) {
+	sys := fstest.MapFS{
+		"data/users.xml": &fstest.MapFile{
+			Data: []byte(`<users><user id="1"><name>Alice</name></user></users>`),
+		},
+	}
+
+	d := NewXMLDB()
+	d.SetFS(sys)
+
+	db, err := d.Open("data")
+	if err != nil {
+		t.Fatalf("Open with SetFS failed: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	var userCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount); err != nil {
+		t.Fatalf("query users failed: %v", err)
+	}
+	if userCount != 1 {
+		t.Errorf("expected 1 user, got %d", userCount)
 	}
 }
