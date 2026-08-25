@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -71,7 +72,7 @@ func newDatabase() (*neat.Database, error) {
 		Default: "array_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"array_db": {
-				Driver: "array",
+				Driver: contractsdb.DriverArray,
 			},
 		},
 	}

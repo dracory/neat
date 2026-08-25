@@ -2,11 +2,13 @@ package db
 
 import (
 	"testing"
+
+	contracts "github.com/dracory/neat/contracts/database"
 )
 
 func TestNewConfigBuilder(t *testing.T) {
 	config := ConnectionConfig{
-		Driver:   "mysql",
+		Driver:   contracts.DriverMysql,
 		Host:     "localhost",
 		Port:     3306,
 		Database: "testdb",
@@ -43,7 +45,7 @@ func TestConfigBuilderBuildDSNWithExistingDSN(t *testing.T) {
 
 func TestConfigBuilderBuildMySQLDSN(t *testing.T) {
 	config := ConnectionConfig{
-		Driver:   "mysql",
+		Driver:   contracts.DriverMysql,
 		Host:     "localhost",
 		Port:     3306,
 		Database: "testdb",
@@ -66,7 +68,7 @@ func TestConfigBuilderBuildMySQLDSN(t *testing.T) {
 
 func TestConfigBuilderBuildPostgresDSN(t *testing.T) {
 	config := ConnectionConfig{
-		Driver:   "postgres",
+		Driver:   contracts.DriverPostgres,
 		Host:     "localhost",
 		Port:     5432,
 		Database: "testdb",
@@ -100,7 +102,7 @@ func TestConfigBuilderBuildPostgresDSN(t *testing.T) {
 
 func TestConfigBuilderBuildSQLiteDSN(t *testing.T) {
 	config := ConnectionConfig{
-		Driver:   "sqlite",
+		Driver:   contracts.DriverSqlite,
 		Database: "/path/to/database.db",
 	}
 
@@ -122,7 +124,7 @@ func TestConfigBuilderBuildSQLiteDSN(t *testing.T) {
 
 func TestConfigBuilderBuildSQLServerDSN(t *testing.T) {
 	config := ConnectionConfig{
-		Driver:   "sqlserver",
+		Driver:   contracts.DriverSqlserver,
 		Host:     "localhost",
 		Port:     1433,
 		Database: "testdb",
@@ -158,37 +160,37 @@ func TestConfigBuilderBuildTursoDSN(t *testing.T) {
 	}{
 		{
 			name:     "bare database name with authToken",
-			config:   ConnectionConfig{Driver: "turso", Database: "my-db.turso.io", Password: "tok123"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "my-db.turso.io", Password: "tok123"},
 			expected: "libsql://my-db.turso.io?authToken=tok123",
 		},
 		{
 			name:     "libsql prefix with authToken",
-			config:   ConnectionConfig{Driver: "turso", Database: "libsql://my-db.turso.io", Password: "tok123"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "libsql://my-db.turso.io", Password: "tok123"},
 			expected: "libsql://my-db.turso.io?authToken=tok123",
 		},
 		{
 			name:     "libsql prefix with existing query params and authToken",
-			config:   ConnectionConfig{Driver: "turso", Database: "libsql://my-db.turso.io?foo=bar", Password: "tok123"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "libsql://my-db.turso.io?foo=bar", Password: "tok123"},
 			expected: "libsql://my-db.turso.io?foo=bar&authToken=tok123",
 		},
 		{
 			name:     "bare database name without authToken",
-			config:   ConnectionConfig{Driver: "turso", Database: "my-db.turso.io"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "my-db.turso.io"},
 			expected: "libsql://my-db.turso.io",
 		},
 		{
 			name:     "file prefix without authToken",
-			config:   ConnectionConfig{Driver: "turso", Database: "file:///path/to/db"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "file:///path/to/db"},
 			expected: "file:///path/to/db",
 		},
 		{
 			name:     "file prefix with authToken (should not append token)",
-			config:   ConnectionConfig{Driver: "turso", Database: "file:///path/to/db", Password: "tok123"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "file:///path/to/db", Password: "tok123"},
 			expected: "file:///path/to/db",
 		},
 		{
 			name:     "authToken with special chars is URL-encoded",
-			config:   ConnectionConfig{Driver: "turso", Database: "my-db.turso.io", Password: "tok&=+"},
+			config:   ConnectionConfig{Driver: contracts.DriverTurso, Database: "my-db.turso.io", Password: "tok&=+"},
 			expected: "libsql://my-db.turso.io?authToken=tok%26%3D%2B",
 		},
 	}
@@ -222,7 +224,7 @@ func TestConfigBuilderUnsupportedDriver(t *testing.T) {
 
 func TestConfigBuilderEmptyConfig(t *testing.T) {
 	config := ConnectionConfig{
-		Driver: "mysql",
+		Driver: contracts.DriverMysql,
 		Host:   "",
 	}
 

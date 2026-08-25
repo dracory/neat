@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database/driver"
 )
@@ -48,7 +49,7 @@ func TestGODB_TypePreservation_And_Nulls(t *testing.T) {
 		Default: "go_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"go_db": {
-				Driver: "godb",
+				Driver: contractsdb.DriverGODB,
 				Tables: driver.Tables{
 					"complex_types": complexData,
 				},
@@ -94,7 +95,7 @@ func TestGODB_BothConfigStyles(t *testing.T) {
 		Default: "go_db_a",
 		Connections: map[string]neat.ConnectionConfig{
 			"go_db_a": {
-				Driver: "godb",
+				Driver: contractsdb.DriverGODB,
 				Tables: driver.Tables{
 					"users": usersData,
 				},
@@ -118,7 +119,7 @@ func TestGODB_BothConfigStyles(t *testing.T) {
 		Default: "go_db_b",
 		Connections: map[string]neat.ConnectionConfig{
 			"go_db_b": {
-				Driver: "godb",
+				Driver: contractsdb.DriverGODB,
 				Tables: []driver.Table{
 					{Name: "users", Data: usersData},
 				},

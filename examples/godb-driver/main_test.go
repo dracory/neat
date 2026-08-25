@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/examples/godb-driver/data"
@@ -20,7 +21,7 @@ func TestGODBExampleQueries(t *testing.T) {
 		Default: "go_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"go_db": {
-				Driver: "godb",
+				Driver: contractsdb.DriverGODB,
 				Tables: driver.Tables{
 					"blogs":      data.Blogs,
 					"categories": data.Categories,

@@ -3,6 +3,7 @@ package query
 import (
 	"sync"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
@@ -134,19 +135,19 @@ func (q *Query) Connection(name string) contractsorm.Query {
 }
 
 // newDriverForDialect returns a Driver for the given dialect name.
-func newDriverForDialect(dialect string) driver.Driver {
+func newDriverForDialect(dialect contractsdb.Driver) driver.Driver {
 	switch dialect {
-	case "mysql":
+	case contractsdb.DriverMysql:
 		return driver.NewMySQL()
-	case "postgres":
+	case contractsdb.DriverPostgres:
 		return driver.NewPostgreSQL()
-	case "sqlserver":
+	case contractsdb.DriverSqlserver:
 		return driver.NewSQLServer()
-	case "turso":
+	case contractsdb.DriverTurso:
 		return driver.NewTurso()
-	case "oracle":
+	case contractsdb.DriverOracle:
 		return driver.NewOracle()
-	case "array":
+	case contractsdb.DriverArray:
 		return driver.NewArray()
 	default:
 		return driver.NewSQLite()

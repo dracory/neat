@@ -3,6 +3,7 @@ package neat
 import (
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	_ "modernc.org/sqlite"
 )
@@ -51,7 +52,7 @@ func TestNewPropagatesReplicaConfig(t *testing.T) {
 		Default: "main",
 		Connections: map[string]ConnectionConfig{
 			"main": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 				Read: []ReplicaConfig{
 					{Host: "read-host", Port: 3306, Database: "rdb", Username: "ru", Password: "rp"},
@@ -92,7 +93,7 @@ func TestNewWithLoggerOption(t *testing.T) {
 	cfg := DBConfig{
 		Default: "default",
 		Connections: map[string]ConnectionConfig{
-			"default": {Driver: "sqlite", Database: ":memory:"},
+			"default": {Driver: contractsdb.DriverSqlite, Database: ":memory:"},
 		},
 	}
 

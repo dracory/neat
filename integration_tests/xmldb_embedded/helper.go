@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	_ "modernc.org/sqlite"
 )
@@ -54,7 +55,7 @@ func SetupXMLDBEmbeddedTest(t *testing.T) *database.Database {
 		Default: "xml_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"xml_db": {
-				Driver:   "xmldb",
+				Driver: contractsdb.DriverXMLDB,
 				Database: "data",
 				FS:       xmlFS,
 			},

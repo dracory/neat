@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	_ "modernc.org/sqlite"
 )
@@ -140,7 +141,7 @@ func SetupJSONDBTest(t *testing.T) *database.Database {
 		Default: "json_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"json_db": {
-				Driver:   "jsondb",
+				Driver: contractsdb.DriverJSONDB,
 				Database: dir,
 			},
 		},

@@ -12,6 +12,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	_ "modernc.org/sqlite"
 )
@@ -78,7 +79,7 @@ func TestSlowQueryWarningIntegration(t *testing.T) {
 		Default: "default",
 		Connections: map[string]neat.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: tempDir + "/slow_test.db",
 			},
 		},
@@ -136,7 +137,7 @@ func TestSlowQueryNoWarningBelowThreshold(t *testing.T) {
 		Default: "default",
 		Connections: map[string]neat.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: tempDir + "/fast_test.db",
 			},
 		},
@@ -192,7 +193,7 @@ func TestSlowQueryDisabled(t *testing.T) {
 		Default: "default",
 		Connections: map[string]neat.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: tempDir + "/disabled_test.db",
 			},
 		},
@@ -249,7 +250,7 @@ func TestSlowQueryWithDifferentOperations(t *testing.T) {
 		Default: "default",
 		Connections: map[string]neat.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: tempDir + "/ops_test.db",
 			},
 		},

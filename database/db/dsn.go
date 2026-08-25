@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	contracts "github.com/dracory/neat/contracts/database"
 )
 
 // maxDSNLength is the maximum allowed length for a DSN string.
@@ -45,7 +47,7 @@ func ParseDSN(dsn string) (ConnectionConfig, error) {
 
 // parsePostgresDSN parses a PostgreSQL DSN string.
 func parsePostgresDSN(dsn string) (ConnectionConfig, error) {
-	config := ConnectionConfig{Driver: "postgres", Dsn: dsn}
+	config := ConnectionConfig{Driver: contracts.DriverPostgres, Dsn: dsn}
 
 	// Parse URL
 	u, err := url.Parse(dsn)
@@ -84,7 +86,7 @@ func parsePostgresDSN(dsn string) (ConnectionConfig, error) {
 
 // parseMySQLDSN parses a MySQL DSN string.
 func parseMySQLDSN(dsn string) (ConnectionConfig, error) {
-	config := ConnectionConfig{Driver: "mysql", Dsn: dsn}
+	config := ConnectionConfig{Driver: contracts.DriverMysql, Dsn: dsn}
 
 	// Parse URL
 	u, err := url.Parse(dsn)
@@ -120,7 +122,7 @@ func parseMySQLDSN(dsn string) (ConnectionConfig, error) {
 
 // parseSQLiteDSN parses a SQLite DSN string.
 func parseSQLiteDSN(dsn string) (ConnectionConfig, error) {
-	config := ConnectionConfig{Driver: "sqlite", Dsn: dsn}
+	config := ConnectionConfig{Driver: contracts.DriverSqlite, Dsn: dsn}
 
 	// Extract database path
 	if strings.HasPrefix(dsn, "sqlite://") {
@@ -136,7 +138,7 @@ func parseSQLiteDSN(dsn string) (ConnectionConfig, error) {
 
 // parseSQLServerDSN parses a SQL Server DSN string.
 func parseSQLServerDSN(dsn string) (ConnectionConfig, error) {
-	config := ConnectionConfig{Driver: "sqlserver", Dsn: dsn}
+	config := ConnectionConfig{Driver: contracts.DriverSqlserver, Dsn: dsn}
 
 	// Parse URL
 	u, err := url.Parse(dsn)
@@ -168,7 +170,7 @@ func parseSQLServerDSN(dsn string) (ConnectionConfig, error) {
 
 // parseTursoDSN parses a Turso DSN string.
 func parseTursoDSN(dsn string) (ConnectionConfig, error) {
-	config := ConnectionConfig{Driver: "turso", Dsn: dsn}
+	config := ConnectionConfig{Driver: contracts.DriverTurso, Dsn: dsn}
 
 	// Parse URL
 	u, err := url.Parse(dsn)

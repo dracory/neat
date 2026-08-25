@@ -3,6 +3,7 @@ package database
 import (
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	_ "github.com/lib/pq"
@@ -51,7 +52,7 @@ func TestSSL_PostgreSQL_SSLModeConfiguration(t *testing.T) {
 			config := db.DBConfig{
 				Connections: map[string]db.ConnectionConfig{
 					"default": {
-						Driver:   "postgres",
+						Driver:   contractsdb.DriverPostgres,
 						Host:     "localhost",
 						Port:     5432,
 						Database: "testdb",
@@ -88,7 +89,7 @@ func TestSSL_PostgreSQL_SSLModeConfiguration(t *testing.T) {
 func TestSSL_PostgreSQL_SSLModeDefault(t *testing.T) {
 	// Test that when SSL mode is not specified, it defaults to "require"
 	config := db.ConnectionConfig{
-		Driver:   "postgres",
+		Driver:   contractsdb.DriverPostgres,
 		Host:     "localhost",
 		Port:     5432,
 		Database: "testdb",
@@ -114,7 +115,7 @@ func TestSSL_MySQL_TLSConfiguration(t *testing.T) {
 	// MySQL doesn't use SSLMode in the same way as PostgreSQL
 	// It uses TLS parameters in the DSN
 	config := db.ConnectionConfig{
-		Driver:   "mysql",
+		Driver:   contractsdb.DriverMysql,
 		Host:     "localhost",
 		Port:     3306,
 		Database: "testdb",
@@ -139,7 +140,7 @@ func TestSSL_MySQL_TLSConfiguration(t *testing.T) {
 func TestSSL_SQLite_NoSSL(t *testing.T) {
 	// SQLite doesn't support SSL
 	config := db.ConnectionConfig{
-		Driver:   "sqlite",
+		Driver:   contractsdb.DriverSqlite,
 		Database: ":memory:",
 		SSLMode:  "require", // This should be ignored for SQLite
 	}
@@ -160,7 +161,7 @@ func TestSSL_SQLite_NoSSL(t *testing.T) {
 func TestSSL_SQLServer_NoSSLMode(t *testing.T) {
 	// SQL Server uses connection string format, SSL would be configured differently
 	config := db.ConnectionConfig{
-		Driver:   "sqlserver",
+		Driver:   contractsdb.DriverSqlserver,
 		Host:     "localhost",
 		Port:     1433,
 		Database: "testdb",
@@ -224,32 +225,32 @@ func TestSSL_DSNParsing_SSLMode(t *testing.T) {
 func TestSSL_ConnectionConfig_SSLMode(t *testing.T) {
 	tests := []struct {
 		name    string
-		driver  string
+		driver  contractsdb.Driver
 		sslMode string
 	}{
 		{
 			name:    "PostgreSQL with verify-full",
-			driver:  "postgres",
+			driver:  contractsdb.DriverPostgres,
 			sslMode: "verify-full",
 		},
 		{
 			name:    "PostgreSQL with verify-ca",
-			driver:  "postgres",
+			driver:  contractsdb.DriverPostgres,
 			sslMode: "verify-ca",
 		},
 		{
 			name:    "PostgreSQL with disable",
-			driver:  "postgres",
+			driver:  contractsdb.DriverPostgres,
 			sslMode: "disable",
 		},
 		{
 			name:    "MySQL with SSLMode (ignored)",
-			driver:  "mysql",
+			driver:  contractsdb.DriverMysql,
 			sslMode: "require",
 		},
 		{
 			name:    "SQLite with SSLMode (ignored)",
-			driver:  "sqlite",
+			driver:  contractsdb.DriverSqlite,
 			sslMode: "require",
 		},
 	}
@@ -285,7 +286,7 @@ func TestSSL_ConnectionConfig_SSLMode(t *testing.T) {
 func TestSSL_Turso_NoSSL(t *testing.T) {
 	// Turso (libsql) doesn't use SSLMode in the same way
 	config := db.ConnectionConfig{
-		Driver:   "turso",
+		Driver:   contractsdb.DriverTurso,
 		Database: "libsql://test-db.turso.io",
 		SSLMode:  "require", // This should be ignored
 	}
@@ -306,7 +307,7 @@ func TestSSL_Turso_NoSSL(t *testing.T) {
 func TestSSL_SpecialCharactersInPassword(t *testing.T) {
 	// Test that special characters in password don't break SSL configuration
 	config := db.ConnectionConfig{
-		Driver:   "postgres",
+		Driver:   contractsdb.DriverPostgres,
 		Host:     "localhost",
 		Port:     5432,
 		Database: "testdb",
@@ -331,13 +332,13 @@ func TestSSL_SpecialCharactersInPassword(t *testing.T) {
 func TestSSL_EmptySSLMode(t *testing.T) {
 	// Test empty SSL mode string
 	config := db.ConnectionConfig{
-		Driver:   "postgres",
+		Driver:   contractsdb.DriverPostgres,
 		Host:     "localhost",
 		Port:     5432,
 		Database: "testdb",
 		Username: "user",
 		Password: "pass",
-		SSLMode:  "",
+		SSLMode:  "require", // This would be ignored in current implementation
 	}
 
 	builder := db.NewConfigBuilder(config)

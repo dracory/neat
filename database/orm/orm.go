@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
@@ -255,7 +256,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 
 // BuildOrmFromDB builds an Orm instance from an already-open *sql.DB.
 // The caller retains ownership of sqlDB; connection pool settings are not modified.
-func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName string, connection string, dbConfig *db.DBConfig, log log.Log, refresh func()) (*Orm, error) {
+func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName contractsdb.Driver, connection string, dbConfig *db.DBConfig, log log.Log, refresh func()) (*Orm, error) {
 	dbDriver := createDriver(driverName)
 	drivers := map[string]driver.Driver{
 		connection: dbDriver,
@@ -280,8 +281,8 @@ func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName string, conne
 // readers alongside the single writer.
 // Remote Turso (libsql://) supports concurrent connections via HTTP.
 func configureConnectionPool(ctx context.Context, sqlDB *sql.DB, connConfig *db.ConnectionConfig, dbConfig *db.DBConfig) {
-	pinSingleConn := connConfig.Driver == "sqlite" || connConfig.Driver == "array" || connConfig.Driver == "csvdb" || connConfig.Driver == "jsondb" || connConfig.Driver == "xmldb" || connConfig.Driver == "godb"
-	if connConfig.Driver == "turso" {
+	pinSingleConn := connConfig.Driver == contractsdb.DriverSqlite || connConfig.Driver == contractsdb.DriverArray || connConfig.Driver == contractsdb.DriverCSVDB || connConfig.Driver == contractsdb.DriverJSONDB || connConfig.Driver == contractsdb.DriverXMLDB || connConfig.Driver == contractsdb.DriverGODB
+	if connConfig.Driver == contractsdb.DriverTurso {
 		pinSingleConn = strings.HasPrefix(connConfig.Dsn, "file:") || strings.HasPrefix(connConfig.Database, "file:")
 	}
 	if pinSingleConn {
@@ -306,29 +307,29 @@ func configureConnectionPool(ctx context.Context, sqlDB *sql.DB, connConfig *db.
 	}
 }
 
-func createDriver(driverName string) driver.Driver {
+func createDriver(driverName contractsdb.Driver) driver.Driver {
 	switch driverName {
-	case "mysql":
+	case contractsdb.DriverMysql:
 		return driver.NewMySQL()
-	case "postgres":
+	case contractsdb.DriverPostgres:
 		return driver.NewPostgreSQL()
-	case "sqlite":
+	case contractsdb.DriverSqlite:
 		return driver.NewSQLite()
-	case "sqlserver":
+	case contractsdb.DriverSqlserver:
 		return driver.NewSQLServer()
-	case "turso":
+	case contractsdb.DriverTurso:
 		return driver.NewTurso()
-	case "oracle":
+	case contractsdb.DriverOracle:
 		return driver.NewOracle()
-	case "array":
+	case contractsdb.DriverArray:
 		return driver.NewArray()
-	case "csvdb":
+	case contractsdb.DriverCSVDB:
 		return driver.NewCSVDB()
-	case "jsondb":
+	case contractsdb.DriverJSONDB:
 		return driver.NewJSONDB()
-	case "xmldb":
+	case contractsdb.DriverXMLDB:
 		return driver.NewXMLDB()
-	case "godb":
+	case contractsdb.DriverGODB:
 		return driver.NewGODB()
 	default:
 		return driver.NewMySQL() // Default to MySQL

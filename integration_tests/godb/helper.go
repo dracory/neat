@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/database/driver"
 	_ "modernc.org/sqlite"
@@ -69,7 +70,7 @@ func SetupGODBTest(t *testing.T) *database.Database {
 		Default: "go_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"go_db": {
-				Driver: "godb",
+				Driver: contractsdb.DriverGODB,
 				Tables: driver.Tables{
 					"users":    usersData,
 					"products": productsData,

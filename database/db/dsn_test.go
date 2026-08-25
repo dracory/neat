@@ -3,6 +3,8 @@ package db
 import (
 	"strings"
 	"testing"
+
+	contracts "github.com/dracory/neat/contracts/database"
 )
 
 func TestParseDSNMySQL(t *testing.T) {
@@ -305,7 +307,7 @@ func TestParseDSNUnrecognizedPrefix(t *testing.T) {
 
 func TestBuildDSN(t *testing.T) {
 	config := ConnectionConfig{
-		Driver:   "mysql",
+		Driver:   contracts.DriverMysql,
 		Host:     "localhost",
 		Port:     3306,
 		Database: "testdb",

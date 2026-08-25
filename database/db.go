@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/contracts/database/orm"
 	contractsseeder "github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
@@ -40,7 +41,7 @@ type options struct {
 	pool     *db.PoolConfig
 	skipPing bool
 	debug    bool
-	driver   string
+	driver   contractsdb.Driver
 }
 
 // WithContext sets the context for the database.
@@ -88,7 +89,7 @@ func WithDebug() Option {
 // WithDriver sets the database driver name for NewFromSQLDB when auto-detection
 // is not reliable. Valid values: "mysql", "postgres", "sqlite", "sqlserver",
 // "oracle", "turso".
-func WithDriver(driverName string) Option {
+func WithDriver(driverName contractsdb.Driver) Option {
 	return func(o *options) {
 		o.driver = driverName
 	}
@@ -104,7 +105,7 @@ func WithDriver(driverName string) Option {
 //	    Default: "default",
 //	    Connections: map[string]db.ConnectionConfig{
 //	        "default": {
-//	            Driver:   "sqlite",
+//	            Driver: contractsdb.DriverSqlite,
 //	            Database: ":memory:",
 //	        },
 //	    },
@@ -300,21 +301,21 @@ func NewFromSQLDB(sqlDB *sql.DB, opts ...Option) (*Database, error) {
 
 // detectDriverName returns the Neat driver name for the given *sql.DB by
 // inspecting the type name of db.Driver() via reflection.
-func detectDriverName(sqlDB *sql.DB) string {
+func detectDriverName(sqlDB *sql.DB) contractsdb.Driver {
 	name := reflect.ValueOf(sqlDB.Driver()).Type().String()
 	switch {
 	case strings.Contains(name, "mysql"), strings.Contains(name, "maria"):
-		return "mysql"
+		return contractsdb.DriverMysql
 	case strings.Contains(name, "postgres"), strings.Contains(name, "pq"), strings.Contains(name, "pgx"):
-		return "postgres"
+		return contractsdb.DriverPostgres
 	case strings.Contains(name, "sqlite"):
-		return "sqlite"
+		return contractsdb.DriverSqlite
 	case strings.Contains(name, "libsql"), strings.Contains(name, "turso"):
-		return "turso"
+		return contractsdb.DriverTurso
 	case strings.Contains(name, "mssql"), strings.Contains(name, "sqlserver"):
-		return "sqlserver"
+		return contractsdb.DriverSqlserver
 	case strings.Contains(name, "oracle"):
-		return "oracle"
+		return contractsdb.DriverOracle
 	default:
 		return ""
 	}
@@ -322,32 +323,32 @@ func detectDriverName(sqlDB *sql.DB) string {
 
 // detectDatabaseName attempts to determine the current database name from an
 // already-open *sql.DB connection. Returns an empty string if detection fails.
-func detectDatabaseName(sqlDB *sql.DB, driver string) string {
+func detectDatabaseName(sqlDB *sql.DB, driver contractsdb.Driver) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	switch driver {
-	case "mysql":
+	case contractsdb.DriverMysql:
 		var dbName string
 		if err := sqlDB.QueryRowContext(ctx, "SELECT DATABASE()").Scan(&dbName); err == nil {
 			return dbName
 		}
-	case "postgres":
+	case contractsdb.DriverPostgres:
 		var dbName string
 		if err := sqlDB.QueryRowContext(ctx, "SELECT current_database()").Scan(&dbName); err == nil {
 			return dbName
 		}
-	case "sqlserver":
+	case contractsdb.DriverSqlserver:
 		var dbName string
 		if err := sqlDB.QueryRowContext(ctx, "SELECT DB_NAME()").Scan(&dbName); err == nil {
 			return dbName
 		}
-	case "oracle":
+	case contractsdb.DriverOracle:
 		var schemaName string
 		if err := sqlDB.QueryRowContext(ctx, "SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM DUAL").Scan(&schemaName); err == nil {
 			return schemaName
 		}
-	case "sqlite", "turso", "array", "csvdb", "jsondb", "xmldb", "godb":
+	case contractsdb.DriverSqlite, contractsdb.DriverTurso, contractsdb.DriverArray, contractsdb.DriverCSVDB, contractsdb.DriverJSONDB, contractsdb.DriverXMLDB, contractsdb.DriverGODB:
 		// SQLite, Turso, Array, CSVDB, JSONDB, XMLDB and GODB do not have a database name concept like server DBs.
 		// Return "main" which is the default schema name.
 		return "main"
@@ -419,7 +420,7 @@ func redactQueryParams(query string) string {
 }
 
 // parseDSN parses a DSN string and returns the driver and connection config.
-func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
+func parseDSN(dsn string) (contractsdb.Driver, db.ConnectionConfig, error) {
 	if dsn == "" {
 		return "", db.ConnectionConfig{}, fmt.Errorf("DSN cannot be empty")
 	}
@@ -434,8 +435,8 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 		if questionIndex := strings.Index(rawPath, "?"); questionIndex != -1 {
 			dbPath = rawPath[:questionIndex]
 		}
-		return "sqlite", db.ConnectionConfig{
-			Driver:   "sqlite",
+		return contractsdb.DriverSqlite, db.ConnectionConfig{
+			Driver:   contractsdb.DriverSqlite,
 			Database: dbPath,
 		}, nil
 	}
@@ -443,8 +444,8 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 	if strings.HasPrefix(dsn, "turso://") {
 		rawPath := strings.TrimPrefix(dsn, "turso://")
 		dbPath := rawPath
-		return "turso", db.ConnectionConfig{
-			Driver:   "turso",
+		return contractsdb.DriverTurso, db.ConnectionConfig{
+			Driver:   contractsdb.DriverTurso,
 			Database: dbPath,
 		}, nil
 	}
@@ -455,14 +456,14 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 			return "", db.ConnectionConfig{}, fmt.Errorf("invalid libsql DSN %s: %w", redactDSN(dsn), err)
 		}
 		config := db.ConnectionConfig{
-			Driver:   "turso",
+			Driver:   contractsdb.DriverTurso,
 			Dsn:      dsn,
 			Database: u.Hostname(),
 		}
 		if authToken := u.Query().Get("authToken"); authToken != "" {
 			config.Password = authToken
 		}
-		return "turso", config, nil
+		return contractsdb.DriverTurso, config, nil
 	}
 
 	// Detect driver from scheme
@@ -472,7 +473,7 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 		if strings.HasPrefix(dsn, "mysql://") {
 			rawDsn := strings.TrimPrefix(dsn, "mysql://")
 			config := db.ConnectionConfig{
-				Driver: "mysql",
+				Driver: contractsdb.DriverMysql,
 				Dsn:    rawDsn,
 			}
 
@@ -497,12 +498,12 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 				}
 			}
 
-			return "mysql", config, nil
+			return contractsdb.DriverMysql, config, nil
 		}
 		return "", db.ConnectionConfig{}, fmt.Errorf("invalid DSN %s: %w", redactDSN(dsn), err)
 	}
 
-	driver := u.Scheme
+	driver := contractsdb.Driver(u.Scheme)
 	config := db.ConnectionConfig{
 		Driver:   driver,
 		Host:     u.Hostname(),
@@ -516,7 +517,7 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 	// Parse database name from path
 	if u.Path != "" {
 		config.Database = strings.TrimPrefix(u.Path, "/")
-	} else if u.Host != "" && driver == "sqlite" {
+	} else if u.Host != "" && driver == contractsdb.DriverSqlite {
 		config.Database = u.Host
 	}
 
@@ -530,7 +531,7 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 	// Parse query parameters for driver-specific options
 	query := u.Query()
 	switch driver {
-	case "postgres":
+	case contractsdb.DriverPostgres:
 		config.SSLMode = query.Get("sslmode")
 		if config.SSLMode == "" {
 			config.SSLMode = "require"
@@ -543,7 +544,7 @@ func parseDSN(dsn string) (string, db.ConnectionConfig, error) {
 		if config.Timezone == "" {
 			config.Timezone = "UTC"
 		}
-	case "mysql":
+	case contractsdb.DriverMysql:
 		config.Charset = query.Get("charset")
 		config.Loc = query.Get("loc")
 	}

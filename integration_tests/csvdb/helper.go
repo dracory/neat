@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	_ "modernc.org/sqlite"
 )
@@ -118,7 +119,7 @@ func SetupCSVDBTest(t *testing.T) *database.Database {
 		Default: "csv_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"csv_db": {
-				Driver:   "csvdb",
+				Driver: contractsdb.DriverCSVDB,
 				Database: dir,
 			},
 		},

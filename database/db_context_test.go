@@ -10,6 +10,7 @@ import (
 	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	_ "modernc.org/sqlite"
 )
@@ -19,7 +20,7 @@ func TestDatabase_WithContext_SetsContextCorrectly(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -44,7 +45,7 @@ func TestDatabase_WithContext_DefaultContext(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -68,7 +69,7 @@ func TestDatabase_ContextPropagatesToQueries(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -114,7 +115,7 @@ func TestDatabase_ContextCancellationStopsOperations(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -164,7 +165,7 @@ func TestDatabase_NilContextHandling(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -204,7 +205,7 @@ func TestDatabase_ContextWithTimeout(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -252,7 +253,7 @@ func TestDatabase_ContextInTransaction(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},

@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"net/url"
 	"strings"
+
+	contracts "github.com/dracory/neat/contracts/database"
 )
 
 // GetString implements config.Config interface for DBConfig.
@@ -34,7 +36,7 @@ func (c *DBConfig) GetString(path string, defaultValue ...any) string {
 
 			switch field {
 			case "driver":
-				return conn.Driver
+				return conn.Driver.String()
 			case "prefix":
 				return conn.Prefix
 			case "dsn":
@@ -258,27 +260,27 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 	}
 
 	switch b.config.Driver {
-	case "mysql":
+	case contracts.DriverMysql:
 		return b.buildMySQLDSN()
-	case "postgres":
+	case contracts.DriverPostgres:
 		return b.buildPostgresDSN()
-	case "sqlite":
+	case contracts.DriverSqlite:
 		return b.buildSQLiteDSN()
-	case "sqlserver":
+	case contracts.DriverSqlserver:
 		return b.buildSQLServerDSN()
-	case "turso":
+	case contracts.DriverTurso:
 		return b.buildTursoDSN()
-	case "oracle":
+	case contracts.DriverOracle:
 		return b.buildOracleDSN()
-	case "array":
+	case contracts.DriverArray:
 		return b.buildSQLiteDSN()
-	case "csvdb":
+	case contracts.DriverCSVDB:
 		return b.buildCSVDBDSN()
-	case "jsondb":
+	case contracts.DriverJSONDB:
 		return b.buildJSONDBDSN()
-	case "xmldb":
+	case contracts.DriverXMLDB:
 		return b.buildXMLDBDSN()
-	case "godb":
+	case contracts.DriverGODB:
 		return b.buildGODBDSN()
 	default:
 		return "", fmt.Errorf("unsupported driver: %s", b.config.Driver)
@@ -444,7 +446,7 @@ type ReplicaConfig struct {
 
 // ConnectionConfig represents a database connection configuration.
 type ConnectionConfig struct {
-	Driver       string
+	Driver       contracts.Driver
 	Dsn          string
 	Host         string
 	Port         int
@@ -482,12 +484,12 @@ func (c *ConnectionConfig) Validate() error {
 		return nil
 	}
 	switch c.Driver {
-	case "sqlite", "array", "csvdb", "jsondb", "xmldb", "godb":
+	case contracts.DriverSqlite, contracts.DriverArray, contracts.DriverCSVDB, contracts.DriverJSONDB, contracts.DriverXMLDB, contracts.DriverGODB:
 		// database path is optional; empty defaults to :memory:
 		// For CSVDB, JSONDB and XMLDB, the Database field holds the directory path.
 		// For GODB, data is loaded from Tables.
 		return nil
-	case "mysql":
+	case contracts.DriverMysql:
 		if c.Host == "" {
 			return fmt.Errorf("host is required for %s driver", c.Driver)
 		}
@@ -497,7 +499,7 @@ func (c *ConnectionConfig) Validate() error {
 		if c.Username == "" {
 			return fmt.Errorf("username is required for %s driver", c.Driver)
 		}
-	case "postgres":
+	case contracts.DriverPostgres:
 		if c.Host == "" {
 			return fmt.Errorf("host is required for %s driver", c.Driver)
 		}
@@ -507,18 +509,18 @@ func (c *ConnectionConfig) Validate() error {
 		if c.Username == "" {
 			return fmt.Errorf("username is required for %s driver", c.Driver)
 		}
-	case "sqlserver":
+	case contracts.DriverSqlserver:
 		if c.Host == "" {
 			return fmt.Errorf("host is required for %s driver", c.Driver)
 		}
 		if c.Database == "" {
 			return fmt.Errorf("database name is required for %s driver", c.Driver)
 		}
-	case "turso":
+	case contracts.DriverTurso:
 		if c.Database == "" {
 			return fmt.Errorf("database URL is required for %s driver", c.Driver)
 		}
-	case "oracle":
+	case contracts.DriverOracle:
 		if c.Host == "" {
 			return fmt.Errorf("host is required for %s driver", c.Driver)
 		}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/query"
@@ -17,7 +18,7 @@ func TestNewOrm(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -99,7 +100,7 @@ func sqliteMemoryConfig(name string) *db.DBConfig {
 		Default: name,
 		Connections: map[string]db.ConnectionConfig{
 			name: {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -176,7 +177,7 @@ func TestBuildQueryFallbackWhenReplicaUnavailable(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 				Read: []db.ReplicaConfig{
 					{Host: "invalid-host-that-does-not-exist", Port: 9999},
@@ -287,8 +288,8 @@ func TestOrmConnectionSwitching(t *testing.T) {
 	cfg := &db.DBConfig{
 		Default: "primary",
 		Connections: map[string]db.ConnectionConfig{
-			"primary":   {Driver: "sqlite", Database: ":memory:"},
-			"secondary": {Driver: "sqlite", Database: ":memory:"},
+			"primary":   {Driver: contractsdb.DriverSqlite, Database: ":memory:"},
+			"secondary": {Driver: contractsdb.DriverSqlite, Database: ":memory:"},
 		},
 	}
 

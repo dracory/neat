@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
 	_ "github.com/lib/pq"
@@ -26,7 +27,7 @@ func GetPostgresConfig() neat.DBConfig {
 		Default: "postgres",
 		Connections: map[string]neat.ConnectionConfig{
 			"postgres": {
-				Driver:   "postgres",
+				Driver: contractsdb.DriverPostgres,
 				Host:     host,
 				Port:     port,
 				Database: database,

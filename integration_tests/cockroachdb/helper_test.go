@@ -9,6 +9,7 @@ import (
 
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
 	_ "github.com/lib/pq"
@@ -54,7 +55,7 @@ func GetCockroachDBConfig() neat.DBConfig {
 		Default: "cockroachdb",
 		Connections: map[string]neat.ConnectionConfig{
 			"cockroachdb": {
-				Driver:   "postgres", // CockroachDB uses the postgres driver
+				Driver: contractsdb.DriverPostgres, // CockroachDB uses the postgres driver
 				Host:     host,
 				Port:     port,
 				Database: database,

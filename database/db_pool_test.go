@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	_ "modernc.org/sqlite"
 )
@@ -117,7 +118,7 @@ func TestPool_MaxOpenConns(t *testing.T) {
 				Default: "default",
 				Connections: map[string]db.ConnectionConfig{
 					"default": {
-						Driver:   "sqlite",
+						Driver: contractsdb.DriverSqlite,
 						Database: dbPath,
 					},
 				},
@@ -178,7 +179,7 @@ func TestPool_MaxIdleConns(t *testing.T) {
 				Default: "default",
 				Connections: map[string]db.ConnectionConfig{
 					"default": {
-						Driver:   "sqlite",
+						Driver: contractsdb.DriverSqlite,
 						Database: dbPath,
 					},
 				},
@@ -251,7 +252,7 @@ func TestPool_ConnMaxLifetime(t *testing.T) {
 				Default: "default",
 				Connections: map[string]db.ConnectionConfig{
 					"default": {
-						Driver:   "sqlite",
+						Driver: contractsdb.DriverSqlite,
 						Database: dbPath,
 					},
 				},
@@ -319,7 +320,7 @@ func TestPool_ConnMaxIdleTime(t *testing.T) {
 				Default: "default",
 				Connections: map[string]db.ConnectionConfig{
 					"default": {
-						Driver:   "sqlite",
+						Driver: contractsdb.DriverSqlite,
 						Database: dbPath,
 					},
 				},
@@ -367,7 +368,7 @@ func TestPool_WithPoolOption(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -406,7 +407,7 @@ func TestPool_DefaultConfiguration(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -502,7 +503,7 @@ func TestPool_ExhaustionBehavior(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -580,7 +581,7 @@ func TestPool_Stats(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -637,7 +638,7 @@ func TestPool_Ping(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -669,7 +670,7 @@ func TestPool_SetMaxOpenConns(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -708,7 +709,7 @@ func TestPool_SetMaxIdleConns(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -755,7 +756,7 @@ func TestPool_SetConnMaxLifetime(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},
@@ -796,7 +797,7 @@ func TestPool_SetConnMaxIdleTime(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: dbPath,
 			},
 		},

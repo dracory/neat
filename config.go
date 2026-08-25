@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/database/db"
 )
@@ -41,7 +42,7 @@ type Database = database.Database
 
 // ConnectionConfig holds configuration for a single database connection.
 type ConnectionConfig struct {
-	Driver       string // "postgres", "mysql", "sqlite", "sqlserver", "turso"
+	Driver       contractsdb.Driver // "postgres", "mysql", "sqlite", "sqlserver", "turso"
 	Dsn          string
 	Host         string
 	Port         int
@@ -126,7 +127,7 @@ func (c *DBConfig) GetString(path string, defaultValue ...any) string {
 
 			switch field {
 			case "driver":
-				return conn.Driver
+				return conn.Driver.String()
 			case "prefix":
 				return conn.Prefix
 			case "dsn":
@@ -446,7 +447,7 @@ func NewMemoryDB(opts ...database.Option) (*Database, error) {
 	return New(DBConfig{
 		Default: "array_db",
 		Connections: map[string]ConnectionConfig{
-			"array_db": {Driver: "array"},
+			"array_db": {Driver: contractsdb.DriverArray},
 		},
 	}, opts...)
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/query"
@@ -21,8 +22,8 @@ func twoConnectionDBConfig() *db.DBConfig {
 	return &db.DBConfig{
 		Default: "primary",
 		Connections: map[string]db.ConnectionConfig{
-			"primary":   {Driver: "sqlite", Database: ":memory:"},
-			"secondary": {Driver: "sqlite", Database: ":memory:"},
+			"primary":   {Driver: contractsdb.DriverSqlite, Database: ":memory:"},
+			"secondary": {Driver: contractsdb.DriverSqlite, Database: ":memory:"},
 		},
 	}
 }
@@ -258,7 +259,7 @@ func TestLogQueryNoWarnWhenThresholdNotSet(t *testing.T) {
 	lg := &capturingLogger{}
 	cfg := &db.DBConfig{
 		Default:       "default",
-		Connections:   map[string]db.ConnectionConfig{"default": {Driver: "sqlite", Database: ":memory:"}},
+		Connections:   map[string]db.ConnectionConfig{"default": {Driver: contractsdb.DriverSqlite, Database: ":memory:"}},
 		SlowThreshold: -1,
 	}
 	w := openSQLiteQueryWithConfig(t, cfg, lg)

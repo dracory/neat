@@ -8,6 +8,7 @@ import (
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	_ "modernc.org/sqlite"
 )
@@ -17,7 +18,7 @@ func TestDatabaseName(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -39,11 +40,11 @@ func TestDatabaseName_MultipleConnections(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"secondary": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -70,7 +71,7 @@ func TestDatabaseName_EmptyStringUsesDefault(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -97,7 +98,7 @@ func TestDatabaseName_DatabaseName(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -119,11 +120,11 @@ func TestDatabase_Connection(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"secondary": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -168,7 +169,7 @@ func TestDatabase_Query(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -191,7 +192,7 @@ func TestDatabase_Schema(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -214,7 +215,7 @@ func TestDatabase_DB(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -240,7 +241,7 @@ func TestDatabase_Close(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -262,7 +263,7 @@ func TestDatabase_QueryLog(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -299,7 +300,7 @@ func TestDatabase_Transaction(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -325,7 +326,7 @@ func TestNew_AutoDefaultConnection(t *testing.T) {
 	config := db.DBConfig{
 		Connections: map[string]db.ConnectionConfig{
 			"custom": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -440,7 +441,7 @@ func TestDatabase_Seed(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -475,7 +476,7 @@ func TestDatabase_SeedOnce(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -519,7 +520,7 @@ func TestDatabase_Seeder(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -560,7 +561,7 @@ func TestDatabase_Seeder(t *testing.T) {
 }
 
 func TestNewFromSQLDB_NilDB(t *testing.T) {
-	_, err := NewFromSQLDB(nil, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
+	_, err := NewFromSQLDB(nil, WithDriver(contractsdb.DriverSqlite), WithLogger(log.NewNoopLogger()))
 	if err == nil {
 		t.Error("Expected error for nil *sql.DB")
 	}
@@ -591,7 +592,7 @@ func TestNewFromSQLDB_ExplicitDriver(t *testing.T) {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
-	neatDB, err := NewFromSQLDB(sqlDB, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
+	neatDB, err := NewFromSQLDB(sqlDB, WithDriver(contractsdb.DriverSqlite), WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		t.Fatalf("NewFromSQLDB explicit driver failed: %v", err)
 	}
@@ -623,7 +624,7 @@ func ExampleNew() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -646,11 +647,11 @@ func ExampleNew_multipleConnections() {
 		Default: "primary",
 		Connections: map[string]db.ConnectionConfig{
 			"primary": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"replica": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -676,7 +677,7 @@ func ExampleNew_withPoolConfig() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -774,7 +775,7 @@ func ExampleNewFromSQLDB_withDriver() {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
-	db, err := NewFromSQLDB(sqlDB, WithDriver("sqlite"), WithLogger(log.NewNoopLogger()))
+	db, err := NewFromSQLDB(sqlDB, WithDriver(contractsdb.DriverSqlite), WithLogger(log.NewNoopLogger()))
 	if err != nil {
 		panic(err)
 	}
@@ -787,7 +788,7 @@ func ExampleDatabase_Query() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -809,7 +810,7 @@ func ExampleDatabase_Schema() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -831,7 +832,7 @@ func ExampleDatabase_Transaction() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -860,7 +861,7 @@ func ExampleDatabase_Transaction_withError() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -888,7 +889,7 @@ func ExampleDatabase_Transaction_withIsolation() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -919,11 +920,11 @@ func ExampleNew_withReadWriteConnections() {
 		Default: "read",
 		Connections: map[string]db.ConnectionConfig{
 			"read": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"write": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -965,7 +966,7 @@ func ExampleDatabase_Transaction_nested() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver:   "sqlite",
+				Driver: contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},

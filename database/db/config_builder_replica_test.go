@@ -2,13 +2,15 @@ package db
 
 import (
 	"testing"
+
+	contracts "github.com/dracory/neat/contracts/database"
 )
 
 // TestConnectionConfigReadFieldSet verifies that Read replicas can be stored
 // and retrieved from ConnectionConfig.
 func TestConnectionConfigReadFieldSet(t *testing.T) {
 	cfg := ConnectionConfig{
-		Driver: "mysql",
+		Driver: contracts.DriverMysql,
 		Read: []ReplicaConfig{
 			{Host: "replica1", Port: 3306, Database: "db", Username: "u", Password: "p"},
 			{Host: "replica2", Port: 3306, Database: "db", Username: "u", Password: "p"},
@@ -26,7 +28,7 @@ func TestConnectionConfigReadFieldSet(t *testing.T) {
 // and retrieved from ConnectionConfig.
 func TestConnectionConfigWriteFieldSet(t *testing.T) {
 	cfg := ConnectionConfig{
-		Driver: "mysql",
+		Driver: contracts.DriverMysql,
 		Write: []ReplicaConfig{
 			{Host: "primary1", Port: 3306, Database: "db", Username: "u", Password: "p"},
 		},
@@ -72,7 +74,7 @@ func TestReplicaConfigRoundTrip(t *testing.T) {
 		Default: "default",
 		Connections: map[string]ConnectionConfig{
 			"default": {
-				Driver: "sqlite",
+				Driver:   contracts.DriverSqlite,
 				Database: ":memory:",
 				Read: []ReplicaConfig{
 					{Host: "read-host", Port: 3306},

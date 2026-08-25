@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
 	_ "github.com/microsoft/go-mssqldb"
@@ -85,7 +86,7 @@ func GetSQLServerConfig() neat.DBConfig {
 		Default: "sqlserver",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlserver": {
-				Driver:   "sqlserver",
+				Driver: contractsdb.DriverSqlserver,
 				Host:     host,
 				Port:     port,
 				Database: dbName,

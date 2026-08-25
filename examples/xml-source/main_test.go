@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -17,7 +18,7 @@ func TestXMLFile(t *testing.T) {
 	config := neat.DBConfig{
 		Default: "array_db",
 		Connections: map[string]neat.ConnectionConfig{
-			"array_db": {Driver: "array"},
+			"array_db": {Driver: contractsdb.DriverArray},
 		},
 	}
 

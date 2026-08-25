@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -26,7 +27,7 @@ func TestXMLDBExampleQueries(t *testing.T) {
 		Default: "xml_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"xml_db": {
-				Driver:   "xmldb",
+				Driver: contractsdb.DriverXMLDB,
 				Database: dataDir,
 			},
 		},
