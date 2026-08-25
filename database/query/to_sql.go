@@ -190,7 +190,7 @@ func (t *ToSql) Save(value any) string {
 	} else {
 		// UPDATE: set WHERE id = <id> on a clone, then generate UPDATE query
 		idVal, _ := getPrimaryKeyValueAny(value)
-		clone := t.query.Clone().(*Query)
+		clone := t.query.Clone().(*Query).applyScopes()
 		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{idVal}})
 		builder := NewBuilder(clone)
 		sql, args = builder.BuildUpdate(value)
@@ -273,7 +273,8 @@ func (t *ToSql) Increment(column string, amount ...any) string {
 			incAmount = val
 		}
 	}
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	builder := NewBuilder(query)
 	quoted := builder.quoteIdentifier(column)
 	updateQuery := fmt.Sprintf("%s = %s + ?", quoted, quoted)
 	sql, args := builder.BuildUpdate(updateQuery, incAmount)
@@ -291,7 +292,8 @@ func (t *ToSql) Decrement(column string, amount ...any) string {
 			decAmount = val
 		}
 	}
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	builder := NewBuilder(query)
 	quoted := builder.quoteIdentifier(column)
 	updateQuery := fmt.Sprintf("%s = %s - ?", quoted, quoted)
 	sql, args := builder.BuildUpdate(updateQuery, decAmount)
