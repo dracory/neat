@@ -1,0 +1,4 @@
+id,name,email,active,created
+1,Alice,alice@example.com,true,2024-01-15T10:30:00Z
+2,Bob,bob@example.com,false,2024-02-20T14:45:00Z
+3,Charlie,charlie@example.com,true,2024-03-10T09:00:00Z
