@@ -112,12 +112,18 @@ func (j *JSONDB) Open(dirPath string) (*sql.DB, error) {
 		if entry.IsDir() {
 			continue
 		}
-		ext := strings.ToLower(filepath.Ext(entry.Name()))
-		if ext != ".json" && ext != ".jsonl" && ext != ".ndjson" {
+		var rawExt string
+		if j.fs != nil {
+			rawExt = path.Ext(entry.Name())
+		} else {
+			rawExt = filepath.Ext(entry.Name())
+		}
+
+		extLower := strings.ToLower(rawExt)
+		if extLower != ".json" && extLower != ".jsonl" && extLower != ".ndjson" {
 			continue
 		}
 
-		tableName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		var filePath string
 		if j.fs != nil {
 			if cleanPath == "." {
@@ -128,6 +134,7 @@ func (j *JSONDB) Open(dirPath string) (*sql.DB, error) {
 		} else {
 			filePath = filepath.Join(dirPath, entry.Name())
 		}
+		tableName := strings.TrimSuffix(entry.Name(), rawExt)
 
 		lowerName := strings.ToLower(tableName)
 		if prevFile, exists := seenTables[lowerName]; exists {

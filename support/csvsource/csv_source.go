@@ -199,6 +199,9 @@ func parseCSVReader(r io.Reader, delimiter rune) ([]string, [][]string, error) {
 	}
 
 	columns := records[0]
+	if len(columns) > 0 {
+		columns[0] = strings.TrimPrefix(columns[0], "\xEF\xBB\xBF")
+	}
 	dataRows := records[1:]
 	return columns, dataRows, nil
 }

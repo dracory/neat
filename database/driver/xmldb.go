@@ -113,12 +113,18 @@ func (x *XMLDB) Open(dirPath string) (*sql.DB, error) {
 		if entry.IsDir() {
 			continue
 		}
-		ext := strings.ToLower(filepath.Ext(entry.Name()))
-		if ext != ".xml" {
+		var rawExt string
+		if x.fs != nil {
+			rawExt = path.Ext(entry.Name())
+		} else {
+			rawExt = filepath.Ext(entry.Name())
+		}
+
+		extLower := strings.ToLower(rawExt)
+		if extLower != ".xml" {
 			continue
 		}
 
-		tableName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		var filePath string
 		if x.fs != nil {
 			if cleanPath == "." {
@@ -129,6 +135,7 @@ func (x *XMLDB) Open(dirPath string) (*sql.DB, error) {
 		} else {
 			filePath = filepath.Join(dirPath, entry.Name())
 		}
+		tableName := strings.TrimSuffix(entry.Name(), rawExt)
 
 		lowerName := strings.ToLower(tableName)
 		if prevFile, exists := seenTables[lowerName]; exists {

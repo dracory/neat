@@ -113,11 +113,17 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 		if entry.IsDir() {
 			continue
 		}
-		if !strings.HasSuffix(strings.ToLower(entry.Name()), ".csv") {
+		var rawExt string
+		if c.fs != nil {
+			rawExt = path.Ext(entry.Name())
+		} else {
+			rawExt = filepath.Ext(entry.Name())
+		}
+
+		if strings.ToLower(rawExt) != ".csv" {
 			continue
 		}
 
-		tableName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		var filePath string
 		if c.fs != nil {
 			if cleanPath == "." {
@@ -128,6 +134,7 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 		} else {
 			filePath = filepath.Join(dirPath, entry.Name())
 		}
+		tableName := strings.TrimSuffix(entry.Name(), rawExt)
 
 		lowerName := strings.ToLower(tableName)
 		if prevFile, exists := seenTables[lowerName]; exists {
