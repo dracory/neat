@@ -63,6 +63,14 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.rawArgs = append([]any{}, q.rawArgs...)
 	clone.lockForUpdate = q.lockForUpdate
 	clone.sharedLock = q.sharedLock
+	clone.globalScopes = append([]func(contractsorm.Query) contractsorm.Query{}, q.globalScopes...)
+	clone.withoutGlobalScopes = q.withoutGlobalScopes
+	if q.disabledScopes != nil {
+		clone.disabledScopes = make(map[uintptr]bool)
+		for k, v := range q.disabledScopes {
+			clone.disabledScopes[k] = v
+		}
+	}
 	clone.scopes = append([]func(contractsorm.Query) contractsorm.Query{}, q.scopes...)
 	clone.withRelations = append([]string{}, q.withRelations...)
 	if q.relationConstraints != nil {

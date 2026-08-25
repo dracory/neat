@@ -72,7 +72,10 @@ type Query struct {
 	sharedLock    bool
 
 	// Scopes
-	scopes []func(contractsorm.Query) contractsorm.Query
+	globalScopes        []func(contractsorm.Query) contractsorm.Query
+	withoutGlobalScopes bool
+	disabledScopes      map[uintptr]bool
+	scopes              []func(contractsorm.Query) contractsorm.Query
 
 	// Omit columns
 	omitColumns []string
