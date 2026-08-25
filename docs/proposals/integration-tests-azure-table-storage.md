@@ -84,6 +84,57 @@ Azure Table Storage:
 - Has no DDL (tables are created via REST API, schemaless)
 - Has no SQL migrations (schema is defined per-entity, not per-table)
 
+### Why the CSV/JSON/XML Driver Pattern Doesn't Extend to Azure Table Storage
+
+A natural objection: Neat already supports non-SQL sources — `csvdb`, `jsondb`, `xmldb`, and `godb` are all backed by static files, not a SQL server. If those work as drivers, why can't Azure Table Storage?
+
+The answer is that those drivers work by **reducing the source to a real SQL database at the `Open()` boundary**. `CSVDB.Open()` (see `database/driver/csvdb.go`) opens an in-memory SQLite database via `sql.Open("sqlite", ":memory:")`, loads each `.csv` file into a table, and returns a normal `*sql.DB`. Its `Dialect()` returns `"sqlite"`. From that point on, the ORM generates real SQL and executes it through `database/sql` against a real SQL engine — same query builder, same SQL generation, same transactions. The same pattern is used by `jsondb`, `xmldb`, and `godb`. This is not a workaround; it is a genuine SQL database that happens to be populated from files at startup.
+
+The `array` driver follows the same approach — it embeds `*SQLite`, creates tables in an in-memory SQLite database, and inserts rows via `INSERT INTO ...`. Despite its `Dialect()` returning `"array"`, execution is still SQL against SQLite.
+
+This pattern works because the source data is:
+
+1. **Static** — files are loaded once at `Open()` and never re-read.
+2. **Bounded** — the data fits comfortably in memory.
+3. **Local** — there is no remote system to stay in sync with.
+4. **Read-only at the source** — writes go to the in-memory SQLite copy, not back to the original files.
+
+Azure Table Storage violates every one of these assumptions:
+
+1. **Live and mutable** — entities are inserted, updated, and deleted by other clients concurrently. A snapshot loaded at `Open()` would be immediately stale.
+2. **Unbounded** — Azure Table Storage is designed for terabytes of data, partitioned horizontally. Loading an entire table into in-memory SQLite is often infeasible.
+3. **Remote** — accessed over HTTP REST, with partition-aware routing and continuation-token pagination that must be honored, not bypassed.
+4. **Write-back required** — INSERT/UPDATE/DELETE issued through Neat must reach the Azure service, not a local SQLite copy. Otherwise the driver is not actually an Azure Table Storage driver.
+
+In other words, the CSV/JSON/XML/array drivers confirm the architectural constraint rather than refute it: they work because the source can be reduced to a real SQL database. Azure Table Storage cannot be reduced to a SQL database without ceasing to be Azure Table Storage.
+
+### What Pattern Azure Table Storage Would Require
+
+Every driver Neat has today ultimately hands back a `*sql.DB` and executes SQL through `database/sql`. Azure Table Storage cannot do this — it is a remote HTTP service, not a SQL engine. An Azure Table Storage driver would not return a `*sql.DB`; it would return an **API connection** (an `aztables.Client` — an HTTP client to the Azure Table Storage REST endpoint).
+
+This means the driver cannot implement the existing `Driver` interface, whose every method is built around `*sql.DB` and `*sql.Tx`:
+
+```go
+type Driver interface {
+    Open(dsn string) (*sql.DB, error)                          // returns *sql.DB
+    Close(db *sql.DB) error                                    // takes *sql.DB
+    Ping(ctx context.Context, db *sql.DB) error                // takes *sql.DB
+    BeginTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions) (*sql.Tx, error)  // takes *sql.DB, returns *sql.Tx
+    Placeholder(n int) string
+    Dialect() string
+}
+```
+
+There is no `*sql.DB` to return, and no `*sql.Tx` to begin. Instead, an Azure Table Storage driver would need to:
+
+1. **Hold an `aztables.Client`** (an HTTP connection to Azure) instead of a `*sql.DB`.
+2. **Translate query builder calls to OData** — `Where("age > ?", 30)` becomes `$filter=age gt 30`, `Limit(10)` becomes `$top=10`, `Select("name")` becomes `$select=name`.
+3. **Issue HTTP REST calls** for INSERT/UPDATE/DELETE instead of SQL statements.
+4. **Handle pagination via continuation tokens** instead of OFFSET.
+5. **Return clear errors** for unsupported operations (JOINs, GROUP BY, aggregates, ORDER BY beyond PartitionKey+RowKey, subqueries, UNION, transactions beyond entity group transactions).
+
+This is not "just another driver." It requires a **second interface alongside `Driver`** — one for API-backed (non-SQL) backends — and a code path in the ORM that knows how to execute against it. That is the architectural change Option B refers to.
+
 ### What Would Be Required
 
 To support Azure Table Storage, Neat would need to:
@@ -248,11 +299,35 @@ If no users are asking for Azure Table Storage support, the effort (30-40 hours)
 
 Option A (redesigning Neat to support both SQL and NoSQL backends) is not recommended regardless of demand. It would require 100+ hours and fundamentally change Neat's architecture. Option B provides most of the value at a fraction of the effort.
 
-### What About Cosmos DB?
+### What About Other NoSQL / API-Backed Stores?
 
-Azure Cosmos DB has a MongoDB-compatible API and a Cassandra API, but neither is SQL-compatible in the `database/sql` sense. The same recommendation applies: Neat is a SQL ORM, not a NoSQL ORM.
+Azure Table Storage is not the only store that hits this constraint. The same architectural limitation applies to every API-backed NoSQL store that does not expose a `database/sql` driver. The constraint is not specific to Azure Table Storage — it is a consequence of Neat's `Driver` interface being built around `*sql.DB` and `*sql.Tx`.
 
-Cosmos DB for PostgreSQL (formerly Hyperscale/Citus) is a different story — it **is** PostgreSQL-compatible and would work with Neat's PostgreSQL driver. But that's just PostgreSQL, not Cosmos DB's native API.
+| Store | Protocol | Query Language | `database/sql` Driver? | Same Constraint? |
+|-------|----------|----------------|------------------------|-------------------|
+| Azure Table Storage | HTTP REST | OData `$filter` | No | Yes |
+| Azure Cosmos DB (native API) | HTTP REST | SQL API (Cosmos-specific) | No | Yes |
+| AWS DynamoDB | HTTP API | Key-condition + filter expressions | No | Yes |
+| MongoDB | TCP (wire protocol) | MQL (MongoDB Query Language) | No | Yes |
+| Apache Cassandra | TCP (native) | CQL (SQL-like but not `database/sql`) | No (community drivers exist but are partial) | Yes |
+| Redis | TCP (RESP) | Redis commands | No | Yes |
+
+Each of these would require the same thing Azure Table Storage requires: a **second interface alongside `Driver`** for API-backed (non-SQL) backends, with a code path in the ORM that executes against an API connection rather than a `*sql.DB`. The query translation would differ per store (OData for Azure Tables, SQL API for Cosmos DB, filter expressions for DynamoDB, MQL for MongoDB, CQL for Cassandra), but the architectural gap is identical.
+
+#### Azure Cosmos DB Specifically
+
+Azure Cosmos DB has multiple API surfaces:
+
+- **Cosmos DB SQL API** — despite the name "SQL", this is Cosmos DB's own query language over JSON documents, accessed via HTTP REST. It is not SQL in the `database/sql` sense and has no `database/sql` driver. Same constraint as Azure Table Storage.
+- **Cosmos DB MongoDB API** — wire-compatible with MongoDB, but MongoDB has no `database/sql` driver. Same constraint.
+- **Cosmos DB Cassandra API** — wire-compatible with Cassandra. CQL resembles SQL, but there is no production-grade `database/sql` driver for Cassandra/Cosmos Cassandra API. Same constraint.
+- **Cosmos DB for PostgreSQL** (formerly Hyperscale/Citus) — this **is** PostgreSQL-compatible and works with Neat's existing PostgreSQL driver. No new driver needed. But this is just PostgreSQL, not Cosmos DB's native API.
+
+In short: only the PostgreSQL API of Cosmos DB works with Neat today, and it does so because it is real PostgreSQL behind the wire. Every other Cosmos DB API hits the same wall as Azure Table Storage.
+
+#### Implications for the Proposal
+
+If Neat ever decides to support API-backed NoSQL stores, the work is not "add a driver per store" — it is **build the non-SQL backend abstraction once**, then implement per-store adapters on top of it. That is Option A (Full Abstraction), which this proposal does not recommend. Option B (OData adapter for Azure Table Storage alone) would be a one-off that doesn't generalize, which is part of why the recommendation is to defer until there is real demand across multiple stores, not just one.
 
 ## Documentation Update
 
