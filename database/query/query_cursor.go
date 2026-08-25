@@ -11,6 +11,7 @@ import (
 
 // Cursor returns a cursor for streaming query results.
 func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
+	q = q.applyScopes()
 	// Build SELECT query
 	builder := NewBuilder(q)
 	querySQL, args := builder.BuildSelect()

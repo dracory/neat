@@ -192,6 +192,98 @@ func TestAdvancedScopes(t *testing.T) {
 			t.Errorf("Expected 2 active users, got %d", len(users1))
 		}
 	})
+
+	t.Run("global scopes apply to Count, Exists, Pluck, Value, Chunk, Delete", func(t *testing.T) {
+		// Count
+		var count int64
+		if err := w.Q.Model(&GlobalScopeUser{}).Count(&count); err != nil {
+			t.Fatalf("Count failed: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("Expected Count 2 for GlobalScopeUser, got %d", count)
+		}
+
+		// Exists
+		var exists bool
+		if err := w.Q.Model(&GlobalScopeUser{}).Where("name = ?", "bob").Exists(&exists); err != nil {
+			t.Fatalf("Exists failed: %v", err)
+		}
+		if exists {
+			t.Errorf("Expected Exists false for inactive user bob, got true")
+		}
+
+		// Pluck
+		var names []string
+		if err := w.Q.Model(&GlobalScopeUser{}).Pluck("name", &names); err != nil {
+			t.Fatalf("Pluck failed: %v", err)
+		}
+		if len(names) != 2 {
+			t.Errorf("Expected 2 names from Pluck, got %d", len(names))
+		}
+
+		// Value
+		var val string
+		if err := w.Q.Model(&GlobalScopeUser{}).Where("name = ?", "bob").Value("name", &val); err != nil {
+			t.Fatalf("Value failed: %v", err)
+		}
+		if val != "" {
+			t.Errorf("Expected empty string for inactive user bob, got '%s'", val)
+		}
+
+		// Chunk
+		chunkCount := 0
+		err := w.Q.Model(&GlobalScopeUser{}).Chunk(1, func(users []GlobalScopeUser) error {
+			chunkCount += len(users)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("Chunk failed: %v", err)
+		}
+		if chunkCount != 2 {
+			t.Errorf("Expected 2 records chunked, got %d", chunkCount)
+		}
+	})
+
+	t.Run("ToSql generates scope WHERE clauses for terminal methods", func(t *testing.T) {
+		toSql := w.Q.Model(&GlobalScopeUser{}).ToSql()
+
+		sqlCount := toSql.Count()
+		if !containsSubString(sqlCount, "status") {
+			t.Errorf("Expected ToSql.Count SQL to contain status condition, got: %s", sqlCount)
+		}
+
+		sqlGet := toSql.Get(&[]GlobalScopeUser{})
+		if !containsSubString(sqlGet, "status") {
+			t.Errorf("Expected ToSql.Get SQL to contain status condition, got: %s", sqlGet)
+		}
+	})
+
+	t.Run("Model() resets scope removal flags and scopes", func(t *testing.T) {
+		q := w.Q.Model(&GlobalScopeUser{}).WithoutGlobalScopes().Scopes(youngScope).WithoutScope(youngScope)
+		// Now call Model() again with a different model or same model
+		q.Model(&ScopeUser{}).Table("test_global_scopes")
+
+		var users []ScopeUser
+		if err := q.Find(&users); err != nil {
+			t.Fatalf("Find after Model reset failed: %v", err)
+		}
+		if len(users) != 3 {
+			t.Errorf("Expected all 3 users after Model() reset query state, got %d", len(users))
+		}
+	})
+}
+
+func containsSubString(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && searchSubString(s, substr))
+}
+
+func searchSubString(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 func TestScopeApplicationOrder(t *testing.T) {

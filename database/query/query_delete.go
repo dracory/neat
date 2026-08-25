@@ -35,6 +35,7 @@ func getSoftDeleteColumn(model any) string {
 // For clarity, prefer SoftDelete() when the model supports soft deletes, or
 // HardDelete() when you want a permanent deletion.
 func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
+	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
 	query := q.Clone().(*Query)

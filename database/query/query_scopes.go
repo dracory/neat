@@ -50,6 +50,8 @@ func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) con
 }
 
 // WithoutScope removes specific scope function(s) from being applied to the query.
+// Note: Disabling matches scope functions by function pointer identity. Dynamically created closures
+// from factory functions share code pointers.
 func (q *Query) WithoutScope(funcs ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
 	newQ := q.Clone().(*Query)
 	if newQ.disabledScopes == nil {
@@ -68,6 +70,7 @@ func (q *Query) WithoutScope(funcs ...func(contractsorm.Query) contractsorm.Quer
 func (q *Query) WithoutScopes() contractsorm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.scopes = nil
+	newQ.disabledScopes = nil
 	return newQ
 }
 

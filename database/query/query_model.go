@@ -42,22 +42,12 @@ func (q *Query) Model(value any) contractsorm.Query {
 
 	// Load global scopes if model implements contractsorm.GlobalScope
 	q.globalScopes = nil
-	if value != nil {
-		if gs, ok := value.(contractsorm.GlobalScope); ok {
-			q.globalScopes = gs.GlobalScopes()
-		} else {
-			// Check if pointer receiver or underlying element implements GlobalScope
-			v := reflect.ValueOf(value)
-			if v.Kind() == reflect.Pointer && !v.IsNil() {
-				if gs, ok := v.Elem().Interface().(contractsorm.GlobalScope); ok {
-					q.globalScopes = gs.GlobalScopes()
-				}
-			} else if v.CanAddr() {
-				if gs, ok := v.Addr().Interface().(contractsorm.GlobalScope); ok {
-					q.globalScopes = gs.GlobalScopes()
-				}
-			}
-		}
+	q.withoutGlobalScopes = false
+	q.disabledScopes = nil
+	q.scopes = nil
+
+	if gs, ok := value.(contractsorm.GlobalScope); ok {
+		q.globalScopes = gs.GlobalScopes()
 	}
 
 	// Reset query state to avoid pollution from previous queries

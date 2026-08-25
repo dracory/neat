@@ -6,6 +6,7 @@ import (
 
 // Chunk processes the query results in chunks and calls the callback for each chunk.
 func (q *Query) Chunk(size int, callback any) error {
+	q = q.applyScopes()
 	// Build SELECT query without limit (we chunk in memory)
 	builder := NewBuilder(q)
 	sql, args := builder.BuildSelect()
