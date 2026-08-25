@@ -129,11 +129,11 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 		gd.SetTables(connConfig.Tables)
 	}
 
-	// Wire embedded filesystem config to drivers supporting FS
-	if connConfig.FS != nil {
-		if fsDriver, ok := dbDriver.(interface{ SetFS(fs.FS) }); ok {
-			fsDriver.SetFS(connConfig.FS)
-		}
+	// Wire embedded filesystem config to drivers supporting FS.
+	// Always call SetFS (even with nil) to reset any stale FS from a
+	// previously cached driver instance.
+	if fsDriver, ok := dbDriver.(interface{ SetFS(fs.FS) }); ok {
+		fsDriver.SetFS(connConfig.FS)
 	}
 
 	// Build DSN using the config builder

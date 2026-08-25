@@ -61,7 +61,7 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 
 	if c.fs != nil {
 		if dirPath == "" || dirPath == ":memory:" {
-			dirPath = "."
+			return db, nil
 		}
 		cleanPath = path.Clean(dirPath)
 		if cleanPath == "/" || cleanPath == "." {

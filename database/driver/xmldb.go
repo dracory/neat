@@ -61,7 +61,7 @@ func (x *XMLDB) Open(dirPath string) (*sql.DB, error) {
 
 	if x.fs != nil {
 		if dirPath == "" || dirPath == ":memory:" {
-			dirPath = "."
+			return db, nil
 		}
 		cleanPath = path.Clean(dirPath)
 		if cleanPath == "/" || cleanPath == "." {
