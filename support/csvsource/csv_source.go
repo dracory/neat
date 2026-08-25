@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -44,6 +45,31 @@ func NewCsvSource(csvString string, tableName string) *arraysource.Model {
 	if len(mapRows) == 0 {
 		// Header-only CSV: use NewWithSchema so the table is created with
 		// the right columns even though there are no data rows.
+		schema := inferSchema(columns, rows)
+		return arraysource.NewWithSchema(mapRows, schema).Table(tableName)
+	}
+
+	return arraysource.New(mapRows).Table(tableName)
+}
+
+// NewCsvFSSource reads a CSV file from an embedded filesystem (embed.FS / fs.FS),
+// infers column types, and returns an array-backed data source ready for querying.
+func NewCsvFSSource(sys fs.FS, filePath string) *arraysource.Model {
+	return NewCsvFSSourceWithDelimiter(sys, filePath, ',')
+}
+
+// NewCsvFSSourceWithDelimiter reads a CSV file from an embedded filesystem (embed.FS / fs.FS)
+// with a custom field delimiter and returns an array-backed data source.
+func NewCsvFSSourceWithDelimiter(sys fs.FS, filePath string, delimiter rune) *arraysource.Model {
+	columns, rows, err := parseCSVFSFileWithDelimiter(sys, filePath, delimiter)
+	if err != nil {
+		panic(fmt.Sprintf("csvsource: failed to parse %s from fs: %v", filePath, err))
+	}
+
+	tableName := deriveTableName(filePath)
+	mapRows := convertRows(columns, rows)
+
+	if len(mapRows) == 0 {
 		schema := inferSchema(columns, rows)
 		return arraysource.NewWithSchema(mapRows, schema).Table(tableName)
 	}
@@ -134,9 +160,24 @@ func parseCSVFile(filePath string) ([]string, [][]string, error) {
 
 // parseCSVFileWithDelimiter reads a CSV file with a custom delimiter.
 func parseCSVFileWithDelimiter(filePath string, delimiter rune) ([]string, [][]string, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot open file: %w", err)
+	return parseCSVFSFileWithDelimiter(nil, filePath, delimiter)
+}
+
+// parseCSVFSFileWithDelimiter reads a CSV file from fs.FS (or os.Open if sys is nil) with a custom delimiter.
+func parseCSVFSFileWithDelimiter(sys fs.FS, filePath string, delimiter rune) ([]string, [][]string, error) {
+	var f io.ReadCloser
+	if sys != nil {
+		file, err := sys.Open(filePath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot open file: %w", err)
+		}
+		f = file
+	} else {
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot open file: %w", err)
+		}
+		f = file
 	}
 	defer func() { _ = f.Close() }()
 	return parseCSVReader(f, delimiter)

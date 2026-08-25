@@ -64,7 +64,8 @@ type ConnectionConfig struct {
     NameReplacer any
     Read         []ReplicaConfig
     Write        []ReplicaConfig
-    Tables       any  // for the godb driver: driver.Tables or []driver.Table
+    Tables       any   // for the godb driver: driver.Tables or []driver.Table
+    FS           fs.FS // for csvdb/jsondb/xmldb drivers: embed.FS or fs.FS
 }
 
 type ReplicaConfig struct {
@@ -147,10 +148,14 @@ const No  = "no"</code></pre>
         <li><code>NewCsvSource(csvString string, tableName string) *ArraySourceModel</code> - Parses a CSV string and returns an array-backed data source with type inference.</li>
         <li><code>NewCsvFileSource(filePath string) *ArraySourceModel</code> - Reads a CSV file and returns an array-backed data source. Table name derived from filename.</li>
         <li><code>NewCsvFileSourceWithDelimiter(filePath string, delimiter rune) *ArraySourceModel</code> - Like NewCsvFileSource but with a custom delimiter (e.g. '\t' for TSV).</li>
+        <li><code>NewCsvFSSource(sys fs.FS, filePath string) *ArraySourceModel</code> - Reads a CSV file from an embedded filesystem (embed.FS / fs.FS) and returns an array-backed data source.</li>
+        <li><code>NewCsvFSSourceWithDelimiter(sys fs.FS, filePath string, delimiter rune) *ArraySourceModel</code> - Like NewCsvFSSource but with a custom delimiter.</li>
         <li><code>NewJsonSource(jsonString string, tableName string, isJSONL bool) *ArraySourceModel</code> - Parses a JSON or JSONL string and returns an array-backed data source.</li>
         <li><code>NewJsonFileSource(filePath string) *ArraySourceModel</code> - Reads a JSON or JSONL file (auto-detected from extension) and returns an array-backed data source.</li>
+        <li><code>NewJsonFSSource(sys fs.FS, filePath string) *ArraySourceModel</code> - Reads a JSON or JSONL file from an embedded filesystem (embed.FS / fs.FS) and returns an array-backed data source.</li>
         <li><code>NewXmlSource(xmlString string, tableName string) *ArraySourceModel</code> - Parses an XML string and returns an array-backed data source.</li>
         <li><code>NewXmlFileSource(filePath string) *ArraySourceModel</code> - Reads an XML file and returns an array-backed data source.</li>
+        <li><code>NewXmlFSSource(sys fs.FS, filePath string) *ArraySourceModel</code> - Reads an XML file from an embedded filesystem (embed.FS / fs.FS) and returns an array-backed data source.</li>
     </ul>
 
     <h2>Query Builder</h2>

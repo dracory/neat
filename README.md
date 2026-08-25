@@ -22,9 +22,9 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Associations**: BelongsTo, HasMany, HasOne, PolymorphicBelongsTo, PolymorphicHasMany relationships with eager and lazy loading
 - **Views**: Create, drop, and introspect database views via `CreateView`, `CreateViewRaw`, `DropView`, `DropViewIfExists`, `HasView` across all supported drivers
 - **Array-Backed Sources**: Query in-memory slices of structs or `[]map[string]any` as if they were database tables using `NewArraySourceFrom` — zero boilerplate, no custom `ArraySource` struct required
-- **CSVDB Driver**: Query a directory of CSV files as if they were database tables — each `.csv` file becomes a table, with automatic type inference, BOM stripping, and transaction-wrapped bulk loading
-- **JSONDB Driver**: Query a directory of JSON/JSONL/NDJSON files as if they were database tables — each file becomes a table, with automatic type inference and transaction-wrapped bulk loading
-- **XMLDB Driver**: Query a directory of XML files as if they were database tables — each `.xml` file becomes a table, with attributes and leaf elements mapped to columns, automatic type inference, and transaction-wrapped bulk loading
+- **CSVDB Driver**: Query a directory of CSV files (or an embedded `embed.FS` filesystem) as if they were database tables — each `.csv` file becomes a table, with automatic type inference, BOM stripping, and transaction-wrapped bulk loading
+- **JSONDB Driver**: Query a directory of JSON/JSONL/NDJSON files (or an embedded `embed.FS` filesystem) as if they were database tables — each file becomes a table, with automatic type inference and transaction-wrapped bulk loading
+- **XMLDB Driver**: Query a directory of XML files (or an embedded `embed.FS` filesystem) as if they were database tables — each `.xml` file becomes a table, with attributes and leaf elements mapped to columns, automatic type inference, and transaction-wrapped bulk loading
 - **GODB Driver**: Query compiled-in Go data slices as if they were database tables — pass `[]Struct` or `[]map[string]any` via config; no file I/O, no parsing, types come from the Go compiler
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
@@ -325,6 +325,21 @@ defer db.Close()
 // data/users.csv → "users" table
 var users []User
 err := db.Query().Model(&User{}).Where("active = ?", true).Get(&users)
+
+// Or query embedded CSV directory compiled into the Go binary:
+//go:embed data/*.csv
+var csvFS embed.FS
+
+configFS := neat.DBConfig{
+    Default: "csv_db",
+    Connections: map[string]neat.ConnectionConfig{
+        "csv_db": {
+            Driver:   "csvdb",
+            Database: "data",
+            FS:       csvFS,
+        },
+    },
+}
 ```
 
 Column types are inferred from the CSV data (INTEGER, REAL, DATETIME, TEXT). The CSV header row defines column names. All tables are loaded into an in-memory SQLite database at connection open time, so the full query builder works: WHERE, JOIN, ORDER BY, aggregates, etc. See the [csvdb-driver example](./examples/csvdb-driver) and the [proposal](./docs/proposals/completed/csv-directory-driver.md).

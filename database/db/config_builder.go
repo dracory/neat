@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"io/fs"
 	"net/url"
 	"strings"
 )
@@ -462,6 +463,7 @@ type ConnectionConfig struct {
 	Read         []ReplicaConfig // read replicas; if non-empty, SELECTs are routed here
 	Write        []ReplicaConfig // write primaries; if non-empty, mutating queries go here
 	Tables       any             // GODB: godb.Tables or []godb.Table; ignored by other drivers
+	FS           fs.FS           // CSVDB/JSONDB/XMLDB: embedded filesystem (embed.FS / fs.FS); ignored by other drivers
 }
 
 // String returns a string representation of ConnectionConfig with password masked.

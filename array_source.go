@@ -1,6 +1,8 @@
 package neat
 
 import (
+	"io/fs"
+
 	"github.com/dracory/neat/support/arraysource"
 	"github.com/dracory/neat/support/csvsource"
 	"github.com/dracory/neat/support/jsonsource"
@@ -60,6 +62,18 @@ func NewCsvFileSourceWithDelimiter(filePath string, delimiter rune) *arraysource
 	return csvsource.NewCsvFileSourceWithDelimiter(filePath, delimiter)
 }
 
+// NewCsvFSSource reads a CSV file from an embedded filesystem (embed.FS / fs.FS)
+// and returns an array-backed data source ready for querying.
+func NewCsvFSSource(sys fs.FS, filePath string) *arraysource.Model {
+	return csvsource.NewCsvFSSource(sys, filePath)
+}
+
+// NewCsvFSSourceWithDelimiter reads a CSV file from an embedded filesystem (embed.FS / fs.FS)
+// with a custom field delimiter and returns an array-backed data source.
+func NewCsvFSSourceWithDelimiter(sys fs.FS, filePath string, delimiter rune) *arraysource.Model {
+	return csvsource.NewCsvFSSourceWithDelimiter(sys, filePath, delimiter)
+}
+
 // NewJsonSource parses a JSON or JSONL string and returns an array-backed
 // data source. Pass isJSONL=true for JSONL content (one object per line),
 // false for a JSON array. JSON native types are preserved. RFC3339 strings
@@ -93,6 +107,12 @@ func NewJsonFileSource(filePath string) *arraysource.Model {
 	return jsonsource.NewJsonFileSource(filePath)
 }
 
+// NewJsonFSSource reads a JSON or JSONL file from an embedded filesystem
+// (embed.FS / fs.FS) and returns an array-backed data source.
+func NewJsonFSSource(sys fs.FS, filePath string) *arraysource.Model {
+	return jsonsource.NewJsonFSSource(sys, filePath)
+}
+
 // NewXmlSource parses an XML string and returns an array-backed data source.
 // The XML must have a root element containing repeated child elements. Each
 // child becomes a row. Attributes and leaf sub-elements become columns.
@@ -122,4 +142,10 @@ func NewXmlSource(xmlString string, tableName string) *arraysource.Model {
 // Panics if the file cannot be opened, parsed, or has no child elements.
 func NewXmlFileSource(filePath string) *arraysource.Model {
 	return xmlsource.NewXmlFileSource(filePath)
+}
+
+// NewXmlFSSource reads an XML file from an embedded filesystem (embed.FS / fs.FS)
+// and returns an array-backed data source.
+func NewXmlFSSource(sys fs.FS, filePath string) *arraysource.Model {
+	return xmlsource.NewXmlFSSource(sys, filePath)
 }

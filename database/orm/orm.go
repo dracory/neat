@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"strings"
 	"sync"
 	"time"
@@ -126,6 +127,11 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 	// Wire tables config to GODB driver
 	if gd, ok := dbDriver.(*driver.GODB); ok {
 		gd.SetTables(connConfig.Tables)
+	}
+
+	// Wire embedded filesystem config to drivers supporting FS
+	if fsDriver, ok := dbDriver.(interface{ SetFS(fs.FS) }); ok {
+		fsDriver.SetFS(connConfig.FS)
 	}
 
 	// Build DSN using the config builder
