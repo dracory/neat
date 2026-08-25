@@ -1,7 +1,7 @@
 # Feature Requests Proposal
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Open for Discussion
 
 ## Overview
@@ -17,7 +17,7 @@ This document is an index of proposed feature improvements for Neat ORM. Each fe
 
 ## Priority Matrix
 
-Updated August 10, 2026 to reflect current implementation status.
+Updated August 25, 2026 to reflect current implementation status.
 
 | # | Feature | Status | Priority | Impact | Effort | ROI |
 |---|---------|--------|----------|--------|--------|-----|
@@ -33,7 +33,8 @@ Updated August 10, 2026 to reflect current implementation status.
 | 15 | [Database-Specific Features](database-specific-features.md) | Partially Done | Medium | High | High | Medium |
 | 16 | [Event System](completed/event-system.md) | Completed | — | — | — | — |
 | 17 | [Validation](validation.md) | Not Started | Medium | High | Medium | High |
-| 20 | [Query Analyzer](query-analyzer.md) | Not Started | Medium | High | Medium | High |
+| 20 | [Query Analyzer](query-analyzer.md) | Partially Done | Medium | High | Medium | High |
+| — | [Driver-Specific JSON Grammar](driver-specific-json-query-support.md) | Proposal | Medium | Medium | High | Medium |
 
 ### Rejected Features
 
@@ -49,7 +50,7 @@ Updated August 10, 2026 to reflect current implementation status.
 
 ## Implementation Roadmap
 
-Updated August 10, 2026. Completed and rejected items are excluded.
+Updated August 25, 2026. Completed and rejected items are excluded.
 
 ### Phase 1 (Quick Wins - Low Effort, High Impact)
 - [Better Error Messages](better-error-messages.md) (remaining: SQL context in errors, execution time, stack traces)
@@ -61,13 +62,25 @@ Updated August 10, 2026. Completed and rejected items are excluded.
 - [CLI Tools](cli-tools.md)
 - [Query Optimization](query-optimization.md) (remaining: N+1 batching, join optimization)
 - [Validation](validation.md)
-- [Query Analyzer](query-analyzer.md)
+- [Query Analyzer](query-analyzer.md) (remaining: EXPLAIN parsing, metrics aggregation)
 
 ### Phase 3 (Enhanced Experience - Medium/High Effort)
 - [Query Caching](query-caching.md)
 - [Benchmark Suite](benchmark-suite.md) (remaining: GORM comparison, CI regression detection)
 - [Database-Specific Features](database-specific-features.md) (remaining: JSONB arrays, FTS5, spatial)
+- [Driver-Specific JSON Grammar](driver-specific-json-query-support.md) (Oracle/SQL Server JSON support)
 - [Property-Based Testing](property-based-testing.md)
+
+---
+
+## Recently Completed (Since Last Review)
+
+- **Embedded filesystem support** — CSVDB, JSONDB, XMLDB drivers now accept `embed.FS` via `ConnectionConfig.FS` field (see `docs/proposals/completed/embedded-flat-file-sources.md`)
+- **Driver constants refactoring** — All driver string literals replaced with `contracts.Driver*` constants for type safety
+- **CockroachDB integration tests** — 37 test files covering full query builder surface
+- **TiDB integration tests** — 48 test files
+- **Turso integration tests** — 37 test files
+- **Oracle integration** — Schema introspection and query lock tests fixed (see `docs/implementation/gaps.md`)
 
 ---
 
@@ -77,6 +90,7 @@ Updated August 10, 2026. Completed and rejected items are excluded.
 2. Should CLI tools be part of core or a separate package? — **Still open.**
 3. What validation library should we use or build our own? — **Still open.**
 4. Should we support multiple cache backends out of the box? — **Still open.**
+5. Should driver-specific JSON grammar be a separate package or integrated into the query builder? — **Still open.**
 
 ---
 

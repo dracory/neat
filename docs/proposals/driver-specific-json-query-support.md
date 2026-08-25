@@ -1,6 +1,7 @@
 # Driver-Specific JSON Query Support
 
 **Date**: June 3, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Proposal
 **Priority**: Medium
 

@@ -1,7 +1,7 @@
 # Better Error Messages
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Partially Done
 **Priority**: High
 **Impact**: High
@@ -23,6 +23,9 @@ Improve error messages with SQL context and debugging information.
 - Runtime debug toggle via `EnableDebug()` / `DisableDebug()` / `IsDebug()` in `database/query/query_debug.go`
 - Error sanitization that strips SQL details in production and logs full errors in debug mode (`database/query/error_sanitizer.go`)
 - Thread-safe debug state
+- `validate()` method in `database/query/query_helpers.go` provides structured error messages for common issues (nil DB, missing table, build errors)
+- `SlowThreshold` field on `DBConfig` for slow query detection with warning emission
+- `redactDSN()` in `database/db.go` strips credentials from DSN strings in error messages
 
 ## Remaining Work
 

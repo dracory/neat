@@ -1,7 +1,7 @@
 # Query Optimization
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Partially Done
 **Priority**: High
 **Impact**: High
@@ -24,6 +24,7 @@ Add automatic query optimization features.
 - Nested eager loading (e.g. `With("Posts.Comments")`)
 - `Without()` to remove relations from eager loading
 - Connection pool configuration on the database layer
+- `ConnectionConfig` now uses type-safe `contracts.Driver` instead of string literals for driver references
 
 ## Remaining Work
 

@@ -1,7 +1,7 @@
 # Benchmark Suite
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Partially Done
 **Priority**: Medium
 **Impact**: Medium
@@ -23,13 +23,15 @@ Create comprehensive benchmark suite.
 
 - `database/query/query_bench_test.go` with 6 benchmark functions
 - `database/query/query_performance_test.go` with 15 benchmark functions covering CRUD and query building
+- Integration test suite expanded to cover 10 database engines (MySQL, PostgreSQL, SQLite, SQL Server, Oracle, Turso, CockroachDB, TiDB, CSVDB, JSONDB, XMLDB, GODB)
+- Embedded filesystem integration tests for CSVDB, JSONDB, XMLDB
 
 ## Remaining Work
 
 - Performance comparisons with GORM
 - Continuous benchmarking in CI
 - Performance regression detection
-- Database-specific benchmarks
+- Database-specific benchmarks (per-engine timing)
 
 ## Proposed Benchmarks
 

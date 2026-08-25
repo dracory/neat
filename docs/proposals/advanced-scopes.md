@@ -1,7 +1,7 @@
 # Advanced Scopes
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Partially Done
 **Priority**: Medium
 **Impact**: Medium
@@ -22,11 +22,17 @@ Add global scopes and scope composition features.
 
 - Per-query scope composition via `Scopes()` in `database/query/query_scopes.go`
 - Scope functions are applied via `applyScopes()` and chained on cloned queries
+- Integration tests for scopes in `integration_tests/cockroachdb/cockroachdb_query_scopes_test.go`
 
 ## Remaining Work
 
 - Global scopes defined on the model and applied automatically to all queries
 - Scope removal for specific queries (e.g. `WithoutScope`)
+
+## Notes
+
+- The `Scopes()` API accepts `func(contractsorm.Query) contractsorm.Query` functions and applies them on a cloned query, ensuring immutability of the original query.
+- No `GlobalScopes()` method on models exists yet — this would require model interface changes or struct tag parsing.
 
 ## Proposed API
 

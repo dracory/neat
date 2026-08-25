@@ -1,7 +1,7 @@
 # Query Analyzer
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 11, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Partially Done
 **Priority**: Medium
 **Impact**: High
@@ -21,6 +21,8 @@ Add query analysis and optimization recommendations.
 ## Implemented
 
 - **Slow query detection** — `SlowThreshold` field on `DBConfig` (in milliseconds) configures the threshold. When a query exceeds it, a warning is emitted via the query helpers (`database/query/query_helpers.go`). See also the `Debug` toggle on `DBConfig`.
+- **DSN redaction** — `redactDSN()` in `database/db.go` strips credentials from DSN strings for safe logging.
+- **Query validation** — `validate()` in `database/query/query_helpers.go` checks for nil DB, missing table, and build errors before executing terminal methods.
 
 ## Not Yet Implemented
 

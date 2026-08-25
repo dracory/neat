@@ -1,7 +1,7 @@
 # ManyToMany Relationships
 
 **Date**: June 1, 2026
-**Last Reviewed**: August 10, 2026
+**Last Reviewed**: August 25, 2026
 **Status**: Not Started
 **Priority**: High
 **Impact**: High
@@ -17,7 +17,13 @@ Add support for many-to-many relationships with pivot tables.
 - Currently missing from Neat (GORM has it)
 - Critical for many real-world applications (e.g., user roles, tags, categories)
 - Common requirement in most applications
-- The `database/association/` package already provides `BelongsTo`, `HasMany`, `HasOne`, and polymorphic variants, but no `many_to_many.go` exists
+- The `database/association/` package provides `BelongsTo`, `HasMany`, `HasOne`, and polymorphic variants, but no `many_to_many.go` exists
+
+## Notes
+
+- The association package (`database/association/`) has 8 files covering `belongs_to`, `has_many`, `has_one`, `polymorphic_belongs_to`, `polymorphic_has_many`, and a `field_resolver` — adding `many_to_many` would follow the same pattern.
+- Pivot table operations (`Attach`, `Detach`, `Sync`) would likely live on a relationship struct returned by a method like `user.Roles()`.
+- Eager loading via `With("Roles")` already works for HasMany/HasOne — many-to-many would extend the same `With()` mechanism with a join table resolver.
 
 ## Proposed API
 
