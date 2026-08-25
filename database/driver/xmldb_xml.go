@@ -12,11 +12,7 @@ import (
 // populateXMLFile reads an XML file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
 // case-insensitive duplicates, and row limits.
-func populateXMLFile(db *sql.DB, tableName string, filePath string) error {
-	return populateXMLFileFS(db, tableName, nil, filePath)
-}
-
-func populateXMLFileFS(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
+func populateXMLFile(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
 	var rows []map[string]any
 	var err error
 	if sys != nil {

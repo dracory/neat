@@ -137,7 +137,7 @@ func (x *XMLDB) Open(dirPath string) (*sql.DB, error) {
 		}
 		seenTables[lowerName] = entry.Name()
 
-		if err := populateXMLFileFS(db, tableName, x.fs, filePath); err != nil {
+		if err := populateXMLFile(db, tableName, x.fs, filePath); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("xmldb: failed to populate table %s from %s: %w", tableName, filePath, err)
 		}

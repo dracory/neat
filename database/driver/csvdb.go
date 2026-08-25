@@ -136,7 +136,7 @@ func (c *CSVDB) Open(dirPath string) (*sql.DB, error) {
 		}
 		seenTables[lowerName] = entry.Name()
 
-		if err := populateCSVFileFS(db, tableName, c.fs, filePath); err != nil {
+		if err := populateCSVFile(db, tableName, c.fs, filePath); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("csvdb: failed to populate table %s from %s: %w", tableName, filePath, err)
 		}

@@ -136,7 +136,7 @@ func (j *JSONDB) Open(dirPath string) (*sql.DB, error) {
 		}
 		seenTables[lowerName] = entry.Name()
 
-		if err := populateJSONFileFS(db, tableName, j.fs, filePath); err != nil {
+		if err := populateJSONFile(db, tableName, j.fs, filePath); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("jsondb: failed to populate table %s from %s: %w", tableName, filePath, err)
 		}

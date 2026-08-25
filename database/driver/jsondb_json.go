@@ -12,11 +12,7 @@ import (
 // populateJSONFile reads a JSON/JSONL file, infers schema, creates a table,
 // and inserts all rows in a transaction. Validates table/column name safety,
 // case-insensitive duplicates, and row limits.
-func populateJSONFile(db *sql.DB, tableName string, filePath string) error {
-	return populateJSONFileFS(db, tableName, nil, filePath)
-}
-
-func populateJSONFileFS(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
+func populateJSONFile(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
 	var rawRows []map[string]any
 	var err error
 	if sys != nil {

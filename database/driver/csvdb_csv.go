@@ -211,11 +211,7 @@ func convertValue(val string, sqlType string) any {
 // populateCSVFile reads a CSV file, infers types, creates a table, and
 // inserts all rows. This is the core logic called by CSVDB.Open for each
 // .csv file in the directory.
-func populateCSVFile(db *sql.DB, tableName string, filePath string) error {
-	return populateCSVFileFS(db, tableName, nil, filePath)
-}
-
-func populateCSVFileFS(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
+func populateCSVFile(db *sql.DB, tableName string, sys fs.FS, filePath string) error {
 	columns, rows, err := parseCSVFS(sys, filePath)
 	if err != nil {
 		return err
