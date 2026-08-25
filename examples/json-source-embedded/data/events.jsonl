@@ -1,5 +1,0 @@
-{"id": 1, "type": "login", "user_id": 42, "timestamp": "2024-01-15T10:30:00Z"}
-{"id": 2, "type": "logout", "user_id": 42, "timestamp": "2024-01-15T11:00:00Z"}
-{"id": 3, "type": "purchase", "user_id": 17, "timestamp": "2024-01-15T12:15:00Z", "amount": 49.99}
-{"id": 4, "type": "login", "user_id": 17, "timestamp": "2024-01-16T08:00:00Z"}
-{"id": 5, "type": "purchase", "user_id": 42, "timestamp": "2024-01-16T14:30:00Z", "amount": 12.50}

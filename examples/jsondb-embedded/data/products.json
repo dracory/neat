@@ -1,5 +1,0 @@
-[
-  {"id": 1, "name": "Widget", "price": 19.99, "category": "Hardware"},
-  {"id": 2, "name": "Gadget", "price": 49.99, "category": "Electronics"},
-  {"id": 3, "name": "Gizmo", "price": 99.99, "category": "Electronics"}
-]
