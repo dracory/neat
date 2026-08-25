@@ -138,11 +138,6 @@ func NewCsvFileSourceWithDelimiter(filePath string, delimiter rune) *arraysource
 	return arraysource.New(mapRows).Table(tableName)
 }
 
-// MaxCSVRows limits the number of data rows that can be loaded from a single
-// CSV file to prevent unbounded memory/CPU consumption. This mirrors the
-// CSVDB driver's MaxCSVRows limit.
-const MaxCSVRows = 100000
-
 // deriveTableName extracts the table name from the file path by taking
 // the base filename and removing the extension.
 // "data/users.csv" → "users", "events.tsv" → "events"
@@ -189,48 +184,26 @@ func parseCSVFSFileWithDelimiter(sys fs.FS, filePath string, delimiter rune) ([]
 }
 
 // parseCSVReader reads CSV records from any io.Reader and returns the
-// header columns and data rows. The first record is treated as the header
-// (column names); all remaining records are data rows.
-//
-// A leading UTF-8 BOM (\xEF\xBB\xBF), if present, is stripped from the first
-// header field. Rows with fewer fields than the header are allowed (missing
-// fields become NULL). Rows with more fields are also allowed (extra fields
-// are retained). An error is returned if the file is empty or if the row
-// count exceeds MaxCSVRows.
+// header columns and data rows.
 func parseCSVReader(r io.Reader, delimiter rune) ([]string, [][]string, error) {
 	reader := csv.NewReader(r)
 	reader.Comma = delimiter
 	reader.LazyQuotes = true
-	reader.FieldsPerRecord = -1
 
-	header, err := reader.Read()
+	records, err := reader.ReadAll()
 	if err != nil {
-		if err == io.EOF {
-			return nil, nil, fmt.Errorf("no records found")
-		}
 		return nil, nil, fmt.Errorf("CSV parse error: %w", err)
 	}
-
-	if len(header) > 0 {
-		header[0] = strings.TrimPrefix(header[0], "\xEF\xBB\xBF")
+	if len(records) == 0 {
+		return nil, nil, fmt.Errorf("no records found")
 	}
 
-	var rows [][]string
-	for {
-		record, readErr := reader.Read()
-		if readErr == io.EOF {
-			break
-		}
-		if readErr != nil {
-			return nil, nil, fmt.Errorf("CSV parse error: %w", readErr)
-		}
-		rows = append(rows, record)
-		if len(rows) > MaxCSVRows {
-			return nil, nil, fmt.Errorf("CSV file exceeds the limit of %d data rows", MaxCSVRows)
-		}
+	columns := records[0]
+	if len(columns) > 0 {
+		columns[0] = strings.TrimPrefix(columns[0], "\xEF\xBB\xBF")
 	}
-
-	return header, rows, nil
+	dataRows := records[1:]
+	return columns, dataRows, nil
 }
 
 // convertRows converts string-based CSV rows into []map[string]any with
