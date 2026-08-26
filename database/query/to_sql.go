@@ -21,9 +21,10 @@ func NewToSql(q *Query) *ToSql {
 
 // Count generates the SQL for a COUNT query.
 func (t *ToSql) Count() string {
-	t.query.aggregate = "COUNT"
-	t.query.aggregateCol = "*"
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	query.aggregate = "COUNT"
+	query.aggregateCol = "*"
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -48,7 +49,7 @@ func (t *ToSql) InsertGetId(values any) string {
 
 // Delete generates the SQL for a DELETE query.
 func (t *ToSql) Delete(value ...any) string {
-	query := t.query.Clone().(*Query)
+	query := t.query.Clone().(*Query).applyScopes()
 	if len(value) > 0 {
 		applyConditions(query, value)
 	}
@@ -78,9 +79,10 @@ func (t *ToSql) Find(dest any, conds ...any) string {
 
 // First generates the SQL for a SELECT query with LIMIT 1.
 func (t *ToSql) First(dest any) string {
+	query := t.query.Clone().(*Query).applyScopes()
 	limit := 1
-	t.query.limit = &limit
-	builder := NewBuilder(t.query)
+	query.limit = &limit
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -92,7 +94,7 @@ func (t *ToSql) First(dest any) string {
 //
 // Deprecated: Use HardDelete() instead.
 func (t *ToSql) ForceDelete(value ...any) string {
-	query := t.query.Clone().(*Query)
+	query := t.query.Clone().(*Query).applyScopes()
 	query.includeSoftDeleted = true
 	if len(value) > 0 {
 		applyConditions(query, value)
@@ -116,7 +118,7 @@ func (t *ToSql) HardDelete(value ...any) string {
 // (i.e., does not support soft deletes), mirroring the fail-fast behavior of
 // Query.SoftDelete().
 func (t *ToSql) SoftDelete(value ...any) string {
-	query := t.query.Clone().(*Query)
+	query := t.query.Clone().(*Query).applyScopes()
 	if len(value) > 0 {
 		applyConditions(query, value)
 	}
@@ -141,7 +143,8 @@ func (t *ToSql) SoftDelete(value ...any) string {
 
 // Get generates the SQL for a SELECT query.
 func (t *ToSql) Get(dest any) string {
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -151,8 +154,9 @@ func (t *ToSql) Get(dest any) string {
 
 // Pluck generates the SQL for a SELECT query with a single column.
 func (t *ToSql) Pluck(column string, dest any) string {
-	t.query.selects = []selectClause{{expr: column}}
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	query.selects = []selectClause{{expr: column}}
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -162,10 +166,11 @@ func (t *ToSql) Pluck(column string, dest any) string {
 
 // Value generates the SQL for a SELECT query with a single column and LIMIT 1.
 func (t *ToSql) Value(column string, dest any) string {
-	t.query.selects = []selectClause{{expr: column}}
+	query := t.query.Clone().(*Query).applyScopes()
+	query.selects = []selectClause{{expr: column}}
 	limit := 1
-	t.query.limit = &limit
-	builder := NewBuilder(t.query)
+	query.limit = &limit
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -185,7 +190,7 @@ func (t *ToSql) Save(value any) string {
 	} else {
 		// UPDATE: set WHERE id = <id> on a clone, then generate UPDATE query
 		idVal, _ := getPrimaryKeyValueAny(value)
-		clone := t.query.Clone().(*Query)
+		clone := t.query.Clone().(*Query).applyScopes()
 		clone.wheres = append(clone.wheres, whereClause{_type: "and", query: "id = ?", args: []any{idVal}})
 		builder := NewBuilder(clone)
 		sql, args = builder.BuildUpdate(value)
@@ -199,9 +204,10 @@ func (t *ToSql) Save(value any) string {
 
 // Avg generates the SQL for an AVG aggregation query.
 func (t *ToSql) Avg(column string, dest any) string {
-	t.query.aggregate = "AVG"
-	t.query.aggregateCol = column
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	query.aggregate = "AVG"
+	query.aggregateCol = column
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -211,9 +217,10 @@ func (t *ToSql) Avg(column string, dest any) string {
 
 // Max generates the SQL for a MAX aggregation query.
 func (t *ToSql) Max(column string, dest any) string {
-	t.query.aggregate = "MAX"
-	t.query.aggregateCol = column
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	query.aggregate = "MAX"
+	query.aggregateCol = column
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -223,9 +230,10 @@ func (t *ToSql) Max(column string, dest any) string {
 
 // Min generates the SQL for a MIN aggregation query.
 func (t *ToSql) Min(column string, dest any) string {
-	t.query.aggregate = "MIN"
-	t.query.aggregateCol = column
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	query.aggregate = "MIN"
+	query.aggregateCol = column
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -235,9 +243,10 @@ func (t *ToSql) Min(column string, dest any) string {
 
 // Sum generates the SQL for a SUM aggregation query.
 func (t *ToSql) Sum(column string, dest any) string {
-	t.query.aggregate = "SUM"
-	t.query.aggregateCol = column
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	query.aggregate = "SUM"
+	query.aggregateCol = column
+	builder := NewBuilder(query)
 	sql, args := builder.BuildSelect()
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -247,7 +256,8 @@ func (t *ToSql) Sum(column string, dest any) string {
 
 // Update generates the SQL for an UPDATE query.
 func (t *ToSql) Update(column any, value ...any) string {
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	builder := NewBuilder(query)
 	sql, args := builder.BuildUpdate(column, value...)
 	if t.useValues {
 		return t.replacePlaceholdersWithValues(sql, args)
@@ -263,7 +273,8 @@ func (t *ToSql) Increment(column string, amount ...any) string {
 			incAmount = val
 		}
 	}
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	builder := NewBuilder(query)
 	quoted := builder.quoteIdentifier(column)
 	updateQuery := fmt.Sprintf("%s = %s + ?", quoted, quoted)
 	sql, args := builder.BuildUpdate(updateQuery, incAmount)
@@ -281,7 +292,8 @@ func (t *ToSql) Decrement(column string, amount ...any) string {
 			decAmount = val
 		}
 	}
-	builder := NewBuilder(t.query)
+	query := t.query.Clone().(*Query).applyScopes()
+	builder := NewBuilder(query)
 	quoted := builder.quoteIdentifier(column)
 	updateQuery := fmt.Sprintf("%s = %s - ?", quoted, quoted)
 	sql, args := builder.BuildUpdate(updateQuery, decAmount)

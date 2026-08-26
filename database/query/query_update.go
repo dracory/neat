@@ -13,6 +13,7 @@ import (
 
 // Update updates records in the database.
 func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
+	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
 		return nil, err

@@ -158,6 +158,7 @@ func (q *Query) Omit(columns ...string) contractsorm.Query {
 
 // RestoreSoftDeleted restores a soft-deleted record.
 func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
+	q = q.applyScopes()
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
 		attributes := observer.ExtractModelAttributes(model[0])
@@ -263,6 +264,7 @@ func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
 //
 // Deprecated: Use HardDelete() instead.
 func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
+	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
 	clone := q.Clone().(*Query)

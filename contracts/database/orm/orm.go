@@ -727,6 +727,12 @@ type Query interface {
 	//   }
 	//   query.Scopes(Active)
 	Scopes(funcs ...func(Query) Query) Query
+	// WithoutScope removes specific scope function(s) from being applied to the query.
+	WithoutScope(funcs ...func(Query) Query) Query
+	// WithoutScopes removes all per-query scopes from being applied to the query.
+	WithoutScopes() Query
+	// WithoutGlobalScopes disables global scopes defined on the model for this query.
+	WithoutGlobalScopes() Query
 	// Select specifies which columns should be retrieved from the database.
 	// Query can be a string (column name or comma-separated list) or a slice of strings.
 	// By default, all columns are selected.
@@ -1244,6 +1250,12 @@ type Association interface {
 type ConnectionModel interface {
 	// Connection gets the connection name for the model.
 	Connection() string
+}
+
+// GlobalScope is implemented by models that define global query scopes.
+type GlobalScope interface {
+	// GlobalScopes returns a slice of scope functions to automatically apply to all queries for the model.
+	GlobalScopes() []func(Query) Query
 }
 
 type Cursor interface {

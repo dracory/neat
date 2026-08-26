@@ -40,6 +40,16 @@ func (q *Query) Model(value any) contractsorm.Query {
 		}
 	}
 
+	// Load global scopes if model implements contractsorm.GlobalScope
+	q.globalScopes = nil
+	q.withoutGlobalScopes = false
+	q.disabledScopes = nil
+	q.scopes = nil
+
+	if gs, ok := value.(contractsorm.GlobalScope); ok {
+		q.globalScopes = gs.GlobalScopes()
+	}
+
 	// Reset query state to avoid pollution from previous queries
 	q.selects = nil
 	q.wheres = nil
