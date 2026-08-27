@@ -14,6 +14,8 @@ require (
 	github.com/tursodatabase/libsql-client-go v0.0.0-20260528064733-9d5d30a29a60
 	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597
 	golang.org/x/text v0.40.0
+	gorm.io/driver/mysql v1.5.7
+	gorm.io/gorm v1.31.2
 	modernc.org/sqlite v1.53.0
 )
 
@@ -25,6 +27,8 @@ require (
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
