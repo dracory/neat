@@ -342,7 +342,19 @@ func (r *Sqlite) CompileRenameIndex(s schema.Schema, blueprint schema.Blueprint,
 }
 
 func (r *Sqlite) CompileUnique(blueprint schema.Blueprint, command *schema.Command) (string, error) {
-	return r.CompileIndex(blueprint, command)
+	index, err := r.wrap.Column(command.Index)
+	if err != nil {
+		return "", err
+	}
+	table, err := r.wrap.Table(blueprint.GetTableName())
+	if err != nil {
+		return "", err
+	}
+	columns, err := r.wrap.Columnize(command.Columns)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("create unique index %s on %s (%s)", index, table, columns), nil
 }
 
 func (r *Sqlite) CompileTypes() string {

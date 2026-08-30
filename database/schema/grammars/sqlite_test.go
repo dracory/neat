@@ -106,3 +106,32 @@ func TestSqliteCompileCreateViewInjection(t *testing.T) {
 		t.Error("Expected error for invalid identifier, got nil")
 	}
 }
+
+func TestSqliteCompileUnique(t *testing.T) {
+	g := newSqliteGrammar()
+	bp := newBlueprint("users")
+
+	sql, err := g.CompileUnique(bp, &contractsschema.Command{Index: "users_email_unique", Columns: []string{"email"}})
+	if err != nil {
+		t.Fatalf("CompileUnique returned error: %v", err)
+	}
+	if !strings.Contains(sql, "create unique index") {
+		t.Errorf("Expected 'create unique index', got: %s", sql)
+	}
+}
+
+func TestSqliteCompileIndex(t *testing.T) {
+	g := newSqliteGrammar()
+	bp := newBlueprint("users")
+
+	sql, err := g.CompileIndex(bp, &contractsschema.Command{Index: "users_name_index", Columns: []string{"name"}})
+	if err != nil {
+		t.Fatalf("CompileIndex returned error: %v", err)
+	}
+	if !strings.Contains(sql, "create index") {
+		t.Errorf("Expected 'create index', got: %s", sql)
+	}
+	if strings.Contains(sql, "unique") {
+		t.Errorf("CompileIndex must not include 'unique', got: %s", sql)
+	}
+}
