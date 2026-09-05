@@ -15,7 +15,7 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **Migrations**: Complete database migration system with the `Migrator` package, schema builder, rollback support, and automatic tracking (major advantage over most Go ORMs)
 - **Seeders**: Database seeding for test and initial data
 - **Factories**: Test data generation with factory pattern
-- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB, GODB
+- **Multiple Database Support**: MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, Azure Table Storage, CSVDB, JSONDB, XMLDB, GODB
 - **Transactions**: Robust transaction support
 - **Observers**: Model lifecycle event system
 - **Soft Deletes**: Soft delete functionality with multiple strategies (NULL-based and max-date sentinel)
@@ -26,6 +26,7 @@ A powerful and elegant ORM (Object-Relational Mapping) library for Go, designed 
 - **JSONDB Driver**: Query a directory of JSON/JSONL/NDJSON files (or an embedded `embed.FS` filesystem) as if they were database tables — each file becomes a table, with automatic type inference and transaction-wrapped bulk loading
 - **XMLDB Driver**: Query a directory of XML files (or an embedded `embed.FS` filesystem) as if they were database tables — each `.xml` file becomes a table, with attributes and leaf elements mapped to columns, automatic type inference, and transaction-wrapped bulk loading
 - **GODB Driver**: Query compiled-in Go data slices as if they were database tables — pass `[]Struct` or `[]map[string]any` via config; no file I/O, no parsing, types come from the Go compiler
+- **Azure Table Storage Driver**: Query Microsoft Azure Table Storage and Azure Cosmos DB for Table via `aztables` driver and `aztablessql` SQL translation
 - **Connection Pooling**: Efficient connection management
 - **Context Support**: Full context.Context support throughout
 - **Query Method Aliases**: Sequelize-style (FindAll, FindOne, Destroy) and Django-style (Filter, Exclude, All)
@@ -438,6 +439,37 @@ db.Query().
 
 Struct slices are converted to rows using the same logic as `NewArraySourceFrom` (tag priority `db` > `neat` > `gorm` > snake_case, embedded structs flattened, association fields skipped). Go types map directly to SQLite types — `int`→INTEGER, `float64`→REAL, `bool`→INTEGER, `time.Time`→DATETIME, `[]byte`→BLOB, `string`→TEXT. An alternative `[]godb.Table` slice config style preserves table declaration order. See the [godb-driver example](./examples/godb-driver) and the [proposal](./docs/proposals/completed/go-directory-driver.md).
 
+## Azure Table Storage Driver
+
+Query Microsoft Azure Table Storage and Azure Cosmos DB for Table using Neat ORM's query builder. Azure Table Storage is accessed via the `aztables` driver (powered by `aztablessql`), which translates a supported subset of SQL into REST/OData requests.
+
+```go
+config := neat.DBConfig{
+    Default: "azure_tables",
+    Connections: map[string]neat.ConnectionConfig{
+        "azure_tables": {
+            Driver: "aztables",
+            Dsn:    "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;TableEndpoint=https://myaccount.table.core.windows.net/;",
+        },
+    },
+}
+
+db, _ := neat.New(config)
+defer db.Close()
+
+type Product struct {
+    PartitionKey string `db:"PartitionKey"`
+    RowKey       string `db:"RowKey"`
+    Name         string `db:"Name"`
+    Price        float64 `db:"Price"`
+}
+
+var products []Product
+err := db.Query().Model(&Product{}).Where("Price > ?", 50.0).Get(&products)
+```
+
+Entities in Azure Table Storage require `PartitionKey` and `RowKey` string columns. The driver supports standard SQL CRUD operations, `WHERE` filtering with `AND`, column projections, and `LIMIT`. See the [Azure Table Storage Documentation](./docs/databases/aztables.html).
+
 ## Supported Databases
 
 - MySQL 5.7+
@@ -446,6 +478,7 @@ Struct slices are converted to rows using the same logic as `NewArraySourceFrom`
 - SQL Server 2017+
 - Turso (SQLite edge)
 - Oracle
+- Azure Table Storage (NoSQL entity store via `aztablessql`)
 - CSVDB (CSV directory as database)
 - JSONDB (JSON/JSONL/NDJSON directory as database)
 - XMLDB (XML directory as database)
@@ -453,29 +486,29 @@ Struct slices are converted to rows using the same logic as `NewArraySourceFrom`
 
 ### Driver Compatibility Matrix
 
-| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server | CSVDB | JSONDB | XMLDB | GODB |
-|---------|--------|-------|------------|--------|-------|------------|-------|--------|-------|------|
+| Feature | SQLite | MySQL | PostgreSQL | Oracle | Turso | SQL Server | Azure Table Storage | CSVDB | JSONDB | XMLDB | GODB |
+|---------|--------|-------|------------|--------|-------|------------|---------------------|-------|--------|-------|------|
 | **Basic Operations** |
-| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Open Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Close Connection | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ping/Health Check | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Transactions** |
-| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Isolation Levels | Limited | Full | Full | Full | Limited | Full | Limited | Limited | Limited | Limited |
+| BeginTx with Options | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ (batch API only) | ✅ | ✅ | ✅ | ✅ |
+| Savepoints | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Isolation Levels | Limited | Full | Full | Full | Limited | Full | N/A | Limited | Limited | Limited | Limited |
 | **Placeholder Style** |
-| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` | `?` | `?` | `?` | `?` |
+| Placeholder Format | `?` | `?` | `$1, $2` | `:1, :2` | `?` | `@p1, @p2` | `?` | `?` | `?` | `?` | `?` |
 | **DSN Support** |
-| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A | N/A | N/A | N/A |
+| URL-based DSN | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Query Parameters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A | N/A | N/A | N/A |
 | **Connection Pool** |
-| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) |
-| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) |
-| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MaxOpenConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) |
+| MaxIdleConns | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) | ✅ (pinned to 1) |
+| QueryTimeout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Optimizations** |
-| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| SQLite PRAGMAs | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| MySQL Charset | ❌ | ✅ (utf8mb4) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| PostgreSQL SSL | ❌ | ❌ | ✅ (require) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 **Notes:**
 - **Turso** is a SQLite edge database, so it shares SQLite's placeholder style and PRAGMA support
@@ -709,7 +742,7 @@ Neat ORM is actively developed with the following features implemented:
 - ✅ Advanced Migration system (`Migrator` package)
 - ✅ Seeder system for data seeding
 - ✅ Factory pattern for test data
-- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB, GODB)
+- ✅ Multiple database support (MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, Azure Table Storage, CSVDB, JSONDB, XMLDB, GODB)
 - ✅ Transaction support with savepoints and callbacks
 - ✅ Observer system for model events
 - ✅ Soft deletes with multiple strategies (NULL and Max-Date)

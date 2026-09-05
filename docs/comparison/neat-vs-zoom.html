@@ -122,7 +122,7 @@
 </tr>
 <tr>
 <td><strong>Database Support</strong></td>
-<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, XMLDB</td>
+<td>MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, Azure Table Storage, CSVDB, JSONDB, XMLDB</td>
 <td>Redis only</td>
 </tr>
 <tr>
@@ -295,7 +295,7 @@
 <p><strong>Important</strong>: Zoom is Redis-based and stores data in memory. If you need SQL databases or disk-based persistence, Neat ORM is the appropriate choice.</p>
 <h2>Conclusion</h2>
 <p>Neat ORM and Zoom serve completely different purposes:</p>
-<p><strong>Neat ORM</strong>: Traditional SQL ORM with migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, views, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, CSVDB, JSONDB, and XMLDB with disk-based persistence.</p>
+<p><strong>Neat ORM</strong>: Traditional SQL ORM with migrations, seeders, factories, savepoints, observers, soft deletes, polymorphic associations, views, and security hardening. Supports MySQL, PostgreSQL, SQLite, SQL Server, Turso, Oracle, Azure Table Storage, CSVDB, JSONDB, and XMLDB with disk-based persistence.</p>
 <p><strong>Zoom</strong>: Redis-based in-memory ORM with excellent performance and low latency. Ideal for applications that need high throughput and can use Redis for storage.</p>
 <p>The choice depends on your storage needs:
 - <strong>SQL databases with comprehensive ORM features</strong>: Neat ORM
