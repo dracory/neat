@@ -86,6 +86,16 @@ func (q *Query) isSQLite() bool {
 	return q.driver != nil && (q.driver.Dialect() == "sqlite" || q.driver.Dialect() == "turso" || q.driver.Dialect() == "array")
 }
 
+// isAztables returns true if the driver dialect is Azure Table Storage
+// (via the aztablessql database/sql driver). The aztablessql driver
+// accepts a small SQL subset: unquoted identifiers, ? placeholders,
+// LIMIT (no OFFSET), and AND-joined WHERE on simple column names.
+// It does not support quoted identifiers, FOR UPDATE, LOCK IN SHARE MODE,
+// JOINs, GROUP BY, OR, or subqueries.
+func (q *Query) isAztables() bool {
+	return q.driver != nil && q.driver.Dialect() == "aztables"
+}
+
 // isOracle returns true if the driver dialect is Oracle.
 func (q *Query) isOracle() bool {
 	return q.driver != nil && q.driver.Dialect() == "oracle"

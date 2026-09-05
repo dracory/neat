@@ -14,6 +14,7 @@ var PlaceholderFuncs = map[string]PlaceholderFunc{
 	"sqlserver": sqlserverPlaceholder,
 	"turso":     sqlitePlaceholder,
 	"array":     sqlitePlaceholder,
+	"aztables":  sqlitePlaceholder,
 }
 
 // mysqlPlaceholder returns MySQL-style placeholders (?).

@@ -282,6 +282,8 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 		return b.buildXMLDBDSN()
 	case contracts.DriverGODB:
 		return b.buildGODBDSN()
+	case contracts.DriverAztables:
+		return b.buildAztablesDSN()
 	default:
 		return "", fmt.Errorf("unsupported driver: %s", b.config.Driver)
 	}
@@ -291,6 +293,19 @@ func (b *ConfigBuilder) BuildDSN() (string, error) {
 // because the data is loaded from Go data structures compiled into the binary.
 func (b *ConfigBuilder) buildGODBDSN() (string, error) {
 	return ":memory:", nil
+}
+
+// buildAztablesDSN builds a DSN for the Azure Table Storage driver
+// (aztablessql). The DSN is an Azure Storage connection string and must be
+// provided verbatim via the Dsn field — there is no way to construct it from
+// individual host/port/credential fields because the aztablessql driver
+// expects the Azure SDK connection-string format. If no Dsn is set, an error
+// is returned.
+func (b *ConfigBuilder) buildAztablesDSN() (string, error) {
+	if b.config.Dsn == "" {
+		return "", fmt.Errorf("a DSN (Azure Storage connection string) is required for the %s driver", contracts.DriverAztables)
+	}
+	return b.config.Dsn, nil
 }
 
 // buildMySQLDSN builds a MySQL DSN string.
@@ -488,6 +503,14 @@ func (c *ConnectionConfig) Validate() error {
 		// database path is optional; empty defaults to :memory:
 		// For CSVDB, JSONDB and XMLDB, the Database field holds the directory path.
 		// For GODB, data is loaded from Tables.
+		return nil
+	case contracts.DriverAztables:
+		// Azure Table Storage uses an Azure Storage connection string as DSN.
+		// There are no individual host/port/credential fields to validate —
+		// the Dsn field must be set.
+		if c.Dsn == "" {
+			return fmt.Errorf("a DSN (Azure Storage connection string) is required for %s driver", c.Driver)
+		}
 		return nil
 	case contracts.DriverMysql:
 		if c.Host == "" {
