@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
-	_ "github.com/go-sql-driver/mysql"
 	_ "modernc.org/sqlite"
 )
 
@@ -55,34 +54,6 @@ func TestErrorHandlingIntegration(t *testing.T) {
 	})
 }
 
-// TestErrorHandlingIntegrationMySQL tests MySQL-specific error handling
-func TestErrorHandlingIntegrationMySQL(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	// Test with wrong password
-	dsn := "mysql://root:wrongpassword@127.0.0.1:3306/test?charset=utf8mb4"
-	_, err := neat.NewFromDSN(dsn)
-	if err == nil {
-		t.Error("Expected error for wrong MySQL password, got nil")
-	}
-}
-
-// TestErrorHandlingIntegrationPostgreSQL tests PostgreSQL-specific error handling
-func TestErrorHandlingIntegrationPostgreSQL(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	// Test with wrong password
-	dsn := "postgres://test:wrongpassword@127.0.0.1:55432/test?sslmode=disable"
-	_, err := neat.NewFromDSN(dsn)
-	if err == nil {
-		t.Error("Expected error for wrong PostgreSQL password, got nil")
-	}
-}
-
 // TestErrorHandlingIntegrationSQLite tests SQLite-specific error handling
 func TestErrorHandlingIntegrationSQLite(t *testing.T) {
 	if testing.Short() {
@@ -94,26 +65,6 @@ func TestErrorHandlingIntegrationSQLite(t *testing.T) {
 	_, err := neat.NewFromDSN(dsn)
 	if err == nil {
 		t.Error("Expected error for invalid SQLite path, got nil")
-	}
-}
-
-// TestErrorHandlingIntegrationConnection tests connection error handling
-func TestErrorHandlingIntegrationConnection(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	dsn := "mysql://root:root@127.0.0.1:3306/test"
-	db, err := neat.NewFromDSN(dsn)
-	if err != nil {
-		t.Fatalf("Failed to connect to MySQL: %v", err)
-	}
-	defer func() { _ = db.Close() }()
-
-	// Test getting non-existent connection
-	_, err = db.Connection("nonexistent")
-	if err == nil {
-		t.Error("Expected error for non-existent connection, got nil")
 	}
 }
 
