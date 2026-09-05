@@ -113,6 +113,16 @@ func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm) (*Schema
 		driverSchema = NewOracleSchema(oracleGrammar, orm, prefix)
 		grammar = oracleGrammar
 		processor = processors.NewOracle()
+	case contractsdatabase.DriverAztables:
+		// Azure Table Storage is schemaless — there is no DDL with column
+		// definitions. The schema builder is not applicable, but it must not
+		// error during New(). Use SQLite grammar as a harmless fallback so
+		// that neat.New() succeeds; callers should use raw CREATE TABLE /
+		// DROP TABLE via db.Exec() for table lifecycle.
+		sqliteGrammar := grammars.NewSqlite(log, prefix)
+		driverSchema = NewSqliteSchema(sqliteGrammar, orm, prefix)
+		grammar = sqliteGrammar
+		processor = processors.NewSqlite()
 	default:
 		return nil, errors.SchemaDriverNotSupported.Args(driver)
 	}

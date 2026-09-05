@@ -450,6 +450,17 @@ func parseDSN(dsn string) (contractsdb.Driver, db.ConnectionConfig, error) {
 		}, nil
 	}
 
+	// Azure Table Storage connection strings are semicolon-delimited key=value
+	// pairs (e.g. "DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...").
+	// They have no URL scheme, so url.Parse would misinterpret them. Detect the
+	// well-known prefix and pass the connection string through verbatim as DSN.
+	if strings.HasPrefix(dsn, "DefaultEndpointsProtocol=") {
+		return contractsdb.DriverAztables, db.ConnectionConfig{
+			Driver: contractsdb.DriverAztables,
+			Dsn:    dsn,
+		}, nil
+	}
+
 	if strings.HasPrefix(dsn, "libsql://") {
 		u, err := url.Parse(dsn)
 		if err != nil {
