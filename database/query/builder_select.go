@@ -333,6 +333,13 @@ func (b *Builder) BuildSelect() (string, []any) {
 					parts = append(parts, fmt.Sprintf("FETCH FIRST %d ROWS ONLY", *b.query.limit))
 				}
 			}
+		} else if b.query.isAztables() {
+			// Azure Table Storage supports LIMIT ($top) but not OFFSET.
+			// Pagination is via continuation tokens, not OFFSET.
+			if b.query.limit != nil {
+				parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+			}
+			// OFFSET is intentionally dropped — aztablessql does not accept it.
 		} else {
 			// Other databases use LIMIT-OFFSET
 			if b.query.limit != nil {
@@ -354,7 +361,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 	// Skip lock clauses for Oracle when soft delete filter is present (ORA-02014)
 	// Skip lock clauses for Oracle when LIMIT is present (ORA-02014)
 	// Skip SharedLock for Oracle as it doesn't support LOCK IN SHARE MODE
-	if b.query.aggregate == "" && !b.query.isSQLite() {
+	if b.query.aggregate == "" && !b.query.isSQLite() && !b.query.isAztables() {
 		// Oracle doesn't support FOR UPDATE with DISTINCT, GROUP BY, soft delete filters, or LIMIT
 		hasSoftDeleteFilter := hasSoftDeleteCapability(b.query.model) && !b.query.includeSoftDeleted && !b.query.onlySoftDeleted
 		hasLimit := b.query.limit != nil

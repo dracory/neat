@@ -92,3 +92,27 @@ services:
         condition: service_healthy
     command: sql --insecure --host cockroachdb:26257 -e "CREATE DATABASE IF NOT EXISTS test;"
     restart: "no"
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: neat-azurite-test
+    # Run only the Table service. Azurite-table accepts --tableHost / --tablePort;
+    # the blob/queue flags are only valid for the combined `azurite` command.
+    command: azurite-table --tableHost 0.0.0.0
+    ports:
+      - "10002:10002"
+    healthcheck:
+      # Azurite ships node but no curl/wget. A bare GET on /TableStorage
+      # returns 400 (missing required headers) once the service is ready.
+      # Treat any response below 500 as healthy; 5xx or connection errors
+      # mean the service is not yet up.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const http=require('http');const r=http.request({host:'127.0.0.1',port:10002,path:'/TableStorage',method:'GET',timeout:2000},res=>{process.exit(res.statusCode<500?0:1)});r.on('error',()=>process.exit(1));r.on('timeout',()=>{r.destroy();process.exit(1)});r.end();",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20

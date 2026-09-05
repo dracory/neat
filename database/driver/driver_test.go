@@ -217,3 +217,23 @@ func TestTursoDriver(t *testing.T) {
 		t.Errorf("Expected ?, got %s", placeholder)
 	}
 }
+
+func TestAztablesDriver(t *testing.T) {
+	// Test that Aztables implements the Driver interface
+	var _ driver.Driver = (*driver.Aztables)(nil)
+
+	az := driver.NewAztables()
+
+	// Test Dialect
+	if az.Dialect() != "aztables" {
+		t.Errorf("Expected aztables, got %s", az.Dialect())
+	}
+
+	// Test Placeholder (should use SQLite-style ? placeholders)
+	// aztablessql uses ? placeholders, same as SQLite/MySQL
+	for _, n := range []int{1, 3, 100} {
+		if got := az.Placeholder(n); got != "?" {
+			t.Errorf("Placeholder(%d) = %q, want ?", n, got)
+		}
+	}
+}

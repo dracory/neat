@@ -168,8 +168,11 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 	}
 
 	// Open read-replica connection if configured (use first entry, round-robin could be added later)
+	// Aztables uses a pass-through Azure Storage connection string as DSN and
+	// cannot reconstruct it from host/port/credential fields, so replicas are
+	// not supported for that driver.
 	var readSQLDB *sql.DB
-	if len(connConfig.Read) > 0 {
+	if len(connConfig.Read) > 0 && connConfig.Driver != contractsdb.DriverAztables {
 		replica := connConfig.Read[0]
 		replicaCfg := connConfig
 		replicaCfg.Dsn = "" // Clear DSN so BuildDSN reconstructs from individual fields
@@ -205,7 +208,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 
 	// Open write-primary connection if explicitly configured
 	var writeSQLDB *sql.DB
-	if len(connConfig.Write) > 0 {
+	if len(connConfig.Write) > 0 && connConfig.Driver != contractsdb.DriverAztables {
 		primary := connConfig.Write[0]
 		primaryCfg := connConfig
 		primaryCfg.Dsn = "" // Clear DSN so BuildDSN reconstructs from individual fields
@@ -323,6 +326,8 @@ func createDriver(driverName contractsdb.Driver) driver.Driver {
 		return driver.NewOracle()
 	case contractsdb.DriverArray:
 		return driver.NewArray()
+	case contractsdb.DriverAztables:
+		return driver.NewAztables()
 	case contractsdb.DriverCSVDB:
 		return driver.NewCSVDB()
 	case contractsdb.DriverJSONDB:

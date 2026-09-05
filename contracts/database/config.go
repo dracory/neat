@@ -2,6 +2,7 @@ package database
 
 const (
 	DriverArray     Driver = "array"
+	DriverAztables  Driver = "aztables"
 	DriverCSVDB     Driver = "csvdb"
 	DriverJSONDB    Driver = "jsondb"
 	DriverXMLDB     Driver = "xmldb"

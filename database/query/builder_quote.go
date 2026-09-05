@@ -17,6 +17,11 @@ func (b *Builder) quoteIdentifier(name string) string {
 		quoteChar = "`"
 	}
 
+	// aztablessql parser only accepts [A-Za-z0-9_]+ identifiers — no quotes.
+	if dialect == "aztables" {
+		return name
+	}
+
 	// For Oracle, uppercase identifiers to match default behavior
 	// Oracle stores unquoted identifiers in uppercase
 	// Do this BEFORE the quoted check to ensure even explicitly quoted identifiers are uppercased

@@ -20,6 +20,8 @@ func TestPlaceholderFuncs(t *testing.T) {
 		{"sqlserver", 4, "@p4"},
 		{"turso", 1, "?"},
 		{"turso", 2, "?"},
+		{"aztables", 1, "?"},
+		{"aztables", 5, "?"},
 	}
 	for _, tt := range tests {
 		fn, ok := PlaceholderFuncs[tt.dialect]
@@ -44,6 +46,7 @@ func TestGetPlaceholderFuncKnownDialects(t *testing.T) {
 		{"sqlite", 1, "?"},
 		{"sqlserver", 3, "@p3"},
 		{"turso", 1, "?"},
+		{"aztables", 1, "?"},
 	}
 	for _, c := range cases {
 		fn := GetPlaceholderFunc(c.dialect)

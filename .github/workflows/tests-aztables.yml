@@ -1,0 +1,63 @@
+# Azure Table Storage integration tests.
+#
+# Runs as a separate workflow so it does not add to the already-long
+# tests.yml runtime. Uses Azurite (the official Azure Storage emulator)
+# as a service container on port 10002.
+
+name: tests-aztables
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  aztables:
+    runs-on: ubuntu-latest
+
+    services:
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports:
+          - "10002:10002"
+        options: >-
+          --health-cmd="node -e \"const http=require('http');const r=http.request({host:'127.0.0.1',port:10002,path:'/TableStorage',method:'GET',timeout:2000},res=>{process.exit(res.statusCode<500?0:1)});r.on('error',()=>process.exit(1));r.on('timeout',()=>{r.destroy();process.exit(1)});r.end();\""
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      AZTABLES_TEST_CONNSTR: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
+      GITHUB_ACTIONS: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure git for private modules
+        run: |
+          git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Wait for Azurite Table service
+        run: |
+          echo "Waiting for Azurite Table service to be ready..."
+          for i in {1..30}; do
+            if node -e "const http=require('http');const r=http.request({host:'127.0.0.1',port:10002,path:'/TableStorage',method:'GET',timeout:2000},res=>{process.exit(res.statusCode<500?0:1)});r.on('error',()=>process.exit(1));r.on('timeout',()=>{r.destroy();process.exit(1)});r.end();" 2>/dev/null; then
+              echo "Azurite Table service is ready!"
+              break
+            fi
+            echo "Attempt $i: Azurite not ready, waiting..."
+            sleep 2
+          done
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27'
+          cache: true
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run Azure Table Storage integration tests
+        run: go test -v -tags=integration ./integration_tests/aztables/...
