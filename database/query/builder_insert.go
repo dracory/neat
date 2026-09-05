@@ -72,6 +72,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 
 		// Check if this is Oracle for INSERT ALL syntax
 		isOracle := b.query.isOracle()
+		isAztables := b.query.isAztables()
 
 		// Handle bulk insert
 		v := reflect.ValueOf(value)
@@ -82,7 +83,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 			// Oracle doesn't support multi-row INSERT VALUES syntax with identity columns
 			// Fall back to single inserts for Oracle to avoid sequence issues
-			if isOracle {
+			if isOracle || isAztables {
 				// For Oracle, return empty string to signal that we should handle bulk inserts differently
 				// The Create method will iterate and insert one by one
 				return "", []any{}

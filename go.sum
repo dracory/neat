@@ -18,6 +18,8 @@ github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYW
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/coder/websocket v1.8.15 h1:6B2JPeOGlpff2Uz6vOEH1Vzpi0iUz20A+lPVhPHtNUA=
 github.com/coder/websocket v1.8.15/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
+github.com/dracory/aztablessql v0.7.0 h1:d+Ltj9C6d6RfH7pQXGBhIKQvzVvwA9UIUIuA6sVSJko=
+github.com/dracory/aztablessql v0.7.0/go.mod h1:+e4gpFlWI5/qovDOD9yjbGEyGQ3E9+kUz3HCSr+KPj4=
 github.com/dromara/carbon/v2 v2.6.16 h1:AbxrnW1kJhR3KHdS8G96NFmxDwPFyre+t+xSiJIUD1I=
 github.com/dromara/carbon/v2 v2.6.16/go.mod h1:NGo3reeV5vhWCYWcSqbJRZm46MEwyfYI5EJRdVFoLJo=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=

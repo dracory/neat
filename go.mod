@@ -3,7 +3,7 @@ module github.com/dracory/neat
 go 1.27.0
 
 require (
-	github.com/dracory/aztablessql v0.0.0
+	github.com/dracory/aztablessql v0.7.0
 	github.com/dromara/carbon/v2 v2.6.16
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/uuid v1.6.0
@@ -44,5 +44,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
-replace github.com/dracory/aztablessql => ../aztablessql
