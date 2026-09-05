@@ -32,7 +32,7 @@
 
     <h2>Supported Drivers</h2>
 
-    <p>Neat ORM ships with 11 first-class drivers. The first six speak a wire protocol to an external database server; the remaining five are embedded or in-memory sources backed by an in-memory SQLite database:</p>
+    <p>Neat ORM ships with 12 first-class drivers, including traditional wire-protocol databases, cloud/edge storage, and embedded/flat-file sources:</p>
 
     <ul>
         <li><strong>MySQL</strong> (wire protocol) &mdash; also drives MariaDB and TiDB</li>
@@ -41,6 +41,7 @@
         <li><strong>SQL Server</strong> (wire protocol)</li>
         <li><strong>Oracle</strong> (wire protocol)</li>
         <li><strong>Turso</strong> (edge / cloud, libsql protocol)</li>
+        <li><strong>Azure Table Storage</strong> (cloud NoSQL) &mdash; see <a href="databases/aztables.html">Azure Table Storage driver</a></li>
         <li><strong>Array</strong> (in-memory) &mdash; query Go slices as tables; see <a href="databases/array.html">Array driver</a></li>
         <li><strong>CSVDB</strong> (embedded) &mdash; CSV directory as database; see <a href="databases/csvdb.html">CSVDB driver</a></li>
         <li><strong>GODB</strong> (in-memory) &mdash; Go data compiled into the binary; see <a href="databases/godb.html">GODB driver</a></li>
@@ -111,6 +112,12 @@
     <ul>
         <li>Database URL</li>
         <li>Auth token</li>
+    </ul>
+
+    <h3>Azure Table Storage</h3>
+
+    <ul>
+        <li><code>Dsn</code>: Azure Storage connection string containing <code>AccountName</code>, <code>AccountKey</code>, and <code>TableEndpoint</code></li>
     </ul>
 
     <h2>Custom Drivers</h2>
