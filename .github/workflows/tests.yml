@@ -1,5 +1,11 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+#
+# Database integration tests run in their own dedicated workflows to keep
+# this job fast:
+#   tests-mysql.yml, tests-tidb.yml, tests-cockroachdb.yml,
+#   tests-postgres.yml, tests-sqlserver.yml, tests-oracle.yml,
+#   tests-aztables.yml
 
 name: tests
 
@@ -14,93 +20,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: test
-        ports:
-          - "3306:3306"
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=20s
-          --health-timeout=10s
-          --health-retries=10
-
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: test
-          POSTGRES_USER: test
-        ports:
-          - "55432:5432"
-        options: >-
-          --health-cmd="pg_isready"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: YourStrong@Passw0rd
-          MSSQL_PID: Developer
-        ports:
-          - "1433:1433"
-
-      tidb:
-        image: pingcap/tidb:v8.5.0
-        ports:
-          - "4000:4000"
-        options: >-
-          --health-cmd="curl -sf http://127.0.0.1:10080/status"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=15
-
-      cockroachdb:
-        image: cockroachdb/cockroach:v24.3.0
-        ports:
-          - "26257:26257"
-        env:
-          COCKROACH_ARGS: "start-single-node --insecure"
-          COCKROACH_DATABASE: test
-        options: >-
-          --health-cmd="cockroach sql --insecure --host=127.0.0.1:26257 -e 'SELECT 1'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=15
-
     env:
-      MYSQL_HOST: 127.0.0.1
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: test
-      MYSQL_USER: root
-      MYSQL_PASS: root
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_PORT: 55432
-      POSTGRES_DATABASE: test
-      POSTGRES_USER: test
-      POSTGRES_PASS: test
-      SQLSERVER_HOST: 127.0.0.1
-      SQLSERVER_PORT: 1433
-      SQLSERVER_DATABASE: test
-      SQLSERVER_USER: sa
-      SQLSERVER_PASS: YourStrong@Passw0rd
-      TIDB_HOST: 127.0.0.1
-      TIDB_PORT: 4000
-      TIDB_DATABASE: test
-      TIDB_USER: root
-      TIDB_PASS: ""
-      COCKROACHDB_HOST: 127.0.0.1
-      COCKROACHDB_PORT: 26257
-      COCKROACHDB_DATABASE: test
-      COCKROACHDB_USER: root
-      COCKROACHDB_PASS: ""
-      COCKROACHDB_SSLMODE: disable
       GITHUB_ACTIONS: true
 
     steps:
@@ -110,121 +30,11 @@ jobs:
       run: |
         git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
 
-    - name: Install MySQL client
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y mysql-client
-
-    - name: Install PostgreSQL client
-      run: |
-        sudo apt-get update
-        sudo apt-get install --yes postgresql-client
-
-    - name: Install SQL Server client
-      run: |
-        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
-        sudo apt-get update
-        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
-        sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
-
-    - name: Wait for MySQL service
-      run: |
-        echo "Waiting for MySQL to be ready..."
-        for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; then
-            echo "MySQL is ready!"
-            break
-          fi
-          echo "Attempt $i: MySQL not ready, waiting..."
-          sleep 2
-        done
-
-    - name: Verify MySQL connection
-      run: |
-        mysql --version
-        mysql --host 127.0.0.1 --port ${{ env.MYSQL_PORT }} -u${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASS }} -e "SHOW DATABASES;"
-
-    - name: Wait for PostgreSQL service
-      run: |
-        echo "Waiting for PostgreSQL to be ready..."
-        for i in {1..30}; do
-          if PGPASSWORD=${{ env.POSTGRES_PASS }} psql -h 127.0.0.1 -p ${{ env.POSTGRES_PORT }} -d ${{ env.POSTGRES_DATABASE }} -U ${{ env.POSTGRES_USER }} -c "SELECT 1;" > /dev/null 2>&1; then
-            echo "PostgreSQL is ready!"
-            break
-          fi
-          echo "Attempt $i: PostgreSQL not ready, waiting..."
-          sleep 2
-        done
-
-    - name: Verify PostgreSQL connection
-      run: |
-        PGPASSWORD=${{ env.POSTGRES_PASS }} psql -h ${{ env.POSTGRES_HOST }} -p ${{ env.POSTGRES_PORT }} -d ${{ env.POSTGRES_DATABASE }} -U ${{ env.POSTGRES_USER }} -c "SELECT 1;"
-
-    - name: Wait for SQL Server service
-      run: |
-        echo "Waiting for SQL Server to be ready..."
-        for i in {1..30}; do
-          if /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;" > /dev/null 2>&1; then
-            echo "SQL Server is ready!"
-            break
-          fi
-          echo "Attempt $i: SQL Server not ready, waiting..."
-          sleep 2
-        done
-
-    - name: Create SQL Server test database
-      run: |
-        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'test') CREATE DATABASE test;"
-
-    - name: Verify SQL Server connection
-      run: |
-        /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;"
-
-    - name: Wait for TiDB service
-      run: |
-        echo "Waiting for TiDB to be ready..."
-        for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 4000 -u root --silent; then
-            echo "TiDB is ready!"
-            break
-          fi
-          echo "Attempt $i: TiDB not ready, waiting..."
-          sleep 5
-        done
-
-    - name: Create TiDB test database
-      run: |
-        mysql -h 127.0.0.1 -P 4000 -u root -e "CREATE DATABASE IF NOT EXISTS test;"
-
-    - name: Verify TiDB connection
-      run: |
-        mysql -h 127.0.0.1 -P 4000 -u root -e "SELECT 1;"
-
-    - name: Wait for CockroachDB service
-      run: |
-        echo "Waiting for CockroachDB to be ready..."
-        for i in {1..30}; do
-          if docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host=127.0.0.1:26257 -e "SELECT 1;" > /dev/null 2>&1; then
-            echo "CockroachDB is ready!"
-            break
-          fi
-          echo "Attempt $i: CockroachDB not ready, waiting..."
-          sleep 5
-        done
-
-    - name: Create CockroachDB test database
-      run: |
-        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host=127.0.0.1:26257 -e "CREATE DATABASE IF NOT EXISTS test;"
-
-    - name: Verify CockroachDB connection
-      run: |
-        docker exec $(docker ps -q --filter "ancestor=cockroachdb/cockroach:v24.3.0") cockroach sql --insecure --host=127.0.0.1:26257 -d test -e "SELECT 1;"
-
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
         go-version: '1.27'
+        cache: true
 
     - name: Build
       run: go build -v ./...
@@ -244,11 +54,17 @@ jobs:
       run: go test -v -coverprofile=coverage_unit.out ./...
 
     - name: Run integration tests
-      # Exclude aztables and oracle, which run in their own workflows
-      # (tests-aztables.yml, tests-oracle.yml) to keep this job fast.
+      # Database-specific integration tests run in their own workflows
+      # (tests-mysql.yml, tests-tidb.yml, tests-cockroachdb.yml,
+      # tests-postgres.yml, tests-sqlserver.yml, tests-oracle.yml,
+      # tests-aztables.yml). Only run the remaining integration packages
+      # here (common, models, csvdb, jsondb, xmldb, godb, turso, sqlite,
+      # benchmarks, *_embedded).
       run: |
         pkgs=$(find integration_tests -mindepth 1 -maxdepth 1 -type d \
           -not -name aztables -not -name oracle \
+          -not -name postgres -not -name sqlserver \
+          -not -name mysql -not -name tidb -not -name cockroachdb \
           -printf './%p/...\n' | sort)
         go test -v -tags=integration -coverprofile=coverage_integration.out $pkgs
 

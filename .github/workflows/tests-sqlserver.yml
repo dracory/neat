@@ -1,0 +1,82 @@
+# SQL Server integration tests.
+#
+# Runs as a separate workflow so it does not add to the already-long
+# tests.yml runtime. Uses mcr.microsoft.com/mssql/server:2022-latest as a
+# service container on port 1433.
+
+name: tests-sqlserver
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  sqlserver:
+    runs-on: ubuntu-latest
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: YourStrong@Passw0rd
+          MSSQL_PID: Developer
+        ports:
+          - "1433:1433"
+
+    env:
+      SQLSERVER_HOST: 127.0.0.1
+      SQLSERVER_PORT: 1433
+      SQLSERVER_DATABASE: test
+      SQLSERVER_USER: sa
+      SQLSERVER_PASS: YourStrong@Passw0rd
+      GITHUB_ACTIONS: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure git for private modules
+        run: |
+          git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Install SQL Server client
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+          curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
+
+      - name: Wait for SQL Server service
+        run: |
+          echo "Waiting for SQL Server to be ready..."
+          for i in {1..30}; do
+            if /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;" > /dev/null 2>&1; then
+              echo "SQL Server is ready!"
+              break
+            fi
+            echo "Attempt $i: SQL Server not ready, waiting..."
+            sleep 2
+          done
+
+      - name: Create SQL Server test database
+        run: |
+          /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'test') CREATE DATABASE test;"
+
+      - name: Verify SQL Server connection
+        run: |
+          /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,${{ env.SQLSERVER_PORT }} -U ${{ env.SQLSERVER_USER }} -P ${{ env.SQLSERVER_PASS }} -C -Q "SELECT 1;"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27'
+          cache: true
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run SQL Server integration tests
+        run: go test -v -tags=integration ./integration_tests/sqlserver/...

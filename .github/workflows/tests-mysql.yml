@@ -1,0 +1,79 @@
+# MySQL integration tests.
+#
+# Runs as a separate workflow so it does not add to the already-long
+# tests.yml runtime. Uses mysql:8.0 as a service container on port 3306.
+
+name: tests-mysql
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  mysql:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=20s
+          --health-timeout=10s
+          --health-retries=10
+
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: test
+      MYSQL_USER: root
+      MYSQL_PASS: root
+      GITHUB_ACTIONS: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure git for private modules
+        run: |
+          git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Wait for MySQL service
+        run: |
+          echo "Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Attempt $i: MySQL not ready, waiting..."
+            sleep 2
+          done
+
+      - name: Verify MySQL connection
+        run: |
+          mysql --version
+          mysql --host 127.0.0.1 --port ${{ env.MYSQL_PORT }} -u${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASS }} -e "SHOW DATABASES;"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27'
+          cache: true
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run MySQL integration tests
+        run: go test -v -tags=integration ./integration_tests/mysql/...

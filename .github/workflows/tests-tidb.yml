@@ -1,0 +1,80 @@
+# TiDB integration tests.
+#
+# Runs as a separate workflow so it does not add to the already-long
+# tests.yml runtime. Uses pingcap/tidb:v8.5.0 as a service container on
+# port 4000.
+
+name: tests-tidb
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  tidb:
+    runs-on: ubuntu-latest
+
+    services:
+      tidb:
+        image: pingcap/tidb:v8.5.0
+        ports:
+          - "4000:4000"
+        options: >-
+          --health-cmd="curl -sf http://127.0.0.1:10080/status"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    env:
+      TIDB_HOST: 127.0.0.1
+      TIDB_PORT: 4000
+      TIDB_DATABASE: test
+      TIDB_USER: root
+      TIDB_PASS: ""
+      GITHUB_ACTIONS: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure git for private modules
+        run: |
+          git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Wait for TiDB service
+        run: |
+          echo "Waiting for TiDB to be ready..."
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 4000 -u root --silent; then
+              echo "TiDB is ready!"
+              break
+            fi
+            echo "Attempt $i: TiDB not ready, waiting..."
+            sleep 5
+          done
+
+      - name: Create TiDB test database
+        run: |
+          mysql -h 127.0.0.1 -P 4000 -u root -e "CREATE DATABASE IF NOT EXISTS test;"
+
+      - name: Verify TiDB connection
+        run: |
+          mysql -h 127.0.0.1 -P 4000 -u root -e "SELECT 1;"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27'
+          cache: true
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run TiDB integration tests
+        run: go test -v -tags=integration ./integration_tests/tidb/...
