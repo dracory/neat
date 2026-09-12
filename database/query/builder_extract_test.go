@@ -495,3 +495,31 @@ func TestExtractStructColumnsAndValuesWithNamedTimeWrapper(t *testing.T) {
 		t.Errorf("Expected created_at value %v, got %v", want, tv)
 	}
 }
+
+// TestUnwrapTimeColumnRespectsJsonTag reproduces Finding 3: the comment on
+// extractStructColumnNames says "Extract the column name from the inner
+// field's db/json tag", but structFieldColumnName (via
+// structref.FieldColumnName) only checks db/neat/gorm tags — never json.
+// The existing tests pass by coincidence because the inner field is named
+// CreatedAt, which snake-cases to "created_at" matching the json tag.
+//
+// This test uses an inner field named "When" with json:"created_at" to
+// prove the json tag is ignored: unwrapTimeColumn returns "when" (from
+// the field name) instead of "created_at" (from the json tag).
+func TestUnwrapTimeColumnRespectsJsonTag(t *testing.T) {
+	// Inner field named "When" — CamelToSnake("When") = "when"
+	// json tag says "created_at" — the column name should come from the tag
+	type CreatedAtWrapper struct {
+		When time.Time `json:"created_at"`
+	}
+
+	col, ok := unwrapTimeColumn(reflect.TypeOf(CreatedAtWrapper{}))
+	if !ok {
+		t.Fatal("Expected unwrapTimeColumn to detect the wrapper")
+	}
+	if col != "created_at" {
+		t.Errorf("Expected column %q (from json tag), got %q (from field name) "+
+			"— json tags are not checked by structFieldColumnName",
+			"created_at", col)
+	}
+}
