@@ -585,7 +585,10 @@ func TestUnwrapTimeFieldsRejectsUnexportedInnerField(t *testing.T) {
 		createdAt time.Time
 	}
 
-	_, ok := unwrapTimeFields(reflect.TypeOf(BadWrapper{}))
+	// Set the field so staticcheck doesn't flag it as unused (U1000).
+	// Reflection is the only access path; staticcheck can't trace it.
+	w := BadWrapper{createdAt: time.Now()}
+	_, ok := unwrapTimeFields(reflect.TypeOf(w))
 	if ok {
 		t.Error("Expected unwrapTimeFields to reject wrapper with unexported " +
 			"inner field, but it accepted it — the column would be in the " +
