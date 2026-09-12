@@ -151,6 +151,46 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
+		// Handle named wrapper structs containing a single time.Time field
+		// (e.g., orm.CreatedAt, orm.UpdatedAt). Extract the inner field's
+		// column name and value so INSERTs include created_at/updated_at.
+		// This mirrors unwrapTimeColumn in the SELECT path so both paths
+		// agree on the same columns.
+		if fieldValue.Kind() == reflect.Struct && fieldValue.Type() != reflect.TypeOf(time.Time{}) {
+			if innerField, ok := unwrapTimeField(fieldValue.Type()); ok {
+				innerCol := structFieldColumnName(innerField)
+				if innerCol == "" {
+					continue
+				}
+				// Skip omitted columns
+				innerOmitted := false
+				for _, omit := range b.query.omitColumns {
+					if omit == innerCol {
+						innerOmitted = true
+						break
+					}
+				}
+				if innerOmitted {
+					continue
+				}
+				innerVal := fieldValue.FieldByIndex(innerField.Index)
+				// Skip zero time.Time for MySQL/Oracle/SQL Server (use DEFAULT)
+				if innerVal.IsZero() && (b.query.isMySQL() || b.query.isOracle() || b.query.isSQLServer()) {
+					continue
+				}
+				if innerVal.IsZero() {
+					continue
+				}
+				columns = append(columns, innerCol)
+				iface := innerVal.Interface()
+				if t, ok := iface.(time.Time); ok && b.query.isSQLite() {
+					iface = timeToDateTimeString(t)
+				}
+				values = append(values, iface)
+				continue
+			}
+		}
+
 		// Skip slice/struct fields that are not handled as basic types
 		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Pointer) &&
 			fieldValue.Type() != reflect.TypeOf(time.Time{}) {

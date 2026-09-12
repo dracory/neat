@@ -435,3 +435,63 @@ func TestExtractStructColumnNamesWithNamedTimeWrapper(t *testing.T) {
 		t.Errorf("Expected 'updated_at' in columns, got %v", cols)
 	}
 }
+
+// TestExtractStructColumnsAndValuesWithNamedTimeWrapper reproduces Finding 2:
+// the INSERT path (extractStructColumnsAndValues) skips named struct fields
+// that wrap a single time.Time (e.g., orm.CreatedAt, orm.UpdatedAt), while
+// the SELECT path (extractStructColumnNames via unwrapTimeColumn) now
+// includes them. This creates an INSERT/SELECT asymmetry: a struct-based
+// Create(&T{...}) omits created_at/updated_at, silently dropping any
+// timestamp the caller set on the wrapper before insert.
+func TestExtractStructColumnsAndValuesWithNamedTimeWrapper(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	// Mirrors orm.CreatedAt from database/orm/model.go
+	type CreatedAtWrapper struct {
+		CreatedAt time.Time `json:"created_at"`
+	}
+
+	type User struct {
+		Name    string           `db:"name"`
+		Created CreatedAtWrapper `json:"created_at"`
+	}
+
+	want := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
+	user := User{
+		Name:    "Alice",
+		Created: CreatedAtWrapper{CreatedAt: want},
+	}
+
+	cols, vals := b.extractStructColumnsAndValues(reflect.ValueOf(user))
+
+	// Should extract 2 columns: name, created_at
+	if len(cols) != 2 {
+		t.Fatalf("Expected 2 columns (name, created_at), got %d: %v", len(cols), cols)
+	}
+	if len(vals) != 2 {
+		t.Fatalf("Expected 2 values, got %d: %v", len(vals), vals)
+	}
+
+	// Verify created_at is present
+	foundCreatedAt := false
+	var createdAtVal any
+	for i, col := range cols {
+		if col == "created_at" {
+			foundCreatedAt = true
+			createdAtVal = vals[i]
+		}
+	}
+	if !foundCreatedAt {
+		t.Fatalf("Expected 'created_at' in columns, got %v", cols)
+	}
+
+	// Verify the value is the inner time.Time (or convertible to it)
+	tv, ok := createdAtVal.(time.Time)
+	if !ok {
+		t.Fatalf("Expected created_at value to be time.Time, got %T (%v)", createdAtVal, createdAtVal)
+	}
+	if !tv.Equal(want) {
+		t.Errorf("Expected created_at value %v, got %v", want, tv)
+	}
+}
