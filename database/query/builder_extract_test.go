@@ -496,7 +496,7 @@ func TestExtractStructColumnsAndValuesWithNamedTimeWrapper(t *testing.T) {
 	}
 }
 
-// TestUnwrapTimeColumnRespectsJsonTag reproduces Finding 3: the comment on
+// TestUnwrapTimeColumnsRespectsJsonTag reproduces Finding 3: the comment on
 // extractStructColumnNames says "Extract the column name from the inner
 // field's db/json tag", but structFieldColumnName (via
 // structref.FieldColumnName) only checks db/neat/gorm tags — never json.
@@ -504,22 +504,70 @@ func TestExtractStructColumnsAndValuesWithNamedTimeWrapper(t *testing.T) {
 // CreatedAt, which snake-cases to "created_at" matching the json tag.
 //
 // This test uses an inner field named "When" with json:"created_at" to
-// prove the json tag is ignored: unwrapTimeColumn returns "when" (from
+// prove the json tag is ignored: unwrapTimeColumns returns "when" (from
 // the field name) instead of "created_at" (from the json tag).
-func TestUnwrapTimeColumnRespectsJsonTag(t *testing.T) {
+func TestUnwrapTimeColumnsRespectsJsonTag(t *testing.T) {
 	// Inner field named "When" — CamelToSnake("When") = "when"
 	// json tag says "created_at" — the column name should come from the tag
 	type CreatedAtWrapper struct {
 		When time.Time `json:"created_at"`
 	}
 
-	col, ok := unwrapTimeColumn(reflect.TypeOf(CreatedAtWrapper{}))
+	cols, ok := unwrapTimeColumns(reflect.TypeOf(CreatedAtWrapper{}))
 	if !ok {
-		t.Fatal("Expected unwrapTimeColumn to detect the wrapper")
+		t.Fatal("Expected unwrapTimeColumns to detect the wrapper")
 	}
-	if col != "created_at" {
-		t.Errorf("Expected column %q (from json tag), got %q (from field name) "+
+	if len(cols) != 1 || cols[0] != "created_at" {
+		t.Errorf("Expected column %q (from json tag), got %v (from field name) "+
 			"— json tags are not checked by structFieldColumnName",
-			"created_at", col)
+			"created_at", cols)
+	}
+}
+
+// TestExtractStructColumnNamesWithNamedTimestamps reproduces Finding 4:
+// orm.Timestamps has two time.Time fields (CreatedAt + UpdatedAt), so
+// unwrapTimeColumns previously returned false (count != 1). A *named*
+// Timestamps field was therefore skipped entirely — created_at and
+// updated_at were omitted from the SELECT column list. Anonymous
+// embedding works (via the field.Anonymous recursion path), but a named
+// field did not.
+func TestExtractStructColumnNamesWithNamedTimestamps(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	// Mirrors orm.Timestamps from database/orm/model.go
+	type Timestamps struct {
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}
+
+	type User struct {
+		Name string     `db:"name"`
+		Ts   Timestamps // named (not anonymous)
+	}
+
+	user := User{Name: "Alice"}
+	cols := b.extractStructColumnNames(reflect.ValueOf(user))
+
+	// Should extract 3 columns: name, created_at, updated_at
+	if len(cols) != 3 {
+		t.Fatalf("Expected 3 columns (name, created_at, updated_at), got %d: %v", len(cols), cols)
+	}
+
+	foundCreatedAt := false
+	foundUpdatedAt := false
+	for _, col := range cols {
+		if col == "created_at" {
+			foundCreatedAt = true
+		}
+		if col == "updated_at" {
+			foundUpdatedAt = true
+		}
+	}
+	if !foundCreatedAt {
+		t.Errorf("Expected 'created_at' in columns, got %v", cols)
+	}
+	if !foundUpdatedAt {
+		t.Errorf("Expected 'updated_at' in columns, got %v", cols)
 	}
 }

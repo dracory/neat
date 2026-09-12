@@ -151,42 +151,44 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
-		// Handle named wrapper structs containing a single time.Time field
-		// (e.g., orm.CreatedAt, orm.UpdatedAt). Extract the inner field's
-		// column name and value so INSERTs include created_at/updated_at.
-		// This mirrors unwrapTimeColumn in the SELECT path so both paths
-		// agree on the same columns.
+		// Handle named wrapper structs consisting solely of time.Time fields
+		// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). Extract each
+		// inner field's column name and value so INSERTs include
+		// created_at/updated_at. This mirrors unwrapTimeColumns in the
+		// SELECT path so both paths agree on the same columns.
 		if fieldValue.Kind() == reflect.Struct && fieldValue.Type() != reflect.TypeOf(time.Time{}) {
-			if innerField, ok := unwrapTimeField(fieldValue.Type()); ok {
-				innerCol := structFieldColumnName(innerField)
-				if innerCol == "" {
-					continue
-				}
-				// Skip omitted columns
-				innerOmitted := false
-				for _, omit := range b.query.omitColumns {
-					if omit == innerCol {
-						innerOmitted = true
-						break
+			if innerFields, ok := unwrapTimeFields(fieldValue.Type()); ok {
+				for _, innerField := range innerFields {
+					innerCol := structFieldColumnName(innerField)
+					if innerCol == "" {
+						continue
 					}
+					// Skip omitted columns
+					innerOmitted := false
+					for _, omit := range b.query.omitColumns {
+						if omit == innerCol {
+							innerOmitted = true
+							break
+						}
+					}
+					if innerOmitted {
+						continue
+					}
+					innerVal := fieldValue.FieldByIndex(innerField.Index)
+					// Skip zero time.Time for MySQL/Oracle/SQL Server (use DEFAULT)
+					if innerVal.IsZero() && (b.query.isMySQL() || b.query.isOracle() || b.query.isSQLServer()) {
+						continue
+					}
+					if innerVal.IsZero() {
+						continue
+					}
+					columns = append(columns, innerCol)
+					iface := innerVal.Interface()
+					if t, ok := iface.(time.Time); ok && b.query.isSQLite() {
+						iface = timeToDateTimeString(t)
+					}
+					values = append(values, iface)
 				}
-				if innerOmitted {
-					continue
-				}
-				innerVal := fieldValue.FieldByIndex(innerField.Index)
-				// Skip zero time.Time for MySQL/Oracle/SQL Server (use DEFAULT)
-				if innerVal.IsZero() && (b.query.isMySQL() || b.query.isOracle() || b.query.isSQLServer()) {
-					continue
-				}
-				if innerVal.IsZero() {
-					continue
-				}
-				columns = append(columns, innerCol)
-				iface := innerVal.Interface()
-				if t, ok := iface.(time.Time); ok && b.query.isSQLite() {
-					iface = timeToDateTimeString(t)
-				}
-				values = append(values, iface)
 				continue
 			}
 		}
@@ -312,14 +314,15 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 
 		if (fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
 			fieldType != reflect.TypeOf(time.Time{}) {
-			// Handle wrapper structs that contain a single time.Time field
-			// (e.g., orm.CreatedAt, orm.UpdatedAt). These are named struct
-			// fields whose inner field holds the actual timestamp. Extract
-			// the column name from the inner field's db/json tag so the
-			// column is included in the SELECT clause.
+			// Handle wrapper structs consisting solely of time.Time fields
+			// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). These
+			// are named struct fields whose inner fields hold the actual
+			// timestamps. Extract the column names from the inner fields'
+			// db/neat/gorm/json tags so the columns are included in the
+			// SELECT clause.
 			if fieldType.Kind() == reflect.Struct {
-				if col, ok := unwrapTimeColumn(fieldType); ok {
-					columns = append(columns, col)
+				if cols, ok := unwrapTimeColumns(fieldType); ok {
+					columns = append(columns, cols...)
 					continue
 				}
 			}
@@ -332,48 +335,55 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 	return columns
 }
 
-// unwrapTimeField checks if a struct type is a wrapper around a single
-// time.Time field (e.g., orm.CreatedAt, orm.UpdatedAt). If so, it returns
-// the inner StructField and true. This is the shared detection logic used
-// by both the SELECT path (unwrapTimeColumn) and the scan path
-// (getColumnToIndexPath) so both resolve the same column name and field.
-func unwrapTimeField(t reflect.Type) (reflect.StructField, bool) {
+// unwrapTimeFields checks if a struct type is a wrapper consisting solely
+// of time.Time (or *time.Time) fields (e.g., orm.CreatedAt with one field,
+// orm.Timestamps with two). If so, it returns all the inner StructFields
+// and true. A struct with any non-time field is not considered a wrapper.
+// This is the shared detection logic used by the SELECT path
+// (unwrapTimeColumns), the scan path (getColumnToIndexPath), and the
+// INSERT path (extractStructColumnsAndValues) so all three resolve the
+// same column names and fields.
+func unwrapTimeFields(t reflect.Type) ([]reflect.StructField, bool) {
 	timeType := reflect.TypeOf(time.Time{})
-	var timeField reflect.StructField
-	timeFieldCount := 0
-
+	var timeFields []reflect.StructField
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		ft := f.Type
 		if ft.Kind() == reflect.Pointer {
 			ft = ft.Elem()
 		}
-		if ft == timeType {
-			timeField = f
-			timeFieldCount++
+		if ft != timeType {
+			return nil, false // not a pure time wrapper
 		}
+		timeFields = append(timeFields, f)
 	}
-
-	// Only unwrap if the struct has exactly one time.Time field
-	if timeFieldCount != 1 {
-		return reflect.StructField{}, false
+	if len(timeFields) == 0 {
+		return nil, false
 	}
-	return timeField, true
+	return timeFields, true
 }
 
-// unwrapTimeColumn checks if a struct type is a wrapper around a single
-// time.Time field (e.g., orm.CreatedAt, orm.UpdatedAt). If so, it returns
-// the DB column name derived from the inner field's db/neat/gorm tag or
-// field name, and true. This allows named struct fields that wrap
-// time.Time to be included in SELECT column extraction.
-func unwrapTimeColumn(t reflect.Type) (string, bool) {
-	timeField, ok := unwrapTimeField(t)
+// unwrapTimeColumns checks if a struct type is a wrapper consisting solely
+// of time.Time (or *time.Time) fields (e.g., orm.CreatedAt, orm.UpdatedAt,
+// orm.Timestamps). If so, it returns the DB column names derived from each
+// inner field's db/neat/gorm/json tag or field name, and true. This allows
+// named struct fields that wrap time.Time to be included in SELECT column
+// extraction.
+func unwrapTimeColumns(t reflect.Type) ([]string, bool) {
+	timeFields, ok := unwrapTimeFields(t)
 	if !ok {
-		return "", false
+		return nil, false
 	}
-	col := structFieldColumnName(timeField)
-	if col == "" {
-		return "", false
+	var cols []string
+	for _, tf := range timeFields {
+		col := structFieldColumnName(tf)
+		if col == "" {
+			continue
+		}
+		cols = append(cols, col)
 	}
-	return col, true
+	if len(cols) == 0 {
+		return nil, false
+	}
+	return cols, true
 }

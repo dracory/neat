@@ -77,20 +77,23 @@ func getColumnToIndexPath(t reflect.Type) map[string][]int {
 			}
 			continue
 		}
-		// Handle named wrapper structs containing a single time.Time field
-		// (e.g., orm.CreatedAt, orm.UpdatedAt). Map the inner field's column
-		// name to a path through the wrapper so scanned values reach the
-		// inner time.Time field. This mirrors unwrapTimeColumn in the SELECT
-		// path (builder_extract.go) — both must resolve the same column.
+		// Handle named wrapper structs consisting solely of time.Time fields
+		// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). Map each
+		// inner field's column name to a path through the wrapper so
+		// scanned values reach the inner time.Time fields. This mirrors
+		// unwrapTimeColumns in the SELECT path (builder_extract.go) — both
+		// must resolve the same columns.
 		fieldType := f.Type
 		if fieldType.Kind() == reflect.Pointer {
 			fieldType = fieldType.Elem()
 		}
 		if fieldType.Kind() == reflect.Struct && fieldType != reflect.TypeOf(time.Time{}) {
-			if innerField, ok := unwrapTimeField(fieldType); ok {
-				col := strings.ToLower(structFieldColumnName(innerField))
-				if _, exists := m[col]; !exists {
-					m[col] = []int{i, innerField.Index[0]}
+			if innerFields, ok := unwrapTimeFields(fieldType); ok {
+				for _, innerField := range innerFields {
+					col := strings.ToLower(structFieldColumnName(innerField))
+					if _, exists := m[col]; !exists {
+						m[col] = []int{i, innerField.Index[0]}
+					}
 				}
 				continue
 			}
