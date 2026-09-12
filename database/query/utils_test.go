@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestToCamelCase(t *testing.T) {
@@ -292,6 +293,64 @@ func TestCopyScanResults(t *testing.T) {
 			t.Errorf("Expected Name to be 'test', got %s", user.Name)
 		}
 	})
+}
+
+// TestScanNamedTimeWrapperPopulatesInnerField reproduces Finding 1: a named
+// struct field wrapping a single time.Time (mirrors orm.CreatedAt /
+// orm.UpdatedAt). extractStructColumnNames (via unwrapTimeColumn) emits the
+// inner column name "created_at" in the SELECT clause, so the scan path
+// (getColumnToIndexPath -> structScanDests -> copyScanResults) must map that
+// same column name back to the inner time.Time field. If it does not, the
+// scanned value is discarded and the wrapper's time.Time stays at the Go
+// zero value — the original bug the unwrapTimeColumn fix intended to fix.
+func TestScanNamedTimeWrapperPopulatesInnerField(t *testing.T) {
+	// Mirrors orm.CreatedAt: inner field named CreatedAt, no db/neat/gorm tag
+	// (column name comes from CamelToSnake("CreatedAt") = "created_at").
+	type CreatedAtWrapper struct {
+		CreatedAt time.Time `json:"created_at"`
+	}
+
+	// Outer field has no db tag, mirroring userstore's
+	// `CreatedAtField orm.CreatedAt`. getColumnToIndexPath therefore maps
+	// the outer field name ("created_at_field"), NOT the inner column
+	// ("created_at") that unwrapTimeColumn emits in the SELECT.
+	type User struct {
+		Name           string `db:"name"`
+		CreatedAtField CreatedAtWrapper
+	}
+
+	user := User{}
+	// Columns as emitted by extractStructColumnNames: "name", "created_at".
+	columns := []string{"name", "created_at"}
+	dests := structScanDests(reflect.ValueOf(&user).Elem(), columns)
+
+	// Simulate the database scanning a row.
+	if ns, ok := dests[0].(*sql.NullString); ok {
+		ns.String = "Alice"
+		ns.Valid = true
+	}
+
+	// "created_at" must map to a *sql.NullTime so the value lands in the
+	// wrapper's inner time.Time field. If getColumnToIndexPath does not
+	// recurse into the named wrapper, the dest is a *any placeholder and
+	// the value is silently discarded.
+	want := time.Date(2026, 9, 12, 10, 0, 0, 0, time.UTC)
+	nt, ok := dests[1].(*sql.NullTime)
+	if !ok {
+		t.Fatalf("Expected dests[1] to be *sql.NullTime for column %q, got %T "+
+			"(column is not mapped to the inner time.Time field)",
+			columns[1], dests[1])
+	}
+	nt.Time = want
+	nt.Valid = true
+
+	copyScanResults(reflect.ValueOf(&user).Elem(), columns, dests)
+
+	if user.CreatedAtField.CreatedAt != want {
+		t.Errorf("Expected CreatedAtField.CreatedAt to be %v, got %v "+
+			"(scanned value was discarded — column %q not mapped to inner field)",
+			want, user.CreatedAtField.CreatedAt, columns[1])
+	}
 }
 
 func TestApplyWhereConditions(t *testing.T) {
