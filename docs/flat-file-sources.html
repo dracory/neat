@@ -46,6 +46,15 @@
 
     <p>All parsers use only the Go standard library (<code>encoding/csv</code>, <code>encoding/json</code>, <code>encoding/xml</code>). No external dependencies are added.</p>
 
+    <h2>Separate Disk Files vs. Embedded Filesystems (embed.FS)</h2>
+
+    <p>Neat ORM supports two distinct storage and deployment use cases for flat-file data:</p>
+
+    <ul>
+        <li><strong>Separate Disk Files (Local Runtime Files):</strong> Read files from external disk directories or paths at runtime (e.g. <code>"data/users.csv"</code>). This use case is ideal for processing external exports, user uploads, log files, or data updated independently of binary releases.</li>
+        <li><strong>Embedded Filesystems (embed.FS / Binary Data):</strong> Read files compiled directly into the Go executable binary using Go's <code>//go:embed</code> feature (e.g. <code>neat.NewCsvFSSource(embeddedFS, "data/users.csv")</code>). This use case is ideal for static lookup tables, seed/reference datasets, default configurations, or self-contained single-binary deployments with zero file I/O runtime dependencies.</li>
+    </ul>
+
     <h2>API Overview</h2>
 
     <table>
