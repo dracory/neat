@@ -571,3 +571,23 @@ func TestExtractStructColumnNamesWithNamedTimestamps(t *testing.T) {
 		t.Errorf("Expected 'updated_at' in columns, got %v", cols)
 	}
 }
+
+// TestUnwrapTimeFieldsRejectsUnexportedInnerField reproduces Finding 5:
+// unwrapTimeFields does not verify the inner time.Time field is exported.
+// If the inner field is unexported (lowercase), the column name is
+// extracted and included in the SELECT, but the value cannot be set
+// during scanning (field.CanSet() is false). unwrapTimeFields should
+// reject the wrapper so the column is not emitted at all.
+func TestUnwrapTimeFieldsRejectsUnexportedInnerField(t *testing.T) {
+	// Inner field is unexported (lowercase) — cannot be set via reflection
+	type BadWrapper struct {
+		createdAt time.Time `json:"created_at"`
+	}
+
+	_, ok := unwrapTimeFields(reflect.TypeOf(BadWrapper{}))
+	if ok {
+		t.Error("Expected unwrapTimeFields to reject wrapper with unexported " +
+			"inner field, but it accepted it — the column would be in the " +
+			"SELECT but the value could not be set during scanning")
+	}
+}

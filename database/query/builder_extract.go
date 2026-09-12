@@ -348,6 +348,12 @@ func unwrapTimeFields(t reflect.Type) ([]reflect.StructField, bool) {
 	var timeFields []reflect.StructField
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
+		// Reject unexported fields — the value cannot be set via
+		// reflection during scanning, so emitting the column would
+		// produce a SELECT column whose value is silently discarded.
+		if !f.IsExported() {
+			return nil, false
+		}
 		ft := f.Type
 		if ft.Kind() == reflect.Pointer {
 			ft = ft.Elem()
