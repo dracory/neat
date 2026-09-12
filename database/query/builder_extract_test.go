@@ -579,9 +579,10 @@ func TestExtractStructColumnNamesWithNamedTimestamps(t *testing.T) {
 // during scanning (field.CanSet() is false). unwrapTimeFields should
 // reject the wrapper so the column is not emitted at all.
 func TestUnwrapTimeFieldsRejectsUnexportedInnerField(t *testing.T) {
-	// Inner field is unexported (lowercase) — cannot be set via reflection
+	// Inner field is unexported (lowercase) — cannot be set via reflection.
+	// No json tag: an unexported field with a json tag is rejected by go vet.
 	type BadWrapper struct {
-		createdAt time.Time `json:"created_at"`
+		createdAt time.Time
 	}
 
 	_, ok := unwrapTimeFields(reflect.TypeOf(BadWrapper{}))
