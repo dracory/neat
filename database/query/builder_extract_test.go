@@ -381,3 +381,57 @@ func TestExtractColumnsAndValuesUnsupportedType(t *testing.T) {
 		t.Error("Expected error for unsupported type")
 	}
 }
+
+// TestExtractStructColumnNamesWithNamedTimeWrapper reproduces a bug where
+// a named struct field that wraps a single time.Time (e.g. orm.CreatedAt,
+// orm.UpdatedAt) is excluded from the extracted column list. These
+// wrapper structs have a json tag on the inner field but no db tag on the
+// outer field, so extractStructColumnNames skips them because the field
+// type is a struct (not time.Time). This causes SELECT queries built via
+// Model() to omit created_at/updated_at columns, leaving them at the Go
+// zero value after scanning.
+func TestExtractStructColumnNamesWithNamedTimeWrapper(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	b := NewBuilder(q)
+
+	// Mirrors orm.CreatedAt / orm.UpdatedAt from database/orm/model.go
+	type CreatedAtWrapper struct {
+		CreatedAt time.Time `json:"created_at"`
+	}
+	type UpdatedAtWrapper struct {
+		UpdatedAt time.Time `json:"updated_at"`
+	}
+
+	type User struct {
+		Name    string           `db:"name"`
+		Email   string           `db:"email"`
+		Created CreatedAtWrapper `json:"created_at"`
+		Updated UpdatedAtWrapper `json:"updated_at"`
+	}
+
+	user := User{Name: "Alice", Email: "alice@example.com"}
+	cols := b.extractStructColumnNames(reflect.ValueOf(user))
+
+	// Should extract 4 columns: name, email, created_at, updated_at
+	if len(cols) != 4 {
+		t.Errorf("Expected 4 columns (name, email, created_at, updated_at), got %d: %v", len(cols), cols)
+	}
+
+	// Verify created_at and updated_at are present
+	foundCreatedAt := false
+	foundUpdatedAt := false
+	for _, col := range cols {
+		if col == "created_at" {
+			foundCreatedAt = true
+		}
+		if col == "updated_at" {
+			foundUpdatedAt = true
+		}
+	}
+	if !foundCreatedAt {
+		t.Errorf("Expected 'created_at' in columns, got %v", cols)
+	}
+	if !foundUpdatedAt {
+		t.Errorf("Expected 'updated_at' in columns, got %v", cols)
+	}
+}
