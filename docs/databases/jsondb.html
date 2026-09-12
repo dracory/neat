@@ -33,9 +33,15 @@
 
     <h1>JSONDB (JSON Directory)</h1>
 
-    <p>JSONDB turns a directory of <code>.json</code>, <code>.jsonl</code>, and <code>.ndjson</code> files into a queryable database. Each file becomes a table named after the file (without the extension); object keys define the columns. Under the hood the driver opens an in-memory SQLite database and populates it at <code>Open()</code> time, so you get the full query builder &mdash; including JOINs across JSON, JSONL, and NDJSON files &mdash; with no external dependencies (parsing uses only the Go standard library <code>encoding/json</code>).</p>
+    <p>JSONDB turns a directory of <code>.json</code>, <code>.jsonl</code>, and <code>.ndjson</code> files into a queryable database. Each file becomes a table named after the file (without the extension); object keys define the columns. Under the hood, the driver opens an in-memory SQLite database and populates it at <code>Open()</code> time, providing the full query builder API &mdash; including JOINs across JSON, JSONL, and NDJSON files &mdash; with no external dependencies (parsing uses only the Go standard library <code>encoding/json</code>).</p>
 
-    <p>For the higher-level <code>neat.NewJsonSource</code> helper that loads a single JSON/JSONL string into any database, see <a href="../flat-file-sources.html">Flat-File Sources</a>.</p>
+    <p>JSONDB supports two distinct use cases for accessing JSON directories:</p>
+    <ul>
+        <li><strong>Separate Local Directory on Disk:</strong> Point to an external directory path on disk at runtime via <code>Database: "/path/to/json/dir"</code>.</li>
+        <li><strong>Embedded Directory in Go Binary:</strong> Query an embedded filesystem compiled directly into the binary via <code>FS: embedFS</code> and <code>Database: "rel/path"</code>.</li>
+    </ul>
+
+    <p>For the higher-level <code>neat.NewJsonSource</code> / <code>neat.NewJsonFileSource</code> / <code>neat.NewJsonFSSource</code> helpers that load a single JSON/JSONL string, file, or embedded file into any database connection, see <a href="../flat-file-sources.html">Flat-File Sources</a>.</p>
 
     <h2>Connection</h2>
 
@@ -105,14 +111,14 @@ config := neat.DBConfig{
     <ul>
         <li><strong>File selection:</strong> Only top-level files ending in <code>.json</code>, <code>.jsonl</code>, or <code>.ndjson</code> (case-insensitive extension) are loaded. Subdirectories are skipped.</li>
         <li><strong>Table name collisions:</strong> Table names are tracked case-insensitively. On case-insensitive filesystems (Windows, macOS default) where <code>Users.json</code> and <code>users.json</code> would produce colliding SQLite table names, <code>Open()</code> fails with a clear error rather than silently overwriting one table with another.</li>
-        <li><strong>Stateless driver:</strong> All state lives in the in-memory SQLite database. The driver struct itself holds no per-connection state, so a single driver instance can be shared across connections.</li>
-        <li><strong>Read-only data:</strong> The directory is read once at <code>Open()</code>. Changes to the JSON files after the connection is opened are not reflected. Re-open the connection to pick up file changes.</li>
-        <li><strong>Single connection:</strong> Like the other embedded drivers, JSONDB is pinned to a single underlying <code>*sql.DB</code> (no connection pooling across separate in-memory databases).</li>
+        <li><strong>Stateless driver:</strong> All state lives in the underlying in-memory SQLite database. The driver struct itself holds no per-connection state, so a single driver instance can be shared across connections.</li>
+        <li><strong>Read-only data:</strong> The directory (on disk or in <code>embed.FS</code>) is read once at <code>Open()</code>. Changes to disk files after the connection is opened are not reflected. Re-open the connection to pick up file changes.</li>
+        <li><strong>Single connection:</strong> Like the other in-memory directory drivers, JSONDB is pinned to a single underlying <code>*sql.DB</code> (no connection pooling across separate in-memory databases).</li>
     </ul>
 
     <h2>Default Ports</h2>
 
-    <p>JSONDB is embedded &mdash; there is no network port. The "address" is a filesystem directory path or <code>:memory:</code>.</p>
+    <p>JSONDB runs using an internal in-memory database engine &mdash; there is no network port. The "address" is a local filesystem directory path, an embedded filesystem path, or <code>:memory:</code>.</p>
 
     <div class="footer">
         <p>Neat ORM Documentation</p>

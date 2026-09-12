@@ -74,7 +74,7 @@
         </a>
     </div>
 
-    <div class="section-title">Embedded &amp; In-Memory Sources</div>
+    <div class="section-title">Directory &amp; In-Memory Sources</div>
     <div class="grid">
         <a href="array.html" class="card">
             <span class="badge embedded">In-Memory</span>
@@ -82,9 +82,9 @@
             <p>Query in-memory Go data (slices of structs, map rows) as database tables. Lazy population on first query. Great for tests and lookup data.</p>
         </a>
         <a href="csvdb.html" class="card">
-            <span class="badge embedded">Embedded</span>
+            <span class="badge embedded">Directory / FS</span>
             <h2>CSVDB</h2>
-            <p>CSV directory as database. Each .csv file becomes a table with automatic type inference. In-memory SQLite under the hood.</p>
+            <p>Query a CSV directory on disk or an embedded filesystem (embed.FS). Each .csv file becomes a table with automatic type inference.</p>
         </a>
         <a href="godb.html" class="card">
             <span class="badge embedded">In-Memory</span>
@@ -92,14 +92,14 @@
             <p>Native Go slices compiled into your binary as database tables. No file I/O, no parsing &mdash; the fastest way to query build-time data.</p>
         </a>
         <a href="jsondb.html" class="card">
-            <span class="badge embedded">Embedded</span>
+            <span class="badge embedded">Directory / FS</span>
             <h2>JSONDB</h2>
-            <p>Directory of .json, .jsonl, and .ndjson files as a database. Object keys define columns. In-memory SQLite under the hood.</p>
+            <p>Query a JSON/JSONL/NDJSON directory on disk or an embedded filesystem (embed.FS). Object keys define columns.</p>
         </a>
         <a href="xmldb.html" class="card">
-            <span class="badge embedded">Embedded</span>
+            <span class="badge embedded">Directory / FS</span>
             <h2>XMLDB</h2>
-            <p>Directory of .xml files as a database. Root element is the container; child elements are rows; attributes and leaf elements are columns.</p>
+            <p>Query an XML directory on disk or an embedded filesystem (embed.FS). Root element is container; direct children are rows.</p>
         </a>
     </div>
 
