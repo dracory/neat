@@ -3,8 +3,7 @@ package database
 import (
 	"reflect"
 	"testing"
-
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/dromara/carbon/v2"
 )
