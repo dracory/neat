@@ -272,6 +272,17 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 
 		if (fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
 			fieldType != reflect.TypeOf(time.Time{}) {
+			// Handle wrapper structs that contain a single time.Time field
+			// (e.g., orm.CreatedAt, orm.UpdatedAt). These are named struct
+			// fields whose inner field holds the actual timestamp. Extract
+			// the column name from the inner field's db/json tag so the
+			// column is included in the SELECT clause.
+			if fieldType.Kind() == reflect.Struct {
+				if col, ok := unwrapTimeColumn(fieldType); ok {
+					columns = append(columns, col)
+					continue
+				}
+			}
 			continue
 		}
 
@@ -279,4 +290,38 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 	}
 
 	return columns
+}
+
+// unwrapTimeColumn checks if a struct type is a wrapper around a single
+// time.Time field (e.g., orm.CreatedAt, orm.UpdatedAt). If so, it returns
+// the DB column name derived from the inner field's db/json tag or field
+// name, and true. This allows named struct fields that wrap time.Time to
+// be included in SELECT column extraction.
+func unwrapTimeColumn(t reflect.Type) (string, bool) {
+	timeType := reflect.TypeOf(time.Time{})
+	var timeField reflect.StructField
+	timeFieldCount := 0
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		ft := f.Type
+		if ft.Kind() == reflect.Pointer {
+			ft = ft.Elem()
+		}
+		if ft == timeType {
+			timeField = f
+			timeFieldCount++
+		}
+	}
+
+	// Only unwrap if the struct has exactly one time.Time field
+	if timeFieldCount != 1 {
+		return "", false
+	}
+
+	col := structFieldColumnName(timeField)
+	if col == "" {
+		return "", false
+	}
+	return col, true
 }
