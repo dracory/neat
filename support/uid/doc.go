@@ -56,14 +56,35 @@
 //   - The package depends exclusively on standard library primitives (strings, sync, time),
 //     making it lightweight, fast, and trivial to audit end-to-end.
 //
-// # Key Trade-offs (Cons):
+// # Comparison: support/uid vs xid (github.com/rs/xid)
+//
+// xid is a popular 12-byte identifier composed of a 4-byte timestamp (seconds), a 3-byte
+// machine identifier, a 2-byte process ID, and a 3-byte counter, encoded as a 20-character
+// base32hex string.
+//
+// Where support/uid Wins:
+//
+//   - Compactness: 11 characters vs xid's 20 characters. support/uid is significantly shorter.
+//   - Simplicity: ~80 lines of pure standard library Go code with zero platform-specific files
+//     (unlike xid which uses OS-specific hostid implementations like hostid_linux.go, hostid_darwin.go).
+//
+// Where xid Wins:
+//
+//   - Uncoordinated Multi-Host Safety: xid bakes the machine ID and process ID directly into
+//     every ID via hostid resolution and os.Getpid(), allowing multiple replicas or pods to
+//     generate IDs safely out-of-the-box without central coordination.
+//   - Lock-Free Concurrency: xid uses atomic counter operations instead of a sync.Mutex,
+//     scaling better across multiple CPU cores under extremely heavy concurrent generation.
+//   - Guaranteed Per-Host Throughput: xid guarantees uniqueness for up to 16,777,216 IDs per second
+//     per host/process via its 24-bit counter.
+//
+// # Summary & Trade-offs (Cons):
 //
 // 1. Single-Process / Single-Instance Scope:
 //
 //   - Uniqueness relies on in-memory state (lastTimestamp and counter) guarded by a mutex.
-//   - Unlike UUID v7, which uses ~62 bits of CSPRNG randomness for multi-node collision
-//     resistance with zero coordination, support/uid requires external coordination if used
-//     across multiple independent generators.
+//   - Unlike UUID v7 (entropy) or xid (host ID + PID), support/uid requires external
+//     coordination if generated across multiple independent processes or pods.
 //
 // 2. Burst Throttling under Extreme Concurrency:
 //
