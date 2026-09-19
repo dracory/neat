@@ -20,43 +20,54 @@
 // identifiers (combining a 48-bit millisecond timestamp with ~62 bits of CSPRNG randomness,
 // formatted as standard 36-character hyphenated strings).
 //
-// Key Advantages (Pros) of support/uid:
+// While UUID v7 is the right choice when generating IDs across independent, uncoordinated
+// machines or microservices, support/uid's design offers significant advantages across three
+// primary pillars:
 //
-//  1. Zero Randomness / No System Entropy Overhead:
-//     UUID v7 requires cryptographically secure pseudorandom number generation (crypto/rand)
-//     to fill ~62 bits on every generation call. support/uid is fully deterministic based
-//     on timestamp and sequence counter, eliminating CSPRNG overhead and avoiding system
-//     entropy consumption under high-volume ID generation.
+// 1. Zero Randomness / No System Entropy Overhead:
 //
-//  2. Sub-Millisecond Precision & True Sub-Tick Ordering:
-//     UUID v7 records timestamps with millisecond resolution; identifiers created within
-//     the same millisecond rely on random bits for relative ordering. support/uid uses
-//     microsecond resolution combined with an explicit sequence counter (0–15) that increments
-//     on ties, guaranteeing exact creation-order monotonicity for up to 16 IDs per microsecond.
+//   - UUID v7 requires cryptographically secure pseudorandom number generation (crypto/rand)
+//     to fill ~62 bits on every generation call.
+//   - support/uid is fully deterministic based on timestamp and sequence counter, eliminating
+//     CSPRNG calls and system entropy consumption under high-volume ID generation.
 //
-//  3. Clean, Compact, URL and Filename-Safe Encoding:
-//     Crockford Base32 produces an 11-character lowercase alphanumeric string without hyphens
-//     or special characters. It can be embedded directly into URLs, database keys, filenames,
-//     or slugs without URL escaping or string normalization. Standard UUID strings are 36
-//     characters long and contain hyphens.
+// 2. Sub-Millisecond Precision & Sub-Tick Ordering:
 //
-//  4. Built-in Normalization Helper:
-//     The NormalizeID function provides standard whitespace trimming and lowercasing for
-//     case-insensitive lookups, addressing common string ID handling requirements out of the box.
+//   - UUID v7 encodes time down to millisecond resolution; IDs generated within the same
+//     millisecond are sorted by random bits rather than exact creation sequence.
+//   - support/uid uses microsecond timestamps paired with an explicit counter (0–15) that
+//     increments on ties, guaranteeing strict creation-order monotonicity for up to 16 IDs
+//     per microsecond.
 //
-//  5. Minimal Dependency Footprint:
-//     The package depends only on standard library primitives (strings, sync, time), making
-//     it concise, fast, and easy to audit end-to-end.
+// 3. Human-Optimized Ergonomics & URL/Filename Safety:
 //
-// Key Trade-offs (Cons):
+//   - Compact Length: An 11-character ID is dramatically easier to read over the phone,
+//     retype from a support ticket, or eyeball in log files compared to a 36-character UUID string.
+//   - No Visual Ambiguity: Crockford Base32 removes ambiguous characters (I, L, O, U),
+//     eliminating 1/I/l and 0/O confusion that causes human transcription errors.
+//   - Case-Insensitive & Normalization-Friendly: Designed to be case-insensitive. The
+//     NormalizeID helper ensures that habituated capitalization or uppercase pipeline steps
+//     do not break database lookups.
+//   - Hyphen-Free: Free of hyphens, eliminating copy-paste failure modes caused by misplaced
+//     or missing dashes in standard UUIDs (e.g., xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
 //
-//  1. Single-Process / Single-Instance Scope:
-//     Uniqueness depends on in-memory state (lastTimestamp and counter) protected by a mutex.
-//     It is designed for single-process architectures. Unlike UUID v7, which uses ~62 bits of
-//     entropy to achieve global collision resistance across distributed nodes without coordination,
-//     support/uid requires external coordination if generated across multiple independent processes.
+// 4. Minimal Dependency Footprint:
 //
-//  2. Burst Throttling under Extreme Concurrency:
-//     If more than 16 IDs are generated within a single microsecond, the generator pauses execution
-//     via time.Sleep(1 * time.Millisecond) to allow the clock tick to advance and prevent counter wrap-around.
+//   - The package depends exclusively on standard library primitives (strings, sync, time),
+//     making it lightweight, fast, and trivial to audit end-to-end.
+//
+// # Key Trade-offs (Cons):
+//
+// 1. Single-Process / Single-Instance Scope:
+//
+//   - Uniqueness relies on in-memory state (lastTimestamp and counter) guarded by a mutex.
+//   - Unlike UUID v7, which uses ~62 bits of CSPRNG randomness for multi-node collision
+//     resistance with zero coordination, support/uid requires external coordination if used
+//     across multiple independent generators.
+//
+// 2. Burst Throttling under Extreme Concurrency:
+//
+//   - If more than 16 IDs are requested within a single microsecond, the generator pauses
+//     execution via time.Sleep(1 * time.Millisecond) to advance the clock tick and prevent
+//     counter overflow/duplicates.
 package uid
