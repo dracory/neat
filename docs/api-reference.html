@@ -211,6 +211,18 @@ const No  = "no"</code></pre>
         <li><code>WhereNull(column string) Query</code> - WHERE column IS NULL</li>
         <li><code>WhereNotNull(column string) Query</code> - WHERE column IS NOT NULL</li>
         <li><code>OrWhereNull(column string) Query</code> - OR WHERE column IS NULL</li>
+        <li><code>WhereLike(column, pattern string) Query</code> - WHERE column LIKE pattern</li>
+        <li><code>WhereNotLike(column, pattern string) Query</code> - WHERE column NOT LIKE pattern</li>
+        <li><code>OrWhereLike(column, pattern string) Query</code> - OR WHERE column LIKE pattern</li>
+        <li><code>OrWhereNotLike(column, pattern string) Query</code> - OR WHERE column NOT LIKE pattern</li>
+        <li><code>WhereStartsWith(column, value string) Query</code> - WHERE column LIKE 'value%'</li>
+        <li><code>OrWhereStartsWith(column, value string) Query</code> - OR WHERE column LIKE 'value%'</li>
+        <li><code>WhereEndsWith(column, value string) Query</code> - WHERE column LIKE '%value'</li>
+        <li><code>OrWhereEndsWith(column, value string) Query</code> - OR WHERE column LIKE '%value'</li>
+        <li><code>WhereContains(column, value string) Query</code> - WHERE column LIKE '%value%'</li>
+        <li><code>OrWhereContains(column, value string) Query</code> - OR WHERE column LIKE '%value%'</li>
+        <li><code>WhereNotContains(column, value string) Query</code> - WHERE column NOT LIKE '%value%'</li>
+        <li><code>OrWhereNotContains(column, value string) Query</code> - OR WHERE column NOT LIKE '%value%'</li>
         <li><code>WhereColumn(first, operator, second string) Query</code> - WHERE column1 operator column2</li>
         <li><code>OrWhereColumn(first, operator, second string) Query</code> - OR WHERE column1 operator column2</li>
         <li><code>WhereExists(callback func(orm.Query) orm.Query) Query</code> - WHERE EXISTS (subquery)</li>

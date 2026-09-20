@@ -363,6 +363,29 @@ db.Query().WhereNotNull("email")
 // OrWhereNull
 db.Query().Where("name", "John").OrWhereNull("deleted_at")
 
+// WhereLike - pattern matching (wildcards allowed)
+db.Query().WhereLike("name", "%john%")
+
+// WhereNotLike / OrWhereLike / OrWhereNotLike
+db.Query().WhereNotLike("name", "%spam%")
+db.Query().Where("active", true).OrWhereLike("name", "%john%")
+db.Query().Where("active", true).OrWhereNotLike("name", "%spam%")
+
+// WhereStartsWith - value is escaped, matched literally
+db.Query().WhereStartsWith("name", "John")
+
+// WhereEndsWith - value is escaped, matched literally
+db.Query().WhereEndsWith("email", "@example.com")
+
+// WhereContains - value is escaped, matched literally
+db.Query().WhereContains("name", "oh")
+
+// Or variants for StartsWith / EndsWith / Contains
+db.Query().Where("active", true).OrWhereStartsWith("name", "John")
+db.Query().Where("active", true).OrWhereEndsWith("email", "@example.com")
+db.Query().Where("active", true).OrWhereContains("name", "oh")
+db.Query().Where("active", true).OrWhereNotContains("name", "spam")
+
 // WhereColumn - compare columns
 db.Query().WhereColumn("created_at", "&lt;", "updated_at")
 

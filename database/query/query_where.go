@@ -75,6 +75,114 @@ func (q *Query) OrWhereNull(column string) orm.Query {
 	return q
 }
 
+// escapeLikePattern escapes LIKE wildcards (%, _) and the escape
+// character itself (!) so the value is matched literally. A non-backslash
+// escape character is used because backslash literals are
+// dialect-dependent (e.g. MySQL string escaping).
+func escapeLikePattern(value string) string {
+	value = strings.ReplaceAll(value, `!`, `!!`)
+	value = strings.ReplaceAll(value, `%`, `!%`)
+	return strings.ReplaceAll(value, `_`, `!_`)
+}
+
+// whereLike appends a LIKE-based where clause. When escape is true the
+// clause gets an ESCAPE '!' suffix and the pattern is expected to have
+// its wildcards pre-escaped by the caller.
+func (q *Query) whereLike(_type, column, pattern string, not, escape bool) orm.Query {
+	if !isValidColumnReference(column) {
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid column name in WhereLike: column names must be valid identifiers")
+		}
+		return q
+	}
+	op := "LIKE"
+	if not {
+		op = "NOT LIKE"
+	}
+	clause := fmt.Sprintf("%s %s ?", NewBuilder(q).quoteIdentifier(column), op)
+	if escape {
+		clause += ` ESCAPE '!'`
+	}
+	q.wheres = append(q.wheres, whereClause{_type: _type, query: clause, args: []any{pattern}})
+	return q
+}
+
+// WhereLike adds a where like clause to the query.
+// The pattern may contain LIKE wildcards (% and _).
+func (q *Query) WhereLike(column, pattern string) orm.Query {
+	return q.whereLike("and", column, pattern, false, false)
+}
+
+// OrWhereLike adds an or where like clause to the query.
+// The pattern may contain LIKE wildcards (% and _).
+func (q *Query) OrWhereLike(column, pattern string) orm.Query {
+	return q.whereLike("or", column, pattern, false, false)
+}
+
+// WhereNotLike adds a where not like clause to the query.
+// The pattern may contain LIKE wildcards (% and _).
+func (q *Query) WhereNotLike(column, pattern string) orm.Query {
+	return q.whereLike("and", column, pattern, true, false)
+}
+
+// OrWhereNotLike adds an or where not like clause to the query.
+// The pattern may contain LIKE wildcards (% and _).
+func (q *Query) OrWhereNotLike(column, pattern string) orm.Query {
+	return q.whereLike("or", column, pattern, true, false)
+}
+
+// WhereStartsWith adds a where clause matching values that start with
+// the given prefix. LIKE wildcards in the value are escaped, so the
+// value is matched literally.
+func (q *Query) WhereStartsWith(column, value string) orm.Query {
+	return q.whereLike("and", column, escapeLikePattern(value)+"%", false, true)
+}
+
+// OrWhereStartsWith adds an or where clause matching values that start
+// with the given prefix.
+func (q *Query) OrWhereStartsWith(column, value string) orm.Query {
+	return q.whereLike("or", column, escapeLikePattern(value)+"%", false, true)
+}
+
+// WhereEndsWith adds a where clause matching values that end with the
+// given suffix. LIKE wildcards in the value are escaped, so the value
+// is matched literally.
+func (q *Query) WhereEndsWith(column, value string) orm.Query {
+	return q.whereLike("and", column, "%"+escapeLikePattern(value), false, true)
+}
+
+// OrWhereEndsWith adds an or where clause matching values that end with
+// the given suffix.
+func (q *Query) OrWhereEndsWith(column, value string) orm.Query {
+	return q.whereLike("or", column, "%"+escapeLikePattern(value), false, true)
+}
+
+// WhereContains adds a where clause matching values that contain the
+// given substring. LIKE wildcards in the value are escaped, so the
+// value is matched literally.
+func (q *Query) WhereContains(column, value string) orm.Query {
+	return q.whereLike("and", column, "%"+escapeLikePattern(value)+"%", false, true)
+}
+
+// OrWhereContains adds an or where clause matching values that contain
+// the given substring.
+func (q *Query) OrWhereContains(column, value string) orm.Query {
+	return q.whereLike("or", column, "%"+escapeLikePattern(value)+"%", false, true)
+}
+
+// WhereNotContains adds a where clause matching values that do not
+// contain the given substring. LIKE wildcards in the value are escaped,
+// so the value is matched literally.
+func (q *Query) WhereNotContains(column, value string) orm.Query {
+	return q.whereLike("and", column, "%"+escapeLikePattern(value)+"%", true, true)
+}
+
+// OrWhereNotContains adds an or where clause matching values that do
+// not contain the given substring.
+func (q *Query) OrWhereNotContains(column, value string) orm.Query {
+	return q.whereLike("or", column, "%"+escapeLikePattern(value)+"%", true, true)
+}
+
 // WhereColumn adds a where column clause to the query.
 func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 	// Validate column names (allow table.column dotted references)

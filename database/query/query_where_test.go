@@ -100,6 +100,153 @@ func TestOrWhereNull(t *testing.T) {
 	}
 }
 
+func TestWhereLike(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereLike("name", "%john%")
+
+	if len(q.wheres) != 1 {
+		t.Fatalf("Expected 1 where clause, got %d", len(q.wheres))
+	}
+	if !strings.Contains(q.wheres[0].query, "LIKE ?") {
+		t.Errorf("Expected LIKE clause, got %q", q.wheres[0].query)
+	}
+	if q.wheres[0].args[0] != "%john%" {
+		t.Errorf("Expected pattern %%john%%, got %v", q.wheres[0].args[0])
+	}
+}
+
+func TestWhereNotLike(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereNotLike("name", "%spam%")
+
+	if !strings.Contains(q.wheres[0].query, "NOT LIKE ?") {
+		t.Errorf("Expected NOT LIKE clause, got %q", q.wheres[0].query)
+	}
+}
+
+func TestOrWhereLike(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.OrWhereLike("name", "%john%")
+
+	if q.wheres[0]._type != "or" {
+		t.Errorf("Expected or clause, got %q", q.wheres[0]._type)
+	}
+}
+
+func TestOrWhereNotLike(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.OrWhereNotLike("name", "%spam%")
+
+	if q.wheres[0]._type != "or" || !strings.Contains(q.wheres[0].query, "NOT LIKE ?") {
+		t.Errorf("Expected or NOT LIKE clause, got %q", q.wheres[0].query)
+	}
+}
+
+func TestWhereStartsWith(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereStartsWith("name", "jo%h_n")
+
+	if len(q.wheres) != 1 {
+		t.Fatalf("Expected 1 where clause, got %d", len(q.wheres))
+	}
+	if !strings.Contains(q.wheres[0].query, "LIKE ? ESCAPE '!'") {
+		t.Errorf("Expected LIKE clause with ESCAPE, got %q", q.wheres[0].query)
+	}
+	if q.wheres[0].args[0] != "jo!%h!_n%" {
+		t.Errorf("Expected escaped pattern, got %v", q.wheres[0].args[0])
+	}
+}
+
+func TestOrWhereStartsWith(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.OrWhereStartsWith("name", "john")
+
+	if q.wheres[0]._type != "or" {
+		t.Errorf("Expected or clause, got %q", q.wheres[0]._type)
+	}
+	if q.wheres[0].args[0] != "john%" {
+		t.Errorf("Expected pattern john%%, got %v", q.wheres[0].args[0])
+	}
+}
+
+func TestWhereEndsWith(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereEndsWith("email", "@example.com")
+
+	if q.wheres[0].args[0] != "%@example.com" {
+		t.Errorf("Expected pattern %%@example.com, got %v", q.wheres[0].args[0])
+	}
+	if !strings.Contains(q.wheres[0].query, "ESCAPE '!'") {
+		t.Errorf("Expected ESCAPE clause, got %q", q.wheres[0].query)
+	}
+}
+
+func TestOrWhereEndsWith(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.OrWhereEndsWith("email", "@example.com")
+
+	if q.wheres[0]._type != "or" {
+		t.Errorf("Expected or clause, got %q", q.wheres[0]._type)
+	}
+}
+
+func TestWhereContains(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereContains("name", "jo%h_n")
+
+	if !strings.Contains(q.wheres[0].query, "LIKE ? ESCAPE '!'") {
+		t.Errorf("Expected LIKE clause with ESCAPE, got %q", q.wheres[0].query)
+	}
+	if q.wheres[0].args[0] != "%jo!%h!_n%" {
+		t.Errorf("Expected escaped pattern, got %v", q.wheres[0].args[0])
+	}
+}
+
+func TestOrWhereContains(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.OrWhereContains("name", "john")
+
+	if q.wheres[0]._type != "or" {
+		t.Errorf("Expected or clause, got %q", q.wheres[0]._type)
+	}
+	if q.wheres[0].args[0] != "%john%" {
+		t.Errorf("Expected pattern %%john%%, got %v", q.wheres[0].args[0])
+	}
+}
+
+func TestWhereNotContains(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereNotContains("name", "spam")
+
+	if !strings.Contains(q.wheres[0].query, "NOT LIKE ?") {
+		t.Errorf("Expected NOT LIKE clause, got %q", q.wheres[0].query)
+	}
+	if q.wheres[0].args[0] != "%spam%" {
+		t.Errorf("Expected pattern %%spam%%, got %v", q.wheres[0].args[0])
+	}
+}
+
+func TestOrWhereNotContains(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.OrWhereNotContains("name", "spam")
+
+	if q.wheres[0]._type != "or" || !strings.Contains(q.wheres[0].query, "NOT LIKE ?") {
+		t.Errorf("Expected or NOT LIKE clause, got %q", q.wheres[0].query)
+	}
+}
+
+func TestWhereLikeInvalidColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.WhereLike("name; DROP TABLE users", "%x%")
+
+	if q.buildError == nil {
+		t.Error("Expected build error for invalid column name")
+	}
+	if len(q.wheres) != 0 {
+		t.Error("Expected no where clause added for invalid column")
+	}
+}
+
 func TestWhereAnyWithEmptyColumns(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	result := q.WhereAny([]string{}, "=", "test")

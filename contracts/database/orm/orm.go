@@ -982,6 +982,92 @@ type Query interface {
 	// Example:
 	//   query.WhereNotNull("deleted_at")
 	WhereNotNull(column string) Query
+	// WhereLike adds a WHERE column LIKE clause to the query.
+	// The column parameter specifies the column to check.
+	// The pattern parameter is the LIKE pattern and may contain
+	// wildcards (% and _).
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.WhereLike("name", "%john%")
+	WhereLike(column, pattern string) Query
+	// WhereNotLike adds a WHERE column NOT LIKE clause to the query.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.WhereNotLike("name", "%spam%")
+	WhereNotLike(column, pattern string) Query
+	// OrWhereLike adds an OR WHERE column LIKE clause to the query.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.Where("status = ?", "active").OrWhereLike("name", "%john%")
+	OrWhereLike(column, pattern string) Query
+	// OrWhereNotLike adds an OR WHERE column NOT LIKE clause to the query.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.Where("status = ?", "active").OrWhereNotLike("name", "%spam%")
+	OrWhereNotLike(column, pattern string) Query
+	// WhereStartsWith adds a WHERE clause matching values that start with
+	// the given prefix. LIKE wildcards in the value are escaped, so the
+	// value is matched literally.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.WhereStartsWith("name", "john")
+	WhereStartsWith(column, value string) Query
+	// OrWhereStartsWith adds an OR WHERE clause matching values that start
+	// with the given prefix.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.Where("status = ?", "active").OrWhereStartsWith("name", "john")
+	OrWhereStartsWith(column, value string) Query
+	// WhereEndsWith adds a WHERE clause matching values that end with the
+	// given suffix. LIKE wildcards in the value are escaped, so the
+	// value is matched literally.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.WhereEndsWith("email", "@example.com")
+	WhereEndsWith(column, value string) Query
+	// OrWhereEndsWith adds an OR WHERE clause matching values that end with
+	// the given suffix.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.Where("status = ?", "active").OrWhereEndsWith("email", "@example.com")
+	OrWhereEndsWith(column, value string) Query
+	// WhereContains adds a WHERE clause matching values that contain the
+	// given substring. LIKE wildcards in the value are escaped, so the
+	// value is matched literally.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.WhereContains("name", "john")
+	WhereContains(column, value string) Query
+	// OrWhereContains adds an OR WHERE clause matching values that contain
+	// the given substring.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.Where("status = ?", "active").OrWhereContains("name", "john")
+	OrWhereContains(column, value string) Query
+	// WhereNotContains adds a WHERE clause matching values that do not
+	// contain the given substring.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.WhereNotContains("name", "spam")
+	WhereNotContains(column, value string) Query
+	// OrWhereNotContains adds an OR WHERE clause matching values that do
+	// not contain the given substring.
+	// Returns the query instance for method chaining.
+	//
+	// Example:
+	//   query.Where("status = ?", "active").OrWhereNotContains("name", "spam")
+	OrWhereNotContains(column, value string) Query
 	// WhereColumn adds a WHERE column1 operator column2 clause to the query.
 	// Compares two columns directly without using values.
 	// The first and second parameters specify the columns to compare.
