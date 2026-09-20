@@ -3,8 +3,6 @@ package driver
 import (
 	"context"
 	"database/sql"
-
-	_ "github.com/dracory/aztablessql"
 )
 
 // Aztables implements the Driver interface for Azure Table Storage via the
