@@ -5,7 +5,7 @@ package sqlite
 import (
 	"testing"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	"github.com/dracory/neat/contracts/database/schema"
 )
@@ -226,7 +226,7 @@ func TestSQLiteSchemaTablePrefix(t *testing.T) {
 		Default: "sqlite",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlite": {
-				Driver: contractsdb.DriverSqlite,
+				Driver: database.DriverSqlite,
 				Database: ":memory:",
 				Prefix:   prefix,
 			},

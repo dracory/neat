@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -38,7 +38,7 @@ func RunExample() error {
 		Default: "array_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"array_db": {
-				Driver: contractsdb.DriverArray,
+				Driver: database.DriverArray,
 			},
 		},
 	}

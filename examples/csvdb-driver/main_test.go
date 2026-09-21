@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -27,7 +27,7 @@ func TestCSVDBExampleQueries(t *testing.T) {
 		Default: "csv_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"csv_db": {
-				Driver: contractsdb.DriverCSVDB,
+				Driver: database.DriverCSVDB,
 				Database: dataDir,
 			},
 		},

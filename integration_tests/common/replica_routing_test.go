@@ -5,7 +5,7 @@ package common
 import (
 	"testing"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -23,7 +23,7 @@ func TestReplicaRoutingIntegration(t *testing.T) {
 		Default: "default",
 		Connections: map[string]neat.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver: database.DriverSqlite,
 				Database: ":memory:?multi_stmts=true",
 				Write: []neat.ReplicaConfig{
 					{
@@ -83,7 +83,7 @@ func TestReplicaRoutingFallback(t *testing.T) {
 		Default: "default",
 		Connections: map[string]neat.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver: database.DriverSqlite,
 				Database: dbPath,
 				// No Read replicas configured
 			},

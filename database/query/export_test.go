@@ -12,7 +12,7 @@ import (
 
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 )
@@ -111,7 +111,7 @@ func MakeDBConfig() *db.DBConfig {
 	return &db.DBConfig{
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
-			"default": {Driver: contractsdb.DriverSqlite, Database: ":memory:"},
+			"default": {Driver: database.DriverSqlite, Database: ":memory:"},
 		},
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
@@ -172,7 +172,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 	// cannot reconstruct it from host/port/credential fields, so replicas are
 	// not supported for that driver.
 	var readSQLDB *sql.DB
-	if len(connConfig.Read) > 0 && connConfig.Driver != contractsdb.DriverAztables {
+	if len(connConfig.Read) > 0 && connConfig.Driver != database.DriverAztables {
 		replica := connConfig.Read[0]
 		replicaCfg := connConfig
 		replicaCfg.Dsn = "" // Clear DSN so BuildDSN reconstructs from individual fields
@@ -208,7 +208,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 
 	// Open write-primary connection if explicitly configured
 	var writeSQLDB *sql.DB
-	if len(connConfig.Write) > 0 && connConfig.Driver != contractsdb.DriverAztables {
+	if len(connConfig.Write) > 0 && connConfig.Driver != database.DriverAztables {
 		primary := connConfig.Write[0]
 		primaryCfg := connConfig
 		primaryCfg.Dsn = "" // Clear DSN so BuildDSN reconstructs from individual fields
@@ -259,7 +259,7 @@ func buildQuery(ctx context.Context, dbConfig *db.DBConfig, connection string, l
 
 // BuildOrmFromDB builds an Orm instance from an already-open *sql.DB.
 // The caller retains ownership of sqlDB; connection pool settings are not modified.
-func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName contractsdb.Driver, connection string, dbConfig *db.DBConfig, log log.Log, refresh func()) (*Orm, error) {
+func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName database.Driver, connection string, dbConfig *db.DBConfig, log log.Log, refresh func()) (*Orm, error) {
 	dbDriver := createDriver(driverName)
 	drivers := map[string]driver.Driver{
 		connection: dbDriver,
@@ -284,8 +284,8 @@ func BuildOrmFromDB(ctx context.Context, sqlDB *sql.DB, driverName contractsdb.D
 // readers alongside the single writer.
 // Remote Turso (libsql://) supports concurrent connections via HTTP.
 func configureConnectionPool(ctx context.Context, sqlDB *sql.DB, connConfig *db.ConnectionConfig, dbConfig *db.DBConfig) {
-	pinSingleConn := connConfig.Driver == contractsdb.DriverSqlite || connConfig.Driver == contractsdb.DriverArray || connConfig.Driver == contractsdb.DriverCSVDB || connConfig.Driver == contractsdb.DriverJSONDB || connConfig.Driver == contractsdb.DriverXMLDB || connConfig.Driver == contractsdb.DriverGODB
-	if connConfig.Driver == contractsdb.DriverTurso {
+	pinSingleConn := connConfig.Driver == database.DriverSqlite || connConfig.Driver == database.DriverArray || connConfig.Driver == database.DriverCSVDB || connConfig.Driver == database.DriverJSONDB || connConfig.Driver == database.DriverXMLDB || connConfig.Driver == database.DriverGODB
+	if connConfig.Driver == database.DriverTurso {
 		pinSingleConn = strings.HasPrefix(connConfig.Dsn, "file:") || strings.HasPrefix(connConfig.Database, "file:")
 	}
 	if pinSingleConn {
@@ -310,31 +310,31 @@ func configureConnectionPool(ctx context.Context, sqlDB *sql.DB, connConfig *db.
 	}
 }
 
-func createDriver(driverName contractsdb.Driver) driver.Driver {
+func createDriver(driverName database.Driver) driver.Driver {
 	switch driverName {
-	case contractsdb.DriverMysql:
+	case database.DriverMysql:
 		return driver.NewMySQL()
-	case contractsdb.DriverPostgres:
+	case database.DriverPostgres:
 		return driver.NewPostgreSQL()
-	case contractsdb.DriverSqlite:
+	case database.DriverSqlite:
 		return driver.NewSQLite()
-	case contractsdb.DriverSqlserver:
+	case database.DriverSqlserver:
 		return driver.NewSQLServer()
-	case contractsdb.DriverTurso:
+	case database.DriverTurso:
 		return driver.NewTurso()
-	case contractsdb.DriverOracle:
+	case database.DriverOracle:
 		return driver.NewOracle()
-	case contractsdb.DriverArray:
+	case database.DriverArray:
 		return driver.NewArray()
-	case contractsdb.DriverAztables:
+	case database.DriverAztables:
 		return driver.NewAztables()
-	case contractsdb.DriverCSVDB:
+	case database.DriverCSVDB:
 		return driver.NewCSVDB()
-	case contractsdb.DriverJSONDB:
+	case database.DriverJSONDB:
 		return driver.NewJSONDB()
-	case contractsdb.DriverXMLDB:
+	case database.DriverXMLDB:
 		return driver.NewXMLDB()
-	case contractsdb.DriverGODB:
+	case database.DriverGODB:
 		return driver.NewGODB()
 	default:
 		return driver.NewMySQL() // Default to MySQL

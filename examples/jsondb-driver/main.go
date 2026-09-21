@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
 	_ "modernc.org/sqlite"
 )
@@ -60,7 +60,7 @@ func RunExample() error {
 		Default: "json_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"json_db": {
-				Driver: contractsdb.DriverJSONDB,
+				Driver: database.DriverJSONDB,
 				Database: dataDir,
 			},
 		},
