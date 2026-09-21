@@ -63,6 +63,23 @@ func (b *Builder) quoteIdentifier(name string) string {
 	return fmt.Sprintf("%s%s%s", quoteChar, escaped, quoteChar)
 }
 
+// shouldQuoteWhereColumn decides whether a column-like token found before a
+// WHERE operator should be quoted. Simple identifiers (including reserved
+// keywords such as "group") are quoted. Dotted references ("users.id") pass
+// through unquoted unless one of their parts is a reserved keyword
+// ("orders.group"), in which case the whole reference is quoted.
+func shouldQuoteWhereColumn(colName string) bool {
+	if !strings.Contains(colName, ".") {
+		return isTableIdentifier(colName)
+	}
+	for _, part := range strings.Split(colName, ".") {
+		if isTableIdentifier(part) && !isSimpleIdentifier(part) {
+			return true
+		}
+	}
+	return false
+}
+
 // quoteWhereIdentifiers quotes column names in WHERE clauses.
 // It uses a conservative approach that only quotes valid column
 // references to avoid breaking complex expressions, function calls,
@@ -126,17 +143,18 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 				colName = trimmed[lastSpace+1:]
 			}
 
-			// Only quote if it's a valid column reference:
+			// Only quote if it's a simple identifier:
 			// - Not already quoted
 			// - Contains only alphanumeric characters and underscores
-			//   (at most one dot for table.column references)
+			// - Doesn't contain dots (table.column references are left
+			//   untouched — quoteIdentifier handles them separately)
 			// - Doesn't contain parentheses (function calls)
 			// - Doesn't start with a number
 			// Reserved words like "group" or "order" ARE quoted here —
 			// they are legitimate column names once quoted.
 			if colName != "" &&
 				!strings.HasPrefix(colName, "\"") && !strings.HasPrefix(colName, "`") &&
-				isValidColumnReference(colName) {
+				shouldQuoteWhereColumn(colName) {
 				quotedCol := b.quoteIdentifier(colName)
 				// Find the last occurrence of colName in beforeOp
 				colIdx := strings.LastIndex(beforeOp, colName)
