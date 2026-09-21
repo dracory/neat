@@ -636,6 +636,68 @@ func isValidColumnReference(s string) bool {
 	return true
 }
 
+// isValidOrderExpression checks if a string is safe to use in an ORDER BY
+// clause. It accepts either a valid column reference ("name", "users.name")
+// or a function call whose name is an identifier and whose arguments are a
+// comma-separated list of column references, "*", numeric literals, or
+// single-quoted string literals (e.g. "LENGTH(name)", "COUNT(*)",
+// "COALESCE(name, 'x')"). Anything else — semicolons, comments, nested
+// quotes, arbitrary text — is rejected to prevent SQL injection.
+func isValidOrderExpression(s string) bool {
+	if isValidColumnReference(s) {
+		return true
+	}
+	open := strings.Index(s, "(")
+	if open <= 0 || !strings.HasSuffix(s, ")") {
+		return false
+	}
+	if !isTableIdentifier(s[:open]) {
+		return false
+	}
+	args := s[open+1 : len(s)-1]
+	if strings.TrimSpace(args) == "" {
+		return true
+	}
+	for _, arg := range strings.Split(args, ",") {
+		arg = strings.TrimSpace(arg)
+		if arg == "*" || isValidColumnReference(arg) || isNumericLiteral(arg) || isStringLiteral(arg) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+// isNumericLiteral reports whether s consists only of digits, an optional
+// leading sign, and at most one decimal point.
+func isNumericLiteral(s string) bool {
+	if s == "" {
+		return false
+	}
+	dots := 0
+	for i, r := range s {
+		switch {
+		case r >= '0' && r <= '9':
+		case r == '.':
+			dots++
+			if dots > 1 {
+				return false
+			}
+		case (r == '+' || r == '-') && i == 0:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// isStringLiteral reports whether s is a simple single-quoted literal with
+// no embedded quote characters (no escaping support).
+func isStringLiteral(s string) bool {
+	return len(s) >= 2 && s[0] == '\'' && s[len(s)-1] == '\'' &&
+		!strings.Contains(s[1:len(s)-1], "'")
+}
+
 // normalizeScanValue converts []byte to string.
 func normalizeScanValue(v any) any {
 	if b, ok := v.([]byte); ok {

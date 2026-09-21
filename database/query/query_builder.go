@@ -221,25 +221,27 @@ func (q *Query) OrWhere(query any, args ...any) orm.Query {
 }
 
 // Order adds an order by clause to the query.
+// Accepts column references ("name DESC") and simple function expressions
+// ("LENGTH(name) DESC"); anything else is rejected as an invalid column name.
 func (q *Query) Order(value any) orm.Query {
 	expr := fmt.Sprintf("%v", value)
 	upperExpr := strings.ToUpper(expr)
 	if strings.HasSuffix(upperExpr, " DESC") {
 		expr = strings.TrimSuffix(expr, " DESC")
 		expr = strings.TrimSuffix(expr, " desc")
-		if !isValidColumnReference(expr) {
+		if !isValidOrderExpression(expr) {
 			return q.invalidColumnError("Order", expr)
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirDesc})
 	} else if strings.HasSuffix(upperExpr, " ASC") {
 		expr = strings.TrimSuffix(expr, " ASC")
 		expr = strings.TrimSuffix(expr, " asc")
-		if !isValidColumnReference(expr) {
+		if !isValidOrderExpression(expr) {
 			return q.invalidColumnError("Order", expr)
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirAsc})
 	} else {
-		if !isValidColumnReference(expr) {
+		if !isValidOrderExpression(expr) {
 			return q.invalidColumnError("Order", expr)
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirAsc})
@@ -256,8 +258,9 @@ func (q *Query) OrderBy(column string, direction ...string) orm.Query {
 			dir = dirAsc
 		}
 	}
-	// Validate column is a valid identifier or table.column reference
-	if !isValidColumnReference(column) {
+	// Validate column is a valid identifier, table.column reference, or
+	// simple function expression (e.g. "LENGTH(name)")
+	if !isValidOrderExpression(column) {
 		return q.invalidColumnError("OrderBy", column)
 	}
 	q.orders = append(q.orders, orderClause{column: column, direction: dir})
@@ -266,7 +269,7 @@ func (q *Query) OrderBy(column string, direction ...string) orm.Query {
 
 // OrderByDesc adds an order by clause with desc direction.
 func (q *Query) OrderByDesc(column string) orm.Query {
-	if !isValidColumnReference(column) {
+	if !isValidOrderExpression(column) {
 		return q.invalidColumnError("OrderByDesc", column)
 	}
 	q.orders = append(q.orders, orderClause{column: column, direction: dirDesc})
