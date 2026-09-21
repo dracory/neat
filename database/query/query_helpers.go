@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/dracory/neat/contracts/database/orm"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	neaterrors "github.com/dracory/neat/errors"
 )
 
@@ -19,7 +18,7 @@ func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 		if q.IsDebug() {
 			loggedBindings = bindings
 		}
-		*q.queryLog = append(*q.queryLog, contractsorm.QueryLog{
+		*q.queryLog = append(*q.queryLog, orm.QueryLog{
 			Query:    sql,
 			Bindings: loggedBindings,
 			Time:     elapsed,
@@ -98,7 +97,7 @@ func (q *Query) UpdateOrInsert(attributes any, values any) error {
 	}
 
 	// Wrap the entire operation in a transaction for atomicity
-	return q.Transaction(func(tx contractsorm.Query) error {
+	return q.Transaction(func(tx orm.Query) error {
 		txQ, ok := tx.(*Query)
 		if !ok {
 			return fmt.Errorf("unexpected transaction type: %T", tx)
