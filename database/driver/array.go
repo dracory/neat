@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // Array implements the Driver interface for array-backed storage using SQLite.
@@ -38,7 +38,7 @@ func (a *Array) Dialect() string {
 const MaxArrayRows = 100000
 
 // Populate populates the database with rows from the given ArraySource.
-func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.ArraySource) error {
+func (a *Array) Populate(ctx context.Context, db *sql.DB, source orm.ArraySource) error {
 	tableName := source.TableName()
 	if tableName == "" {
 		return fmt.Errorf("table name cannot be empty")
@@ -75,7 +75,7 @@ func (a *Array) Populate(ctx context.Context, db *sql.DB, source contractsorm.Ar
 
 	var schema map[string]string
 	explicitSchema := false
-	if s, ok := source.(contractsorm.ArraySchema); ok {
+	if s, ok := source.(orm.ArraySchema); ok {
 		schema = s.Schema()
 		explicitSchema = true
 	}

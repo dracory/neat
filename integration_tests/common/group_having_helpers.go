@@ -5,7 +5,7 @@ package common
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
@@ -136,7 +136,7 @@ func TestHavingWithSubqueryCallback(t *testing.T, db *database.Database) {
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").
 		Group("avatar").
-		Having("COUNT(*) > (?)", func(q contractsorm.Query) contractsorm.Query {
+		Having("COUNT(*) > (?)", func(q orm.Query) orm.Query {
 			return q.Model(&models.User{}).Where("avatar = ?", "avatar1").Where("name LIKE ?", "group_user_%").Select("COUNT(*)")
 		}).
 		Scan(&results)
@@ -168,7 +168,7 @@ func TestHavingWithSubqueryInArgs(t *testing.T, db *database.Database) {
 	err := db.Query().Model(&models.User{}).Where("name LIKE ?", "group_user_%").
 		Select("avatar, COUNT(*) as count").
 		Group("avatar").
-		Having("COUNT(*) = (?)", func(q contractsorm.Query) contractsorm.Query {
+		Having("COUNT(*) = (?)", func(q orm.Query) orm.Query {
 			return q.Model(&models.User{}).Where("avatar = ?", "avatar2").Where("name LIKE ?", "group_user_%").Select("COUNT(*)")
 		}).
 		Scan(&results)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/observer"
 )
 
@@ -16,14 +16,14 @@ func hasSoftDeleteCapability(model any) bool {
 	if model == nil {
 		return false
 	}
-	_, ok := model.(contractsorm.SoftDeleteColumnNamer)
+	_, ok := model.(orm.SoftDeleteColumnNamer)
 	return ok
 }
 
 // getSoftDeleteColumn returns the soft delete column name for the given model.
 // Falls back to "soft_deleted_at" if the model does not implement SoftDeleteColumnNamer.
 func getSoftDeleteColumn(model any) string {
-	if namer, ok := model.(contractsorm.SoftDeleteColumnNamer); ok {
+	if namer, ok := model.(orm.SoftDeleteColumnNamer); ok {
 		return namer.SoftDeletedAtColumn()
 	}
 	return "soft_deleted_at"
@@ -34,7 +34,7 @@ func getSoftDeleteColumn(model any) string {
 // (UPDATE setting the soft-delete timestamp). Otherwise, it performs a hard DELETE.
 // For clarity, prefer SoftDelete() when the model supports soft deletes, or
 // HardDelete() when you want a permanent deletion.
-func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
+func (q *Query) Delete(value ...any) (*orm.Result, error) {
 	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
@@ -69,7 +69,7 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 		col := getSoftDeleteColumn(query.model)
 		// Check if model implements SoftDeleteStrategy for custom delete value
 		var deleteValue any = time.Now()
-		if strat, ok := query.model.(contractsorm.SoftDeleteStrategy); ok {
+		if strat, ok := query.model.(orm.SoftDeleteStrategy); ok {
 			deleteValue = strat.SoftDeleteValue()
 		}
 		deleteSQL, args = builder.BuildUpdate(map[string]any{col: deleteValue})
@@ -118,7 +118,7 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 
 	// Get affected rows
 	rowsAffected, _ := result.RowsAffected()
-	return &contractsorm.Result{
+	return &orm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
 }
@@ -126,6 +126,6 @@ func (q *Query) Delete(value ...any) (*contractsorm.Result, error) {
 // Destroy is an alias for Delete, providing Sequelize-style syntax.
 //
 // Deprecated: Prefer SoftDelete() or HardDelete() for explicit intent.
-func (q *Query) Destroy(value ...any) (*contractsorm.Result, error) {
+func (q *Query) Destroy(value ...any) (*orm.Result, error) {
 	return q.Delete(value...)
 }

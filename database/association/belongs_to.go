@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/support/str"
 )
 
@@ -44,7 +44,7 @@ type BelongsTo struct {
 //
 //	address := Address{ID: 1, UserID: 5}
 //	assoc := NewBelongsTo(db.Query(), &address, "user", "user_id", "id")
-func NewBelongsTo(query contractsorm.Query, model any, association, foreignKey, otherKey string) *BelongsTo {
+func NewBelongsTo(query orm.Query, model any, association, foreignKey, otherKey string) *BelongsTo {
 	return &BelongsTo{
 		Association: NewAssociation(query, model, association),
 		foreignKey:  foreignKey,

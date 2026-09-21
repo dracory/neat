@@ -7,7 +7,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/dracory/neat"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -37,7 +37,7 @@ func TestSchemaTransactionDetection(t *testing.T) {
 
 	// Test 2: Schema operation inside transaction using WithTransaction
 	t.Run("SchemaInsideTransaction", func(t *testing.T) {
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			schema := db.Schema().WithTransaction(tx)
 
 			// Schema operations should now use the transaction query
@@ -75,7 +75,7 @@ func TestSchemaTransactionDetection(t *testing.T) {
 
 	// Test 3: Schema Create with transaction rollback
 	t.Run("SchemaCreateWithTransactionRollback", func(t *testing.T) {
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			schema := db.Schema().WithTransaction(tx)
 
 			createErr := schema.Create("test_table_rollback", func(blueprint contractsschema.Blueprint) {

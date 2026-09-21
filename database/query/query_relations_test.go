@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	_ "modernc.org/sqlite"
 )
 
@@ -188,8 +188,8 @@ func TestLoadRelationsWithConstraintCallback(t *testing.T) {
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.table = "posts"
 	q.withRelations = []string{"User"}
-	q.relationConstraints = map[string]func(contractsorm.Query) contractsorm.Query{
-		"User": func(q contractsorm.Query) contractsorm.Query {
+	q.relationConstraints = map[string]func(orm.Query) orm.Query{
+		"User": func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		},
 	}
@@ -973,7 +973,7 @@ func TestLoadWithConstraint(t *testing.T) {
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	post := &Post{ID: 1, Title: "Test Post", UserID: 1}
 
-	err = q.Load(post, "User", func(q contractsorm.Query) contractsorm.Query {
+	err = q.Load(post, "User", func(q orm.Query) orm.Query {
 		return q.Where("status = ?", "active")
 	})
 	if err != nil {
@@ -1214,7 +1214,7 @@ func TestWithCountWithConstraint(t *testing.T) {
 	q.table = "users"
 	q.model = &struct{ ID int }{}
 
-	result := q.WithCount("Posts", func(q contractsorm.Query) contractsorm.Query {
+	result := q.WithCount("Posts", func(q orm.Query) orm.Query {
 		return q.Where("published = ?", true)
 	})
 	if result == nil {
@@ -1254,7 +1254,7 @@ func TestWithExistsWithConstraint(t *testing.T) {
 	q.table = "users"
 	q.model = &struct{ ID int }{}
 
-	result := q.WithExists("Posts", func(q contractsorm.Query) contractsorm.Query {
+	result := q.WithExists("Posts", func(q orm.Query) orm.Query {
 		return q.Where("published = ?", true)
 	})
 	if result == nil {

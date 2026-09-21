@@ -4,13 +4,13 @@ import (
 	"sync"
 
 	contractsdb "github.com/dracory/neat/contracts/database"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 )
 
 // Clone returns a new Query with shared connection state but empty query-builder state.
-func (q *Query) Clone() contractsorm.Query {
+func (q *Query) Clone() orm.Query {
 	clone := q.newQuery()
 	clone.table = q.table
 	clone.tableArgs = append([]any{}, q.tableArgs...)
@@ -63,7 +63,7 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.rawArgs = append([]any{}, q.rawArgs...)
 	clone.lockForUpdate = q.lockForUpdate
 	clone.sharedLock = q.sharedLock
-	clone.globalScopes = append([]func(contractsorm.Query) contractsorm.Query{}, q.globalScopes...)
+	clone.globalScopes = append([]func(orm.Query) orm.Query{}, q.globalScopes...)
 	clone.withoutGlobalScopes = q.withoutGlobalScopes
 	if q.disabledScopes != nil {
 		clone.disabledScopes = make(map[uintptr]bool)
@@ -71,10 +71,10 @@ func (q *Query) Clone() contractsorm.Query {
 			clone.disabledScopes[k] = v
 		}
 	}
-	clone.scopes = append([]func(contractsorm.Query) contractsorm.Query{}, q.scopes...)
+	clone.scopes = append([]func(orm.Query) orm.Query{}, q.scopes...)
 	clone.withRelations = append([]string{}, q.withRelations...)
 	if q.relationConstraints != nil {
-		clone.relationConstraints = make(map[string]func(contractsorm.Query) contractsorm.Query)
+		clone.relationConstraints = make(map[string]func(orm.Query) orm.Query)
 		for k, v := range q.relationConstraints {
 			clone.relationConstraints[k] = v
 		}
@@ -98,7 +98,7 @@ func (q *Query) Clone() contractsorm.Query {
 	clone.savepointName = q.savepointName
 
 	// Observer state
-	clone.modelToObserver = append([]contractsorm.ModelToObserver{}, q.modelToObserver...)
+	clone.modelToObserver = append([]orm.ModelToObserver{}, q.modelToObserver...)
 	clone.withoutEvents = q.withoutEvents
 	clone.dispatcher = q.dispatcher
 
@@ -116,7 +116,7 @@ func (q *Query) Clone() contractsorm.Query {
 }
 
 // Connection returns a new Query instance scoped to the named connection.
-func (q *Query) Connection(name string) contractsorm.Query {
+func (q *Query) Connection(name string) orm.Query {
 	if name == "" || q.dbConfig == nil {
 		return q
 	}

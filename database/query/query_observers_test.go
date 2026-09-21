@@ -3,7 +3,7 @@ package query_test
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/query"
 )
 
@@ -20,49 +20,49 @@ type TestObserver struct {
 	SavedCalled    bool
 }
 
-func (o *TestObserver) Created(event contractsorm.Event) error {
+func (o *TestObserver) Created(event orm.Event) error {
 	o.CreatedCalled = true
 	return nil
 }
 
-func (o *TestObserver) Updated(event contractsorm.Event) error {
+func (o *TestObserver) Updated(event orm.Event) error {
 	o.UpdatedCalled = true
 	return nil
 }
 
-func (o *TestObserver) Deleted(event contractsorm.Event) error {
+func (o *TestObserver) Deleted(event orm.Event) error {
 	o.DeletedCalled = true
 	return nil
 }
 
-func (o *TestObserver) Creating(event contractsorm.Event) error {
+func (o *TestObserver) Creating(event orm.Event) error {
 	o.CreatingCalled = true
 	return nil
 }
 
-func (o *TestObserver) Updating(event contractsorm.Event) error {
+func (o *TestObserver) Updating(event orm.Event) error {
 	o.UpdatingCalled = true
 	return nil
 }
 
-func (o *TestObserver) Deleting(event contractsorm.Event) error {
+func (o *TestObserver) Deleting(event orm.Event) error {
 	o.DeletingCalled = true
 	return nil
 }
 
-func (o *TestObserver) ForceDeleted(event contractsorm.Event) error {
+func (o *TestObserver) ForceDeleted(event orm.Event) error {
 	return nil
 }
 
-func (o *TestObserver) ForceDeleting(event contractsorm.Event) error {
+func (o *TestObserver) ForceDeleting(event orm.Event) error {
 	return nil
 }
 
-func (o *TestObserver) Restored(event contractsorm.Event) error {
+func (o *TestObserver) Restored(event orm.Event) error {
 	return nil
 }
 
-func (o *TestObserver) Retrieved(event contractsorm.Event) error {
+func (o *TestObserver) Retrieved(event orm.Event) error {
 	return nil
 }
 

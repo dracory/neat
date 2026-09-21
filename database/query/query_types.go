@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"sync"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
@@ -22,7 +22,7 @@ type Query struct {
 	connection string
 	dbConfig   *db.DBConfig
 	log        log.Log
-	queryLog   *[]contractsorm.QueryLog
+	queryLog   *[]orm.QueryLog
 	enableLog  bool
 
 	// Runtime debug state
@@ -53,7 +53,7 @@ type Query struct {
 	savepointName  string
 
 	// Observer state
-	modelToObserver []contractsorm.ModelToObserver
+	modelToObserver []orm.ModelToObserver
 	withoutEvents   bool
 	dispatcher      *observer.Dispatcher
 
@@ -72,10 +72,10 @@ type Query struct {
 	sharedLock    bool
 
 	// Scopes
-	globalScopes        []func(contractsorm.Query) contractsorm.Query
+	globalScopes        []func(orm.Query) orm.Query
 	withoutGlobalScopes bool
 	disabledScopes      map[uintptr]bool
-	scopes              []func(contractsorm.Query) contractsorm.Query
+	scopes              []func(orm.Query) orm.Query
 
 	// Omit columns
 	omitColumns []string
@@ -87,7 +87,7 @@ type Query struct {
 
 	// Eager loading state
 	withRelations       []string
-	relationConstraints map[string]func(contractsorm.Query) contractsorm.Query
+	relationConstraints map[string]func(orm.Query) orm.Query
 
 	// Count and Exists subqueries
 	withCountQueries  []countQuery
@@ -104,13 +104,13 @@ type Query struct {
 type countQuery struct {
 	relation   string
 	column     string
-	constraint func(contractsorm.Query) contractsorm.Query
+	constraint func(orm.Query) orm.Query
 }
 
 // existsQuery represents an exists subquery for eager loading.
 type existsQuery struct {
 	relation   string
-	constraint func(contractsorm.Query) contractsorm.Query
+	constraint func(orm.Query) orm.Query
 }
 
 // whereClause represents a WHERE clause in a query.

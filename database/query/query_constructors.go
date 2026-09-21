@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
@@ -32,8 +32,8 @@ func NewQuery(ctx context.Context, db *sql.DB, drv driver.Driver, connection str
 		dbConfig:        dbConfig,
 		log:             log,
 		enableLog:       false,
-		queryLog:        &[]contractsorm.QueryLog{},
-		modelToObserver: make([]contractsorm.ModelToObserver, 0),
+		queryLog:        &[]orm.QueryLog{},
+		modelToObserver: make([]orm.ModelToObserver, 0),
 		withoutEvents:   false,
 		dispatcher:      observer.NewDispatcher(log),
 		debugState:      debugState,

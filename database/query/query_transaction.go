@@ -4,14 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // Transaction runs a callback wrapped in a database transaction.
 // The callback function should return errors instead of panicking.
 // If the callback returns an error, the transaction is rolled back.
 // If the callback completes successfully, the transaction is committed.
-func (q *Query) Transaction(txFunc func(tx contractsorm.Query) error, opts ...*sql.TxOptions) error {
+func (q *Query) Transaction(txFunc func(tx orm.Query) error, opts ...*sql.TxOptions) error {
 	txQuery, err := q.Begin(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -65,7 +65,7 @@ func (q *Query) doRollback() error {
 }
 
 // Begin starts a new database transaction.
-func (q *Query) Begin(opts ...*sql.TxOptions) (contractsorm.Query, error) {
+func (q *Query) Begin(opts ...*sql.TxOptions) (orm.Query, error) {
 	var txOpts *sql.TxOptions
 	if len(opts) > 0 {
 		txOpts = opts[0]

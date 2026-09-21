@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/observer"
 )
 
 // Increment increments a column's value by a specified amount.
-func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, error) {
+func (q *Query) Increment(column string, amount ...any) (*orm.Result, error) {
 	if err := q.validateAggregate(column); err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (q *Query) Increment(column string, amount ...any) (*contractsorm.Result, e
 }
 
 // Decrement decrements a column's value by a specified amount.
-func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, error) {
+func (q *Query) Decrement(column string, amount ...any) (*orm.Result, error) {
 	if err := q.validateAggregate(column); err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (q *Query) Decrement(column string, amount ...any) (*contractsorm.Result, e
 }
 
 // InRandomOrder orders the query results randomly.
-func (q *Query) InRandomOrder() contractsorm.Query {
+func (q *Query) InRandomOrder() orm.Query {
 	var order string
 	if q.isMySQL() {
 		order = "RAND()"
@@ -72,21 +72,21 @@ func (q *Query) InRandomOrder() contractsorm.Query {
 }
 
 // LockForUpdate locks the selected rows for update.
-func (q *Query) LockForUpdate() contractsorm.Query {
+func (q *Query) LockForUpdate() orm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.lockForUpdate = true
 	return newQ
 }
 
 // SharedLock locks the selected rows with a shared lock.
-func (q *Query) SharedLock() contractsorm.Query {
+func (q *Query) SharedLock() orm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.sharedLock = true
 	return newQ
 }
 
 // Raw sets a raw SQL query to be executed.
-func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
+func (q *Query) Raw(sql string, values ...any) orm.Query {
 	if q == nil {
 		return &Query{}
 	}
@@ -98,7 +98,7 @@ func (q *Query) Raw(sql string, values ...any) contractsorm.Query {
 }
 
 // Exec executes a raw SQL query.
-func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
+func (q *Query) Exec(sql string, values ...any) (*orm.Result, error) {
 	// Strip trailing semicolon for Oracle (ORA-00911 error)
 	// Oracle doesn't accept semicolons in prepared statement execution
 	if q.driver != nil && q.driver.Dialect() == "oracle" {
@@ -134,30 +134,30 @@ func (q *Query) Exec(sql string, values ...any) (*contractsorm.Result, error) {
 	}
 
 	if result == nil {
-		return &contractsorm.Result{
+		return &orm.Result{
 			RowsAffected: 0,
 		}, nil
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return &contractsorm.Result{
+		return &orm.Result{
 			RowsAffected: 0,
 		}, nil
 	}
-	return &contractsorm.Result{
+	return &orm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
 }
 
 // Omit specifies columns to omit from INSERT/UPDATE operations.
-func (q *Query) Omit(columns ...string) contractsorm.Query {
+func (q *Query) Omit(columns ...string) orm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.omitColumns = append(newQ.omitColumns, columns...)
 	return newQ
 }
 
 // RestoreSoftDeleted restores a soft-deleted record.
-func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
+func (q *Query) RestoreSoftDeleted(model ...any) (*orm.Result, error) {
 	q = q.applyScopes()
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
@@ -206,7 +206,7 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 	col := getSoftDeleteColumn(q.model)
 	// Check if model implements SoftDeleteStrategy for custom restore value
 	var restoreValue any = nil // NULL-based default
-	if strat, ok := q.model.(contractsorm.SoftDeleteStrategy); ok {
+	if strat, ok := q.model.(orm.SoftDeleteStrategy); ok {
 		restoreValue = strat.RestoreValue()
 	}
 	sql, args := builder.BuildUpdate(map[string]any{col: restoreValue})
@@ -248,7 +248,7 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 	if result != nil {
 		rowsAffected, _ = result.RowsAffected()
 	}
-	return &contractsorm.Result{
+	return &orm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
 }
@@ -256,14 +256,14 @@ func (q *Query) RestoreSoftDeleted(model ...any) (*contractsorm.Result, error) {
 // Restore restores a soft-deleted record.
 //
 // Deprecated: Use RestoreSoftDeleted() instead.
-func (q *Query) Restore(model ...any) (*contractsorm.Result, error) {
+func (q *Query) Restore(model ...any) (*orm.Result, error) {
 	return q.RestoreSoftDeleted(model...)
 }
 
 // ForceDelete permanently deletes a record (bypasses soft delete).
 //
 // Deprecated: Use HardDelete() instead.
-func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
+func (q *Query) ForceDelete(value ...any) (*orm.Result, error) {
 	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
@@ -323,13 +323,13 @@ func (q *Query) ForceDelete(value ...any) (*contractsorm.Result, error) {
 	if result != nil {
 		rowsAffected, _ = result.RowsAffected()
 	}
-	return &contractsorm.Result{
+	return &orm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
 }
 
 // HardDelete permanently deletes a record (bypasses soft delete).
 // This is an intuitive alias for ForceDelete().
-func (q *Query) HardDelete(value ...any) (*contractsorm.Result, error) {
+func (q *Query) HardDelete(value ...any) (*orm.Result, error) {
 	return q.ForceDelete(value...)
 }

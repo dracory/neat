@@ -5,7 +5,7 @@ package cockroachdb_test
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -141,7 +141,7 @@ func TestCockroachDBIntegrationWhereExists(t *testing.T) {
 	}
 
 	var foundUsers []models.User
-	err = query.Model(&models.User{}).WhereExists(func(q contractsorm.Query) contractsorm.Query {
+	err = query.Model(&models.User{}).WhereExists(func(q orm.Query) orm.Query {
 		return q.Table("addresses").WhereColumn("addresses.user_id", "=", "users.id")
 	}).Find(&foundUsers)
 
@@ -185,7 +185,7 @@ func TestCockroachDBIntegrationWhereNot(t *testing.T) {
 	}
 
 	var foundUsersNested []models.User
-	err = query.Model(&models.User{}).WhereNot(func(q contractsorm.Query) contractsorm.Query {
+	err = query.Model(&models.User{}).WhereNot(func(q orm.Query) orm.Query {
 		return q.Where("name = ?", "user1")
 	}).Find(&foundUsersNested)
 
@@ -248,7 +248,7 @@ func TestCockroachDBIntegrationOrWhereNot(t *testing.T) {
 	}
 
 	var foundUsersClosure []models.User
-	err = query.Model(&models.User{}).Where("name = ?", "user1").OrWhereNot(func(q contractsorm.Query) contractsorm.Query {
+	err = query.Model(&models.User{}).Where("name = ?", "user1").OrWhereNot(func(q orm.Query) orm.Query {
 		return q.Where("avatar = ?", "avatar2")
 	}).Find(&foundUsersClosure)
 

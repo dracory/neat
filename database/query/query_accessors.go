@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/dracory/neat/contracts/database"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	neatErrors "github.com/dracory/neat/errors"
 )
 
 // Table sets the table for the query.
-func (q *Query) Table(name string, args ...any) contractsorm.Query {
+func (q *Query) Table(name string, args ...any) orm.Query {
 	// Validate table name is a table identifier (unless it's a subquery or has an alias).
 	// Reserved SQL keywords are allowed: the builder always quotes the table name.
 	// Invalid names set buildError instead of silently keeping a stale table.
@@ -40,7 +40,7 @@ func (q *Query) Table(name string, args ...any) contractsorm.Query {
 	// If it's a subquery callback
 	if strings.Contains(name, "(") && strings.Contains(name, ")") && len(args) > 0 {
 		for _, arg := range args {
-			if fn, ok := arg.(func(contractsorm.Query) contractsorm.Query); ok {
+			if fn, ok := arg.(func(orm.Query) orm.Query); ok {
 				subQuery := fn(q.newQuery())
 				builder := NewBuilder(subQuery.(*Query))
 				subSQL, subArgs := builder.BuildSelect()
@@ -103,12 +103,12 @@ func (q *Query) DisableQueryLog() {
 // FlushQueryLog clears the query log.
 func (q *Query) FlushQueryLog() {
 	if q.queryLog != nil {
-		*q.queryLog = make([]contractsorm.QueryLog, 0)
+		*q.queryLog = make([]orm.QueryLog, 0)
 	}
 }
 
 // GetQueryLog returns the query log.
-func (q *Query) GetQueryLog() []contractsorm.QueryLog {
+func (q *Query) GetQueryLog() []orm.QueryLog {
 	if q.queryLog == nil {
 		return nil
 	}
@@ -116,22 +116,22 @@ func (q *Query) GetQueryLog() []contractsorm.QueryLog {
 }
 
 // WithContext returns a new Query instance with the specified context.
-func (q *Query) WithContext(ctx context.Context) contractsorm.Query {
+func (q *Query) WithContext(ctx context.Context) orm.Query {
 	newQuery := q.Clone().(*Query)
 	newQuery.ctx = ctx
 	return newQuery
 }
 
 // Observe registers an observer for the given model.
-func (q *Query) Observe(model any, observer contractsorm.Observer) {
-	q.modelToObserver = append(q.modelToObserver, contractsorm.ModelToObserver{
+func (q *Query) Observe(model any, observer orm.Observer) {
+	q.modelToObserver = append(q.modelToObserver, orm.ModelToObserver{
 		Model:    model,
 		Observer: observer,
 	})
 }
 
 // WithoutEvents disables event firing for the query.
-func (q *Query) WithoutEvents() contractsorm.Query {
+func (q *Query) WithoutEvents() orm.Query {
 	newQuery := q.Clone().(*Query)
 	newQuery.withoutEvents = true
 	return newQuery

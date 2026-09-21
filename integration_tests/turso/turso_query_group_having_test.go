@@ -5,7 +5,7 @@ package turso
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/common"
 	"github.com/dracory/neat/integration_tests/models"
 )
@@ -150,7 +150,7 @@ func TestTursoIntegrationHavingWithSubqueryCallback(t *testing.T) {
 		Where("name LIKE ?", "group_user_%").
 		Group("avatar").
 		Select("avatar, COUNT(*) as count").
-		Having("COUNT(*) > (?)", func(q contractsorm.Query) contractsorm.Query {
+		Having("COUNT(*) > (?)", func(q orm.Query) orm.Query {
 			return q.Model(&models.User{}).Where("avatar = ?", "avatar1").Where("name LIKE ?", "group_user_%").Select("COUNT(*)")
 		}).
 		Scan(&results)
@@ -186,7 +186,7 @@ func TestTursoIntegrationHavingWithSubqueryInArgs(t *testing.T) {
 		Where("name LIKE ?", "group_user_%").
 		Group("avatar").
 		Select("avatar, COUNT(*) as count").
-		Having("COUNT(*) = (?)", func(q contractsorm.Query) contractsorm.Query {
+		Having("COUNT(*) = (?)", func(q orm.Query) orm.Query {
 			return q.Model(&models.User{}).Where("avatar = ?", "avatar2").Where("name LIKE ?", "group_user_%").Select("COUNT(*)")
 		}).
 		Scan(&results)

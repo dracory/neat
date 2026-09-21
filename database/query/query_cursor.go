@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // Cursor returns a cursor for streaming query results.
-func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
+func (q *Query) Cursor() (chan orm.Cursor, error) {
 	q = q.applyScopes()
 	// Build SELECT query
 	builder := NewBuilder(q)
@@ -38,7 +38,7 @@ func (q *Query) Cursor() (chan contractsorm.Cursor, error) {
 	}
 
 	// Create cursor channel
-	cursorChan := make(chan contractsorm.Cursor, 10)
+	cursorChan := make(chan orm.Cursor, 10)
 
 	go func() {
 		defer cancel()

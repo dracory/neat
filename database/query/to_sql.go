@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // ToSql implements the ToSql interface for generating SQL without execution.
@@ -131,7 +131,7 @@ func (t *ToSql) SoftDelete(value ...any) string {
 	builder := NewBuilder(query)
 	col := getSoftDeleteColumn(query.model)
 	var deleteValue any = time.Now()
-	if strat, ok := query.model.(contractsorm.SoftDeleteStrategy); ok {
+	if strat, ok := query.model.(orm.SoftDeleteStrategy); ok {
 		deleteValue = strat.SoftDeleteValue()
 	}
 	sql, args := builder.BuildUpdate(map[string]any{col: deleteValue})
@@ -356,11 +356,11 @@ func (t *ToSql) replacePlaceholdersWithValues(sql string, args []any) string {
 }
 
 // ToRawSql returns the raw SQL with placeholders replaced by values.
-func (q *Query) ToRawSql() contractsorm.ToSql {
+func (q *Query) ToRawSql() orm.ToSql {
 	return &ToSql{query: q, useValues: true}
 }
 
 // ToSql returns a ToSql instance for generating SQL without execution.
-func (q *Query) ToSql() contractsorm.ToSql {
+func (q *Query) ToSql() orm.ToSql {
 	return NewToSql(q)
 }

@@ -3,12 +3,12 @@ package query
 import (
 	"reflect"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // applyScopes applies registered global and per-query scope functions and returns the modified query.
 func (q *Query) applyScopes() *Query {
-	var allScopes []func(contractsorm.Query) contractsorm.Query
+	var allScopes []func(orm.Query) orm.Query
 
 	if !q.withoutGlobalScopes && len(q.globalScopes) > 0 {
 		allScopes = append(allScopes, q.globalScopes...)
@@ -22,7 +22,7 @@ func (q *Query) applyScopes() *Query {
 		return q
 	}
 
-	var result contractsorm.Query = q
+	var result orm.Query = q
 	for _, fn := range allScopes {
 		if fn == nil {
 			continue
@@ -43,7 +43,7 @@ func (q *Query) applyScopes() *Query {
 }
 
 // Scopes registers scope functions to be applied to the query.
-func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
+func (q *Query) Scopes(funcs ...func(orm.Query) orm.Query) orm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.scopes = append(newQ.scopes, funcs...)
 	return newQ
@@ -52,7 +52,7 @@ func (q *Query) Scopes(funcs ...func(contractsorm.Query) contractsorm.Query) con
 // WithoutScope removes specific scope function(s) from being applied to the query.
 // Note: Disabling matches scope functions by function pointer identity. Dynamically created closures
 // from factory functions share code pointers.
-func (q *Query) WithoutScope(funcs ...func(contractsorm.Query) contractsorm.Query) contractsorm.Query {
+func (q *Query) WithoutScope(funcs ...func(orm.Query) orm.Query) orm.Query {
 	newQ := q.Clone().(*Query)
 	if newQ.disabledScopes == nil {
 		newQ.disabledScopes = make(map[uintptr]bool)
@@ -67,7 +67,7 @@ func (q *Query) WithoutScope(funcs ...func(contractsorm.Query) contractsorm.Quer
 }
 
 // WithoutScopes removes all per-query scopes from being applied to the query.
-func (q *Query) WithoutScopes() contractsorm.Query {
+func (q *Query) WithoutScopes() orm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.scopes = nil
 	newQ.disabledScopes = nil
@@ -75,7 +75,7 @@ func (q *Query) WithoutScopes() contractsorm.Query {
 }
 
 // WithoutGlobalScopes disables global scopes defined on the model for this query.
-func (q *Query) WithoutGlobalScopes() contractsorm.Query {
+func (q *Query) WithoutGlobalScopes() orm.Query {
 	newQ := q.Clone().(*Query)
 	newQ.withoutGlobalScopes = true
 	return newQ

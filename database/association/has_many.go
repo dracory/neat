@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/support/str"
 )
 
@@ -44,7 +44,7 @@ type HasMany struct {
 //
 //	user := User{ID: 1, Name: "John"}
 //	assoc := NewHasMany(db.Query(), &user, "posts", "user_id", "id")
-func NewHasMany(query contractsorm.Query, model any, association, foreignKey, localKey string) *HasMany {
+func NewHasMany(query orm.Query, model any, association, foreignKey, localKey string) *HasMany {
 	return &HasMany{
 		Association: NewAssociation(query, model, association),
 		foreignKey:  foreignKey,

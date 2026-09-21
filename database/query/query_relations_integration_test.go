@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	_ "modernc.org/sqlite"
 )
 
@@ -195,8 +195,8 @@ func TestEagerLoadingWithWhereClause(t *testing.T) {
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.table = "posts"
 	q.withRelations = []string{"User"}
-	q.relationConstraints = map[string]func(contractsorm.Query) contractsorm.Query{
-		"User": func(q contractsorm.Query) contractsorm.Query {
+	q.relationConstraints = map[string]func(orm.Query) orm.Query{
+		"User": func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		},
 	}
@@ -488,7 +488,7 @@ func TestWithCountWithConstraintIntegration(t *testing.T) {
 
 	q := NewQuery(context.Background(), db, nil, "", nil, nil)
 	q.table = "users"
-	q = q.WithCount("Posts", func(q contractsorm.Query) contractsorm.Query {
+	q = q.WithCount("Posts", func(q orm.Query) orm.Query {
 		return q.Where("published = ?", 1)
 	}).(*Query)
 

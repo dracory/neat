@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // ClauseType represents the type of a query clause.
@@ -14,8 +14,8 @@ type ClauseType int
 // orm.SortAsc / orm.SortDesc constants (lowercased for internal storage)
 // to avoid duplicating string literals.
 var (
-	dirAsc  = strings.ToLower(contractsorm.SortAsc)
-	dirDesc = strings.ToLower(contractsorm.SortDesc)
+	dirAsc  = strings.ToLower(orm.SortAsc)
+	dirDesc = strings.ToLower(orm.SortDesc)
 )
 
 const (

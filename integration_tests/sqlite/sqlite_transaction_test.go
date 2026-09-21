@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -19,7 +19,7 @@ func TestSQLiteTransactionCommit(t *testing.T) {
 	db := SetupSQLiteTest(t)
 
 	// Test basic commit
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		user := models.User{Name: "tx_commit_user"}
 		return tx.Model(&models.User{}).Create(&user)
 	})
@@ -38,7 +38,7 @@ func TestSQLiteTransactionCommit(t *testing.T) {
 	}
 
 	// Test commit with multiple operations
-	err = db.Transaction(func(tx contractsorm.Query) error {
+	err = db.Transaction(func(tx orm.Query) error {
 		user1 := models.User{Name: "tx_multi_user1"}
 		if err := tx.Model(&models.User{}).Create(&user1); err != nil {
 			return err
@@ -70,7 +70,7 @@ func TestSQLiteTransactionRollback(t *testing.T) {
 	db := SetupSQLiteTest(t)
 
 	// Test rollback on error
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		user := models.User{Name: "tx_rollback_user"}
 		if err := tx.Model(&models.User{}).Create(&user); err != nil {
 			return err
@@ -136,7 +136,7 @@ func TestSQLiteTransactionErrorHandling(t *testing.T) {
 
 	// Test error propagation
 	expectedErr := errors.New("propagation error")
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		return expectedErr
 	})
 	if err != expectedErr {
@@ -152,13 +152,13 @@ func TestSQLiteNestedTransactions(t *testing.T) {
 	db := SetupSQLiteTest(t)
 
 	// Test nested transactions using db.Transaction
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		user1 := models.User{Name: "tx_nested_outer"}
 		if err := tx.Model(&models.User{}).Create(&user1); err != nil {
 			return err
 		}
 
-		return tx.Transaction(func(innerTx contractsorm.Query) error {
+		return tx.Transaction(func(innerTx orm.Query) error {
 			user2 := models.User{Name: "tx_nested_inner"}
 			return innerTx.Model(&models.User{}).Create(&user2)
 		})
@@ -178,13 +178,13 @@ func TestSQLiteNestedTransactions(t *testing.T) {
 	}
 
 	// Test nested transaction rollback
-	err = db.Transaction(func(tx contractsorm.Query) error {
+	err = db.Transaction(func(tx orm.Query) error {
 		user1 := models.User{Name: "tx_nested_rollback_outer"}
 		if err := tx.Model(&models.User{}).Create(&user1); err != nil {
 			return err
 		}
 
-		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+		_ = tx.Transaction(func(innerTx orm.Query) error {
 			user2 := models.User{Name: "tx_nested_rollback_inner"}
 			_ = innerTx.Model(&models.User{}).Create(&user2)
 			return errors.New("rollback inner")

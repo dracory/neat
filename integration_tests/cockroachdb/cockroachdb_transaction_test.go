@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -18,7 +18,7 @@ func TestCockroachDBTransactionCommit(t *testing.T) {
 
 	db := SetupCockroachDBTest(t)
 
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		user := models.User{Name: "tx_commit_user"}
 		return tx.Model(&models.User{}).Create(&user)
 	})
@@ -36,7 +36,7 @@ func TestCockroachDBTransactionCommit(t *testing.T) {
 		t.Errorf("Expected 'tx_commit_user', got '%s'", user.Name)
 	}
 
-	err = db.Transaction(func(tx contractsorm.Query) error {
+	err = db.Transaction(func(tx orm.Query) error {
 		user1 := models.User{Name: "tx_multi_user1"}
 		if err := tx.Model(&models.User{}).Create(&user1); err != nil {
 			return err
@@ -67,7 +67,7 @@ func TestCockroachDBTransactionRollback(t *testing.T) {
 
 	db := SetupCockroachDBTest(t)
 
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		user := models.User{Name: "tx_rollback_user"}
 		if err := tx.Model(&models.User{}).Create(&user); err != nil {
 			return err
@@ -128,7 +128,7 @@ func TestCockroachDBTransactionErrorHandling(t *testing.T) {
 	db := SetupCockroachDBTest(t)
 
 	expectedErr := errors.New("propagation error")
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		return expectedErr
 	})
 	if err != expectedErr {
@@ -143,13 +143,13 @@ func TestCockroachDBNestedTransactions(t *testing.T) {
 
 	db := SetupCockroachDBTest(t)
 
-	err := db.Transaction(func(tx contractsorm.Query) error {
+	err := db.Transaction(func(tx orm.Query) error {
 		user1 := models.User{Name: "tx_nested_outer"}
 		if err := tx.Model(&models.User{}).Create(&user1); err != nil {
 			return err
 		}
 
-		return tx.Transaction(func(innerTx contractsorm.Query) error {
+		return tx.Transaction(func(innerTx orm.Query) error {
 			user2 := models.User{Name: "tx_nested_inner"}
 			return innerTx.Model(&models.User{}).Create(&user2)
 		})
@@ -168,13 +168,13 @@ func TestCockroachDBNestedTransactions(t *testing.T) {
 		t.Errorf("Expected count 2, got %d", count)
 	}
 
-	err = db.Transaction(func(tx contractsorm.Query) error {
+	err = db.Transaction(func(tx orm.Query) error {
 		user1 := models.User{Name: "tx_nested_rollback_outer"}
 		if err := tx.Model(&models.User{}).Create(&user1); err != nil {
 			return err
 		}
 
-		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+		_ = tx.Transaction(func(innerTx orm.Query) error {
 			user2 := models.User{Name: "tx_nested_rollback_inner"}
 			_ = innerTx.Model(&models.User{}).Create(&user2)
 			return errors.New("rollback inner")
@@ -219,7 +219,7 @@ func TestCockroachDBTransactionIsolationLevels(t *testing.T) {
 	}
 
 	for _, level := range levels {
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			innerTx, err := db.Query().Begin(&sql.TxOptions{Isolation: level})
 			if err != nil {
 				return err

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/observer"
 )
 
 // WithSoftDeleted includes soft-deleted records in the query results.
-func (q *Query) WithSoftDeleted() contractsorm.Query {
+func (q *Query) WithSoftDeleted() orm.Query {
 	newQuery := q.Clone().(*Query)
 	newQuery.includeSoftDeleted = true
 	newQuery.onlySoftDeleted = false
@@ -21,12 +21,12 @@ func (q *Query) WithSoftDeleted() contractsorm.Query {
 // WithTrashed includes soft-deleted records in the query results.
 //
 // Deprecated: Use WithSoftDeleted() instead.
-func (q *Query) WithTrashed() contractsorm.Query {
+func (q *Query) WithTrashed() orm.Query {
 	return q.WithSoftDeleted()
 }
 
 // OnlySoftDeleted returns only soft-deleted records.
-func (q *Query) OnlySoftDeleted() contractsorm.Query {
+func (q *Query) OnlySoftDeleted() orm.Query {
 	newQuery := q.Clone().(*Query)
 	newQuery.includeSoftDeleted = false
 	newQuery.onlySoftDeleted = true
@@ -37,12 +37,12 @@ func (q *Query) OnlySoftDeleted() contractsorm.Query {
 // OnlyTrashed returns only soft-deleted records.
 //
 // Deprecated: Use OnlySoftDeleted() instead.
-func (q *Query) OnlyTrashed() contractsorm.Query {
+func (q *Query) OnlyTrashed() orm.Query {
 	return q.OnlySoftDeleted()
 }
 
 // WithoutSoftDeleted excludes soft-deleted records from the query results (default behavior).
-func (q *Query) WithoutSoftDeleted() contractsorm.Query {
+func (q *Query) WithoutSoftDeleted() orm.Query {
 	newQuery := q.Clone().(*Query)
 	newQuery.includeSoftDeleted = false
 	newQuery.onlySoftDeleted = false
@@ -53,14 +53,14 @@ func (q *Query) WithoutSoftDeleted() contractsorm.Query {
 // WithoutTrashed excludes soft-deleted records from the query results (default behavior).
 //
 // Deprecated: Use WithoutSoftDeleted() instead.
-func (q *Query) WithoutTrashed() contractsorm.Query {
+func (q *Query) WithoutTrashed() orm.Query {
 	return q.WithoutSoftDeleted()
 }
 
 // SoftDelete soft-deletes records by setting the soft-delete timestamp column.
 // Returns an error if the model does not implement SoftDeleteColumnNamer
 // (i.e., does not support soft deletes).
-func (q *Query) SoftDelete(value ...any) (*contractsorm.Result, error) {
+func (q *Query) SoftDelete(value ...any) (*orm.Result, error) {
 	query := q.Clone().(*Query)
 	if len(value) > 0 {
 		applyConditions(query, value)
@@ -89,7 +89,7 @@ func (q *Query) SoftDelete(value ...any) (*contractsorm.Result, error) {
 	col := getSoftDeleteColumn(query.model)
 
 	var deleteValue any = time.Now()
-	if strat, ok := query.model.(contractsorm.SoftDeleteStrategy); ok {
+	if strat, ok := query.model.(orm.SoftDeleteStrategy); ok {
 		deleteValue = strat.SoftDeleteValue()
 	}
 
@@ -129,5 +129,5 @@ func (q *Query) SoftDelete(value ...any) (*contractsorm.Result, error) {
 	}
 
 	rowsAffected, _ := result.RowsAffected()
-	return &contractsorm.Result{RowsAffected: rowsAffected}, nil
+	return &orm.Result{RowsAffected: rowsAffected}, nil
 }

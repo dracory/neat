@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
 )
 
@@ -21,64 +21,64 @@ type MockObserver struct {
 	RetrievedCalled bool
 }
 
-func (m *MockObserver) Creating(event contractsorm.Event) error {
+func (m *MockObserver) Creating(event orm.Event) error {
 	m.CreatingCalled = true
 	return nil
 }
 
-func (m *MockObserver) Created(event contractsorm.Event) error {
+func (m *MockObserver) Created(event orm.Event) error {
 	m.CreatedCalled = true
 	return nil
 }
 
-func (m *MockObserver) Updating(event contractsorm.Event) error {
+func (m *MockObserver) Updating(event orm.Event) error {
 	m.UpdatingCalled = true
 	return nil
 }
 
-func (m *MockObserver) Updated(event contractsorm.Event) error {
+func (m *MockObserver) Updated(event orm.Event) error {
 	m.UpdatedCalled = true
 	return nil
 }
 
-func (m *MockObserver) Deleting(event contractsorm.Event) error {
+func (m *MockObserver) Deleting(event orm.Event) error {
 	m.DeletingCalled = true
 	return nil
 }
 
-func (m *MockObserver) Deleted(event contractsorm.Event) error {
+func (m *MockObserver) Deleted(event orm.Event) error {
 	m.DeletedCalled = true
 	return nil
 }
 
-func (m *MockObserver) Saving(event contractsorm.Event) error {
+func (m *MockObserver) Saving(event orm.Event) error {
 	m.SavingCalled = true
 	return nil
 }
 
-func (m *MockObserver) Saved(event contractsorm.Event) error {
+func (m *MockObserver) Saved(event orm.Event) error {
 	m.SavedCalled = true
 	return nil
 }
 
-func (m *MockObserver) Retrieved(event contractsorm.Event) error {
+func (m *MockObserver) Retrieved(event orm.Event) error {
 	m.RetrievedCalled = true
 	return nil
 }
 
-func (m *MockObserver) ForceDeleting(event contractsorm.Event) error {
+func (m *MockObserver) ForceDeleting(event orm.Event) error {
 	return nil
 }
 
-func (m *MockObserver) ForceDeleted(event contractsorm.Event) error {
+func (m *MockObserver) ForceDeleted(event orm.Event) error {
 	return nil
 }
 
-func (m *MockObserver) Restoring(event contractsorm.Event) error {
+func (m *MockObserver) Restoring(event orm.Event) error {
 	return nil
 }
 
-func (m *MockObserver) Restored(event contractsorm.Event) error {
+func (m *MockObserver) Restored(event orm.Event) error {
 	return nil
 }
 
@@ -95,7 +95,7 @@ func TestEventCreation(t *testing.T) {
 	attributes := map[string]any{"id": uint(1), "name": "Test"}
 	dirty := map[string]bool{"id": true, "name": true}
 
-	event := NewEvent(ctx, model, original, attributes, dirty, nil, contractsorm.EventCreating)
+	event := NewEvent(ctx, model, original, attributes, dirty, nil, orm.EventCreating)
 
 	if event.Context() != ctx {
 		t.Error("Event context not set correctly")
@@ -105,7 +105,7 @@ func TestEventCreation(t *testing.T) {
 		t.Error("Event model not set correctly")
 	}
 
-	if event.EventType() != contractsorm.EventCreating {
+	if event.EventType() != orm.EventCreating {
 		t.Error("Event type not set correctly")
 	}
 
@@ -159,7 +159,7 @@ func TestDispatcherDispatchCreating(t *testing.T) {
 	model := &TestModel{ID: 1, Name: "Test"}
 	observer := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer},
 	}
 
@@ -180,7 +180,7 @@ func TestDispatcherDispatchCreated(t *testing.T) {
 	model := &TestModel{ID: 1, Name: "Test"}
 	observer := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer},
 	}
 
@@ -201,7 +201,7 @@ func TestDispatcherDispatchUpdating(t *testing.T) {
 	model := &TestModel{ID: 1, Name: "Test"}
 	observer := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer},
 	}
 
@@ -222,7 +222,7 @@ func TestDispatcherDispatchUpdated(t *testing.T) {
 	model := &TestModel{ID: 1, Name: "Test"}
 	observer := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer},
 	}
 
@@ -243,7 +243,7 @@ func TestDispatcherDispatchDeleting(t *testing.T) {
 	model := &TestModel{ID: 1, Name: "Test"}
 	observer := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer},
 	}
 
@@ -264,7 +264,7 @@ func TestDispatcherDispatchDeleted(t *testing.T) {
 	model := &TestModel{ID: 1, Name: "Test"}
 	observer := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer},
 	}
 
@@ -286,7 +286,7 @@ func TestDispatcherMultipleObservers(t *testing.T) {
 	observer1 := &MockObserver{}
 	observer2 := &MockObserver{}
 
-	observers := []contractsorm.ModelToObserver{
+	observers := []orm.ModelToObserver{
 		{Model: &TestModel{}, Observer: observer1},
 		{Model: &TestModel{}, Observer: observer2},
 	}
@@ -310,7 +310,7 @@ func TestDispatcherNoObservers(t *testing.T) {
 	dispatcher := NewDispatcher(log)
 
 	model := &TestModel{ID: 1, Name: "Test"}
-	observers := []contractsorm.ModelToObserver{}
+	observers := []orm.ModelToObserver{}
 
 	err := dispatcher.DispatchCreated(context.Background(), model, observers, nil, nil, nil, nil)
 	if err != nil {

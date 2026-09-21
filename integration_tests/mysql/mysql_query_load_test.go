@@ -5,7 +5,7 @@ package mysql_test
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
@@ -82,7 +82,7 @@ func TestMySQLIntegrationQueryLoadWithConstraints(t *testing.T) {
 	}
 
 	// Load the Books relationship with a constraint (only load books with name containing "1")
-	err = query.Load(&foundUser, "Books", func(q contractsorm.Query) contractsorm.Query {
+	err = query.Load(&foundUser, "Books", func(q orm.Query) orm.Query {
 		return q.Where("name LIKE ?", "%1%")
 	})
 	if err != nil {

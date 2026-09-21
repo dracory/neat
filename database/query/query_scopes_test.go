@@ -3,7 +3,7 @@ package query_test
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // --- scopes tests ---
@@ -23,7 +23,7 @@ func TestScopesMethod(t *testing.T) {
 	w.SetTable("test_scopes")
 
 	t.Run("single scope without parameters", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -45,11 +45,11 @@ func TestScopesMethod(t *testing.T) {
 	})
 
 	t.Run("multiple scopes without parameters", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
-		youngScope := func(q contractsorm.Query) contractsorm.Query {
+		youngScope := func(q orm.Query) orm.Query {
 			return q.Where("age < ?", 30)
 		}
 
@@ -69,8 +69,8 @@ func TestScopesMethod(t *testing.T) {
 	})
 
 	t.Run("scope with closure parameters", func(t *testing.T) {
-		nameScope := func(name string) func(contractsorm.Query) contractsorm.Query {
-			return func(q contractsorm.Query) contractsorm.Query {
+		nameScope := func(name string) func(orm.Query) orm.Query {
+			return func(q orm.Query) orm.Query {
 				return q.Where("name = ?", name)
 			}
 		}
@@ -115,9 +115,9 @@ func (u *GlobalScopeUser) TableName() string {
 	return "test_global_scopes"
 }
 
-func (u *GlobalScopeUser) GlobalScopes() []func(contractsorm.Query) contractsorm.Query {
-	return []func(contractsorm.Query) contractsorm.Query{
-		func(q contractsorm.Query) contractsorm.Query {
+func (u *GlobalScopeUser) GlobalScopes() []func(orm.Query) orm.Query {
+	return []func(orm.Query) orm.Query{
+		func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		},
 	}
@@ -128,11 +128,11 @@ func TestAdvancedScopes(t *testing.T) {
 	execSQL(t, w, "CREATE TABLE test_global_scopes (id INTEGER, name TEXT, status TEXT, age INTEGER)")
 	execSQL(t, w, "INSERT INTO test_global_scopes VALUES (1,'alice','active',25),(2,'bob','inactive',30),(3,'charlie','active',35)")
 
-	activeScope := func(q contractsorm.Query) contractsorm.Query {
+	activeScope := func(q orm.Query) orm.Query {
 		return q.Where("status = ?", "active")
 	}
 
-	youngScope := func(q contractsorm.Query) contractsorm.Query {
+	youngScope := func(q orm.Query) orm.Query {
 		return q.Where("age < ?", 30)
 	}
 
@@ -294,15 +294,15 @@ func TestScopeApplicationOrder(t *testing.T) {
 	w.SetTable("test_scope_order")
 
 	t.Run("scopes applied in order", func(t *testing.T) {
-		scope1 := func(q contractsorm.Query) contractsorm.Query {
+		scope1 := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
-		scope2 := func(q contractsorm.Query) contractsorm.Query {
+		scope2 := func(q orm.Query) orm.Query {
 			return q.Where("age > ?", 25)
 		}
 
-		scope3 := func(q contractsorm.Query) contractsorm.Query {
+		scope3 := func(q orm.Query) orm.Query {
 			return q.OrderBy("name", "asc")
 		}
 
@@ -322,11 +322,11 @@ func TestScopeApplicationOrder(t *testing.T) {
 	})
 
 	t.Run("scope order affects result", func(t *testing.T) {
-		limitScope := func(q contractsorm.Query) contractsorm.Query {
+		limitScope := func(q orm.Query) orm.Query {
 			return q.Limit(1)
 		}
 
-		orderScope := func(q contractsorm.Query) contractsorm.Query {
+		orderScope := func(q orm.Query) orm.Query {
 			return q.OrderBy("age", "desc")
 		}
 
@@ -346,11 +346,11 @@ func TestScopeApplicationOrder(t *testing.T) {
 	})
 
 	t.Run("reversed scope order", func(t *testing.T) {
-		limitScope := func(q contractsorm.Query) contractsorm.Query {
+		limitScope := func(q orm.Query) orm.Query {
 			return q.Limit(1)
 		}
 
-		orderScope := func(q contractsorm.Query) contractsorm.Query {
+		orderScope := func(q orm.Query) orm.Query {
 			return q.OrderBy("age", "asc")
 		}
 
@@ -378,7 +378,7 @@ func TestScopeWithQueryChaining(t *testing.T) {
 	w.SetTable("test_scope_chain")
 
 	t.Run("scope before where clause", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -398,7 +398,7 @@ func TestScopeWithQueryChaining(t *testing.T) {
 	})
 
 	t.Run("scope after where clause", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -418,7 +418,7 @@ func TestScopeWithQueryChaining(t *testing.T) {
 	})
 
 	t.Run("scope with first", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -442,7 +442,7 @@ func TestScopeErrorHandling(t *testing.T) {
 	w.SetTable("test_scope_error")
 
 	t.Run("scope returns nil query", func(t *testing.T) {
-		nilScope := func(q contractsorm.Query) contractsorm.Query {
+		nilScope := func(q orm.Query) orm.Query {
 			return nil
 		}
 
@@ -455,7 +455,7 @@ func TestScopeErrorHandling(t *testing.T) {
 	})
 
 	t.Run("scope with invalid where clause", func(t *testing.T) {
-		invalidScope := func(q contractsorm.Query) contractsorm.Query {
+		invalidScope := func(q orm.Query) orm.Query {
 			return q.Where("invalid_column = ?", "value")
 		}
 
@@ -468,7 +468,7 @@ func TestScopeErrorHandling(t *testing.T) {
 	})
 
 	t.Run("scope panic handling", func(t *testing.T) {
-		panicScope := func(q contractsorm.Query) contractsorm.Query {
+		panicScope := func(q orm.Query) orm.Query {
 			panic("scope panic")
 		}
 
@@ -488,7 +488,7 @@ func TestScopeErrorHandling(t *testing.T) {
 	t.Run("scope with invalid table", func(t *testing.T) {
 		w.SetTable("nonexistent_table")
 
-		validScope := func(q contractsorm.Query) contractsorm.Query {
+		validScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -500,7 +500,7 @@ func TestScopeErrorHandling(t *testing.T) {
 	})
 
 	t.Run("scope with nil destination", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -511,7 +511,7 @@ func TestScopeErrorHandling(t *testing.T) {
 	})
 
 	t.Run("scope with non-slice destination", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -535,7 +535,7 @@ func TestScopeWithTransactions(t *testing.T) {
 		t.Fatalf("Begin failed: %v", err)
 	}
 
-	activeScope := func(q contractsorm.Query) contractsorm.Query {
+	activeScope := func(q orm.Query) orm.Query {
 		return q.Where("status = ?", "active")
 	}
 
@@ -566,7 +566,7 @@ func TestScopeIsolation(t *testing.T) {
 	w.SetTable("test_scope_isolation")
 
 	t.Run("scope does not affect original query", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
@@ -592,11 +592,11 @@ func TestScopeIsolation(t *testing.T) {
 	})
 
 	t.Run("multiple scopes on same query", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 
-		inactiveScope := func(q contractsorm.Query) contractsorm.Query {
+		inactiveScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "inactive")
 		}
 
@@ -628,7 +628,7 @@ func TestScopeWithModel(t *testing.T) {
 	execSQL(t, w, "INSERT INTO test_scope_model VALUES (1,'alice','active',25),(2,'bob','inactive',30)")
 
 	t.Run("scope with model set", func(t *testing.T) {
-		activeScope := func(q contractsorm.Query) contractsorm.Query {
+		activeScope := func(q orm.Query) orm.Query {
 			return q.Where("status = ?", "active")
 		}
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/dracory/neat"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/database/schema"
 	mainpkg "github.com/dracory/neat/examples/observers"
 )
@@ -29,43 +29,43 @@ type trackingObserver struct {
 	ForceDeleteCount int
 }
 
-func (o *trackingObserver) Creating(_ contractsorm.Event) error {
+func (o *trackingObserver) Creating(_ orm.Event) error {
 	o.mu.Lock()
 	o.CreatingCount++
 	o.mu.Unlock()
 	return nil
 }
-func (o *trackingObserver) Created(_ contractsorm.Event) error {
+func (o *trackingObserver) Created(_ orm.Event) error {
 	o.mu.Lock()
 	o.CreatedCount++
 	o.mu.Unlock()
 	return nil
 }
-func (o *trackingObserver) Updating(_ contractsorm.Event) error {
+func (o *trackingObserver) Updating(_ orm.Event) error {
 	o.mu.Lock()
 	o.UpdatingCount++
 	o.mu.Unlock()
 	return nil
 }
-func (o *trackingObserver) Updated(_ contractsorm.Event) error {
+func (o *trackingObserver) Updated(_ orm.Event) error {
 	o.mu.Lock()
 	o.UpdatedCount++
 	o.mu.Unlock()
 	return nil
 }
-func (o *trackingObserver) Deleting(_ contractsorm.Event) error {
+func (o *trackingObserver) Deleting(_ orm.Event) error {
 	o.mu.Lock()
 	o.DeletingCount++
 	o.mu.Unlock()
 	return nil
 }
-func (o *trackingObserver) Deleted(_ contractsorm.Event) error {
+func (o *trackingObserver) Deleted(_ orm.Event) error {
 	o.mu.Lock()
 	o.DeletedCount++
 	o.mu.Unlock()
 	return nil
 }
-func (o *trackingObserver) ForceDeleted(_ contractsorm.Event) error {
+func (o *trackingObserver) ForceDeleted(_ orm.Event) error {
 	o.mu.Lock()
 	o.ForceDeleteCount++
 	o.mu.Unlock()

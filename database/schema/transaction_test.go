@@ -7,7 +7,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/dracory/neat"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -19,7 +19,7 @@ func TestSchemaWithTransaction(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	t.Run("CreateAndRollback", func(t *testing.T) {
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			schema := db.Schema().WithTransaction(tx)
 
 			// Create table within transaction
@@ -52,7 +52,7 @@ func TestSchemaWithTransaction(t *testing.T) {
 	})
 
 	t.Run("CreateAndCommit", func(t *testing.T) {
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			schema := db.Schema().WithTransaction(tx)
 
 			createErr := schema.Create("products", func(blueprint contractsschema.Blueprint) {
@@ -87,7 +87,7 @@ func TestSchemaWithTransaction(t *testing.T) {
 		}
 
 		// Now drop it in a transaction and roll back
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			txSchema := db.Schema().WithTransaction(tx)
 
 			dropErr := txSchema.Drop("categories")
@@ -123,7 +123,7 @@ func TestSchemaWithTransaction(t *testing.T) {
 		}
 
 		// Modify it in a transaction and roll back
-		err := db.Transaction(func(tx contractsorm.Query) error {
+		err := db.Transaction(func(tx orm.Query) error {
 			txSchema := db.Schema().WithTransaction(tx)
 
 			modifyErr := txSchema.Table("orders", func(blueprint contractsschema.Blueprint) {

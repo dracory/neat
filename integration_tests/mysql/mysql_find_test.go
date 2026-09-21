@@ -5,12 +5,12 @@ package mysql_test
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
 type queryable interface {
-	Query() contractsorm.Query
+	Query() orm.Query
 }
 
 // setupFindTest creates a database connection and sets up test tables

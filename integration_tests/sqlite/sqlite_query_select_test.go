@@ -5,7 +5,7 @@ package sqlite
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -105,7 +105,7 @@ func TestSQLiteIntegrationQuerySelectWithSubqueryCallbacks(t *testing.T) {
 		SubName string `gorm:"column:sub_name"`
 	}
 	err := query.Model(&models.User{}).
-		Select(func(q contractsorm.Query) contractsorm.Query {
+		Select(func(q orm.Query) orm.Query {
 			return q.Table("users").Select("name").Where("id = ?", user.ID)
 		}, "sub_name").
 		Where("id = ?", user.ID).

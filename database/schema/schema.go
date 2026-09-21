@@ -7,7 +7,7 @@ import (
 
 	"github.com/dracory/neat/contracts/config"
 	contractsdatabase "github.com/dracory/neat/contracts/database"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/schema/grammars"
@@ -24,14 +24,14 @@ type Schema struct {
 	config    config.Config
 	grammar   contractsschema.Grammar
 	log       log.Log
-	orm       contractsorm.Orm
+	orm       orm.Orm
 	prefix    string
 	processor contractsschema.Processor
 	schema    string
-	tx        contractsorm.Query
+	tx        orm.Query
 }
 
-func NewSchema(config config.Config, log log.Log, orm contractsorm.Orm) (*Schema, error) {
+func NewSchema(config config.Config, log log.Log, orm orm.Orm) (*Schema, error) {
 	driver := contractsdatabase.Driver(config.GetString(fmt.Sprintf("database.connections.%s.driver", orm.Name())))
 	prefix := config.GetString(fmt.Sprintf("database.connections.%s.prefix", orm.Name()))
 	var (
@@ -212,7 +212,7 @@ func (r *Schema) DropIfExists(table string) error {
 	return nil
 }
 
-func (r *Schema) CreateView(name string, q contractsorm.Query) error {
+func (r *Schema) CreateView(name string, q orm.Query) error {
 	// Use ToRawSql (not ToSql) so that bound parameters are interpolated into
 	// the SQL string. ToSql leaves "?" placeholders intact, which would produce
 	// a view definition containing literal "?" characters.
@@ -437,7 +437,7 @@ func (r *Schema) HasView(name string) bool {
 	return false
 }
 
-func (r *Schema) Orm() contractsorm.Orm {
+func (r *Schema) Orm() orm.Orm {
 	return r.orm
 }
 
@@ -489,7 +489,7 @@ func (r *Schema) Table(table string, callback func(table contractsschema.Bluepri
 	return nil
 }
 
-func (r *Schema) WithTransaction(tx contractsorm.Query) contractsschema.Schema {
+func (r *Schema) WithTransaction(tx orm.Query) contractsschema.Schema {
 	// Create new CommonSchema with tx
 	newCommon := NewCommonSchema(r.grammar, r.orm).WithTransaction(tx)
 
@@ -545,12 +545,12 @@ func (r *Schema) build(blueprint contractsschema.Blueprint) error {
 		return blueprint.Build(query, r.grammar)
 	}
 
-	return r.orm.Transaction(func(tx contractsorm.Query) error {
+	return r.orm.Transaction(func(tx orm.Query) error {
 		return blueprint.Build(tx, r.grammar)
 	})
 }
 
-func (r *Schema) getQuery() contractsorm.Query {
+func (r *Schema) getQuery() orm.Query {
 	if r.tx != nil {
 		return r.tx
 	}

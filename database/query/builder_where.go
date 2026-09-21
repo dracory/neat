@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // convertTimeArgs passes time.Time / *time.Time values as-is to the database driver.
@@ -72,7 +72,7 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 
 	if hasSoftDeleteCapability(b.query.model) {
 		// Check if model implements SoftDeleteStrategy for custom WHERE conditions
-		if strat, ok := b.query.model.(contractsorm.SoftDeleteStrategy); ok {
+		if strat, ok := b.query.model.(orm.SoftDeleteStrategy); ok {
 			switch {
 			case b.query.onlySoftDeleted:
 				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)
@@ -214,7 +214,7 @@ func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any)
 
 	if hasSoftDeleteCapability(b.query.model) {
 		// Check if model implements SoftDeleteStrategy for custom WHERE conditions
-		if strat, ok := b.query.model.(contractsorm.SoftDeleteStrategy); ok {
+		if strat, ok := b.query.model.(orm.SoftDeleteStrategy); ok {
 			switch {
 			case b.query.onlySoftDeleted:
 				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)

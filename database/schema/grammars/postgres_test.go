@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database/schema/constants"
 	"github.com/dracory/neat/database/schema/grammars"
@@ -109,7 +109,7 @@ func (b *stubBlueprint) BigInteger(col string) contractsschema.ColumnDefinition 
 func (b *stubBlueprint) Boolean(col string) contractsschema.ColumnDefinition {
 	return b.col(col, "boolean")
 }
-func (b *stubBlueprint) Build(_ contractsorm.Query, _ contractsschema.Grammar) error { return nil }
+func (b *stubBlueprint) Build(_ orm.Query, _ contractsschema.Grammar) error { return nil }
 func (b *stubBlueprint) Char(col string, _ ...int) contractsschema.ColumnDefinition {
 	return b.col(col, "char")
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/query"
 )
 
@@ -20,7 +20,7 @@ func TestBeforeCommitCalledOnCommit(t *testing.T) {
 	w := openSQLiteForTx(t)
 
 	called := false
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		tx.(*query.Query).BeforeCommit(func() error {
 			called = true
 			return nil
@@ -39,7 +39,7 @@ func TestAfterCommitCalledOnCommit(t *testing.T) {
 	w := openSQLiteForTx(t)
 
 	called := false
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		tx.(*query.Query).AfterCommit(func() error {
 			called = true
 			return nil
@@ -58,7 +58,7 @@ func TestBeforeRollbackCalledOnRollback(t *testing.T) {
 	w := openSQLiteForTx(t)
 
 	called := false
-	_ = w.Q.Transaction(func(tx contractsorm.Query) error {
+	_ = w.Q.Transaction(func(tx orm.Query) error {
 		tx.(*query.Query).BeforeRollback(func() error {
 			called = true
 			return nil
@@ -74,7 +74,7 @@ func TestAfterRollbackCalledOnRollback(t *testing.T) {
 	w := openSQLiteForTx(t)
 
 	called := false
-	_ = w.Q.Transaction(func(tx contractsorm.Query) error {
+	_ = w.Q.Transaction(func(tx orm.Query) error {
 		tx.(*query.Query).AfterRollback(func() error {
 			called = true
 			return nil
@@ -90,7 +90,7 @@ func TestBeforeCommitErrorAbortsCommit(t *testing.T) {
 	w := openSQLiteForTx(t)
 
 	hookErr := errors.New("hook abort")
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		tx.(*query.Query).BeforeCommit(func() error {
 			return hookErr
 		})
@@ -107,7 +107,7 @@ func TestBeforeCommitErrorAbortsCommit(t *testing.T) {
 func TestTransactionCommitSucceeds(t *testing.T) {
 	w := openSQLiteForTx(t)
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		return nil
 	})
 	if err != nil {
@@ -118,8 +118,8 @@ func TestTransactionCommitSucceeds(t *testing.T) {
 func TestNestedTransactionCommit(t *testing.T) {
 	w := openSQLiteForTx(t)
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
-		return tx.Transaction(func(innerTx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
+		return tx.Transaction(func(innerTx orm.Query) error {
 			return nil
 		})
 	})
@@ -131,8 +131,8 @@ func TestNestedTransactionCommit(t *testing.T) {
 func TestNestedTransactionRollback(t *testing.T) {
 	w := openSQLiteForTx(t)
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
-		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
+		_ = tx.Transaction(func(innerTx orm.Query) error {
 			return errors.New("force inner rollback")
 		})
 		return nil
@@ -145,13 +145,13 @@ func TestNestedTransactionRollback(t *testing.T) {
 func TestNestedTransactionWithOperations(t *testing.T) {
 	w := openSQLiteForTx(t)
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		_, err := tx.Exec("INSERT INTO tx_hooks (id, val) VALUES (1, 'outer')")
 		if err != nil {
 			return err
 		}
 
-		return tx.Transaction(func(innerTx contractsorm.Query) error {
+		return tx.Transaction(func(innerTx orm.Query) error {
 			_, err := innerTx.Exec("INSERT INTO tx_hooks (id, val) VALUES (2, 'inner')")
 			return err
 		})
@@ -178,14 +178,14 @@ func TestNestedTransactionWithOperations(t *testing.T) {
 func TestNestedTransactionSavepointRollback(t *testing.T) {
 	w := openSQLiteForTx(t)
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		_, err := tx.Exec("INSERT INTO tx_hooks (id, val) VALUES (1, 'outer')")
 		if err != nil {
 			return err
 		}
 
 		// Inner transaction rolls back (savepoint)
-		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+		_ = tx.Transaction(func(innerTx orm.Query) error {
 			_, err := innerTx.Exec("INSERT INTO tx_hooks (id, val) VALUES (2, 'inner')")
 			if err != nil {
 				return err
@@ -219,19 +219,19 @@ func TestNestedTransactionSavepointRollback(t *testing.T) {
 func TestDeeplyNestedTransactions(t *testing.T) {
 	w := openSQLiteForTx(t)
 
-	err := w.Q.Transaction(func(tx1 contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx1 orm.Query) error {
 		_, err := tx1.Exec("INSERT INTO tx_hooks (id, val) VALUES (1, 'level1')")
 		if err != nil {
 			return err
 		}
 
-		return tx1.Transaction(func(tx2 contractsorm.Query) error {
+		return tx1.Transaction(func(tx2 orm.Query) error {
 			_, err := tx2.Exec("INSERT INTO tx_hooks (id, val) VALUES (2, 'level2')")
 			if err != nil {
 				return err
 			}
 
-			return tx2.Transaction(func(tx3 contractsorm.Query) error {
+			return tx2.Transaction(func(tx3 orm.Query) error {
 				_, err := tx3.Exec("INSERT INTO tx_hooks (id, val) VALUES (3, 'level3')")
 				return err
 			})
@@ -262,7 +262,7 @@ func TestNestedTransactionWithHooks(t *testing.T) {
 	outerBeforeCommit := false
 	outerAfterCommit := false
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		tx.(*query.Query).BeforeCommit(func() error {
 			outerBeforeCommit = true
 			return nil
@@ -273,7 +273,7 @@ func TestNestedTransactionWithHooks(t *testing.T) {
 		})
 
 		// Inner transaction (savepoint) - hooks may not be called for savepoints
-		_ = tx.Transaction(func(innerTx contractsorm.Query) error {
+		_ = tx.Transaction(func(innerTx orm.Query) error {
 			return nil
 		})
 

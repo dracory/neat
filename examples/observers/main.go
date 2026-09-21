@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/database/schema"
 )
 
@@ -30,49 +30,49 @@ type UserObserver struct {
 }
 
 // Creating is called before a user is inserted.
-func (o *UserObserver) Creating(event contractsorm.Event) error {
+func (o *UserObserver) Creating(event orm.Event) error {
 	o.events = append(o.events, "creating")
 	fmt.Println("[observer] Creating: about to insert a new user")
 	return nil
 }
 
 // Created is called after a user is inserted.
-func (o *UserObserver) Created(event contractsorm.Event) error {
+func (o *UserObserver) Created(event orm.Event) error {
 	o.events = append(o.events, "created")
 	fmt.Println("[observer] Created: new user inserted")
 	return nil
 }
 
 // Updating is called before a user is updated.
-func (o *UserObserver) Updating(event contractsorm.Event) error {
+func (o *UserObserver) Updating(event orm.Event) error {
 	o.events = append(o.events, "updating")
 	fmt.Println("[observer] Updating: about to update a user")
 	return nil
 }
 
 // Updated is called after a user is updated.
-func (o *UserObserver) Updated(event contractsorm.Event) error {
+func (o *UserObserver) Updated(event orm.Event) error {
 	o.events = append(o.events, "updated")
 	fmt.Println("[observer] Updated: user updated")
 	return nil
 }
 
 // Deleting is called before a user is deleted.
-func (o *UserObserver) Deleting(event contractsorm.Event) error {
+func (o *UserObserver) Deleting(event orm.Event) error {
 	o.events = append(o.events, "deleting")
 	fmt.Println("[observer] Deleting: about to delete a user")
 	return nil
 }
 
 // Deleted is called after a user is deleted.
-func (o *UserObserver) Deleted(event contractsorm.Event) error {
+func (o *UserObserver) Deleted(event orm.Event) error {
 	o.events = append(o.events, "deleted")
 	fmt.Println("[observer] Deleted: user deleted")
 	return nil
 }
 
 // ForceDeleted is called after a user is permanently deleted.
-func (o *UserObserver) ForceDeleted(event contractsorm.Event) error {
+func (o *UserObserver) ForceDeleted(event orm.Event) error {
 	o.events = append(o.events, "force_deleted")
 	fmt.Println("[observer] ForceDeleted: user permanently deleted")
 	return nil

@@ -6,7 +6,7 @@ package postgres_test
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/integration_tests/models"
 )
 
@@ -111,7 +111,7 @@ func TestPostgreSQLIntegrationQueryBelongsToWithConstraints(t *testing.T) {
 	}
 
 	var userAddress models.Address
-	err := query.Model(&models.Address{}).With("User", func(q contractsorm.Query) contractsorm.Query {
+	err := query.Model(&models.Address{}).With("User", func(q orm.Query) orm.Query {
 		return q.Where("name = ?", "non_existent_user")
 	}).Where("name = ?", "constrained_address").First(&userAddress)
 
@@ -122,7 +122,7 @@ func TestPostgreSQLIntegrationQueryBelongsToWithConstraints(t *testing.T) {
 		t.Error("User should be nil with non-existent constraint")
 	}
 
-	err = query.Model(&models.Address{}).With("User", func(q contractsorm.Query) contractsorm.Query {
+	err = query.Model(&models.Address{}).With("User", func(q orm.Query) orm.Query {
 		return q.Where("name = ?", "constrained_user")
 	}).Where("name = ?", "constrained_address").First(&userAddress)
 

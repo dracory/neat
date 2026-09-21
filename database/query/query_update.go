@@ -7,12 +7,12 @@ import (
 	"reflect"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/observer"
 )
 
 // Update updates records in the database.
-func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
+func (q *Query) Update(column any, value ...any) (*orm.Result, error) {
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
@@ -65,7 +65,7 @@ func (q *Query) Update(column any, value ...any) (*contractsorm.Result, error) {
 
 	// Get affected rows
 	rowsAffected, _ := result.RowsAffected()
-	return &contractsorm.Result{
+	return &orm.Result{
 		RowsAffected: rowsAffected,
 	}, nil
 }
@@ -79,7 +79,7 @@ func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
 	}
 
 	// Wrap the entire operation in a transaction for atomicity
-	return q.Transaction(func(tx contractsorm.Query) error {
+	return q.Transaction(func(tx orm.Query) error {
 		txQ, ok := tx.(*Query)
 		if !ok {
 			return fmt.Errorf("unexpected transaction type: %T", tx)

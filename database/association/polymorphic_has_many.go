@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/support/str"
 )
 
@@ -48,7 +48,7 @@ type PolymorphicHasMany struct {
 //
 //	post := Post{ID: 1, Title: "My Post"}
 //	assoc := NewPolymorphicHasMany(db.Query(), &post, "comments", "commentable_id", "commentable_type", "id")
-func NewPolymorphicHasMany(query contractsorm.Query, model any, association, polymorphicID, polymorphicType, localKey string) *PolymorphicHasMany {
+func NewPolymorphicHasMany(query orm.Query, model any, association, polymorphicID, polymorphicType, localKey string) *PolymorphicHasMany {
 	return &PolymorphicHasMany{
 		Association:     NewAssociation(query, model, association),
 		polymorphicID:   polymorphicID,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // Event implements the Event interface for model lifecycle events.
@@ -14,8 +14,8 @@ type Event struct {
 	original   map[string]any
 	attributes map[string]any
 	dirty      map[string]bool
-	query      contractsorm.Query
-	eventType  contractsorm.EventType
+	query      orm.Query
+	eventType  orm.EventType
 }
 
 // NewEvent creates a new Event instance.
@@ -25,8 +25,8 @@ func NewEvent(
 	original map[string]any,
 	attributes map[string]any,
 	dirty map[string]bool,
-	query contractsorm.Query,
-	eventType contractsorm.EventType,
+	query orm.Query,
+	eventType orm.EventType,
 ) *Event {
 	return &Event{
 		ctx:        ctx,
@@ -100,7 +100,7 @@ func (e *Event) IsDirty(columns ...string) bool {
 }
 
 // Query returns the query instance.
-func (e *Event) Query() contractsorm.Query {
+func (e *Event) Query() orm.Query {
 	return e.query
 }
 
@@ -118,7 +118,7 @@ func (e *Event) Model() any {
 }
 
 // EventType returns the event type.
-func (e *Event) EventType() contractsorm.EventType {
+func (e *Event) EventType() orm.EventType {
 	return e.eventType
 }
 

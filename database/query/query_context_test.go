@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/query"
 	_ "modernc.org/sqlite"
 )
@@ -123,7 +123,7 @@ func TestContextWithTransaction(t *testing.T) {
 	ctx := context.Background()
 	w.Q = w.Q.WithContext(ctx).(*query.Query)
 
-	err := w.Q.Transaction(func(tx contractsorm.Query) error {
+	err := w.Q.Transaction(func(tx orm.Query) error {
 		wrapped := query.WrapQuery(tx.(*query.Query))
 		if wrapped.Context() != ctx {
 			t.Error("expected transaction query to preserve context")

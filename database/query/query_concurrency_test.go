@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	_ "modernc.org/sqlite"
 )
 
@@ -287,7 +287,7 @@ func TestConcurrentQueryWithScopes(t *testing.T) {
 	concurrency := 10
 	errors := make(chan error, concurrency)
 
-	activeScope := func(q contractsorm.Query) contractsorm.Query {
+	activeScope := func(q orm.Query) orm.Query {
 		return q.Where("status = ?", "active")
 	}
 
@@ -636,19 +636,19 @@ type testObserver struct {
 	callCount atomic.Int32
 }
 
-func (o *testObserver) Created(event contractsorm.Event) error {
+func (o *testObserver) Created(event orm.Event) error {
 	o.callCount.Add(1)
 	return nil
 }
 
-func (o *testObserver) Updated(event contractsorm.Event) error {
+func (o *testObserver) Updated(event orm.Event) error {
 	return nil
 }
 
-func (o *testObserver) Deleted(event contractsorm.Event) error {
+func (o *testObserver) Deleted(event orm.Event) error {
 	return nil
 }
 
-func (o *testObserver) ForceDeleted(event contractsorm.Event) error {
+func (o *testObserver) ForceDeleted(event orm.Event) error {
 	return nil
 }

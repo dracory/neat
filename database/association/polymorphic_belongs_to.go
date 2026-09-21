@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/support/str"
 )
 
@@ -46,7 +46,7 @@ type PolymorphicBelongsTo struct {
 //
 //	comment := Comment{ID: 1, CommentableID: 5, CommentableType: "Post"}
 //	assoc := NewPolymorphicBelongsTo(db.Query(), &comment, "commentable", "commentable_id", "commentable_type")
-func NewPolymorphicBelongsTo(query contractsorm.Query, model any, association, polymorphicID, polymorphicType string) *PolymorphicBelongsTo {
+func NewPolymorphicBelongsTo(query orm.Query, model any, association, polymorphicID, polymorphicType string) *PolymorphicBelongsTo {
 	return &PolymorphicBelongsTo{
 		Association:     NewAssociation(query, model, association),
 		polymorphicID:   polymorphicID,

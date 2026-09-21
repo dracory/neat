@@ -5,25 +5,25 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/support/str"
 )
 
 // Model sets the model for the query.
-func (q *Query) Model(value any) contractsorm.Query {
+func (q *Query) Model(value any) orm.Query {
 	q.model = value
 	q.table = q.resolveTableName(value)
 
 	// If driver is "array" and model implements ArraySource, populate the database
 	if q.driver != nil && q.driver.Dialect() == "array" {
-		if source, ok := value.(contractsorm.ArraySource); ok {
+		if source, ok := value.(orm.ArraySource); ok {
 			tableName := source.TableName()
 			if q.populatedTables == nil {
 				q.populatedTables = make(map[string]bool)
 			}
 
 			if !q.populatedTables[tableName] {
-				if arrayDriver, ok := q.driver.(contractsorm.ArrayPopulator); ok {
+				if arrayDriver, ok := q.driver.(orm.ArrayPopulator); ok {
 					// Use q.db directly instead of q.DB() because q.DB() returns
 					// an error during transactions. The array driver needs *sql.DB
 					// for DDL operations (CREATE TABLE / INSERT), which are not
@@ -40,13 +40,13 @@ func (q *Query) Model(value any) contractsorm.Query {
 		}
 	}
 
-	// Load global scopes if model implements contractsorm.GlobalScope
+	// Load global scopes if model implements orm.GlobalScope
 	q.globalScopes = nil
 	q.withoutGlobalScopes = false
 	q.disabledScopes = nil
 	q.scopes = nil
 
-	if gs, ok := value.(contractsorm.GlobalScope); ok {
+	if gs, ok := value.(orm.GlobalScope); ok {
 		q.globalScopes = gs.GlobalScopes()
 	}
 

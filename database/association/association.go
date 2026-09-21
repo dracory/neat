@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // Association represents a model association.
@@ -22,7 +22,7 @@ import (
 //
 //	// The Profile and Posts fields would be managed through Association instances
 type Association struct {
-	query       contractsorm.Query // The query builder for database operations
+	query       orm.Query // The query builder for database operations
 	model       any                // The model instance this association belongs to
 	association string             // The name of the association (e.g., "profile", "posts")
 }
@@ -36,7 +36,7 @@ type Association struct {
 //
 //	user := User{ID: 1, Name: "John"}
 //	assoc := NewAssociation(db.Query(), &user, "profile")
-func NewAssociation(query contractsorm.Query, model any, association string) *Association {
+func NewAssociation(query orm.Query, model any, association string) *Association {
 	return &Association{
 		query:       query,
 		model:       model,
@@ -122,7 +122,7 @@ func (a *Association) Count() int64 {
 //
 //	query := assoc.Query()
 //	err := query.Where("status = ?", "active").Get(&results)
-func (a *Association) Query() contractsorm.Query {
+func (a *Association) Query() orm.Query {
 	return a.query
 }
 

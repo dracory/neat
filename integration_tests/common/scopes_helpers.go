@@ -5,7 +5,7 @@ package common
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/models"
 )
@@ -30,7 +30,7 @@ func SeedScopesTestData(t *testing.T, db *database.Database) {
 func TestScopesWithoutParameters(t *testing.T, db *database.Database) {
 	query := db.Query()
 
-	activeScope := func(query contractsorm.Query) contractsorm.Query {
+	activeScope := func(query orm.Query) orm.Query {
 		return query.Where("avatar = ?", "active")
 	}
 
@@ -53,8 +53,8 @@ func TestScopesWithoutParameters(t *testing.T, db *database.Database) {
 func TestScopesWithParameters(t *testing.T, db *database.Database) {
 	query := db.Query()
 
-	nameScope := func(name string) func(contractsorm.Query) contractsorm.Query {
-		return func(query contractsorm.Query) contractsorm.Query {
+	nameScope := func(name string) func(orm.Query) orm.Query {
+		return func(query orm.Query) orm.Query {
 			return query.Where("name = ?", name)
 		}
 	}
@@ -76,12 +76,12 @@ func TestScopesWithParameters(t *testing.T, db *database.Database) {
 func TestScopesMultipleChaining(t *testing.T, db *database.Database) {
 	query := db.Query()
 
-	activeScope := func(query contractsorm.Query) contractsorm.Query {
+	activeScope := func(query orm.Query) orm.Query {
 		return query.Where("avatar = ?", "active")
 	}
 
-	nameScope := func(name string) func(contractsorm.Query) contractsorm.Query {
-		return func(query contractsorm.Query) contractsorm.Query {
+	nameScope := func(name string) func(orm.Query) orm.Query {
+		return func(query orm.Query) orm.Query {
 			return query.Where("name = ?", name)
 		}
 	}

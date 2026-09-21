@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/driver"
 	_ "modernc.org/sqlite"
 )
@@ -93,7 +93,7 @@ func TestSelectWithSubqueryCallback(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 
-	q.Select(func(q contractsorm.Query) contractsorm.Query {
+	q.Select(func(q orm.Query) orm.Query {
 		return q.Table("users").Select("name").Where("id = ?", 1)
 	}, "sub_name")
 
@@ -116,7 +116,7 @@ func TestSelectWithSubqueryCallbackNoAlias(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 
-	q.Select(func(q contractsorm.Query) contractsorm.Query {
+	q.Select(func(q orm.Query) orm.Query {
 		return q.Table("users").Select("name").Where("id = ?", 1)
 	})
 
@@ -136,7 +136,7 @@ func TestSelectWithSubqueryCallbackInArgs(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
 
-	q.Select("? as sub_name", func(q contractsorm.Query) contractsorm.Query {
+	q.Select("? as sub_name", func(q orm.Query) orm.Query {
 		return q.Table("users").Select("name").Where("id = ?", 1)
 	})
 
@@ -447,7 +447,7 @@ func TestTableFromSubquery(t *testing.T) {
 func TestWhereExistsSQLGeneration(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.Table("users")
-	q.WhereExists(func(sub contractsorm.Query) contractsorm.Query {
+	q.WhereExists(func(sub orm.Query) orm.Query {
 		return sub.Table("orders").Where("orders.user_id = users.id")
 	})
 

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/database/association"
 	"github.com/dracory/neat/support/str"
 )
@@ -325,15 +325,15 @@ func (q *Query) loadRelationsWithConn(v reflect.Value, conn *sql.DB) error {
 }
 
 // With specifies relations to eager load.
-func (q *Query) With(query string, args ...any) contractsorm.Query {
+func (q *Query) With(query string, args ...any) orm.Query {
 	newQuery := q.Clone().(*Query)
 	newQuery.withRelations = append(newQuery.withRelations, query)
 
 	// Check if a constraint callback is provided
 	if len(args) > 0 {
-		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+		if fn, ok := args[0].(func(orm.Query) orm.Query); ok {
 			if newQuery.relationConstraints == nil {
-				newQuery.relationConstraints = make(map[string]func(contractsorm.Query) contractsorm.Query)
+				newQuery.relationConstraints = make(map[string]func(orm.Query) orm.Query)
 			}
 			newQuery.relationConstraints[query] = fn
 		}
@@ -351,9 +351,9 @@ func (q *Query) Load(dest any, relation string, args ...any) error {
 
 	// Check if a constraint callback is provided
 	if len(args) > 0 {
-		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+		if fn, ok := args[0].(func(orm.Query) orm.Query); ok {
 			if newQuery.relationConstraints == nil {
-				newQuery.relationConstraints = make(map[string]func(contractsorm.Query) contractsorm.Query)
+				newQuery.relationConstraints = make(map[string]func(orm.Query) orm.Query)
 			}
 			newQuery.relationConstraints[relation] = fn
 		}
@@ -403,7 +403,7 @@ func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
 }
 
 // Without removes specified relations from eager loading.
-func (q *Query) Without(relations ...string) contractsorm.Query {
+func (q *Query) Without(relations ...string) orm.Query {
 	newQuery := q.Clone().(*Query)
 	// Remove specified relations from withRelations
 	for _, relation := range relations {
@@ -424,7 +424,7 @@ func (q *Query) Without(relations ...string) contractsorm.Query {
 // WithCount adds a count subquery to the SELECT clause for the given relationship.
 // The count is added as a column named "{relation}_count".
 // A constraint callback can be provided to filter the count query.
-func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
+func (q *Query) WithCount(relation string, args ...any) orm.Query {
 	// Validate relation name
 	if relation == "" {
 		return q
@@ -439,7 +439,7 @@ func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
 
 	// Check if a constraint callback is provided
 	if len(args) > 0 {
-		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+		if fn, ok := args[0].(func(orm.Query) orm.Query); ok {
 			cq.constraint = fn
 		}
 	}
@@ -451,7 +451,7 @@ func (q *Query) WithCount(relation string, args ...any) contractsorm.Query {
 // WithExists adds an exists subquery to the SELECT clause for the given relationship.
 // The exists result is added as a boolean column named "{relation}_exists".
 // A constraint callback can be provided to filter the exists query.
-func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
+func (q *Query) WithExists(relation string, args ...any) orm.Query {
 	// Validate relation name
 	if relation == "" {
 		return q
@@ -465,7 +465,7 @@ func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
 
 	// Check if a constraint callback is provided
 	if len(args) > 0 {
-		if fn, ok := args[0].(func(contractsorm.Query) contractsorm.Query); ok {
+		if fn, ok := args[0].(func(orm.Query) orm.Query); ok {
 			eq.constraint = fn
 		}
 	}
@@ -475,7 +475,7 @@ func (q *Query) WithExists(relation string, args ...any) contractsorm.Query {
 }
 
 // Association returns an association for the given relationship name.
-func (q *Query) Association(assocName string) contractsorm.Association {
+func (q *Query) Association(assocName string) orm.Association {
 	if q.model == nil {
 		return association.NewAssociation(q, q.model, assocName)
 	}

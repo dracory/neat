@@ -5,7 +5,7 @@ package aztables
 import (
 	"testing"
 
-	contractsorm "github.com/dracory/neat/contracts/database/orm"
+	"github.com/dracory/neat/contracts/database/orm"
 )
 
 // TestAztablesIntegrationQueryScopesWithoutParameters verifies that query
@@ -26,7 +26,7 @@ func TestAztablesIntegrationQueryScopesWithoutParameters(t *testing.T) {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	activeScope := func(q contractsorm.Query) contractsorm.Query {
+	activeScope := func(q orm.Query) orm.Query {
 		return q.Where("Avatar = ?", "active")
 	}
 
@@ -61,8 +61,8 @@ func TestAztablesIntegrationQueryScopesWithParameters(t *testing.T) {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	avatarScope := func(avatar string) func(contractsorm.Query) contractsorm.Query {
-		return func(q contractsorm.Query) contractsorm.Query {
+	avatarScope := func(avatar string) func(orm.Query) orm.Query {
+		return func(q orm.Query) orm.Query {
 			return q.Where("Avatar = ?", avatar)
 		}
 	}
@@ -98,10 +98,10 @@ func TestAztablesIntegrationQueryScopesMultipleChaining(t *testing.T) {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	partitionScope := func(q contractsorm.Query) contractsorm.Query {
+	partitionScope := func(q orm.Query) orm.Query {
 		return q.Where("PartitionKey = ?", "pk1")
 	}
-	avatarScope := func(q contractsorm.Query) contractsorm.Query {
+	avatarScope := func(q orm.Query) orm.Query {
 		return q.Where("Avatar = ?", "alpha")
 	}
 
