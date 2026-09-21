@@ -238,8 +238,14 @@ func (q *Query) Create(value any) error {
 		}
 
 		if tableName != "" {
-			// Validate table name is a simple identifier to prevent SQL injection
-			if !isSimpleIdentifier(tableName) {
+			// Strip any alias ("table alias" / "table AS alias") — the sequence
+			// and MAX(id) lookups operate on the base table only.
+			if fields := strings.Fields(tableName); len(fields) > 0 {
+				tableName = fields[0]
+			}
+			// Validate table name to prevent SQL injection.
+			// Reserved keywords are allowed: the name is quoted below.
+			if !isTableIdentifier(tableName) {
 				return fmt.Errorf("invalid table name: %s", tableName)
 			}
 			// Try multiple sequence naming conventions
@@ -252,7 +258,7 @@ func (q *Query) Create(value any) error {
 
 			var seqErr error
 			for _, sequenceName := range sequencePatterns {
-				if !isSimpleIdentifier(sequenceName) {
+				if !isTableIdentifier(sequenceName) {
 					return fmt.Errorf("invalid sequence name: %s", sequenceName)
 				}
 				sequenceQuery := fmt.Sprintf("SELECT %s.CURRVAL FROM dual", sequenceName)
@@ -279,7 +285,7 @@ func (q *Query) Create(value any) error {
 				// the same session, which is the safest available option on Oracle without
 				// RETURNING support. Outside a transaction the race window is acknowledged;
 				// callers that need strict correctness should wrap Create in a transaction.
-				maxIDQuery := fmt.Sprintf("SELECT MAX(id) FROM %s", tableName)
+				maxIDQuery := fmt.Sprintf("SELECT MAX(id) FROM %q", strings.ToUpper(tableName))
 				if q.tx != nil {
 					if maxErr := q.tx.QueryRowContext(ctx, maxIDQuery).Scan(&lastID); maxErr != nil {
 						_ = maxErr // If MAX(id) also fails, leave ID unpopulated

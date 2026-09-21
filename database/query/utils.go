@@ -530,19 +530,22 @@ func applyAttributes(dest any, attributes any) error {
 	return nil
 }
 
-// isSimpleIdentifier checks if a string is a simple column identifier
-// that can be safely quoted. Returns false for:
-// - Identifiers with dots (table.column)
-// - Identifiers with parentheses (function calls)
+// isTableIdentifier checks if a string is a valid table identifier.
+// Unlike isSimpleIdentifier it does NOT reject SQL keywords: table names
+// are always emitted through quoteIdentifier, so a reserved word like
+// "group" is safely quoted ("group" / `group`) and cannot break out of
+// its identifier position. Returns false for:
+// - Identifiers with dots (schema.table)
+// - Identifiers with parentheses (function calls / subqueries)
 // - Identifiers starting with numbers
 // - Empty strings
-// - SQL keywords (to prevent injection attempts)
-func isSimpleIdentifier(s string) bool {
+// - Identifiers containing characters outside [A-Za-z0-9_]
+func isTableIdentifier(s string) bool {
 	if s == "" {
 		return false
 	}
 
-	// Check for dots (table.column) or parentheses (function calls)
+	// Check for dots (schema.table) or parentheses (function calls)
 	if strings.Contains(s, ".") || strings.Contains(s, "(") || strings.Contains(s, ")") {
 		return false
 	}
@@ -560,6 +563,21 @@ func isSimpleIdentifier(s string) bool {
 		if !isLetter && !isDigit && !isUnderscore {
 			return false
 		}
+	}
+
+	return true
+}
+
+// isSimpleIdentifier checks if a string is a simple column identifier
+// that can be safely quoted. Returns false for:
+// - Identifiers with dots (table.column)
+// - Identifiers with parentheses (function calls)
+// - Identifiers starting with numbers
+// - Empty strings
+// - SQL keywords (to prevent injection attempts)
+func isSimpleIdentifier(s string) bool {
+	if !isTableIdentifier(s) {
+		return false
 	}
 
 	// Reject SQL keywords to prevent injection attempts

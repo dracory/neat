@@ -13,24 +13,25 @@ import (
 
 // Table sets the table for the query.
 func (q *Query) Table(name string, args ...any) contractsorm.Query {
-	// Validate table name is a simple identifier (unless it's a subquery or has an alias)
+	// Validate table name is a table identifier (unless it's a subquery or has an alias).
+	// Reserved SQL keywords are allowed: the builder always quotes the table name.
+	// Invalid names set buildError instead of silently keeping a stale table.
 	if !strings.Contains(name, "(") {
 		parts := strings.Fields(name)
+		valid := false
 		// Allow "table", "table alias", or "table AS alias"
 		switch len(parts) {
 		case 1:
-			if !isSimpleIdentifier(parts[0]) {
-				return q
-			}
+			valid = isTableIdentifier(parts[0])
 		case 2:
-			if !isSimpleIdentifier(parts[0]) || !isSimpleIdentifier(parts[1]) {
-				return q
-			}
+			valid = isTableIdentifier(parts[0]) && isTableIdentifier(parts[1])
 		case 3:
-			if strings.ToUpper(parts[1]) != "AS" || !isSimpleIdentifier(parts[0]) || !isSimpleIdentifier(parts[2]) {
-				return q
+			valid = strings.ToUpper(parts[1]) == "AS" && isTableIdentifier(parts[0]) && isTableIdentifier(parts[2])
+		}
+		if !valid {
+			if q.buildError == nil {
+				q.buildError = fmt.Errorf("invalid table name: %q", name)
 			}
-		default:
 			return q
 		}
 	}
