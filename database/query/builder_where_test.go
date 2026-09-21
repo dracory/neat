@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/schema/constants"
 )
 
@@ -61,6 +62,111 @@ func TestBuildWheresWithIN(t *testing.T) {
 	}
 	if len(args) != 3 {
 		t.Errorf("Expected 3 args, got %d", len(args))
+	}
+}
+
+func TestBuildWheresNotInPostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.WhereNotIn("id", []any{1, 2})
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	expected := `"id" NOT IN ($1, $2)`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
+	}
+	if strings.Contains(where, `"NOT"`) {
+		t.Errorf("NOT keyword must not be quoted, got %q", where)
+	}
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d", len(args))
+	}
+}
+
+func TestBuildWheresOrWhereNotInPostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Where("id = ?", -1)
+	q.OrWhereNotIn("id", []any{1, 2})
+	b := NewBuilder(q)
+
+	where, _ := b.buildWheres()
+
+	expected := `"id" = $1 OR "id" NOT IN ($2, $3)`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
+	}
+}
+
+func TestBuildWheresNotBetweenPostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.WhereNotBetween("age", 1, 10)
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	expected := `"age" NOT BETWEEN $1 AND $2`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
+	}
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d", len(args))
+	}
+}
+
+func TestBuildWheresOrWhereNotBetweenPostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Where("id = ?", -1)
+	q.OrWhereNotBetween("age", 1, 10)
+	b := NewBuilder(q)
+
+	where, _ := b.buildWheres()
+
+	expected := `"id" = $1 OR "age" NOT BETWEEN $2 AND $3`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
+	}
+}
+
+func TestBuildWheresNotLikePostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Where("name NOT LIKE ?", "admin%")
+	b := NewBuilder(q)
+
+	where, _ := b.buildWheres()
+
+	expected := `"name" NOT LIKE $1`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
+	}
+}
+
+func TestBuildWheresIsNotNullPostgres(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.Where("deleted_at IS NOT NULL")
+	b := NewBuilder(q)
+
+	where, _ := b.buildWheres()
+
+	expected := `"deleted_at" IS NOT NULL`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
+	}
+}
+
+func TestBuildWheresInBetweenLikePostgres(t *testing.T) {
+	// Control cases: non-NOT operators must keep working
+	q := NewQuery(context.TODO(), nil, driver.NewPostgreSQL(), "", nil, nil)
+	q.WhereIn("id", []any{1, 2})
+	q.WhereBetween("age", 1, 10)
+	q.Where("name LIKE ?", "a%")
+	b := NewBuilder(q)
+
+	where, _ := b.buildWheres()
+
+	expected := `"id" IN ($1, $2) AND "age" BETWEEN $3 AND $4 AND "name" LIKE $5`
+	if where != expected {
+		t.Errorf("Expected %q, got %q", expected, where)
 	}
 }
 

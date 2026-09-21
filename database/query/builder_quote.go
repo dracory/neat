@@ -82,7 +82,13 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 	// Tokenize the query to identify potential column names
 	// We look for simple identifiers that appear before operators
 	// Only use operators with leading space to avoid matching inside quoted identifiers
-	operators := []string{" != ", " <> ", " >= ", " <= ", " LIKE ", " NOT LIKE ", " = ", " > ", " < ", " IS ", " IS NOT ", " IN ", " NOT IN ", " BETWEEN ", " NOT BETWEEN "}
+	// Longest operators first so e.g. " NOT IN " claims its span before
+	// " IN " can match inside it (which would quote the keyword NOT).
+	operators := []string{" != ", " <> ", " >= ", " <= ", " NOT BETWEEN ", " NOT LIKE ", " NOT IN ", " IS NOT ", " BETWEEN ", " LIKE ", " IN ", " IS ", " = ", " > ", " < "}
+
+	// claimed spans of already-matched operators; shorter operators must not
+	// match inside a longer operator (e.g. " IN " inside " NOT IN ")
+	var claimed [][2]int
 
 	for _, op := range operators {
 		start := 0
@@ -92,6 +98,20 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 				break
 			}
 			idx += start
+
+			// Skip matches that overlap an already-claimed operator span
+			overlaps := false
+			for _, c := range claimed {
+				if idx < c[1] && idx+len(op) > c[0] {
+					overlaps = true
+					break
+				}
+			}
+			if overlaps {
+				start = idx + len(op)
+				continue
+			}
+			claimed = append(claimed, [2]int{idx, idx + len(op)})
 
 			// Get text before operator
 			beforeOp := query[:idx]
