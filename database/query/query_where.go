@@ -202,7 +202,11 @@ func (q *Query) WhereColumn(first, operator, second string) orm.Query {
 		}
 		return q
 	}
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})
+	// Quote both sides at construction: the right-hand column would not be
+	// quoted by quoteWhereIdentifiers (it only quotes the word before the
+	// operator), and a reserved-word column needs quoting to be valid SQL.
+	builder := NewBuilder(q)
+	q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s %s %s", builder.quoteIdentifier(first), operator, builder.quoteIdentifier(second)), args: nil})
 	return q
 }
 
@@ -221,7 +225,8 @@ func (q *Query) OrWhereColumn(first, operator, second string) orm.Query {
 		q.buildError = fmt.Errorf("invalid operator in OrWhereColumn: %s", operator)
 		return q
 	}
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s %s %s", first, operator, second), args: nil})
+	builder := NewBuilder(q)
+	q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s %s %s", builder.quoteIdentifier(first), operator, builder.quoteIdentifier(second)), args: nil})
 	return q
 }
 
@@ -305,7 +310,7 @@ func (q *Query) WhereAny(columns []string, operator string, value any) orm.Query
 	var args []any
 	builder := NewBuilder(q)
 	for _, col := range columns {
-		if !isSimpleIdentifier(col) {
+		if !isTableIdentifier(col) {
 			if q.buildError == nil {
 				q.buildError = fmt.Errorf("invalid column name in WhereAny: %s", col)
 			}
@@ -341,7 +346,7 @@ func (q *Query) WhereAll(columns []string, operator string, value any) orm.Query
 	var args []any
 	builder := NewBuilder(q)
 	for _, col := range columns {
-		if !isSimpleIdentifier(col) {
+		if !isTableIdentifier(col) {
 			if q.buildError == nil {
 				q.buildError = fmt.Errorf("invalid column name in WhereAll: %s", col)
 			}
@@ -377,7 +382,7 @@ func (q *Query) WhereNone(columns []string, operator string, value any) orm.Quer
 	var args []any
 	builder := NewBuilder(q)
 	for _, col := range columns {
-		if !isSimpleIdentifier(col) {
+		if !isTableIdentifier(col) {
 			if q.buildError == nil {
 				q.buildError = fmt.Errorf("invalid column name in WhereNone: %s", col)
 			}
@@ -452,7 +457,7 @@ func (q *Query) splitJsonColumnForPostgreSQL(column string) (string, string) {
 			pathBuilder.WriteString(part)
 		} else {
 			// It's a string key, validate it's a simple identifier before quoting
-			if !isSimpleIdentifier(part) {
+			if !isTableIdentifier(part) {
 				if q.buildError == nil {
 					q.buildError = fmt.Errorf("invalid JSON path segment: %q", part)
 				}

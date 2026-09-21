@@ -18,17 +18,31 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 		subSQL, subArgs := builder.BuildSelect()
 		if len(args) > 0 {
 			alias := fmt.Sprintf("%v", args[0])
-			if !isSimpleIdentifier(alias) {
+			if !isTableIdentifier(alias) {
+				if q.buildError == nil {
+					q.buildError = fmt.Errorf("invalid subquery alias: %q", alias)
+				}
 				return q
 			}
-			queryStr = fmt.Sprintf("(%s) as %s", subSQL, alias)
+			queryStr = fmt.Sprintf("(%s) as %s", subSQL, NewBuilder(q).quoteIdentifier(alias))
 		} else {
 			queryStr = fmt.Sprintf("(%s)", subSQL)
 		}
 		processedArgs = append(processedArgs, subArgs...)
 	} else {
 		if slice, ok := query.([]string); ok {
-			queryStr = strings.Join(slice, ", ")
+			// Quote plain identifiers so reserved-word columns (e.g. "group")
+			// are emitted safely; raw expressions pass through untouched.
+			builder := NewBuilder(q)
+			quoted := make([]string, len(slice))
+			for i, col := range slice {
+				if isValidColumnReference(col) {
+					quoted[i] = builder.quoteIdentifier(col)
+				} else {
+					quoted[i] = col
+				}
+			}
+			queryStr = strings.Join(quoted, ", ")
 		} else if raw, ok := query.(RawExpression); ok {
 			queryStr = raw.SQL
 			args = append(raw.Args, args...)
@@ -214,19 +228,19 @@ func (q *Query) Order(value any) orm.Query {
 		expr = strings.TrimSuffix(expr, " DESC")
 		expr = strings.TrimSuffix(expr, " desc")
 		if !isValidColumnReference(expr) {
-			return q
+			return q.invalidColumnError("Order", expr)
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirDesc})
 	} else if strings.HasSuffix(upperExpr, " ASC") {
 		expr = strings.TrimSuffix(expr, " ASC")
 		expr = strings.TrimSuffix(expr, " asc")
 		if !isValidColumnReference(expr) {
-			return q
+			return q.invalidColumnError("Order", expr)
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirAsc})
 	} else {
 		if !isValidColumnReference(expr) {
-			return q
+			return q.invalidColumnError("Order", expr)
 		}
 		q.orders = append(q.orders, orderClause{column: expr, direction: dirAsc})
 	}
@@ -242,9 +256,9 @@ func (q *Query) OrderBy(column string, direction ...string) orm.Query {
 			dir = dirAsc
 		}
 	}
-	// Validate column is a simple identifier or table.column reference
+	// Validate column is a valid identifier or table.column reference
 	if !isValidColumnReference(column) {
-		return q
+		return q.invalidColumnError("OrderBy", column)
 	}
 	q.orders = append(q.orders, orderClause{column: column, direction: dir})
 	return q
@@ -253,7 +267,7 @@ func (q *Query) OrderBy(column string, direction ...string) orm.Query {
 // OrderByDesc adds an order by clause with desc direction.
 func (q *Query) OrderByDesc(column string) orm.Query {
 	if !isValidColumnReference(column) {
-		return q
+		return q.invalidColumnError("OrderByDesc", column)
 	}
 	q.orders = append(q.orders, orderClause{column: column, direction: dirDesc})
 	return q
@@ -281,6 +295,8 @@ func (q *Query) Distinct(args ...any) orm.Query {
 			// Validate column name is a valid identifier or table.column reference
 			if isValidColumnReference(col) {
 				q.distinctCols = append(q.distinctCols, col)
+			} else {
+				return q.invalidColumnError("Distinct", col)
 			}
 		}
 	}
@@ -314,7 +330,7 @@ func (q *Query) CrossJoin(query string, args ...any) orm.Query {
 // Group adds a group by clause to the query.
 func (q *Query) Group(name string) orm.Query {
 	if !isValidColumnReference(name) {
-		return q
+		return q.invalidColumnError("Group", name)
 	}
 	q.groups = append(q.groups, name)
 	return q

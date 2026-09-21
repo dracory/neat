@@ -23,7 +23,15 @@ func (b *Builder) BuildSelect() (string, []any) {
 		// Handle COUNT with DISTINCT
 		if b.query.aggregate == "COUNT" && b.query.distinct {
 			if len(b.query.distinctCols) > 0 {
-				parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(b.query.distinctCols, ", ")))
+				quotedCols := make([]string, len(b.query.distinctCols))
+				for i, col := range b.query.distinctCols {
+					if isTableIdentifier(col) {
+						quotedCols[i] = b.quoteIdentifier(col)
+					} else {
+						quotedCols[i] = col
+					}
+				}
+				parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(quotedCols, ", ")))
 			} else if len(b.query.selects) > 0 {
 				var selectParts []string
 				for _, s := range b.query.selects {
@@ -32,10 +40,10 @@ func (b *Builder) BuildSelect() (string, []any) {
 				}
 				parts = append(parts, fmt.Sprintf("SELECT COUNT(DISTINCT %s)", strings.Join(selectParts, ", ")))
 			} else {
-				parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
+				parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.quoteAggregateColumn()))
 			}
 		} else {
-			parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.query.aggregateCol))
+			parts = append(parts, fmt.Sprintf("SELECT %s(%s)", b.query.aggregate, b.quoteAggregateColumn()))
 		}
 	} else if len(b.query.selects) > 0 {
 		// Get placeholder function for the dialect

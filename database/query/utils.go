@@ -608,8 +608,12 @@ func isSimpleIdentifier(s string) bool {
 
 // isValidColumnReference checks if a string is a valid column reference,
 // allowing dotted notation like "table.column" for use in ORDER BY and
-// GROUP BY clauses. Each dot-separated part must be a simple identifier.
+// GROUP BY clauses. Each dot-separated part must be a table identifier.
 // At most one dot is allowed (exactly two parts).
+//
+// SQL keywords are allowed per part ("group", "order", "orders.group"):
+// every emission site quotes the reference via quoteIdentifier, so a
+// reserved word cannot break out of its identifier position.
 //
 // This is used by OrderBy, OrderByDesc, and Group where table-qualified
 // column names are legitimate. isSimpleIdentifier is kept strict (no dots)
@@ -625,7 +629,7 @@ func isValidColumnReference(s string) bool {
 		return false
 	}
 	for _, part := range parts {
-		if !isSimpleIdentifier(part) {
+		if !isTableIdentifier(part) {
 			return false
 		}
 	}

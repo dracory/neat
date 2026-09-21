@@ -64,19 +64,12 @@ func (b *Builder) quoteIdentifier(name string) string {
 }
 
 // quoteWhereIdentifiers quotes column names in WHERE clauses.
-// It uses a conservative approach that only quotes simple identifiers
-// to avoid breaking complex expressions, function calls, or subqueries.
+// It uses a conservative approach that only quotes valid column
+// references to avoid breaking complex expressions, function calls,
+// or subqueries. Reserved SQL keywords used as column names (e.g. a
+// column named "group") are quoted too — a real keyword can never
+// legally appear immediately before a comparison operator.
 func (b *Builder) quoteWhereIdentifiers(query string) string {
-	// SQL keywords that should never be quoted
-	sqlKeywords := map[string]bool{
-		"AND": true, "OR": true, "NOT": true, "NULL": true,
-		"TRUE": true, "FALSE": true, "IS": true, "IN": true,
-		"LIKE": true, "BETWEEN": true, "SELECT": true, "FROM": true,
-		"WHERE": true, "JOIN": true, "ON": true, "AS": true,
-		"GROUP": true, "ORDER": true, "BY": true, "HAVING": true,
-		"LIMIT": true, "OFFSET": true, "CASE": true, "WHEN": true,
-		"THEN": true, "ELSE": true, "END": true, "EXISTS": true,
-	}
 
 	// Collect all replacements first, then apply them in reverse order
 	type replacement struct {
@@ -113,17 +106,17 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 				colName = trimmed[lastSpace+1:]
 			}
 
-			// Only quote if it's a simple identifier:
+			// Only quote if it's a valid column reference:
 			// - Not already quoted
-			// - Not a SQL keyword
 			// - Contains only alphanumeric characters and underscores
-			// - Doesn't contain dots (table.column handled separately)
+			//   (at most one dot for table.column references)
 			// - Doesn't contain parentheses (function calls)
 			// - Doesn't start with a number
+			// Reserved words like "group" or "order" ARE quoted here —
+			// they are legitimate column names once quoted.
 			if colName != "" &&
 				!strings.HasPrefix(colName, "\"") && !strings.HasPrefix(colName, "`") &&
-				!sqlKeywords[strings.ToUpper(colName)] &&
-				isSimpleIdentifier(colName) {
+				isValidColumnReference(colName) {
 				quotedCol := b.quoteIdentifier(colName)
 				// Find the last occurrence of colName in beforeOp
 				colIdx := strings.LastIndex(beforeOp, colName)
@@ -155,6 +148,16 @@ func (b *Builder) quoteWhereIdentifiers(query string) string {
 	}
 
 	return result
+}
+
+// quoteAggregateColumn quotes the aggregate column when it is a plain
+// identifier (e.g. a reserved word like "group"), leaving "*", numeric
+// literals like "1", and raw expressions untouched.
+func (b *Builder) quoteAggregateColumn() string {
+	if isTableIdentifier(b.query.aggregateCol) {
+		return b.quoteIdentifier(b.query.aggregateCol)
+	}
+	return b.query.aggregateCol
 }
 
 // stripTableAliasAS removes the AS keyword from table aliases for Oracle.

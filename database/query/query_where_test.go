@@ -761,9 +761,9 @@ func TestOrWhereColumn_DottedColumns(t *testing.T) {
 	builder := NewBuilder(q)
 	sql, _ := builder.BuildSelect()
 
-	// Check for the OR comparison with dotted columns
-	if !contains(sql, "orders.backup_id") {
-		t.Errorf("Expected 'orders.backup_id' in WHERE clause, got: %s", sql)
+	// Check for the OR comparison with dotted columns (quoted identifiers)
+	if !contains(sql, `"orders"."backup_id"`) {
+		t.Errorf("Expected '\"orders\".\"backup_id\"' in WHERE clause, got: %s", sql)
 	}
 	if q.buildError != nil {
 		t.Errorf("Expected no build error, got: %v", q.buildError)

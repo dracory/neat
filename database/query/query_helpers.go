@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dracory/neat/contracts/database/orm"
 	contractsorm "github.com/dracory/neat/contracts/database/orm"
 	neaterrors "github.com/dracory/neat/errors"
 )
@@ -30,6 +31,16 @@ func (q *Query) logQuery(sql string, bindings []any, start time.Time) {
 			q.log.Warningf("[slow query %.1fms] %s [%d bindings redacted]", elapsed, sql, len(bindings))
 		}
 	}
+}
+
+// invalidColumnError records a buildError for an invalid column reference
+// and returns the query for chaining. Used by chainable methods that cannot
+// return an error directly — the error surfaces on the next terminal call.
+func (q *Query) invalidColumnError(method, column string) orm.Query {
+	if q.buildError == nil {
+		q.buildError = fmt.Errorf("invalid column name in %s: %q", method, column)
+	}
+	return q
 }
 
 func (q *Query) validateAggregate(column string) error {
