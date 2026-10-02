@@ -32,7 +32,7 @@ func TestMigrationTracker_Fields(t *testing.T) {
 }
 
 func TestMigrationStatus_Fields(t *testing.T) {
-	status := MigrationStatus{
+	status := MigrationStatusResponse{
 		ID:          "2024_06_15_120000_create_users_table",
 		Description: "Create users table",
 		Batch:       20240615120000,
@@ -62,7 +62,7 @@ func TestMigrationStatus_Fields(t *testing.T) {
 }
 
 func TestMigrationStatus_JSONTags(t *testing.T) {
-	status := MigrationStatus{
+	status := MigrationStatusResponse{
 		ID:          "test_id",
 		Description: "test description",
 		Batch:       123,
@@ -80,6 +80,7 @@ func TestMigrationStatus_JSONTags(t *testing.T) {
 		StartedAt   time.Time `json:"started_at"`
 		CompletedAt time.Time `json:"completed_at"`
 		State       string    `json:"state"`
+		Error       string    `json:"error,omitempty"`
 	}
 
 	_ = jsonTaggedStruct(status)
@@ -89,7 +90,7 @@ func TestMigrationStatus_StateValues(t *testing.T) {
 	validStates := []string{"pending", "completed", "failed"}
 
 	for _, state := range validStates {
-		status := MigrationStatus{
+		status := MigrationStatusResponse{
 			State: state,
 		}
 
@@ -120,7 +121,7 @@ func TestMigrationTracker_ZeroValues(t *testing.T) {
 }
 
 func TestMigrationStatus_ZeroValues(t *testing.T) {
-	status := MigrationStatus{}
+	status := MigrationStatusResponse{}
 
 	if status.ID != "" {
 		t.Errorf("Expected empty ID, got '%s'", status.ID)

@@ -24,7 +24,7 @@ func (b *Builder) BuildDelete() (string, []any) {
 	// LIMIT clause
 	// MySQL supports LIMIT directly in DELETE
 	// SQLite requires a subquery workaround: DELETE FROM ... WHERE rowid IN (SELECT rowid FROM ... ORDER BY ... LIMIT N)
-	// PostgreSQL supports LIMIT directly in DELETE
+	// PostgreSQL requires a subquery workaround on the ctid system column
 	// SQL Server uses TOP instead of LIMIT
 	if b.query.limit != nil {
 		if b.query.isMySQL() {
@@ -52,12 +52,21 @@ func (b *Builder) BuildDelete() (string, []any) {
 			parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
 			args = append(args, whereArgs...)
 		} else if b.query.isPostgres() {
-			// PostgreSQL supports LIMIT directly in DELETE
-			if whereParts != "" {
-				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-				args = append(args, whereArgs...)
+			// PostgreSQL does not support LIMIT in DELETE. Work around it with
+			// a subquery on the ctid system column.
+			if whereParts == "" {
+				whereParts = "1=1"
 			}
-			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
+			var orderClause string
+			if len(b.query.orders) > 0 {
+				var orderParts []string
+				for _, order := range b.query.orders {
+					orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
+				}
+				orderClause = fmt.Sprintf(" ORDER BY %s", strings.Join(orderParts, ", "))
+			}
+			parts = append(parts, fmt.Sprintf("WHERE ctid IN (SELECT ctid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
+			args = append(args, whereArgs...)
 		} else if b.query.isSQLServer() {
 			// SQL Server uses TOP instead of LIMIT
 			// Insert TOP after DELETE

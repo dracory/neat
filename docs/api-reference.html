@@ -699,7 +699,7 @@ blueprint.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDele
         <li><code>Down(ctx context.Context) error</code> - Roll back the last migration</li>
         <li><code>RollbackSteps(ctx context.Context, steps int) error</code> - Roll back the specified number of migrations</li>
         <li><code>RollbackToBatch(ctx context.Context, batch int) error</code> - Roll back to a specific batch</li>
-        <li><code>Status() ([]MigrationStatus, error)</code> - Return status of all migrations</li>
+        <li><code>Status() ([]MigrationStatusResponse, error)</code> - Return status of all migrations</li>
         <li><code>Fresh(ctx context.Context) error</code> - Drop all tables and re-run migrations</li>
         <li><code>Reset(ctx context.Context) error</code> - Roll back all migrations</li>
         <li><code>SetTransactionsEnabled(enabled bool)</code> - Enable/disable transaction wrapping</li>

@@ -61,7 +61,7 @@ type MigratorInterface interface {
     Down(ctx context.Context) error
     RollbackSteps(ctx context.Context, steps int) error
     RollbackToBatch(ctx context.Context, batch int) error
-    Status() ([]MigrationStatus, error)
+    Status() ([]MigrationStatusResponse, error)
     Fresh(ctx context.Context) error
     Reset(ctx context.Context) error
     SetTransactionsEnabled(enabled bool)
@@ -288,16 +288,17 @@ See [examples/migrator-transactions](../../examples/migrator-transactions/) for 
 
 ## Migration Status
 
-The `Status()` method returns `MigrationStatus` objects:
+The `Status()` method returns `MigrationStatusResponse` objects:
 
 ```go
-type MigrationStatus struct {
+type MigrationStatusResponse struct {
     ID          string    `json:"id"`
     Description string    `json:"description"`
     Batch       int       `json:"batch"`
     StartedAt   time.Time `json:"started_at"`
     CompletedAt time.Time `json:"completed_at"`
-    State       string    `json:"state"` // "completed" or "pending"
+    State       string    `json:"state"`           // "pending", "running", "completed", "failed", "rollback_failed"
+    Error       string    `json:"error,omitempty"` // populated when State is "failed" or "rollback_failed"
 }
 ```
 
