@@ -1,4 +1,4 @@
-﻿package migrator
+package migrator
 
 import (
 	"context"
@@ -13,12 +13,13 @@ import (
 
 // MockMigration is a test migration implementation
 type MockMigration struct {
-	signature   string
-	description string
-	upCalled    bool
-	downCalled  bool
-	schema      contractsschema.Schema
-	shouldFail  bool
+	signature      string
+	description    string
+	upCalled       bool
+	downCalled     bool
+	schema         contractsschema.Schema
+	shouldFail     bool
+	downShouldFail bool
 }
 
 func (m *MockMigration) Signature() string {
@@ -39,6 +40,9 @@ func (m *MockMigration) Up() error {
 
 func (m *MockMigration) Down() error {
 	m.downCalled = true
+	if m.downShouldFail {
+		return fmt.Errorf("mock migration down failure")
+	}
 	return nil
 }
 
@@ -1392,6 +1396,8 @@ func TestReset_SafetyLimit(t *testing.T) {
 		table.Primary("id")
 		table.Integer("batch")
 		table.String("description", 255)
+		table.String("status", 16).Nullable()
+		table.Text("error_message").Nullable()
 		table.DateTime("started_at")
 		table.DateTime("completed_at")
 	})
@@ -1508,7 +1514,9 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// With transactions enabled (default), Up should fail and roll back tracker entries
+	// With transactions enabled (default), Up should fail and roll back
+	// tracker entries written inside the transaction. The failed attempt is
+	// then recorded outside the transaction so it remains visible.
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err == nil {
@@ -1520,8 +1528,17 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	if err := query.Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
-	if len(trackers) != 0 {
-		t.Errorf("Expected 0 tracker entries after rollback, got %d", len(trackers))
+	if len(trackers) != 1 {
+		t.Fatalf("Expected 1 tracker entry (the failed migration), got %d", len(trackers))
+	}
+	if trackers[0].ID != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].ID, trackers[0].Status)
+	}
+	if trackers[0].ErrorMessage == "" {
+		t.Error("Expected error message to be recorded for failed migration")
+	}
+	if trackers[0].StartedAt.IsZero() || trackers[0].CompletedAt.IsZero() {
+		t.Error("Expected started_at and completed_at to be set on failed migration")
 	}
 }
 
@@ -1570,11 +1587,23 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	if err := query.Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
-	if len(trackers) != 1 {
-		t.Errorf("Expected 1 tracker entry after failed migration, got %d", len(trackers))
+	// Without transactions both the completed migration_1 and the failed
+	// migration_2 attempt are recorded
+	if len(trackers) != 2 {
+		t.Fatalf("Expected 2 tracker entries after failed migration, got %d", len(trackers))
 	}
-	if len(trackers) > 0 && trackers[0].ID != "migration_1" {
-		t.Errorf("Expected tracker ID 'migration_1', got '%s'", trackers[0].ID)
+	statusByID := map[string]MigrationTracker{}
+	for _, tr := range trackers {
+		statusByID[tr.ID] = tr
+	}
+	if statusByID["migration_1"].Status != MigrationTrackerStatusCompleted {
+		t.Errorf("Expected migration_1 status 'completed', got '%s'", statusByID["migration_1"].Status)
+	}
+	if statusByID["migration_2"].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected migration_2 status 'failed', got '%s'", statusByID["migration_2"].Status)
+	}
+	if statusByID["migration_2"].ErrorMessage == "" {
+		t.Error("Expected error message to be recorded for failed migration")
 	}
 }
 
@@ -1729,14 +1758,199 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Up should fail; the entire transaction (including tracker table creation) should roll back
+	// Up should fail; the in-transaction work (including any tracker rows
+	// written inside it) rolls back, then the failed attempt is recorded
+	// outside the transaction so it remains visible in the tracker.
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err == nil {
 		t.Fatal("Expected Up to return error when migration fails")
 	}
 
-	if db.Schema().HasTable(defaultTableName) {
-		t.Error("Expected migration tracking table to be rolled back when transaction fails")
+	if !db.Schema().HasTable(defaultTableName) {
+		t.Fatal("Expected migration tracking table to exist after failure is recorded")
+	}
+	var trackers []MigrationTracker
+	query := db.Schema().Orm().Query().Table(defaultTableName)
+	if err := query.Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 1 {
+		t.Fatalf("Expected 1 tracker entry (the failed migration), got %d", len(trackers))
+	}
+	if trackers[0].ID != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].ID, trackers[0].Status)
+	}
+	if trackers[0].ErrorMessage == "" {
+		t.Error("Expected error message to be recorded for failed migration")
+	}
+}
+
+func TestFailedMigration_RetriedOnNextUp(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{signature: "migration_1", description: "First migration", shouldFail: true}
+	if err := migrator.AddMigrations([]MigrationInterface{migration}); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := migrator.Up(ctx); err == nil {
+		t.Fatal("Expected error from failing migration")
+	}
+
+	// Fix the migration and retry - the failed row should be overwritten
+	migration.shouldFail = false
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Expected retry to succeed, got: %v", err)
+	}
+
+	var trackers []MigrationTracker
+	if err := db.Schema().Orm().Query().Table(defaultTableName).Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 1 {
+		t.Fatalf("Expected 1 tracker entry after retry, got %d", len(trackers))
+	}
+	if trackers[0].Status != MigrationTrackerStatusCompleted {
+		t.Errorf("Expected status 'completed' after retry, got '%s'", trackers[0].Status)
+	}
+	if trackers[0].ErrorMessage != "" {
+		t.Errorf("Expected error message cleared after retry, got '%s'", trackers[0].ErrorMessage)
+	}
+}
+
+func TestStatus_ReportsFailedMigration(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	if err := migrator.AddMigrations([]MigrationInterface{
+		&MockMigration{signature: "migration_1", description: "First migration"},
+		&MockMigration{signature: "migration_2", description: "Second migration", shouldFail: true},
+	}); err != nil {
+		t.Fatalf("AddMigrations failed: %v", err)
+	}
+
+	if err := migrator.Up(context.Background()); err == nil {
+		t.Fatal("Expected error from failing migration")
+	}
+
+	statuses, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+
+	byID := map[string]MigrationStatusResponse{}
+	for _, st := range statuses {
+		byID[st.ID] = st
+	}
+	if byID["migration_2"].State != MigrationTrackerStatusFailed {
+		t.Errorf("Expected migration_2 state 'failed', got '%s'", byID["migration_2"].State)
+	}
+	if byID["migration_2"].Error == "" {
+		t.Error("Expected Error to be populated for failed migration")
+	}
+	// migration_1 either completed or rolled back to pending depending on the
+	// transaction driver — both are acceptable, anything else is a bug
+	if s := byID["migration_1"].State; s != MigrationTrackerStatusCompleted && s != "pending" {
+		t.Errorf("Unexpected state for migration_1: '%s'", s)
+	}
+}
+
+func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	// Create a legacy-style tracker table and seed a row with empty status
+	schema := db.Schema()
+	if err := schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
+		table.String("id")
+		table.Primary("id")
+		table.Integer("batch")
+		table.String("description", 255)
+		table.String("status", 16).Nullable()
+		table.Text("error_message").Nullable()
+		table.DateTime("started_at")
+		table.DateTime("completed_at")
+	}); err != nil {
+		t.Fatalf("failed to create migration tracking table: %v", err)
+	}
+	legacy := MigrationTracker{ID: "legacy_migration", Batch: 1, Status: ""}
+	if err := db.Schema().Orm().Query().Table(defaultTableName).Create(&legacy); err != nil {
+		t.Fatalf("failed to seed tracker: %v", err)
+	}
+
+	migrator := NewMigrator(db)
+	statuses, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+	if len(statuses) != 1 || statuses[0].State != MigrationTrackerStatusCompleted {
+		t.Fatalf("Expected legacy row to report 'completed', got %+v", statuses)
+	}
+
+	// A legacy row must also count as ran so it is not re-executed
+	if err := migrator.AddMigration(&MockMigration{signature: "legacy_migration"}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := migrator.Up(context.Background()); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+	var trackers []MigrationTracker
+	if err := db.Schema().Orm().Query().Table(defaultTableName).Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 1 {
+		t.Fatalf("Expected legacy migration to be skipped (1 row), got %d", len(trackers))
+	}
+}
+
+func TestDown_FailureMarkedFailed(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{signature: "migration_1", description: "First migration", downShouldFail: true}
+	if err := migrator.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// The migration remains registered so Down finds it, but fails
+	if err := migrator.Down(ctx); err == nil {
+		t.Fatal("Expected error from failing Down migration")
+	}
+
+	var trackers []MigrationTracker
+	if err := db.Schema().Orm().Query().Table(defaultTableName).Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+	if len(trackers) != 1 {
+		t.Fatalf("Expected 1 tracker entry (failed rollback), got %d", len(trackers))
+	}
+	if trackers[0].Status != MigrationTrackerStatusRollbackFailed {
+		t.Errorf("Expected status 'rollback_failed' after failed rollback, got '%s'", trackers[0].Status)
+	}
+	if trackers[0].ErrorMessage == "" {
+		t.Error("Expected error message to be recorded for failed rollback")
 	}
 }
