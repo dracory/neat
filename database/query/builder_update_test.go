@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 	"testing"
 	"time"
@@ -533,5 +534,105 @@ func TestBuildUpdateWithLimitSQLServer(t *testing.T) {
 	}
 	if args == nil {
 		t.Error("Expected non-nil args")
+	}
+}
+
+func TestBuildUpdateWithMapConvertsTimeForSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "users", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 10, 3, 5, 42, 45, 0, time.UTC)
+	_, args := b.BuildUpdate(map[string]any{"updated_at": ts})
+
+	if len(args) != 1 {
+		t.Fatalf("Expected 1 arg, got %d (%v)", len(args), args)
+	}
+	got, ok := args[0].(string)
+	if !ok {
+		t.Fatalf("Expected time.Time to be converted to string for SQLite, got %T (%v)", args[0], args[0])
+	}
+	if got != "2026-10-03 05:42:45" {
+		t.Errorf("Expected '2026-10-03 05:42:45', got %q", got)
+	}
+}
+
+func TestBuildUpdateWithMapConvertsTimePointerForSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "users", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 10, 3, 5, 42, 45, 0, time.UTC)
+	_, args := b.BuildUpdate("updated_at", &ts)
+
+	if len(args) != 1 {
+		t.Fatalf("Expected 1 arg, got %d (%v)", len(args), args)
+	}
+	if got, ok := args[0].(string); !ok || got != "2026-10-03 05:42:45" {
+		t.Errorf("Expected '2026-10-03 05:42:45', got %v (%T)", args[0], args[0])
+	}
+}
+
+func TestBuildUpdateWithMapKeepsTimeForNonSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "mysql"}, "users", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 10, 3, 5, 42, 45, 0, time.UTC)
+	_, args := b.BuildUpdate(map[string]any{"updated_at": ts})
+
+	if len(args) != 1 {
+		t.Fatalf("Expected 1 arg, got %d (%v)", len(args), args)
+	}
+	if got, ok := args[0].(time.Time); !ok || !got.Equal(ts) {
+		t.Errorf("Expected time.Time to be passed as-is for MySQL, got %v (%T)", args[0], args[0])
+	}
+}
+
+func TestBuildUpdateConvertsNonUTCTimeToUTC(t *testing.T) {
+	loc := time.FixedZone("BST", 3600)
+	ts := time.Date(2026, 10, 3, 5, 42, 45, 0, loc)
+
+	for _, dialect := range []string{"sqlite", "mysql", "postgres", "sqlserver", "oracle"} {
+		t.Run(dialect, func(t *testing.T) {
+			b := NewBuilder(NewQuery(context.TODO(), nil, &FakeDriver{DialectName: dialect}, "users", nil, nil))
+			_, args := b.BuildUpdate(map[string]any{"updated_at": ts})
+			if len(args) != 1 {
+				t.Fatalf("Expected 1 arg, got %d", len(args))
+			}
+			if dialect == "sqlite" {
+				if args[0] != "2026-10-03 04:42:45" {
+					t.Errorf("Expected UTC string, got %v (%T)", args[0], args[0])
+				}
+				return
+			}
+			got, ok := args[0].(time.Time)
+			if !ok || got.Location() != time.UTC || !got.Equal(ts) {
+				t.Errorf("Expected same instant in UTC, got %v (%T)", args[0], args[0])
+			}
+		})
+	}
+}
+
+func TestBuildUpdateWithNullTime(t *testing.T) {
+	b := NewBuilder(NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "users", nil, nil))
+	ts := time.Date(2026, 10, 3, 5, 42, 45, 0, time.UTC)
+
+	_, args := b.BuildUpdate("updated_at", sql.NullTime{Time: ts, Valid: true})
+	if args[0] != "2026-10-03 05:42:45" {
+		t.Errorf("Expected valid NullTime converted, got %v (%T)", args[0], args[0])
+	}
+	_, args = b.BuildUpdate("updated_at", sql.NullTime{})
+	if args[0] != nil {
+		t.Errorf("Expected invalid NullTime to become nil, got %v (%T)", args[0], args[0])
+	}
+}
+
+func TestBuildUpdateExpressionWithMultiplePlaceholders(t *testing.T) {
+	b := NewBuilder(NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil))
+	sqlStr, args := b.BuildUpdate("score = score + ? * ?", 2, 3)
+
+	if !strings.Contains(sqlStr, "score + $1 * $2") {
+		t.Errorf("Expected sequential placeholders $1 and $2, got %s", sqlStr)
+	}
+	if len(args) != 2 {
+		t.Errorf("Expected 2 args, got %d", len(args))
 	}
 }

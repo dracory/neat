@@ -26,6 +26,14 @@ type DBConfig struct {
 	Debug bool
 	// Slow query threshold in milliseconds
 	SlowThreshold int
+	// TimeLocation is the location time values are converted to before being
+	// written to or compared in the database. Defaults to UTC when nil.
+	//
+	// SQLite stores a plain "YYYY-MM-DD HH:MM:SS" string in this location;
+	// other drivers receive a time.Time in this location. Values read back
+	// from zone-less columns are returned by the driver exactly as stored, so
+	// keep the default (UTC) unless you interpret read values accordingly.
+	TimeLocation *time.Location
 }
 
 // ReplicaConfig holds connection details for a single read or write replica.
@@ -362,6 +370,7 @@ func New(cfg DBConfig, opts ...database.Option) (*database.Database, error) {
 		},
 		Debug:         cfg.Debug,
 		SlowThreshold: cfg.SlowThreshold,
+		TimeLocation:  cfg.TimeLocation,
 	}
 
 	for name, conn := range cfg.Connections {

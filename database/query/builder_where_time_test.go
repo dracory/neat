@@ -8,10 +8,13 @@ import (
 )
 
 func TestConvertTimeArgs(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "mysql"}, "", nil, nil)
+	b := NewBuilder(q)
+
 	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
 	args := []any{"string", 123, ts, &ts, nil, (*time.Time)(nil)}
 
-	converted := convertTimeArgs(args)
+	converted := b.convertTimeArgs(args)
 
 	if len(converted) != 6 {
 		t.Errorf("Expected 6 args, got %d", len(converted))
@@ -74,5 +77,57 @@ func TestBuildWheresWithPtrTimeArg(t *testing.T) {
 	}
 	if t2, ok := args[0].(time.Time); !ok || !t2.Equal(ts) {
 		t.Errorf("Expected *time.Time arg dereferenced to time.Time, got %v (%T)", args[0], args[0])
+	}
+}
+
+func TestConvertTimeArgsForSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "", nil, nil)
+	b := NewBuilder(q)
+
+	ts := time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)
+	args := []any{"string", 123, ts, &ts, nil, (*time.Time)(nil)}
+
+	converted := b.convertTimeArgs(args)
+
+	if len(converted) != 6 {
+		t.Fatalf("Expected 6 args, got %d", len(converted))
+	}
+	if converted[0] != "string" {
+		t.Errorf("Expected string unchanged, got %v", converted[0])
+	}
+	if converted[1] != 123 {
+		t.Errorf("Expected int unchanged, got %v", converted[1])
+	}
+	if converted[2] != "2026-06-20 12:34:56" {
+		t.Errorf("Expected time.Time converted to '2026-06-20 12:34:56', got %v (%T)", converted[2], converted[2])
+	}
+	if converted[3] != "2026-06-20 12:34:56" {
+		t.Errorf("Expected *time.Time converted to '2026-06-20 12:34:56', got %v (%T)", converted[3], converted[3])
+	}
+	if converted[4] != nil {
+		t.Errorf("Expected nil unchanged, got %v", converted[4])
+	}
+	if _, ok := converted[5].(*time.Time); !ok {
+		t.Errorf("Expected nil *time.Time to remain as (*time.Time)(nil), got %v (%T)", converted[5], converted[5])
+	}
+}
+
+func TestBuildWheresWithTimeArgForSQLite(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "sqlite"}, "", nil, nil)
+	q.wheres = []whereClause{
+		{_type: "", query: "created_at = ?", args: []any{time.Date(2026, 6, 20, 12, 34, 56, 0, time.UTC)}},
+	}
+	b := NewBuilder(q)
+
+	where, args := b.buildWheres()
+
+	if !strings.Contains(where, "created_at") || !strings.Contains(where, "= ?") {
+		t.Errorf("Expected 'created_at = ?' in WHERE clause, got %s", where)
+	}
+	if len(args) != 1 {
+		t.Fatalf("Expected 1 arg, got %d", len(args))
+	}
+	if args[0] != "2026-06-20 12:34:56" {
+		t.Errorf("Expected time.Time arg converted to '2026-06-20 12:34:56', got %v (%T)", args[0], args[0])
 	}
 }

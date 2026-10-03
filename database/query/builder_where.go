@@ -4,25 +4,17 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/dracory/neat/contracts/database/orm"
 )
 
-// convertTimeArgs passes time.Time / *time.Time values as-is to the database driver.
-// The driver handles time.Time natively, ensuring consistent formatting between
-// INSERT and WHERE comparisons. Converting to a string here (e.g. via carbon)
-// produces "2006-01-02 15:04:05" which does not match the RFC3339 format
-// ("2006-01-02T15:04:05Z") that SQLite stores when time.Time is passed directly,
-// causing lexicographic comparison failures in soft-delete filters.
-func convertTimeArgs(args []any) []any {
+// convertTimeArgs normalizes every time bind argument to UTC (see
+// normalizeTimeArg), so comparisons match the format the write paths store.
+// It is idempotent, so re-applying it over already-converted args is safe.
+func (b *Builder) convertTimeArgs(args []any) []any {
 	converted := make([]any, len(args))
 	for i, arg := range args {
-		if ptr, ok := arg.(*time.Time); ok && ptr != nil {
-			converted[i] = *ptr
-		} else {
-			converted[i] = arg
-		}
+		converted[i] = b.normalizeTimeArg(arg)
 	}
 	return converted
 }
@@ -67,43 +59,7 @@ func expandInPlaceholders(query string, placeholders []string) string {
 // buildWheresWithSoftDelete prepends the soft-delete condition when the model implements
 // SoftDeleteColumnNamer and neither includeSoftDeleted nor onlySoftDeleted is set.
 func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
-	var prefix string
-	var prefixArgs []any
-
-	if hasSoftDeleteCapability(b.query.model) {
-		// Check if model implements SoftDeleteStrategy for custom WHERE conditions
-		if strat, ok := b.query.model.(orm.SoftDeleteStrategy); ok {
-			switch {
-			case b.query.onlySoftDeleted:
-				prefix, prefixArgs = strat.SoftDeletedCondition(b.quoteIdentifier)
-			case b.query.includeSoftDeleted:
-				// include all rows — no filter
-			default:
-				prefix, prefixArgs = strat.NotSoftDeletedCondition(b.quoteIdentifier)
-			}
-		} else {
-			// NULL-based strategy (default)
-			col := b.quoteIdentifier(getSoftDeleteColumn(b.query.model))
-			switch {
-			case b.query.onlySoftDeleted:
-				prefix = fmt.Sprintf("%s IS NOT NULL", col)
-			case b.query.includeSoftDeleted:
-				// include all rows — no filter
-			default:
-				prefix = fmt.Sprintf("%s IS NULL", col)
-			}
-		}
-	}
-
-	if len(b.query.wheres) == 0 {
-		return prefix, convertTimeArgs(prefixArgs)
-	}
-
-	base, args := b.buildWheres()
-	if prefix == "" {
-		return base, args
-	}
-	return prefix + " AND " + base, append(convertTimeArgs(prefixArgs), args...)
+	return b.buildWheresWithSoftDeleteIndex(1)
 }
 
 // buildWheres builds the WHERE clause from where clauses.
@@ -153,7 +109,7 @@ func (b *Builder) buildWheres() (string, []any) {
 		args = append(args, clauseArgs...)
 	}
 
-	return strings.Join(parts, " "), convertTimeArgs(args)
+	return strings.Join(parts, " "), b.convertTimeArgs(args)
 }
 
 // buildWheresWithIndex builds the WHERE clause from where clauses with a starting placeholder index.
@@ -203,7 +159,7 @@ func (b *Builder) buildWheresWithIndex(startIndex int) (string, []any) {
 		args = append(args, clauseArgs...)
 	}
 
-	return strings.Join(parts, " "), convertTimeArgs(args)
+	return strings.Join(parts, " "), b.convertTimeArgs(args)
 }
 
 // buildWheresWithSoftDeleteIndex prepends the soft-delete condition when the model implements
@@ -223,15 +179,16 @@ func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any)
 			default:
 				prefix, prefixArgs = strat.NotSoftDeletedCondition(b.quoteIdentifier)
 			}
-			// For max-date strategy, we have 1 bind parameter, so startIndex needs adjustment
+			// The strategy condition binds one parameter per prefix arg, so startIndex advances accordingly
 			if prefix != "" {
-				// Replace ? with proper placeholder for the soft delete condition
 				placeholderFunc := func(n int) string { return "?" }
 				if b.query.driver != nil {
 					placeholderFunc = b.query.driver.Placeholder
 				}
-				prefix = strings.Replace(prefix, "?", placeholderFunc(startIndex), 1)
-				startIndex++
+				for range prefixArgs {
+					prefix = strings.Replace(prefix, "?", placeholderFunc(startIndex), 1)
+					startIndex++
+				}
 			}
 		} else {
 			// NULL-based strategy (default)
@@ -248,12 +205,12 @@ func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any)
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, convertTimeArgs(prefixArgs)
+		return prefix, b.convertTimeArgs(prefixArgs)
 	}
 
 	base, args := b.buildWheresWithIndex(startIndex)
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, append(convertTimeArgs(prefixArgs), args...)
+	return prefix + " AND " + base, append(b.convertTimeArgs(prefixArgs), args...)
 }

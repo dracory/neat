@@ -509,13 +509,10 @@ func TestHardDeleteNoSoftDeleteCapability(t *testing.T) {
 // TestSoftDeleteMaxDateExecution tests the max-date soft delete strategy with actual SQLite.
 // Rows are active when soft_deleted_at > NOW(), soft-deleted when <= NOW().
 //
-// Crucially, INSERTs go through database/sql ExecContext directly (as application
-// code does), which stores time.Time as RFC3339 ("2006-01-02T15:04:05Z").
-// The query builder's WHERE args must produce the same format so SQLite's
-// lexicographic datetime comparisons work correctly.
-// This test would have failed with the old convertTimeArgs that converted
-// time.Time to carbon format ("2006-01-02 15:04:05"), causing "T" > " " to
-// make soft-deleted records appear active.
+// INSERTs store plain UTC datetime strings ("YYYY-MM-DD HH:MM:SS"), matching
+// the format neat's INSERT/UPDATE paths write for SQLite. The query builder's
+// WHERE args are normalized to the same format so SQLite's lexicographic
+// datetime comparisons work correctly.
 func TestSoftDeleteMaxDateExecution(t *testing.T) {
 	w := openSQLiteQuery(t)
 	execSQL(t, w, `CREATE TABLE max_date_models (
@@ -526,8 +523,6 @@ func TestSoftDeleteMaxDateExecution(t *testing.T) {
 	w.SetTable("max_date_models")
 	w.SetModel(&maxDateModel{})
 
-	// Insert via database/sql directly so time.Time is stored as RFC3339,
-	// matching what real application code does (bypassing neat's Create path).
 	db, err := w.Q.DB()
 	if err != nil {
 		t.Fatalf("Failed to get DB: %v", err)
@@ -536,7 +531,7 @@ func TestSoftDeleteMaxDateExecution(t *testing.T) {
 	// Active record: soft_deleted_at far in the future
 	_, err = db.ExecContext(context.Background(),
 		"INSERT INTO max_date_models (name, soft_deleted_at) VALUES (?, ?)",
-		"active", soft_delete.MaxSoftDeletedAt,
+		"active", soft_delete.MaxSoftDeletedAt.UTC().Format("2006-01-02 15:04:05"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert active record: %v", err)
@@ -545,7 +540,7 @@ func TestSoftDeleteMaxDateExecution(t *testing.T) {
 	// Soft-deleted record: soft_deleted_at one hour in the past
 	_, err = db.ExecContext(context.Background(),
 		"INSERT INTO max_date_models (name, soft_deleted_at) VALUES (?, ?)",
-		"deleted", time.Now().Add(-time.Hour),
+		"deleted", time.Now().Add(-time.Hour).UTC().Format("2006-01-02 15:04:05"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert soft-deleted record: %v", err)

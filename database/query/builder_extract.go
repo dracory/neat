@@ -1,19 +1,53 @@
 package query
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"time"
-
-	"github.com/dromara/carbon/v2"
 )
 
-// timeToDateTimeString converts a time.Time to a UTC datetime string
-// in "YYYY-MM-DD HH:MM:SS" format, suitable for all supported databases.
-// Without this, SQLite stores dates as "9999-12-31 23:59:59 +0000 UTC"
-// instead of "9999-12-31 23:59:59".
-func timeToDateTimeString(t time.Time) string {
-	return carbon.CreateFromStdTime(t).SetTimezone(carbon.UTC).ToDateTimeString()
+const dateTimeLayout = "2006-01-02 15:04:05"
+
+// timeToDateTimeString converts a time.Time to a datetime string in
+// "YYYY-MM-DD HH:MM:SS" format, expressed in loc. Sub-second precision is dropped.
+func timeToDateTimeString(t time.Time, loc *time.Location) string {
+	return t.In(loc).Format(dateTimeLayout)
+}
+
+// normalizeTimeArg converts time bind arguments (time.Time, *time.Time,
+// sql.NullTime) to the configured storage location (UTC by default, see
+// DBConfig.TimeLocation), whatever the local timezone of the value.
+//
+// SQLite receives a plain "YYYY-MM-DD HH:MM:SS" string, because the
+// modernc.org/sqlite driver would otherwise bind Go's String() output
+// ("2026-10-03 05:42:45.8196471 +0100 BST m=+0.084328901"). Other drivers
+// (MySQL, Oracle, PostgreSQL, SQL Server) bind native date/time types, so they
+// receive the same instant as a time.Time in the storage location. Non-time
+// values, nil pointers and invalid NullTime values are returned unchanged.
+func (b *Builder) normalizeTimeArg(value any) any {
+	var t time.Time
+	switch v := value.(type) {
+	case time.Time:
+		t = v
+	case *time.Time:
+		if v == nil {
+			return value
+		}
+		t = *v
+	case sql.NullTime:
+		if !v.Valid {
+			return nil
+		}
+		t = v.Time
+	default:
+		return value
+	}
+	loc := b.query.timeLocation()
+	if b.query.isSQLite() {
+		return timeToDateTimeString(t, loc)
+	}
+	return t.In(loc)
 }
 
 // extractColumnsAndValues extracts column names and values from a struct, map, or slice.
@@ -86,17 +120,7 @@ func (b *Builder) extractSingleColumnsAndValues(value any) ([]string, []any, err
 					continue
 				}
 			}
-			// Convert time.Time / *time.Time to UTC datetime string for SQLite only.
-			// SQLite's modernc.org/sqlite driver stores time.Time as "9999-12-31 23:59:59 +0000 UTC"
-			// (Go's default format), so we convert to "YYYY-MM-DD HH:MM:SS" for consistent storage.
-			// Other drivers (MySQL, Oracle, PostgreSQL, SQL Server) handle time.Time natively.
-			if b.query.isSQLite() {
-				if t, ok := value.(time.Time); ok {
-					value = timeToDateTimeString(t)
-				} else if ptr, ok := value.(*time.Time); ok && ptr != nil {
-					value = timeToDateTimeString(*ptr)
-				}
-			}
+			value = b.normalizeTimeArg(value)
 			// Keep RawExpression as-is - it will be handled by the builder
 			columns = append(columns, key.String())
 			values = append(values, value)
@@ -183,11 +207,7 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 						continue
 					}
 					columns = append(columns, innerCol)
-					iface := innerVal.Interface()
-					if t, ok := iface.(time.Time); ok && b.query.isSQLite() {
-						iface = timeToDateTimeString(t)
-					}
-					values = append(values, iface)
+					values = append(values, b.normalizeTimeArg(innerVal.Interface()))
 				}
 				continue
 			}
@@ -208,10 +228,10 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 					// Include nil basic type pointers as NULL
 				} else {
 					elem := fieldValue.Elem()
-					if elem.Kind() == reflect.Struct {
+					if elem.Kind() == reflect.Struct && elem.Type() != reflect.TypeOf(time.Time{}) {
 						continue // Skip non-nil struct pointers (associations)
 					}
-					// Include non-nil basic type pointers
+					// Include non-nil basic type pointers and *time.Time
 				}
 			} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
 				continue
@@ -252,13 +272,7 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		}
 
 		columns = append(columns, columnName)
-		iface := fieldValue.Interface()
-		// Convert time.Time to UTC datetime string for SQLite only.
-		// Other drivers handle time.Time natively.
-		if t, ok := iface.(time.Time); ok && b.query.isSQLite() {
-			iface = timeToDateTimeString(t)
-		}
-		values = append(values, iface)
+		values = append(values, b.normalizeTimeArg(fieldValue.Interface()))
 	}
 	if values == nil {
 		values = []any{}

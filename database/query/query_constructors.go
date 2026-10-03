@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/log"
@@ -99,6 +100,15 @@ func (q *Query) isAztables() bool {
 // isOracle returns true if the driver dialect is Oracle.
 func (q *Query) isOracle() bool {
 	return q.driver != nil && q.driver.Dialect() == "oracle"
+}
+
+// timeLocation returns the location time values are normalized to before being
+// written or compared. It defaults to UTC.
+func (q *Query) timeLocation() *time.Location {
+	if q.dbConfig != nil && q.dbConfig.TimeLocation != nil {
+		return q.dbConfig.TimeLocation
+	}
+	return time.UTC
 }
 
 // newQuery creates a new Query instance with shared connection state.

@@ -2,236 +2,240 @@ package query
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
-// BuildUpdate builds an UPDATE query from the query state.
+// updateSet accumulates the SET clause of an UPDATE statement together with
+// its bind arguments, tracking the dialect-specific placeholder index.
+type updateSet struct {
+	b           *Builder
+	placeholder func(int) string
+	index       int
+	exprs       []string
+	args        []any
+}
+
+func (b *Builder) newUpdateSet() *updateSet {
+	placeholder := func(n int) string { return "?" }
+	if b.query.driver != nil {
+		placeholder = b.query.driver.Placeholder
+	}
+	return &updateSet{b: b, placeholder: placeholder, index: 1, args: []any{}}
+}
+
+// nextPlaceholder returns the next placeholder and advances the index.
+func (s *updateSet) nextPlaceholder() string {
+	p := s.placeholder(s.index)
+	s.index++
+	return p
+}
+
+// replacePlaceholders replaces up to count "?" markers in sql with
+// dialect-specific placeholders.
+func (s *updateSet) replacePlaceholders(sql string, count int) string {
+	for i := 0; i < count; i++ {
+		sql = strings.Replace(sql, "?", s.nextPlaceholder(), 1)
+	}
+	return sql
+}
+
+// addValue adds "col = <value>", inlining the SQL of a RawExpression value.
+func (s *updateSet) addValue(col string, val any) {
+	quoted := s.b.quoteIdentifier(col)
+	if raw, ok := val.(RawExpression); ok {
+		args := clampArgs(raw.Args, strings.Count(raw.SQL, "?"))
+		s.exprs = append(s.exprs, fmt.Sprintf("%s = %s", quoted, s.replacePlaceholders(raw.SQL, len(args))))
+		s.args = append(s.args, args...)
+		return
+	}
+	s.exprs = append(s.exprs, fmt.Sprintf("%s = %s", quoted, s.nextPlaceholder()))
+	s.args = append(s.args, val)
+}
+
+// addExpression adds a complete SET expression (e.g. "views = views + ?"),
+// used by Increment/Decrement.
+func (s *updateSet) addExpression(expr string, values ...any) {
+	count := strings.Count(expr, "?")
+	s.exprs = append(s.exprs, s.replacePlaceholders(expr, count))
+	s.args = append(s.args, clampArgs(values, count)...)
+}
+
+// clampArgs drops args beyond the number of placeholders, so a surplus value
+// is never bound without a matching placeholder.
+func clampArgs(args []any, placeholders int) []any {
+	if len(args) > placeholders {
+		return args[:placeholders]
+	}
+	return args
+}
+
+// addJSONPath adds a JSON path update ("data->meta->active") using the
+// dialect's JSON function, falling back to a plain column assignment.
+func (s *updateSet) addJSONPath(colStr string, val any) {
+	segments := strings.Split(colStr, "->")
+	if len(segments) < 2 || !(s.b.query.isMySQL() || s.b.query.isSQLite()) {
+		s.addValue(colStr, val)
+		return
+	}
+	jsonColumn := s.b.quoteIdentifier(segments[0])
+	jsonPath := "$." + strings.Join(segments[1:], ".")
+	fn := "json_set"
+	if s.b.query.isMySQL() {
+		fn = "JSON_SET"
+	}
+	s.exprs = append(s.exprs, fmt.Sprintf("%s = %s(%s, '%s', %s)", jsonColumn, fn, jsonColumn, jsonPath, s.nextPlaceholder()))
+	s.args = append(s.args, val)
+}
+
+// isOmitted reports whether the column is excluded from writes.
+func (b *Builder) isOmitted(col string) bool {
+	for _, omit := range b.query.omitColumns {
+		if omit == col {
+			return true
+		}
+	}
+	return false
+}
+
+// buildUpdateSet builds the SET expressions for the supported input shapes:
+// map[string]any, a single column (or expression) with a value, or a struct.
+func (b *Builder) buildUpdateSet(column any, values []any) *updateSet {
+	set := b.newUpdateSet()
+
+	if m, ok := column.(map[string]any); ok {
+		// Sort keys for deterministic SQL generation
+		keys := make([]string, 0, len(m))
+		for col := range m {
+			keys = append(keys, col)
+		}
+		sort.Strings(keys)
+		for _, col := range keys {
+			if !b.isOmitted(col) {
+				set.addValue(col, m[col])
+			}
+		}
+		return set
+	}
+
+	if len(values) > 0 {
+		colStr, ok := column.(string)
+		if !ok {
+			return set
+		}
+		switch {
+		case strings.Contains(colStr, "="):
+			set.addExpression(colStr, values...)
+		case strings.Contains(colStr, "->"):
+			set.addJSONPath(colStr, values[0])
+		default:
+			set.addValue(colStr, values[0])
+		}
+		return set
+	}
+
+	// Struct or pointer-to-struct: extract fields as col=? pairs
+	cols, vals, err := b.extractColumnsAndValues(column)
+	if err != nil || vals == nil {
+		return set
+	}
+	for i, col := range cols {
+		if !b.isOmitted(col) {
+			set.addValue(col, vals[i])
+		}
+	}
+	return set
+}
+
+// isSoftDeleteUpdate reports whether the update targets the soft-delete
+// column (soft delete / restore), in which case the automatic soft-delete
+// filter must not be applied. Both the map form and the single-column form
+// (Update("deleted_at", value)) are recognized.
+func (b *Builder) isSoftDeleteUpdate(column any) bool {
+	softDeleteCol := getSoftDeleteColumn(b.query.model)
+	switch c := column.(type) {
+	case map[string]any:
+		_, has := c[softDeleteCol]
+		return has
+	case string:
+		return c == softDeleteCol
+	}
+	return false
+}
+
+// BuildUpdate builds an UPDATE query from the query state. It returns an
+// empty string when there is nothing to set (unsupported input, or every
+// column omitted).
 func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
-	var parts []string
-	var args []any
-	var setArgs = []any{} // Store SET args separately to add them after WHERE args
-
-	// UPDATE clause
-	parts = append(parts, "UPDATE")
-
-	// Table name
+	parts := []string{"UPDATE"}
 	if b.query.table != "" {
 		parts = append(parts, b.quoteIdentifier(b.query.table))
 	}
 
-	// SET clause
-	var setParts []string
-
-	// Get placeholder function for the dialect
-	placeholderFunc := func(n int) string { return "?" }
-	if b.query.driver != nil {
-		placeholderFunc = b.query.driver.Placeholder
+	set := b.buildUpdateSet(column, values)
+	if len(set.exprs) == 0 {
+		return "", nil
 	}
-	placeholderIndex := 1
+	parts = append(parts, "SET "+strings.Join(set.exprs, ", "))
 
-	// Handle map[string]any for column/value pairs
-	if m, ok := column.(map[string]any); ok {
-		for col, val := range m {
-			// Skip omitted columns
-			omitted := false
-			for _, omit := range b.query.omitColumns {
-				if omit == col {
-					omitted = true
-					break
-				}
-			}
-			if omitted {
-				continue
-			}
-			// Check if value is a RawExpression
-			if rawExpr, ok := val.(RawExpression); ok {
-				// Use raw SQL directly with placeholder replacement
-				rawSQL := rawExpr.SQL
-				for _, arg := range rawExpr.Args {
-					rawSQL = strings.Replace(rawSQL, "?", placeholderFunc(placeholderIndex), 1)
-					placeholderIndex++
-					setArgs = append(setArgs, arg)
-				}
-				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), rawSQL))
-			} else {
-				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
-				placeholderIndex++
-				setArgs = append(setArgs, val)
-			}
-		}
-	} else if len(values) > 0 {
-		// Handle single column with value
-		if colStr, ok := column.(string); ok {
-			// Check if the column string is already a complete SET expression (contains =)
-			if strings.Contains(colStr, "=") {
-				// Use the expression as-is (for Increment/Decrement), but replace ? with dialect-specific placeholder
-				replacedExpr := strings.Replace(colStr, "?", placeholderFunc(placeholderIndex), 1)
-				setParts = append(setParts, replacedExpr)
-				placeholderIndex++
-				setArgs = append(setArgs, values...)
-			} else if strings.Contains(colStr, "->") {
-				// Handle JSON path updates for MySQL and SQLite
-				parts := strings.Split(colStr, "->")
-				if len(parts) >= 2 {
-					jsonColumn := b.quoteIdentifier(parts[0])
-					// Build JSON path: $.name for "data->name", $.meta.active for "data->meta->active"
-					jsonPath := "$." + strings.Join(parts[1:], ".")
+	// SET args come first in the SQL (SET ... WHERE ...), with times normalized to UTC
+	args := b.convertTimeArgs(set.args)
 
-					if b.query.isMySQL() {
-						// MySQL: JSON_SET(column, '$.path', value)
-						setParts = append(setParts, fmt.Sprintf("%s = JSON_SET(%s, '%s', %s)", jsonColumn, jsonColumn, jsonPath, placeholderFunc(placeholderIndex)))
-						placeholderIndex++
-						setArgs = append(setArgs, values[0])
-					} else if b.query.isSQLite() {
-						// SQLite: json_set(column, '$.path', value)
-						setParts = append(setParts, fmt.Sprintf("%s = json_set(%s, '%s', %s)", jsonColumn, jsonColumn, jsonPath, placeholderFunc(placeholderIndex)))
-						placeholderIndex++
-						setArgs = append(setArgs, values[0])
-					} else {
-						// Fallback to normal behavior for other databases
-						setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(colStr), placeholderFunc(placeholderIndex)))
-						placeholderIndex++
-						setArgs = append(setArgs, values[0])
-					}
-				} else {
-					// Fallback to normal behavior
-					setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(colStr), placeholderFunc(placeholderIndex)))
-					placeholderIndex++
-					setArgs = append(setArgs, values[0])
-				}
-			} else {
-				setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(colStr), placeholderFunc(placeholderIndex)))
-				placeholderIndex++
-				setArgs = append(setArgs, values[0])
-			}
-		}
-	} else {
-		// Handle struct or pointer-to-struct: extract fields as col=? pairs
-		cols, vals, err := b.extractColumnsAndValues(column)
-		if err == nil && vals != nil {
-			for i, col := range cols {
-				// Skip omitted columns
-				omitted := false
-				for _, omit := range b.query.omitColumns {
-					if omit == col {
-						omitted = true
-						break
-					}
-				}
-				if omitted {
-					continue
-				}
-				// Check if value is a RawExpression
-				if rawExpr, ok := vals[i].(RawExpression); ok {
-					// Use raw SQL directly with placeholder replacement
-					rawSQL := rawExpr.SQL
-					for _, arg := range rawExpr.Args {
-						rawSQL = strings.Replace(rawSQL, "?", placeholderFunc(placeholderIndex), 1)
-						placeholderIndex++
-						setArgs = append(setArgs, arg)
-					}
-					setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), rawSQL))
-				} else {
-					setParts = append(setParts, fmt.Sprintf("%s = %s", b.quoteIdentifier(col), placeholderFunc(placeholderIndex)))
-					placeholderIndex++
-					setArgs = append(setArgs, vals[i])
-				}
-			}
-		}
-	}
-
-	if len(setParts) > 0 {
-		parts = append(parts, fmt.Sprintf("SET %s", strings.Join(setParts, ", ")))
-	}
-
-	// WHERE clauses (with automatic soft-delete filter)
-	// Skip soft-delete filter if we are updating the soft delete column (for soft delete/restore operations)
-	isSoftDeleteOperation := false
-	if m, ok := column.(map[string]any); ok {
-		softDeleteCol := getSoftDeleteColumn(b.query.model)
-		if _, hasSoftDeleteCol := m[softDeleteCol]; hasSoftDeleteCol {
-			isSoftDeleteOperation = true
-		}
-	}
-
-	// Add SET args first (they appear first in the SQL: SET ... WHERE ...)
-	args = append(args, setArgs...)
-
-	// Build WHERE clause (will be used for both normal WHERE and LIMIT workaround)
+	// Soft delete / restore operations skip the automatic soft-delete filter
 	var whereParts string
 	var whereArgs []any
-	if !isSoftDeleteOperation {
-		whereParts, whereArgs = b.buildWheresWithSoftDeleteIndex(placeholderIndex)
+	if b.isSoftDeleteUpdate(column) {
+		whereParts, whereArgs = b.buildWheresWithIndex(set.index)
 	} else {
-		// For soft delete operations, use regular WHERE without soft-delete filter
-		whereParts, whereArgs = b.buildWheresWithIndex(placeholderIndex)
+		whereParts, whereArgs = b.buildWheresWithSoftDeleteIndex(set.index)
 	}
 
-	// LIMIT clause
-	// MySQL supports LIMIT directly in UPDATE
-	// SQLite requires a subquery workaround: UPDATE ... WHERE rowid IN (SELECT rowid FROM ... ORDER BY ... LIMIT N)
-	// PostgreSQL supports LIMIT directly in UPDATE
-	// SQL Server uses TOP instead of LIMIT
-	if b.query.limit != nil {
-		if b.query.isMySQL() {
-			// Add WHERE clause if it exists
-			if whereParts != "" {
-				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-				args = append(args, whereArgs...)
-			}
-			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
-		} else if b.query.isSQLite() {
-			// SQLite workaround: wrap in subquery with rowid
-			if whereParts == "" {
-				whereParts = "1=1"
-			}
-			// Build ORDER BY clause for deterministic row selection
-			var orderClause string
-			if len(b.query.orders) > 0 {
-				var orderParts []string
-				for _, order := range b.query.orders {
-					orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
-				}
-				orderClause = fmt.Sprintf(" ORDER BY %s", strings.Join(orderParts, ", "))
-			}
-			// Add WHERE clause with rowid subquery including ORDER BY
-			parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)", b.quoteIdentifier(b.query.table), whereParts, orderClause, *b.query.limit))
-			args = append(args, whereArgs...)
-		} else if b.query.isPostgres() {
-			// PostgreSQL supports LIMIT directly in UPDATE
-			if whereParts != "" {
-				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-				args = append(args, whereArgs...)
-			}
-			parts = append(parts, fmt.Sprintf("LIMIT %d", *b.query.limit))
-		} else if b.query.isSQLServer() {
-			// SQL Server uses TOP instead of LIMIT
-			// Insert TOP after UPDATE
-			for i, part := range parts {
-				if strings.HasPrefix(part, "UPDATE") {
-					parts[i] = fmt.Sprintf("UPDATE TOP (%d)%s", *b.query.limit, strings.TrimPrefix(part, "UPDATE"))
-					break
-				}
-			}
-			// Add WHERE clause if it exists
-			if whereParts != "" {
-				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-				args = append(args, whereArgs...)
-			}
-		} else {
-			// Other databases: add WHERE clause normally (LIMIT may or may not be supported)
-			if whereParts != "" {
-				parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-				args = append(args, whereArgs...)
-			}
-		}
-	} else {
-		// No LIMIT: add WHERE clause normally
-		if whereParts != "" {
-			parts = append(parts, fmt.Sprintf("WHERE %s", whereParts))
-			args = append(args, whereArgs...)
-		}
-	}
-
+	parts, args = b.appendUpdateWhereAndLimit(parts, args, whereParts, whereArgs)
 	return strings.Join(parts, " "), args
+}
+
+// appendUpdateWhereAndLimit appends the WHERE and LIMIT handling of an UPDATE,
+// which differs per dialect:
+//   - MySQL and PostgreSQL: WHERE ... LIMIT n
+//   - SQLite: WHERE rowid IN (SELECT rowid FROM ... ORDER BY ... LIMIT n)
+//   - SQL Server: UPDATE TOP (n) ... WHERE ...
+//   - others: LIMIT is ignored
+func (b *Builder) appendUpdateWhereAndLimit(parts []string, args []any, whereParts string, whereArgs []any) ([]string, []any) {
+	limit := b.query.limit
+
+	if limit != nil && b.query.isSQLite() {
+		if whereParts == "" {
+			whereParts = "1=1"
+		}
+		parts = append(parts, fmt.Sprintf("WHERE rowid IN (SELECT rowid FROM %s WHERE %s%s LIMIT %d)",
+			b.quoteIdentifier(b.query.table), whereParts, b.buildUpdateOrderClause(), *limit))
+		return parts, append(args, whereArgs...)
+	}
+
+	if limit != nil && b.query.isSQLServer() {
+		parts[0] = fmt.Sprintf("UPDATE TOP (%d)", *limit)
+	}
+
+	if whereParts != "" {
+		parts = append(parts, "WHERE "+whereParts)
+		args = append(args, whereArgs...)
+	}
+
+	if limit != nil && (b.query.isMySQL() || b.query.isPostgres()) {
+		parts = append(parts, fmt.Sprintf("LIMIT %d", *limit))
+	}
+	return parts, args
+}
+
+// buildUpdateOrderClause builds the ORDER BY used for deterministic row
+// selection in the SQLite LIMIT workaround.
+func (b *Builder) buildUpdateOrderClause() string {
+	if len(b.query.orders) == 0 {
+		return ""
+	}
+	orderParts := make([]string, 0, len(b.query.orders))
+	for _, order := range b.query.orders {
+		orderParts = append(orderParts, fmt.Sprintf("%s %s", b.quoteIdentifier(order.column), order.direction))
+	}
+	return " ORDER BY " + strings.Join(orderParts, ", ")
 }

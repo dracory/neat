@@ -589,10 +589,6 @@ func (s *Migrator) isMigrationRan(signature string, ranMigrations []string) bool
 	return false
 }
 
-// upsertTracker inserts the tracker row, or updates the existing row when a
-// record with the same signature already exists (e.g. retrying a failed
-// migration). One row per migration signature always reflects the latest
-// attempt.
 // appliedStatusFilter limits queries to tracker rows whose migration was
 // actually applied: completed rows, legacy rows (NULL or empty status), and
 // rollback_failed rows whose schema change is still present. Rows from
@@ -612,6 +608,10 @@ func cloneQuery(q orm.Query) orm.Query {
 	return q
 }
 
+// upsertTracker inserts the tracker row, or updates the existing row when a
+// record with the same signature already exists (e.g. retrying a failed
+// migration). One row per migration signature always reflects the latest
+// attempt.
 func (s *Migrator) upsertTracker(query orm.Query, tracker MigrationTracker) error {
 	// Note: check-then-insert is not atomic — two concurrent migrators could
 	// race into a PK violation on Create. Migrations are not expected to run
