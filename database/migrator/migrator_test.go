@@ -3,7 +3,9 @@ package migrator
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -1952,5 +1954,43 @@ func TestDown_FailureMarkedFailed(t *testing.T) {
 	}
 	if trackers[0].ErrorMessage == "" {
 		t.Error("Expected error message to be recorded for failed rollback")
+	}
+}
+
+// TestTrackerTimestampsStoredAsPlainDatetime ensures started_at/completed_at
+// are persisted in the "YYYY-MM-DD HH:MM:SS" format on SQLite, both on the
+// initial insert and on the follow-up update that marks the migration completed.
+// The update must not write Go's default time.String() output into the column.
+func TestTrackerTimestampsStoredAsPlainDatetime(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	if err := migrator.AddMigration(&MockMigration{signature: "2026_10_03_054245_test", description: "test"}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := migrator.Up(context.Background()); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("failed to get DB: %v", err)
+	}
+	var startedAt, completedAt string
+	err = sqlDB.QueryRow("SELECT quote(started_at), quote(completed_at) FROM "+defaultTableName).Scan(&startedAt, &completedAt)
+	if err != nil {
+		t.Fatalf("failed to query tracker: %v", err)
+	}
+	startedAt = strings.Trim(startedAt, "'")
+	completedAt = strings.Trim(completedAt, "'")
+
+	for name, value := range map[string]string{"started_at": startedAt, "completed_at": completedAt} {
+		if _, err := time.Parse("2006-01-02 15:04:05", value); err != nil {
+			t.Errorf("Expected %s in 'YYYY-MM-DD HH:MM:SS' format, got %q", name, value)
+		}
 	}
 }

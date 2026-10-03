@@ -388,7 +388,7 @@ func (b *Builder) BuildSelect() (string, []any) {
 		}
 	}
 
-	return strings.Join(parts, " "), args
+	return strings.Join(parts, " "), b.convertTimeArgs(args)
 }
 
 type subqueryResult struct {

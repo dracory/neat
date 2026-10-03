@@ -153,5 +153,5 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 		}
 	}
 
-	return strings.Join(parts, " "), args
+	return strings.Join(parts, " "), b.convertTimeArgs(args)
 }

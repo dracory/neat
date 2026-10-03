@@ -4,25 +4,17 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/dracory/neat/contracts/database/orm"
 )
 
-// convertTimeArgs passes time.Time / *time.Time values as-is to the database driver.
-// The driver handles time.Time natively, ensuring consistent formatting between
-// INSERT and WHERE comparisons. Converting to a string here (e.g. via carbon)
-// produces "2006-01-02 15:04:05" which does not match the RFC3339 format
-// ("2006-01-02T15:04:05Z") that SQLite stores when time.Time is passed directly,
-// causing lexicographic comparison failures in soft-delete filters.
-func convertTimeArgs(args []any) []any {
+// convertTimeArgs normalizes every time bind argument to UTC (see
+// normalizeTimeArg), so comparisons match the format the write paths store.
+// It is idempotent, so re-applying it over already-converted args is safe.
+func (b *Builder) convertTimeArgs(args []any) []any {
 	converted := make([]any, len(args))
 	for i, arg := range args {
-		if ptr, ok := arg.(*time.Time); ok && ptr != nil {
-			converted[i] = *ptr
-		} else {
-			converted[i] = arg
-		}
+		converted[i] = b.normalizeTimeArg(arg)
 	}
 	return converted
 }
@@ -96,14 +88,14 @@ func (b *Builder) buildWheresWithSoftDelete() (string, []any) {
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, convertTimeArgs(prefixArgs)
+		return prefix, b.convertTimeArgs(prefixArgs)
 	}
 
 	base, args := b.buildWheres()
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, append(convertTimeArgs(prefixArgs), args...)
+	return prefix + " AND " + base, append(b.convertTimeArgs(prefixArgs), args...)
 }
 
 // buildWheres builds the WHERE clause from where clauses.
@@ -153,7 +145,7 @@ func (b *Builder) buildWheres() (string, []any) {
 		args = append(args, clauseArgs...)
 	}
 
-	return strings.Join(parts, " "), convertTimeArgs(args)
+	return strings.Join(parts, " "), b.convertTimeArgs(args)
 }
 
 // buildWheresWithIndex builds the WHERE clause from where clauses with a starting placeholder index.
@@ -203,7 +195,7 @@ func (b *Builder) buildWheresWithIndex(startIndex int) (string, []any) {
 		args = append(args, clauseArgs...)
 	}
 
-	return strings.Join(parts, " "), convertTimeArgs(args)
+	return strings.Join(parts, " "), b.convertTimeArgs(args)
 }
 
 // buildWheresWithSoftDeleteIndex prepends the soft-delete condition when the model implements
@@ -248,12 +240,12 @@ func (b *Builder) buildWheresWithSoftDeleteIndex(startIndex int) (string, []any)
 	}
 
 	if len(b.query.wheres) == 0 {
-		return prefix, convertTimeArgs(prefixArgs)
+		return prefix, b.convertTimeArgs(prefixArgs)
 	}
 
 	base, args := b.buildWheresWithIndex(startIndex)
 	if prefix == "" {
 		return base, args
 	}
-	return prefix + " AND " + base, append(convertTimeArgs(prefixArgs), args...)
+	return prefix + " AND " + base, append(b.convertTimeArgs(prefixArgs), args...)
 }
