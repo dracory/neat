@@ -5,25 +5,26 @@ import (
 	"fmt"
 	"reflect"
 	"time"
-
-	"github.com/dromara/carbon/v2"
 )
 
-// timeToDateTimeString converts a time.Time to a UTC datetime string
-// in "YYYY-MM-DD HH:MM:SS" format. Sub-second precision is dropped.
-func timeToDateTimeString(t time.Time) string {
-	return carbon.CreateFromStdTime(t).SetTimezone(carbon.UTC).ToDateTimeString()
+const dateTimeLayout = "2006-01-02 15:04:05"
+
+// timeToDateTimeString converts a time.Time to a datetime string in
+// "YYYY-MM-DD HH:MM:SS" format, expressed in loc. Sub-second precision is dropped.
+func timeToDateTimeString(t time.Time, loc *time.Location) string {
+	return t.In(loc).Format(dateTimeLayout)
 }
 
 // normalizeTimeArg converts time bind arguments (time.Time, *time.Time,
-// sql.NullTime) so every time is stored as UTC, whatever the local timezone.
+// sql.NullTime) to the configured storage location (UTC by default, see
+// DBConfig.TimeLocation), whatever the local timezone of the value.
 //
 // SQLite receives a plain "YYYY-MM-DD HH:MM:SS" string, because the
 // modernc.org/sqlite driver would otherwise bind Go's String() output
 // ("2026-10-03 05:42:45.8196471 +0100 BST m=+0.084328901"). Other drivers
 // (MySQL, Oracle, PostgreSQL, SQL Server) bind native date/time types, so they
-// receive the same instant as a UTC time.Time. Non-time values, nil pointers
-// and invalid NullTime values are returned unchanged.
+// receive the same instant as a time.Time in the storage location. Non-time
+// values, nil pointers and invalid NullTime values are returned unchanged.
 func (b *Builder) normalizeTimeArg(value any) any {
 	var t time.Time
 	switch v := value.(type) {
@@ -42,10 +43,11 @@ func (b *Builder) normalizeTimeArg(value any) any {
 	default:
 		return value
 	}
+	loc := b.query.timeLocation()
 	if b.query.isSQLite() {
-		return timeToDateTimeString(t)
+		return timeToDateTimeString(t, loc)
 	}
-	return t.UTC()
+	return t.In(loc)
 }
 
 // extractColumnsAndValues extracts column names and values from a struct, map, or slice.
@@ -226,10 +228,10 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 					// Include nil basic type pointers as NULL
 				} else {
 					elem := fieldValue.Elem()
-					if elem.Kind() == reflect.Struct {
+					if elem.Kind() == reflect.Struct && elem.Type() != reflect.TypeOf(time.Time{}) {
 						continue // Skip non-nil struct pointers (associations)
 					}
-					// Include non-nil basic type pointers
+					// Include non-nil basic type pointers and *time.Time
 				}
 			} else if fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct {
 				continue

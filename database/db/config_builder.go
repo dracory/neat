@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/url"
 	"strings"
+	"time"
 
 	contracts "github.com/dracory/neat/contracts/database"
 )
@@ -572,6 +573,9 @@ type DBConfig struct {
 	Pool          PoolConfig
 	Debug         bool
 	SlowThreshold int // slow query threshold in milliseconds (0 = disabled)
+	// TimeLocation is the location time values are converted to before being
+	// written or compared (nil = UTC).
+	TimeLocation *time.Location
 }
 
 // Validate checks that the database configuration has all required fields.
