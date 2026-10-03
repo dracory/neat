@@ -44,8 +44,9 @@ func (s *updateSet) replacePlaceholders(sql string, count int) string {
 func (s *updateSet) addValue(col string, val any) {
 	quoted := s.b.quoteIdentifier(col)
 	if raw, ok := val.(RawExpression); ok {
-		s.exprs = append(s.exprs, fmt.Sprintf("%s = %s", quoted, s.replacePlaceholders(raw.SQL, len(raw.Args))))
-		s.args = append(s.args, raw.Args...)
+		args := clampArgs(raw.Args, strings.Count(raw.SQL, "?"))
+		s.exprs = append(s.exprs, fmt.Sprintf("%s = %s", quoted, s.replacePlaceholders(raw.SQL, len(args))))
+		s.args = append(s.args, args...)
 		return
 	}
 	s.exprs = append(s.exprs, fmt.Sprintf("%s = %s", quoted, s.nextPlaceholder()))
@@ -55,8 +56,18 @@ func (s *updateSet) addValue(col string, val any) {
 // addExpression adds a complete SET expression (e.g. "views = views + ?"),
 // used by Increment/Decrement.
 func (s *updateSet) addExpression(expr string, values ...any) {
-	s.exprs = append(s.exprs, s.replacePlaceholders(expr, strings.Count(expr, "?")))
-	s.args = append(s.args, values...)
+	count := strings.Count(expr, "?")
+	s.exprs = append(s.exprs, s.replacePlaceholders(expr, count))
+	s.args = append(s.args, clampArgs(values, count)...)
+}
+
+// clampArgs drops args beyond the number of placeholders, so a surplus value
+// is never bound without a matching placeholder.
+func clampArgs(args []any, placeholders int) []any {
+	if len(args) > placeholders {
+		return args[:placeholders]
+	}
+	return args
 }
 
 // addJSONPath adds a JSON path update ("data->meta->active") using the
@@ -138,17 +149,23 @@ func (b *Builder) buildUpdateSet(column any, values []any) *updateSet {
 
 // isSoftDeleteUpdate reports whether the update targets the soft-delete
 // column (soft delete / restore), in which case the automatic soft-delete
-// filter must not be applied.
+// filter must not be applied. Both the map form and the single-column form
+// (Update("deleted_at", value)) are recognized.
 func (b *Builder) isSoftDeleteUpdate(column any) bool {
-	m, ok := column.(map[string]any)
-	if !ok {
-		return false
+	softDeleteCol := getSoftDeleteColumn(b.query.model)
+	switch c := column.(type) {
+	case map[string]any:
+		_, has := c[softDeleteCol]
+		return has
+	case string:
+		return c == softDeleteCol
 	}
-	_, has := m[getSoftDeleteColumn(b.query.model)]
-	return has
+	return false
 }
 
-// BuildUpdate builds an UPDATE query from the query state.
+// BuildUpdate builds an UPDATE query from the query state. It returns an
+// empty string when there is nothing to set (unsupported input, or every
+// column omitted).
 func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	parts := []string{"UPDATE"}
 	if b.query.table != "" {
@@ -156,9 +173,10 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	}
 
 	set := b.buildUpdateSet(column, values)
-	if len(set.exprs) > 0 {
-		parts = append(parts, "SET "+strings.Join(set.exprs, ", "))
+	if len(set.exprs) == 0 {
+		return "", nil
 	}
+	parts = append(parts, "SET "+strings.Join(set.exprs, ", "))
 
 	// SET args come first in the SQL (SET ... WHERE ...), with times normalized to UTC
 	args := b.convertTimeArgs(set.args)

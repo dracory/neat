@@ -30,7 +30,7 @@ func (q *Query) Update(column any, value ...any) (*orm.Result, error) {
 	builder := NewBuilder(q)
 	sqlStr, args := builder.BuildUpdate(column, value...)
 	if sqlStr == "" {
-		return nil, fmt.Errorf("failed to build UPDATE query")
+		return nil, fmt.Errorf("failed to build UPDATE query: no columns to update")
 	}
 
 	// Execute query

@@ -149,8 +149,11 @@ func TestIsSoftDeleteUpdate(t *testing.T) {
 	if b.isSoftDeleteUpdate(map[string]any{"name": "x"}) {
 		t.Error("Expected map without the soft-delete column not to be a soft-delete update")
 	}
-	if b.isSoftDeleteUpdate("deleted_at") {
-		t.Error("Expected non-map input not to be a soft-delete update")
+	if !b.isSoftDeleteUpdate("deleted_at") {
+		t.Error("Expected single soft-delete column to be a soft-delete update")
+	}
+	if b.isSoftDeleteUpdate("name") || b.isSoftDeleteUpdate(42) {
+		t.Error("Expected other columns and non-map/string input not to be a soft-delete update")
 	}
 }
 
@@ -221,5 +224,45 @@ func TestBuildUpdateOrderClause(t *testing.T) {
 	got := b.buildUpdateOrderClause()
 	if !strings.HasPrefix(got, " ORDER BY ") || !strings.Contains(got, "ASC, ") || !strings.HasSuffix(got, "DESC") {
 		t.Errorf("Unexpected order clause: %q", got)
+	}
+}
+
+func TestBuildUpdateReturnsEmptyWhenNothingToSet(t *testing.T) {
+	b := newUpdateTestBuilder("sqlite")
+	b.query.omitColumns = []string{"name"}
+
+	for name, column := range map[string]any{"unsupported": 42, "all omitted": map[string]any{"name": "x"}, "empty map": map[string]any{}} {
+		if sqlStr, args := b.BuildUpdate(column); sqlStr != "" || args != nil {
+			t.Errorf("%s: expected empty SQL and nil args, got %q %v", name, sqlStr, args)
+		}
+	}
+}
+
+func TestBuildUpdateDropsSurplusExpressionArgs(t *testing.T) {
+	b := newUpdateTestBuilder("postgres")
+
+	_, args := b.BuildUpdate("a = a + ?", 1, 2, 3)
+	if len(args) != 1 || args[0] != 1 {
+		t.Errorf("Expected surplus args dropped, got %v", args)
+	}
+
+	_, args = b.BuildUpdate(map[string]any{"score": RawExpr("score + ?", 1, 2)})
+	if len(args) != 1 || args[0] != 1 {
+		t.Errorf("Expected surplus raw expression args dropped, got %v", args)
+	}
+}
+
+func TestBuildUpdateSingleColumnSoftDeleteSkipsFilter(t *testing.T) {
+	b := newUpdateTestBuilder("sqlite")
+	b.query.model = &updateTestSoftModel{}
+
+	sqlStr, _ := b.BuildUpdate("deleted_at", nil)
+	if strings.Contains(sqlStr, "WHERE") {
+		t.Errorf("Expected no soft-delete filter when updating the soft-delete column, got %s", sqlStr)
+	}
+
+	sqlStr, _ = b.BuildUpdate("name", "x")
+	if !strings.Contains(sqlStr, "IS NULL") {
+		t.Errorf("Expected soft-delete filter for other columns, got %s", sqlStr)
 	}
 }
