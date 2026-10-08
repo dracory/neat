@@ -10,6 +10,7 @@ import (
 	"github.com/dracory/neat/contracts/database/orm"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
 	"github.com/dracory/neat/database"
+	"github.com/dracory/neat/support/uid"
 )
 
 const defaultTableName = "migration_tracker"
@@ -167,6 +168,7 @@ func (s *Migrator) sortMigrations() {
 // failure can be recorded in the tracker table after the surrounding
 // transaction has rolled back.
 type migrationFailure struct {
+	recordID    string
 	signature   string
 	description string
 	batch       int
@@ -257,15 +259,17 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 		// Record the attempt as running before executing so crashes leave
 		// a trace on drivers where DDL does not roll back
 		startedAt := time.Now()
+		recID := uid.GenerateShortID()
 		tracker := MigrationTracker{
-			ID:          signature,
+			ID:          recID,
+			Migration:   signature,
 			Batch:       batch,
 			Description: migration.Description(),
 			Status:      MigrationTrackerStatusRunning,
 			StartedAt:   startedAt,
 			CompletedAt: startedAt,
 		}
-		if err := s.upsertTracker(query, tracker); err != nil {
+		if err := s.createTracker(query, tracker); err != nil {
 			return fmt.Errorf("failed to record migration %s start: %w", signature, err)
 		}
 
@@ -273,6 +277,7 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 		if err := migration.Up(); err != nil {
 			if failure != nil {
 				*failure = &migrationFailure{
+					recordID:    recID,
 					signature:   signature,
 					description: migration.Description(),
 					batch:       batch,
@@ -282,14 +287,13 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 					completedAt: time.Now(),
 				}
 			}
+			_ = s.updateTrackerStatus(query, recID, MigrationTrackerStatusFailed, err.Error(), time.Now())
 			return fmt.Errorf("migration %s failed: %w", signature, err)
 		}
 		completedAt := time.Now()
 
 		// Mark migration completed
-		tracker.Status = MigrationTrackerStatusCompleted
-		tracker.CompletedAt = completedAt
-		if err := s.upsertTracker(query, tracker); err != nil {
+		if err := s.updateTrackerStatus(query, recID, MigrationTrackerStatusCompleted, "", completedAt); err != nil {
 			return fmt.Errorf("failed to log migration %s: %w", signature, err)
 		}
 	}
@@ -350,7 +354,7 @@ func (s *Migrator) runRollbackSteps(ctx context.Context, schema contractsschema.
 	for i := len(migrationsToRollback) - 1; i >= 0; i-- {
 		migration := migrationsToRollback[i]
 		if err := s.rollbackMigration(schema, query, migration, failure); err != nil {
-			return fmt.Errorf("failed to rollback migration %s: %w", migration.ID, err)
+			return fmt.Errorf("failed to rollback migration %s: %w", migration.MigrationName(), err)
 		}
 	}
 
@@ -387,7 +391,7 @@ func (s *Migrator) runRollbackToBatch(ctx context.Context, schema contractsschem
 	for i := len(migrationsToRollback) - 1; i >= 0; i-- {
 		migration := migrationsToRollback[i]
 		if err := s.rollbackMigration(schema, query, migration, failure); err != nil {
-			return fmt.Errorf("failed to rollback migration %s: %w", migration.ID, err)
+			return fmt.Errorf("failed to rollback migration %s: %w", migration.MigrationName(), err)
 		}
 	}
 
@@ -400,22 +404,31 @@ func (s *Migrator) runRollbackToBatch(ctx context.Context, schema contractsschem
 func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 	var statuses []MigrationStatusResponse
 
-	// Collect recorded migrations from tracker
-	recorded := make(map[string]bool)
+	latestTracker := make(map[string]MigrationTracker)
 	if s.db.Schema().HasTable(s.tableName) {
 		trackers, err := s.getMigrations()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get migrations: %w", err)
 		}
 		for _, t := range trackers {
-			recorded[t.ID] = true
+			latestTracker[t.MigrationName()] = t
+		}
+	}
+
+	processed := make(map[string]bool)
+	for _, migration := range s.migrations {
+		sig := migration.Signature()
+		processed[sig] = true
+
+		if t, ok := latestTracker[sig]; ok {
 			state := t.Status
 			if state == "" {
-				// Legacy rows written before status tracking are completed
 				state = MigrationTrackerStatusCompleted
+			} else if state == MigrationTrackerStatusRolledBack {
+				state = "pending"
 			}
 			statuses = append(statuses, MigrationStatusResponse{
-				ID:          t.ID,
+				ID:          sig,
 				Description: t.Description,
 				Batch:       t.Batch,
 				StartedAt:   t.StartedAt,
@@ -423,17 +436,31 @@ func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 				State:       state,
 				Error:       t.ErrorMessage,
 			})
-		}
-	}
-
-	// Add pending migrations from registered list
-	for _, migration := range s.migrations {
-		sig := migration.Signature()
-		if !recorded[sig] {
+		} else {
 			statuses = append(statuses, MigrationStatusResponse{
 				ID:          sig,
 				Description: migration.Description(),
 				State:       "pending",
+			})
+		}
+	}
+
+	for sig, t := range latestTracker {
+		if !processed[sig] {
+			state := t.Status
+			if state == "" {
+				state = MigrationTrackerStatusCompleted
+			} else if state == MigrationTrackerStatusRolledBack {
+				state = "pending"
+			}
+			statuses = append(statuses, MigrationStatusResponse{
+				ID:          sig,
+				Description: t.Description,
+				Batch:       t.Batch,
+				StartedAt:   t.StartedAt,
+				CompletedAt: t.CompletedAt,
+				State:       state,
+				Error:       t.ErrorMessage,
 			})
 		}
 	}
@@ -526,7 +553,7 @@ func (s *Migrator) runReset(ctx context.Context, schema contractsschema.Schema, 
 	for i := len(migrations) - 1; i >= 0; i-- {
 		migration := migrations[i]
 		if err := s.rollbackMigration(schema, query, migration, failure); err != nil {
-			return fmt.Errorf("failed to rollback migration %s: %w", migration.ID, err)
+			return fmt.Errorf("failed to rollback migration %s: %w", migration.MigrationName(), err)
 		}
 	}
 
@@ -563,18 +590,21 @@ func (s *Migrator) getNextBatchNumber(query orm.Query) (int, error) {
 
 func (s *Migrator) getRanMigrations(query orm.Query) ([]string, error) {
 	var trackers []MigrationTracker
-	if err := cloneQuery(query).Table(s.tableName).Get(&trackers); err != nil {
+	if err := cloneQuery(query).Table(s.tableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
 		return nil, err
 	}
 
-	ids := make([]string, 0, len(trackers))
+	latestTracker := make(map[string]MigrationTracker)
 	for _, t := range trackers {
-		// Completed migrations count as ran; so do rollback_failed rows,
-		// whose schema change is still applied. Failed or interrupted Up()
-		// attempts must be retried. Legacy rows (empty status) are completed.
-		if t.Status == "" || t.Status == MigrationTrackerStatusCompleted ||
-			t.Status == MigrationTrackerStatusRollbackFailed {
-			ids = append(ids, t.ID)
+		latestTracker[t.MigrationName()] = t
+	}
+
+	ids := make([]string, 0)
+	for name, t := range latestTracker {
+		status := t.Status
+		if status == "" || status == MigrationTrackerStatusCompleted ||
+			status == MigrationTrackerStatusRollbackFailed {
+			ids = append(ids, name)
 		}
 	}
 	return ids, nil
@@ -589,14 +619,6 @@ func (s *Migrator) isMigrationRan(signature string, ranMigrations []string) bool
 	return false
 }
 
-// appliedStatusFilter limits queries to tracker rows whose migration was
-// actually applied: completed rows, legacy rows (NULL or empty status), and
-// rollback_failed rows whose schema change is still present. Rows from
-// failed or interrupted Up() attempts are excluded — their migrations
-// never ran and must not be rolled back.
-const appliedStatusFilter = "(status IS NULL OR status IN ('', '" +
-	MigrationTrackerStatusCompleted + "', '" + MigrationTrackerStatusRollbackFailed + "'))"
-
 // cloneQuery returns an independent copy of q so that builder methods
 // (Table/Where/OrderBy/Limit, which mutate the receiver) do not accumulate
 // clauses on the shared query object. This also prevents a check-then-insert
@@ -608,29 +630,21 @@ func cloneQuery(q orm.Query) orm.Query {
 	return q
 }
 
-// upsertTracker inserts the tracker row, or updates the existing row when a
-// record with the same signature already exists (e.g. retrying a failed
-// migration). One row per migration signature always reflects the latest
-// attempt.
-func (s *Migrator) upsertTracker(query orm.Query, tracker MigrationTracker) error {
-	// Note: check-then-insert is not atomic — two concurrent migrators could
-	// race into a PK violation on Create. Migrations are not expected to run
-	// concurrently; revisit if that assumption changes.
-	var existing []MigrationTracker
-	if err := cloneQuery(query).Table(s.tableName).Where("id = ?", tracker.ID).Get(&existing); err != nil {
-		return err
+func (s *Migrator) createTracker(query orm.Query, tracker MigrationTracker) error {
+	return cloneQuery(query).Table(s.tableName).Create(&tracker)
+}
+
+func (s *Migrator) updateTrackerStatus(query orm.Query, recordID string, status string, errMsg string, completedAt time.Time) error {
+	updates := map[string]any{
+		"status":       status,
+		"completed_at": completedAt,
 	}
-	if len(existing) == 0 {
-		return cloneQuery(query).Table(s.tableName).Create(&tracker)
+	if errMsg != "" {
+		updates["error_message"] = errMsg
+	} else {
+		updates["error_message"] = nil
 	}
-	_, err := cloneQuery(query).Table(s.tableName).Where("id = ?", tracker.ID).Update(map[string]any{
-		"batch":         tracker.Batch,
-		"description":   tracker.Description,
-		"status":        tracker.Status,
-		"error_message": tracker.ErrorMessage,
-		"started_at":    tracker.StartedAt,
-		"completed_at":  tracker.CompletedAt,
-	})
+	_, err := cloneQuery(query).Table(s.tableName).Where("id = ?", recordID).Update(updates)
 	return err
 }
 
@@ -643,8 +657,22 @@ func (s *Migrator) recordFailure(failure *migrationFailure) {
 	if err := s.ensureMigrationTracker(schema); err != nil {
 		return
 	}
-	_ = s.upsertTracker(schema.Orm().Query(), MigrationTracker{
-		ID:           failure.signature,
+	query := schema.Orm().Query()
+	if failure.recordID != "" {
+		var existing []MigrationTracker
+		if err := cloneQuery(query).Table(s.tableName).Where("id = ?", failure.recordID).Get(&existing); err == nil && len(existing) > 0 {
+			_ = s.updateTrackerStatus(query, failure.recordID, failure.status, failure.err.Error(), failure.completedAt)
+			return
+		}
+	}
+
+	recID := failure.recordID
+	if recID == "" {
+		recID = uid.GenerateShortID()
+	}
+	_ = s.createTracker(query, MigrationTracker{
+		ID:           recID,
+		Migration:    failure.signature,
 		Batch:        failure.batch,
 		Description:  failure.description,
 		Status:       failure.status,
@@ -655,35 +683,70 @@ func (s *Migrator) recordFailure(failure *migrationFailure) {
 }
 
 func (s *Migrator) getMigrationsByBatch(query orm.Query, batch int) ([]MigrationTracker, error) {
-	trackers := make([]MigrationTracker, 0)
-	if err := cloneQuery(query).Table(s.tableName).
-		Where("batch = ?", batch).Where(appliedStatusFilter).Get(&trackers); err != nil {
+	var trackers []MigrationTracker
+	if err := cloneQuery(query).Table(s.tableName).Where("batch = ?", batch).OrderBy("started_at", "asc").Get(&trackers); err != nil {
 		return nil, err
 	}
-	return trackers, nil
+
+	latestTracker := make(map[string]MigrationTracker)
+	for _, t := range trackers {
+		latestTracker[t.MigrationName()] = t
+	}
+
+	activeTrackers := make([]MigrationTracker, 0)
+	for _, t := range trackers {
+		latest, ok := latestTracker[t.MigrationName()]
+		if ok && latest.ID == t.ID {
+			status := latest.Status
+			if status == "" || status == MigrationTrackerStatusCompleted || status == MigrationTrackerStatusRollbackFailed {
+				activeTrackers = append(activeTrackers, t)
+			}
+		}
+	}
+	return activeTrackers, nil
 }
 
 func (s *Migrator) getLastMigrations(query orm.Query, step int) ([]MigrationTracker, error) {
-	trackers := make([]MigrationTracker, 0)
-	if err := cloneQuery(query).Table(s.tableName).
-		Where(appliedStatusFilter).OrderBy("id", "desc").Limit(step).Get(&trackers); err != nil {
+	var trackers []MigrationTracker
+	if err := cloneQuery(query).Table(s.tableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
 		return nil, err
 	}
-	return trackers, nil
+
+	latestTracker := make(map[string]MigrationTracker)
+	for _, t := range trackers {
+		latestTracker[t.MigrationName()] = t
+	}
+
+	activeTrackers := make([]MigrationTracker, 0, len(latestTracker))
+	for _, t := range trackers {
+		latest, ok := latestTracker[t.MigrationName()]
+		if ok && latest.ID == t.ID {
+			status := latest.Status
+			if status == "" || status == MigrationTrackerStatusCompleted || status == MigrationTrackerStatusRollbackFailed {
+				activeTrackers = append(activeTrackers, t)
+			}
+		}
+	}
+
+	if len(activeTrackers) <= step {
+		return activeTrackers, nil
+	}
+	return activeTrackers[len(activeTrackers)-step:], nil
 }
 
 func (s *Migrator) rollbackMigration(schema contractsschema.Schema, query orm.Query, tracker MigrationTracker, failure **migrationFailure) error {
+	sig := tracker.MigrationName()
 	// Find the migration by signature
 	var migration MigrationInterface
 	for _, m := range s.migrations {
-		if m.Signature() == tracker.ID {
+		if m.Signature() == sig {
 			migration = m
 			break
 		}
 	}
 
 	if migration == nil {
-		return fmt.Errorf("migration %s not found in registered migrations", tracker.ID)
+		return fmt.Errorf("migration %s not found in registered migrations", sig)
 	}
 
 	// Inject transaction-aware schema
@@ -694,7 +757,8 @@ func (s *Migrator) rollbackMigration(schema contractsschema.Schema, query orm.Qu
 	if err := migration.Down(); err != nil {
 		if failure != nil {
 			*failure = &migrationFailure{
-				signature:   tracker.ID,
+				recordID:    tracker.ID,
+				signature:   sig,
 				description: migration.Description(),
 				batch:       tracker.Batch,
 				status:      MigrationTrackerStatusRollbackFailed,
@@ -703,32 +767,44 @@ func (s *Migrator) rollbackMigration(schema contractsschema.Schema, query orm.Qu
 				completedAt: time.Now(),
 			}
 		}
-		return fmt.Errorf("failed to rollback migration %s: %w", tracker.ID, err)
+		_ = s.updateTrackerStatus(query, tracker.ID, MigrationTrackerStatusRollbackFailed, err.Error(), time.Now())
+		return fmt.Errorf("failed to rollback migration %s: %w", sig, err)
 	}
 
-	// Delete the migration record from tracker
-	_, err := cloneQuery(query).Table(s.tableName).Where("id = ?", tracker.ID).Delete()
-	if err != nil {
-		return err
-	}
-	return nil
+	// Mark tracker record as rolled back (preserve history!)
+	return s.updateTrackerStatus(query, tracker.ID, MigrationTrackerStatusRolledBack, "", time.Now())
 }
 
 // getMigrations returns all tracker rows regardless of status — used by
 // Status(), which must report failed and running rows too.
 func (s *Migrator) getMigrations() ([]MigrationTracker, error) {
 	trackers := make([]MigrationTracker, 0)
-	err := s.db.Schema().Orm().Query().Table(s.tableName).OrderBy("id", "asc").Get(&trackers)
+	err := s.db.Schema().Orm().Query().Table(s.tableName).OrderBy("started_at", "asc").Get(&trackers)
 	return trackers, err
 }
 
 func (s *Migrator) getMigrationsWithQuery(query orm.Query) ([]MigrationTracker, error) {
-	trackers := make([]MigrationTracker, 0)
-	if err := cloneQuery(query).Table(s.tableName).
-		Where(appliedStatusFilter).OrderBy("id", "asc").Get(&trackers); err != nil {
+	var trackers []MigrationTracker
+	if err := cloneQuery(query).Table(s.tableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
 		return nil, err
 	}
-	return trackers, nil
+
+	latestTracker := make(map[string]MigrationTracker)
+	for _, t := range trackers {
+		latestTracker[t.MigrationName()] = t
+	}
+
+	activeTrackers := make([]MigrationTracker, 0)
+	for _, t := range trackers {
+		latest, ok := latestTracker[t.MigrationName()]
+		if ok && latest.ID == t.ID {
+			status := latest.Status
+			if status == "" || status == MigrationTrackerStatusCompleted || status == MigrationTrackerStatusRollbackFailed {
+				activeTrackers = append(activeTrackers, t)
+			}
+		}
+	}
+	return activeTrackers, nil
 }
 
 // ensureMigrationTracker creates the migration tracking table if it doesn't exist,
@@ -739,6 +815,7 @@ func (s *Migrator) ensureMigrationTracker(schema contractsschema.Schema) error {
 		err := schema.Create(s.tableName, func(table contractsschema.Blueprint) {
 			table.String("id")
 			table.Primary("id")
+			table.String("migration", 255).Nullable()
 			table.Integer("batch")
 			table.String("description", 255)
 			table.String("status", 16).Nullable()
@@ -758,6 +835,12 @@ func (s *Migrator) ensureMigrationTracker(schema contractsschema.Schema) error {
 		name string
 		add  func(table contractsschema.Blueprint)
 	}{
+		{
+			name: "migration",
+			add: func(table contractsschema.Blueprint) {
+				table.String("migration", 255).Nullable()
+			},
+		},
 		{
 			name: "description",
 			add: func(table contractsschema.Blueprint) {

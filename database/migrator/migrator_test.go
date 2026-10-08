@@ -336,6 +336,7 @@ func TestAddMigrations_DuplicateAcrossCalls(t *testing.T) {
 		t.Errorf("expected 3 migrations, got %d", len(impl.migrations))
 	}
 }
+
 func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -376,6 +377,7 @@ func TestUp_SchemaInjection(t *testing.T) {
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -406,8 +408,6 @@ func TestUp_SchemaInjection(t *testing.T) {
 	if migration.schema == nil {
 		t.Error("Expected schema to be injected")
 	}
-	// With transactions enabled by default, the injected schema is a WithTransaction wrapper.
-	// Verify it works by checking the injected schema can perform operations.
 	if migration.schema.Orm() == nil {
 		t.Error("Expected injected schema to have a valid ORM")
 	}
@@ -420,11 +420,11 @@ func TestUp_EmptySignature(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -456,11 +456,11 @@ func TestUp_SignatureValidation_DateTime(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -473,7 +473,6 @@ func TestUp_SignatureValidation_DateTime(t *testing.T) {
 	migrator := NewMigrator(db)
 	migrator.SetSignatureValidation(true, SignatureFormatDateTime)
 
-	// Valid datetime signature should pass
 	validMigration := &MockMigration{
 		signature:   "2026_06_15_1200_create_users_table",
 		description: "Valid datetime signature",
@@ -499,11 +498,11 @@ func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -516,7 +515,6 @@ func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 	migrator := NewMigrator(db)
 	migrator.SetSignatureValidation(true, SignatureFormatDateTime)
 
-	// Invalid signature should fail
 	invalidMigration := &MockMigration{
 		signature:   "test_migration",
 		description: "Invalid datetime signature",
@@ -542,11 +540,11 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -557,10 +555,8 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	// Validation is disabled by default, but explicitly set it
 	migrator.SetSignatureValidation(false, SignatureFormatDateTime)
 
-	// Arbitrary signature should pass when validation is disabled
 	migration := &MockMigration{
 		signature:   "totally_arbitrary_name",
 		description: "Arbitrary signature",
@@ -588,7 +584,6 @@ func TestEnsureMigrationTracker_CreatesTable(t *testing.T) {
 
 	schema := db.Schema()
 
-	// Table should not exist initially
 	if schema.HasTable(defaultTableName) {
 		t.Fatal("Expected table to NOT exist initially")
 	}
@@ -598,13 +593,11 @@ func TestEnsureMigrationTracker_CreatesTable(t *testing.T) {
 		t.Fatalf("ensureMigrationTracker failed: %v", err)
 	}
 
-	// Table should now exist
 	if !schema.HasTable(defaultTableName) {
 		t.Fatal("Expected table to exist after ensureMigrationTracker")
 	}
 
-	// All columns should exist
-	expectedColumns := []string{"id", "batch", "description", "started_at", "completed_at"}
+	expectedColumns := []string{"id", "migration", "batch", "description", "started_at", "completed_at"}
 	for _, col := range expectedColumns {
 		if !schema.HasColumn(defaultTableName, col) {
 			t.Errorf("Expected column '%s' to exist in '%s'", col, defaultTableName)
@@ -621,19 +614,16 @@ func TestEnsureMigrationTracker_UpgradesExistingTable(t *testing.T) {
 
 	schema := db.Schema()
 
-	// Create an old-style table missing some columns
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
 		table.Integer("batch")
-		// Missing: description, started_at, completed_at
 	})
 	if err != nil {
 		t.Fatalf("failed to create old-style table: %v", err)
 	}
 
-	// Verify the missing columns are not present
-	missingColumns := []string{"description", "started_at", "completed_at"}
+	missingColumns := []string{"migration", "description", "started_at", "completed_at"}
 	for _, col := range missingColumns {
 		if schema.HasColumn(defaultTableName, col) {
 			t.Fatalf("Expected column '%s' to NOT exist before upgrade", col)
@@ -645,8 +635,7 @@ func TestEnsureMigrationTracker_UpgradesExistingTable(t *testing.T) {
 		t.Fatalf("ensureMigrationTracker failed: %v", err)
 	}
 
-	// All columns should now exist
-	allColumns := []string{"id", "batch", "description", "started_at", "completed_at"}
+	allColumns := []string{"id", "migration", "batch", "description", "started_at", "completed_at"}
 	for _, col := range allColumns {
 		if !schema.HasColumn(defaultTableName, col) {
 			t.Errorf("Expected column '%s' to exist after upgrade", col)
@@ -661,11 +650,11 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -684,17 +673,14 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
-	// Run migration first time
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("First Up failed: %v", err)
 	}
 
-	// Reset the flag
 	migration.upCalled = false
 
-	// Run migration second time - should be skipped
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Second Up failed: %v", err)
@@ -712,11 +698,11 @@ func TestDown(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -735,14 +721,12 @@ func TestDown(t *testing.T) {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
 
-	// Run migration first
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
-	// Down should rollback last migration
 	err = migrator.Down(ctx)
 	if err != nil {
 		t.Errorf("Down failed: %v", err)
@@ -756,11 +740,11 @@ func TestRollbackSteps(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -780,14 +764,12 @@ func TestRollbackSteps(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Run migrations
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
-	// Rollback 2 migrations
 	err = migrator.RollbackSteps(ctx, 2)
 	if err != nil {
 		t.Errorf("RollbackSteps failed: %v", err)
@@ -801,11 +783,11 @@ func TestRollbackToBatch(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -824,14 +806,12 @@ func TestRollbackToBatch(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Run migrations
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
-	// Get the batch number from status
 	status, err := migrator.Status()
 	if err != nil {
 		t.Errorf("Status failed: %v", err)
@@ -841,7 +821,6 @@ func TestRollbackToBatch(t *testing.T) {
 	}
 	batch := status[0].Batch
 
-	// Rollback to that batch
 	err = migrator.RollbackToBatch(ctx, batch)
 	if err != nil {
 		t.Errorf("RollbackToBatch failed: %v", err)
@@ -873,11 +852,11 @@ func TestStatus_WithMigrations(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -896,14 +875,12 @@ func TestStatus_WithMigrations(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Run migrations
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
-	// Get status
 	status, err := migrator.Status()
 	if err != nil {
 		t.Errorf("Status failed: %v", err)
@@ -912,7 +889,6 @@ func TestStatus_WithMigrations(t *testing.T) {
 		t.Errorf("Expected 2 migration statuses, got %d", len(status))
 	}
 
-	// Verify status content
 	for i, s := range status {
 		if s.State != "completed" {
 			t.Errorf("Expected state 'completed' for migration %d, got '%s'", i, s.State)
@@ -930,11 +906,11 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -946,7 +922,6 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 
 	migrator := NewMigrator(db)
 
-	// Register 3 migrations
 	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
 		&MockMigration{signature: "migration_2", description: "Second migration"},
@@ -956,13 +931,11 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Run first 3 migrations
 	ctx := context.Background()
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatalf("Up failed: %v", err)
 	}
 
-	// Add a 4th migration after Up() -- it should show as pending
 	pendingMigration := &MockMigration{signature: "migration_4", description: "Fourth migration"}
 	if err := migrator.AddMigration(pendingMigration); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
@@ -1003,7 +976,6 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 		t.Errorf("expected 1 pending migration, got %d", pending)
 	}
 
-	// Verify ordering by signature
 	expectedOrder := []string{"migration_1", "migration_2", "migration_3", "migration_4"}
 	for i, expected := range expectedOrder {
 		if status[i].ID != expected {
@@ -1028,7 +1000,6 @@ func TestStatus_AllPending(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// No tracker table exists yet -- all should be pending
 	status, err := migrator.Status()
 	if err != nil {
 		t.Fatalf("Status failed: %v", err)
@@ -1052,11 +1023,11 @@ func TestStatus_AllCompleted(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1277,11 +1248,11 @@ func TestFresh(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1293,7 +1264,6 @@ func TestFresh(t *testing.T) {
 
 	migrator := NewMigrator(db)
 
-	// Migration that creates a user table
 	userMigration := &MockMigration{
 		signature:   "2026_06_15_1200_create_users",
 		description: "Create users table",
@@ -1304,13 +1274,11 @@ func TestFresh(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Run migrations to create tables
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Fatalf("Up failed: %v", err)
 	}
 
-	// Verify migration was tracked
 	status, err := migrator.Status()
 	if err != nil {
 		t.Fatalf("Status failed: %v", err)
@@ -1319,18 +1287,15 @@ func TestFresh(t *testing.T) {
 		t.Fatalf("Expected 1 tracked migration, got %d", len(status))
 	}
 
-	// Fresh should drop all tables and re-run migrations
 	err = migrator.Fresh(ctx)
 	if err != nil {
 		t.Fatalf("Fresh failed: %v", err)
 	}
 
-	// Migration tracking table should still exist (Fresh preserves it)
 	if !db.Schema().HasTable(defaultTableName) {
 		t.Error("Expected migration tracking table to exist after Fresh")
 	}
 
-	// Migration should have been re-run (tracker cleared then re-populated)
 	status, err = migrator.Status()
 	if err != nil {
 		t.Fatalf("Status after Fresh failed: %v", err)
@@ -1347,11 +1312,11 @@ func TestReset(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1370,14 +1335,12 @@ func TestReset(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Run migrations
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err != nil {
 		t.Errorf("Up failed: %v", err)
 	}
 
-	// Reset should rollback all migrations
 	err = migrator.Reset(ctx)
 	if err != nil {
 		t.Errorf("Reset failed: %v", err)
@@ -1391,11 +1354,11 @@ func TestReset_SafetyLimit(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create migration tracking table first
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.String("status", 16).Nullable()
@@ -1409,13 +1372,12 @@ func TestReset_SafetyLimit(t *testing.T) {
 
 	migrator := NewMigrator(db)
 
-	// Seed the tracker with more than maxResetIterations entries
-	// to trigger the safety guard. We use raw query to bypass normal migration flow.
 	query := db.Schema().Orm().Query()
 	for i := 0; i < maxResetIterations+1; i++ {
 		tracker := MigrationTracker{
-			ID:    fmt.Sprintf("migration_%d", i),
-			Batch: 1,
+			ID:        fmt.Sprintf("rec_%d", i),
+			Migration: fmt.Sprintf("migration_%d", i),
+			Batch:     1,
 		}
 		if err := query.Table(defaultTableName).Create(&tracker); err != nil {
 			t.Fatalf("failed to seed tracker: %v", err)
@@ -1442,18 +1404,15 @@ func TestSetTransactionsEnabled(t *testing.T) {
 	migrator := NewMigrator(db)
 	impl := migrator.(*Migrator)
 
-	// Default should be enabled
 	if !impl.useTransactions {
 		t.Error("Expected transactions to be enabled by default")
 	}
 
-	// Disable transactions
 	impl.SetTransactionsEnabled(false)
 	if impl.useTransactions {
 		t.Error("Expected transactions to be disabled")
 	}
 
-	// Enable transactions
 	impl.SetTransactionsEnabled(true)
 	if !impl.useTransactions {
 		t.Error("Expected transactions to be enabled")
@@ -1470,13 +1429,11 @@ func TestSetTransactionIsolationLevel(t *testing.T) {
 	migrator := NewMigrator(db)
 	impl := migrator.(*Migrator)
 
-	// Set isolation level
 	impl.SetTransactionIsolationLevel("SERIALIZABLE")
 	if impl.isolationLevel != "SERIALIZABLE" {
 		t.Error("Expected isolation level to be SERIALIZABLE")
 	}
 
-	// Test different isolation levels
 	levels := []string{"READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"}
 	for _, level := range levels {
 		impl.SetTransactionIsolationLevel(level)
@@ -1493,11 +1450,11 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Pre-create migration tracking table so runUp doesn't need to create it
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1516,9 +1473,6 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// With transactions enabled (default), Up should fail and roll back
-	// tracker entries written inside the transaction. The failed attempt is
-	// then recorded outside the transaction so it remains visible.
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err == nil {
@@ -1533,8 +1487,8 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	if len(trackers) != 1 {
 		t.Fatalf("Expected 1 tracker entry (the failed migration), got %d", len(trackers))
 	}
-	if trackers[0].ID != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
-		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].ID, trackers[0].Status)
+	if trackers[0].MigrationName() != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].MigrationName(), trackers[0].Status)
 	}
 	if trackers[0].ErrorMessage == "" {
 		t.Error("Expected error message to be recorded for failed migration")
@@ -1551,11 +1505,11 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Pre-create migration tracking table
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1577,7 +1531,6 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// With transactions disabled, Up should fail but prior tracker entries persist
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err == nil {
@@ -1589,14 +1542,12 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	if err := query.Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
-	// Without transactions both the completed migration_1 and the failed
-	// migration_2 attempt are recorded
 	if len(trackers) != 2 {
 		t.Fatalf("Expected 2 tracker entries after failed migration, got %d", len(trackers))
 	}
 	statusByID := map[string]MigrationTracker{}
 	for _, tr := range trackers {
-		statusByID[tr.ID] = tr
+		statusByID[tr.MigrationName()] = tr
 	}
 	if statusByID["migration_1"].Status != MigrationTrackerStatusCompleted {
 		t.Errorf("Expected migration_1 status 'completed', got '%s'", statusByID["migration_1"].Status)
@@ -1619,7 +1570,6 @@ func TestLexicographicalOrdering_Default(t *testing.T) {
 	migrator := NewMigrator(db)
 	impl := migrator.(*Migrator)
 
-	// Default should be enabled
 	if !impl.lexicographicalOrdering {
 		t.Error("Expected lexicographical ordering to be enabled by default")
 	}
@@ -1632,11 +1582,11 @@ func TestLexicographicalOrdering_Enabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Pre-create migration tracking table
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1647,10 +1597,8 @@ func TestLexicographicalOrdering_Enabled(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	// Explicitly enable lexicographical ordering
 	migrator.SetLexicographicalOrdering(true)
 
-	// Add migrations out of order
 	migrations := []MigrationInterface{
 		&MockMigration{signature: "2026_06_15_1400_third", description: "Third migration"},
 		&MockMigration{signature: "2026_06_15_1200_first", description: "First migration"},
@@ -1666,7 +1614,6 @@ func TestLexicographicalOrdering_Enabled(t *testing.T) {
 		t.Fatalf("Up failed: %v", err)
 	}
 
-	// Verify execution order via tracker entries
 	var trackers []MigrationTracker
 	query := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc")
 	if err := query.Get(&trackers); err != nil {
@@ -1678,8 +1625,8 @@ func TestLexicographicalOrdering_Enabled(t *testing.T) {
 
 	expectedOrder := []string{"2026_06_15_1200_first", "2026_06_15_1300_second", "2026_06_15_1400_third"}
 	for i, expected := range expectedOrder {
-		if trackers[i].ID != expected {
-			t.Errorf("Expected migration at position %d to be '%s', got '%s'", i, expected, trackers[i].ID)
+		if trackers[i].MigrationName() != expected {
+			t.Errorf("Expected migration at position %d to be '%s', got '%s'", i, expected, trackers[i].MigrationName())
 		}
 	}
 }
@@ -1691,11 +1638,11 @@ func TestLexicographicalOrdering_Disabled(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Pre-create migration tracking table
 	schema := db.Schema()
 	err = schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.DateTime("started_at")
@@ -1706,10 +1653,8 @@ func TestLexicographicalOrdering_Disabled(t *testing.T) {
 	}
 
 	migrator := NewMigrator(db)
-	// Disable lexicographical ordering
 	migrator.SetLexicographicalOrdering(false)
 
-	// Add migrations out of order
 	migrations := []MigrationInterface{
 		&MockMigration{signature: "2026_06_15_1400_third", description: "Third migration"},
 		&MockMigration{signature: "2026_06_15_1200_first", description: "First migration"},
@@ -1725,7 +1670,6 @@ func TestLexicographicalOrdering_Disabled(t *testing.T) {
 		t.Fatalf("Up failed: %v", err)
 	}
 
-	// Verify execution order preserves registration order
 	var trackers []MigrationTracker
 	query := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc")
 	if err := query.Get(&trackers); err != nil {
@@ -1737,8 +1681,8 @@ func TestLexicographicalOrdering_Disabled(t *testing.T) {
 
 	expectedOrder := []string{"2026_06_15_1400_third", "2026_06_15_1200_first", "2026_06_15_1300_second"}
 	for i, expected := range expectedOrder {
-		if trackers[i].ID != expected {
-			t.Errorf("Expected migration at position %d to be '%s', got '%s'", i, expected, trackers[i].ID)
+		if trackers[i].MigrationName() != expected {
+			t.Errorf("Expected migration at position %d to be '%s', got '%s'", i, expected, trackers[i].MigrationName())
 		}
 	}
 }
@@ -1750,7 +1694,6 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Do NOT pre-create migration tracking table - runUp will create it inside the transaction
 	migrator := NewMigrator(db)
 	migrations := []MigrationInterface{
 		&MockMigration{signature: "migration_1", description: "First migration"},
@@ -1760,9 +1703,6 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 		t.Fatalf("AddMigrations failed: %v", err)
 	}
 
-	// Up should fail; the in-transaction work (including any tracker rows
-	// written inside it) rolls back, then the failed attempt is recorded
-	// outside the transaction so it remains visible in the tracker.
 	ctx := context.Background()
 	err = migrator.Up(ctx)
 	if err == nil {
@@ -1780,8 +1720,8 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	if len(trackers) != 1 {
 		t.Fatalf("Expected 1 tracker entry (the failed migration), got %d", len(trackers))
 	}
-	if trackers[0].ID != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
-		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].ID, trackers[0].Status)
+	if trackers[0].MigrationName() != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].MigrationName(), trackers[0].Status)
 	}
 	if trackers[0].ErrorMessage == "" {
 		t.Error("Expected error message to be recorded for failed migration")
@@ -1806,24 +1746,24 @@ func TestFailedMigration_RetriedOnNextUp(t *testing.T) {
 		t.Fatal("Expected error from failing migration")
 	}
 
-	// Fix the migration and retry - the failed row should be overwritten
+	// Fix the migration and retry - a new row should be added, preserving the failed attempt in history
 	migration.shouldFail = false
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatalf("Expected retry to succeed, got: %v", err)
 	}
 
 	var trackers []MigrationTracker
-	if err := db.Schema().Orm().Query().Table(defaultTableName).Get(&trackers); err != nil {
+	if err := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
-	if len(trackers) != 1 {
-		t.Fatalf("Expected 1 tracker entry after retry, got %d", len(trackers))
+	if len(trackers) != 2 {
+		t.Fatalf("Expected 2 tracker entries after retry (history preserved), got %d", len(trackers))
 	}
-	if trackers[0].Status != MigrationTrackerStatusCompleted {
-		t.Errorf("Expected status 'completed' after retry, got '%s'", trackers[0].Status)
+	if trackers[0].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected first entry status 'failed', got '%s'", trackers[0].Status)
 	}
-	if trackers[0].ErrorMessage != "" {
-		t.Errorf("Expected error message cleared after retry, got '%s'", trackers[0].ErrorMessage)
+	if trackers[1].Status != MigrationTrackerStatusCompleted {
+		t.Errorf("Expected second entry status 'completed' after retry, got '%s'", trackers[1].Status)
 	}
 }
 
@@ -1861,8 +1801,6 @@ func TestStatus_ReportsFailedMigration(t *testing.T) {
 	if byID["migration_2"].Error == "" {
 		t.Error("Expected Error to be populated for failed migration")
 	}
-	// migration_1 either completed or rolled back to pending depending on the
-	// transaction driver — both are acceptable, anything else is a bug
 	if s := byID["migration_1"].State; s != MigrationTrackerStatusCompleted && s != "pending" {
 		t.Errorf("Unexpected state for migration_1: '%s'", s)
 	}
@@ -1875,11 +1813,11 @@ func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Create a legacy-style tracker table and seed a row with empty status
 	schema := db.Schema()
 	if err := schema.Create(defaultTableName, func(table contractsschema.Blueprint) {
 		table.String("id")
 		table.Primary("id")
+		table.String("migration", 255).Nullable()
 		table.Integer("batch")
 		table.String("description", 255)
 		table.String("status", 16).Nullable()
@@ -1889,7 +1827,7 @@ func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("failed to create migration tracking table: %v", err)
 	}
-	legacy := MigrationTracker{ID: "legacy_migration", Batch: 1, Status: ""}
+	legacy := MigrationTracker{ID: "legacy_migration", Migration: "legacy_migration", Batch: 1, Status: ""}
 	if err := db.Schema().Orm().Query().Table(defaultTableName).Create(&legacy); err != nil {
 		t.Fatalf("failed to seed tracker: %v", err)
 	}
@@ -1903,7 +1841,6 @@ func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
 		t.Fatalf("Expected legacy row to report 'completed', got %+v", statuses)
 	}
 
-	// A legacy row must also count as ran so it is not re-executed
 	if err := migrator.AddMigration(&MockMigration{signature: "legacy_migration"}); err != nil {
 		t.Fatalf("AddMigration failed: %v", err)
 	}
@@ -1937,7 +1874,6 @@ func TestDown_FailureMarkedFailed(t *testing.T) {
 		t.Fatalf("Up failed: %v", err)
 	}
 
-	// The migration remains registered so Down finds it, but fails
 	if err := migrator.Down(ctx); err == nil {
 		t.Fatal("Expected error from failing Down migration")
 	}
@@ -1957,10 +1893,6 @@ func TestDown_FailureMarkedFailed(t *testing.T) {
 	}
 }
 
-// TestTrackerTimestampsStoredAsPlainDatetime ensures started_at/completed_at
-// are persisted in the "YYYY-MM-DD HH:MM:SS" format on SQLite, both on the
-// initial insert and on the follow-up update that marks the migration completed.
-// The update must not write Go's default time.String() output into the column.
 func TestTrackerTimestampsStoredAsPlainDatetime(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1992,5 +1924,97 @@ func TestTrackerTimestampsStoredAsPlainDatetime(t *testing.T) {
 		if _, err := time.Parse("2006-01-02 15:04:05", value); err != nil {
 			t.Errorf("Expected %s in 'YYYY-MM-DD HH:MM:SS' format, got %q", name, value)
 		}
+	}
+}
+
+func TestHistory_PreservedOnRetry(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{signature: "2026_06_15_120000_create_users", description: "Create users", shouldFail: true}
+	if err := migrator.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Run 1: Fails
+	if err := migrator.Up(ctx); err == nil {
+		t.Fatal("Expected Up to fail")
+	}
+
+	// Run 2: Succeeded after fixing migration
+	migration.shouldFail = false
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Expected Up retry to succeed, got %v", err)
+	}
+
+	var trackers []MigrationTracker
+	if err := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+
+	if len(trackers) != 2 {
+		t.Fatalf("Expected 2 history records in migration_tracker, got %d", len(trackers))
+	}
+
+	if trackers[0].MigrationName() != "2026_06_15_120000_create_users" || trackers[0].Status != MigrationTrackerStatusFailed {
+		t.Errorf("Expected first history record to be failed, got status %s", trackers[0].Status)
+	}
+
+	if trackers[1].MigrationName() != "2026_06_15_120000_create_users" || trackers[1].Status != MigrationTrackerStatusCompleted {
+		t.Errorf("Expected second history record to be completed, got status %s", trackers[1].Status)
+	}
+}
+
+func TestHistory_PreservedOnRollbackAndReUp(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{signature: "2026_06_15_120000_create_posts", description: "Create posts"}
+	if err := migrator.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Step 1: Up
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+
+	// Step 2: Down (Rollback)
+	if err := migrator.Down(ctx); err != nil {
+		t.Fatalf("Down failed: %v", err)
+	}
+
+	// Step 3: Up again
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up second time failed: %v", err)
+	}
+
+	var trackers []MigrationTracker
+	if err := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
+		t.Fatalf("failed to get trackers: %v", err)
+	}
+
+	if len(trackers) != 2 { // Record 1 updated to rolled_back, Record 2 created as completed
+		t.Fatalf("Expected 2 history records in migration_tracker (rolled_back and completed), got %d", len(trackers))
+	}
+
+	if trackers[0].Status != MigrationTrackerStatusRolledBack {
+		t.Errorf("Expected first record status 'rolled_back', got '%s'", trackers[0].Status)
+	}
+
+	if trackers[1].Status != MigrationTrackerStatusCompleted {
+		t.Errorf("Expected second record status 'completed', got '%s'", trackers[1].Status)
 	}
 }
