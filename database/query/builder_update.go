@@ -74,7 +74,7 @@ func clampArgs(args []any, placeholders int) []any {
 // dialect's JSON function, falling back to a plain column assignment.
 func (s *updateSet) addJSONPath(colStr string, val any) {
 	segments := strings.Split(colStr, "->")
-	if len(segments) < 2 || !(s.b.query.isMySQL() || s.b.query.isSQLite()) {
+	if len(segments) < 2 || (!s.b.query.isMySQL() && !s.b.query.isSQLite()) {
 		s.addValue(colStr, val)
 		return
 	}

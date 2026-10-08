@@ -144,13 +144,25 @@ func convertGoValue(val any, sqlType string) any {
 		}
 	case "DATETIME":
 		if t, ok := val.(time.Time); ok {
-			return t
+			return t.UTC().Format("2006-01-02 15:04:05")
 		}
 		if t, ok := val.(*time.Time); ok {
 			if t != nil {
-				return *t
+				return t.UTC().Format("2006-01-02 15:04:05")
 			}
 			return nil
+		}
+		if str, ok := val.(string); ok {
+			for _, fmtStr := range []string{
+				time.RFC3339,
+				time.RFC3339Nano,
+				"2006-01-02 15:04:05",
+				"2006-01-02",
+			} {
+				if parsed, err := time.Parse(fmtStr, str); err == nil {
+					return parsed.UTC().Format("2006-01-02 15:04:05")
+				}
+			}
 		}
 	}
 	return val
