@@ -422,9 +422,10 @@ func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 
 		if t, ok := latestTracker[sig]; ok {
 			state := t.Status
-			if state == "" {
+			switch state {
+			case "":
 				state = MigrationTrackerStatusCompleted
-			} else if state == MigrationTrackerStatusRolledBack {
+			case MigrationTrackerStatusRolledBack:
 				state = "pending"
 			}
 			statuses = append(statuses, MigrationStatusResponse{
@@ -448,9 +449,10 @@ func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 	for sig, t := range latestTracker {
 		if !processed[sig] {
 			state := t.Status
-			if state == "" {
+			switch state {
+			case "":
 				state = MigrationTrackerStatusCompleted
-			} else if state == MigrationTrackerStatusRolledBack {
+			case MigrationTrackerStatusRolledBack:
 				state = "pending"
 			}
 			statuses = append(statuses, MigrationStatusResponse{
