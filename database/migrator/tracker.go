@@ -37,10 +37,10 @@ const (
 // had a year to write a status on every new row.
 type MigrationTracker struct {
 	ID           string          // Unique, time-ordered record ID for this execution attempt
-	Migration    string          // The migration signature (e.g., "2024_06_15_120000_create_users_table")
 	Batch        int             // Incrementing batch number grouping one Up() run; rollback rows keep the batch they reverse
-	Description  string          // The migration description from Description() method
 	Status       MigrationStatus // one of the MigrationStatus* values (empty = completed, legacy rows — see note below)
+	Migration    string          // The migration signature (e.g., "2024_06_15_120000_create_users_table")
+	Description  string          // The migration description from Description() method
 	StartedAt    time.Time       // When the migration started
 	CompletedAt  time.Time       // When the migration attempt finished (success or failure)
 	ErrorMessage string          // The error text when Status is "failed" or "rollback_failed"
