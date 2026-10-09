@@ -268,7 +268,7 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 			Description: migration.Description(),
 			Status:      MigrationTrackerStatusRunning,
 			StartedAt:   startedAt,
-			CompletedAt: startedAt,
+			CompletedAt: nullTime,
 		}
 		if err := s.createTracker(query, tracker); err != nil {
 			return fmt.Errorf("failed to record migration %s start: %w", signature, err)

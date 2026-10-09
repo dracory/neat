@@ -2,6 +2,12 @@ package migrator
 
 import "time"
 
+// nullTime is the NOT NULL "no value" sentinel used for columns that have no
+// meaningful timestamp yet — e.g. completed_at on a running row. It mirrors
+// neat.NullDateTime ("0002-01-01 00:00:00") as a time.Time and sorts before
+// any real timestamp.
+var nullTime = time.Date(2, 1, 1, 0, 0, 0, 0, time.UTC)
+
 // Migration tracker status values stored in the status column.
 const (
 	MigrationTrackerStatusRunning   = "running"
