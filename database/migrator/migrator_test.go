@@ -950,8 +950,8 @@ func TestStatus_WithMigrations(t *testing.T) {
 		if s.State != "completed" {
 			t.Errorf("Expected state 'completed' for migration %d, got '%s'", i, s.State)
 		}
-		if s.ID != migrations[i].Signature() {
-			t.Errorf("Expected ID '%s' for migration %d, got '%s'", migrations[i].Signature(), i, s.ID)
+		if s.Signature != migrations[i].Signature() {
+			t.Errorf("Expected signature '%s' for migration %d, got '%s'", migrations[i].Signature(), i, s.Signature)
 		}
 	}
 }
@@ -1018,15 +1018,15 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 		case "completed":
 			completed++
 			if s.Batch == 0 {
-				t.Errorf("completed migration %s should have a batch number", s.ID)
+				t.Errorf("completed migration %s should have a batch number", s.Signature)
 			}
 		case "pending":
 			pending++
 			if s.Batch != 0 {
-				t.Errorf("pending migration %s should have batch 0, got %d", s.ID, s.Batch)
+				t.Errorf("pending migration %s should have batch 0, got %d", s.Signature, s.Batch)
 			}
 		default:
-			t.Errorf("unexpected state '%s' for migration %s", s.State, s.ID)
+			t.Errorf("unexpected state '%s' for migration %s", s.State, s.Signature)
 		}
 	}
 
@@ -1039,8 +1039,8 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 
 	expectedOrder := []string{"migration_1", "migration_2", "migration_3", "migration_4"}
 	for i, expected := range expectedOrder {
-		if status[i].ID != expected {
-			t.Errorf("expected status[%d].ID = '%s', got '%s'", i, expected, status[i].ID)
+		if status[i].Signature != expected {
+			t.Errorf("expected status[%d].Signature = '%s', got '%s'", i, expected, status[i].Signature)
 		}
 	}
 }
@@ -1907,17 +1907,17 @@ func TestStatus_ReportsFailedMigration(t *testing.T) {
 		t.Fatalf("Status failed: %v", err)
 	}
 
-	byID := map[string]MigrationStatusResponse{}
+	bySignature := map[string]MigrationStatusResponse{}
 	for _, st := range statuses {
-		byID[st.ID] = st
+		bySignature[st.Signature] = st
 	}
-	if byID["migration_2"].State != string(MigrationStatusFailed) {
-		t.Errorf("Expected migration_2 state 'failed', got '%s'", byID["migration_2"].State)
+	if bySignature["migration_2"].State != string(MigrationStatusFailed) {
+		t.Errorf("Expected migration_2 state 'failed', got '%s'", bySignature["migration_2"].State)
 	}
-	if byID["migration_2"].Error == "" {
+	if bySignature["migration_2"].Error == "" {
 		t.Error("Expected Error to be populated for failed migration")
 	}
-	if s := byID["migration_1"].State; s != string(MigrationStatusCompleted) && s != "pending" {
+	if s := bySignature["migration_1"].State; s != string(MigrationStatusCompleted) && s != "pending" {
 		t.Errorf("Unexpected state for migration_1: '%s'", s)
 	}
 }
@@ -2255,7 +2255,7 @@ func TestStatus_RolledBackReportedAsUnassignedPending(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Status failed: %v", err)
 	}
-	want := MigrationStatusResponse{ID: "2026_06_15_120000_create_users", Description: "Create users", State: "pending"}
+	want := MigrationStatusResponse{Signature: "2026_06_15_120000_create_users", Description: "Create users", State: "pending"}
 	if len(statuses) != 1 || statuses[0] != want {
 		t.Fatalf("Expected %+v, got %+v", want, statuses)
 	}

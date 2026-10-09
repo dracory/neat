@@ -429,7 +429,7 @@ func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 			statuses = append(statuses, trackerStatus(t, migration.Description()))
 		} else {
 			statuses = append(statuses, MigrationStatusResponse{
-				ID:          sig,
+				Signature:   sig,
 				Description: migration.Description(),
 				State:       "pending",
 			})
@@ -444,7 +444,7 @@ func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 
 	// Sort by signature for consistent output
 	sort.Slice(statuses, func(i, j int) bool {
-		return statuses[i].ID < statuses[j].ID
+		return statuses[i].Signature < statuses[j].Signature
 	})
 
 	return statuses, nil
@@ -458,7 +458,7 @@ func trackerStatus(t MigrationTracker, pendingDescription string) MigrationStatu
 	switch t.Status {
 	case MigrationStatusRolledBack:
 		return MigrationStatusResponse{
-			ID:          t.MigrationName(),
+			Signature:   t.MigrationName(),
 			Description: pendingDescription,
 			State:       "pending",
 		}
@@ -468,7 +468,7 @@ func trackerStatus(t MigrationTracker, pendingDescription string) MigrationStatu
 		t.Status = MigrationStatusCompleted
 	}
 	return MigrationStatusResponse{
-		ID:          t.MigrationName(),
+		Signature:   t.MigrationName(),
 		Description: t.Description,
 		Batch:       t.Batch,
 		StartedAt:   t.StartedAt,

@@ -33,7 +33,7 @@ func TestMigrationTracker_Fields(t *testing.T) {
 
 func TestMigrationStatus_Fields(t *testing.T) {
 	status := MigrationStatusResponse{
-		ID:          "2024_06_15_120000_create_users_table",
+		Signature:   "2024_06_15_120000_create_users_table",
 		Description: "Create users table",
 		Batch:       20240615120000,
 		StartedAt:   time.Now(),
@@ -41,8 +41,8 @@ func TestMigrationStatus_Fields(t *testing.T) {
 		State:       "completed",
 	}
 
-	if status.ID != "2024_06_15_120000_create_users_table" {
-		t.Errorf("Expected ID '2024_06_15_120000_create_users_table', got '%s'", status.ID)
+	if status.Signature != "2024_06_15_120000_create_users_table" {
+		t.Errorf("Expected signature '2024_06_15_120000_create_users_table', got '%s'", status.Signature)
 	}
 	if status.Description != "Create users table" {
 		t.Errorf("Expected Description 'Create users table', got '%s'", status.Description)
@@ -63,7 +63,7 @@ func TestMigrationStatus_Fields(t *testing.T) {
 
 func TestMigrationStatus_JSONTags(t *testing.T) {
 	status := MigrationStatusResponse{
-		ID:          "test_id",
+		Signature:   "test_id",
 		Description: "test description",
 		Batch:       123,
 		StartedAt:   time.Now(),
@@ -74,7 +74,7 @@ func TestMigrationStatus_JSONTags(t *testing.T) {
 	// Verify that the struct has proper JSON tags by checking field names
 	// This is a compile-time check to ensure the tags are present
 	type jsonTaggedStruct struct {
-		ID          string    `json:"id"`
+		Signature   string    `json:"signature"`
 		Description string    `json:"description"`
 		Batch       int       `json:"batch"`
 		StartedAt   time.Time `json:"started_at"`
@@ -123,8 +123,8 @@ func TestMigrationTracker_ZeroValues(t *testing.T) {
 func TestMigrationStatus_ZeroValues(t *testing.T) {
 	status := MigrationStatusResponse{}
 
-	if status.ID != "" {
-		t.Errorf("Expected empty ID, got '%s'", status.ID)
+	if status.Signature != "" {
+		t.Errorf("Expected empty Signature, got '%s'", status.Signature)
 	}
 	if status.Description != "" {
 		t.Errorf("Expected empty Description, got '%s'", status.Description)

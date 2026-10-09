@@ -128,7 +128,7 @@ err := s.RollbackSteps(ctx, 3)</code></pre>
     <h3>Check Migration Status</h3>
     <pre><code>status, err := s.Status()
 for _, s := range status {
-    fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
+    fmt.Printf("Migration: %s - State: %s\n", s.Signature, s.State)
 }</code></pre>
 
     <h3>Reset All Migrations</h3>

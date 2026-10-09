@@ -158,7 +158,7 @@ Returns the current status of all migrations, including both completed (from the
 ```go
 status, err := migrator.Status()
 for _, s := range status {
-    fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
+    fmt.Printf("Migration: %s - State: %s\n", s.Signature, s.State)
 }
 ```
 
@@ -300,7 +300,7 @@ The `Status()` method returns `MigrationStatusResponse` objects:
 
 ```go
 type MigrationStatusResponse struct {
-    ID          string    `json:"id"`
+    Signature   string    `json:"signature"`
     Description string    `json:"description"`
     Batch       int       `json:"batch"`
     StartedAt   time.Time `json:"started_at"`

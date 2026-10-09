@@ -57,7 +57,7 @@ func (t MigrationTracker) MigrationName() string {
 // MigrationStatusResponse is the DTO returned by Migrator.Status(), derived
 // from MigrationTracker rows and the registered (pending) migrations.
 type MigrationStatusResponse struct {
-	ID          string    `json:"id"`
+	Signature   string    `json:"signature"` // The migration signature (e.g. "2026_06_15_120000_create_users"), not a tracker row ID
 	Description string    `json:"description"`
 	Batch       int       `json:"batch"`
 	StartedAt   time.Time `json:"started_at"`

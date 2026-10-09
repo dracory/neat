@@ -9,7 +9,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-		"github.com/dracory/neat/database/migrator"
+	"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates transaction control in the migrator package
@@ -71,7 +71,7 @@ func RunTransactionExample(dsn string) error {
 	}
 
 	for _, s := range status {
-		fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
+		fmt.Printf("Migration: %s - State: %s\n", s.Signature, s.State)
 	}
 
 	// Demonstrate disabling transactions for large migrations

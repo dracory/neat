@@ -75,7 +75,7 @@ func RunMigratorBasedMigrations(dsn string) error {
 	}
 
 	for _, s := range status {
-		fmt.Printf("Migration: %s - State: %s\n", s.ID, s.State)
+		fmt.Printf("Migration: %s - State: %s\n", s.Signature, s.State)
 	}
 
 	return nil

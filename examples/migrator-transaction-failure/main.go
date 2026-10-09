@@ -9,7 +9,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
-		"github.com/dracory/neat/database/migrator"
+	"github.com/dracory/neat/database/migrator"
 )
 
 // This example demonstrates transaction failure behavior
@@ -115,7 +115,7 @@ func RunTransactionFailureExample(dsn string) error {
 	} else {
 		fmt.Printf("⚠️  %d migrations recorded (unexpected)\n", len(status))
 		for _, s := range status {
-			fmt.Printf("  - %s: %s\n", s.ID, s.State)
+			fmt.Printf("  - %s: %s\n", s.Signature, s.State)
 		}
 	}
 
