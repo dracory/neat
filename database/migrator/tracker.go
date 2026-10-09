@@ -25,12 +25,17 @@ const (
 // This is the database model/entity used for persistence. The table is an
 // append-only history: each Up or Down attempt adds a row, and a migration's
 // current state is its most recent row.
+//
+// Legacy note: rows written before the status column existed have Status = ""
+// and are treated as "completed" at the read sites. This compatibility case
+// (Status == "") should be removed after October 2027, once deployments have
+// had a year to write a status on every new row.
 type MigrationTracker struct {
 	ID           string    // Unique, time-ordered record ID for this execution attempt
 	Migration    string    // The migration signature (e.g., "2024_06_15_120000_create_users_table")
 	Batch        int       // Incrementing batch number grouping one Up() run; rollback rows keep the batch they reverse
 	Description  string    // The migration description from Description() method
-	Status       string    // "running", "completed", "failed" or "rollback_failed" (empty = completed, legacy rows)
+	Status       string    // "running", "completed", "failed" or "rollback_failed" (empty = completed, legacy rows — see note below)
 	ErrorMessage string    // The error text when Status is "failed" or "rollback_failed"
 	StartedAt    time.Time // When the migration started
 	CompletedAt  time.Time // When the migration attempt finished (success or failure)

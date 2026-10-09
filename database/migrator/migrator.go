@@ -463,6 +463,8 @@ func trackerStatus(t MigrationTracker, pendingDescription string) MigrationStatu
 			State:       "pending",
 		}
 	case "":
+		// Legacy row from before the status column existed; remove after
+		// October 2027 (see MigrationTracker.Status).
 		t.Status = MigrationTrackerStatusCompleted
 	}
 	return MigrationStatusResponse{
@@ -676,6 +678,8 @@ func (s *Migrator) recordFailure(failure *migrationFailure) {
 		if err := cloneQuery(query).Table(s.tableName).Where("id = ?", recID).Get(&existing); err == nil && len(existing) > 0 {
 			switch existing[0].Status {
 			case "", MigrationTrackerStatusCompleted, MigrationTrackerStatusRolledBack:
+				// "" is a legacy row from before the status column existed;
+				// remove after October 2027 (see MigrationTracker.Status).
 				// The existing row is already in a terminal state; don't overwrite it.
 				// Insert a new failure row with a fresh ID below.
 				recID = ""
@@ -860,6 +864,8 @@ func (s *Migrator) activeTrackers(query orm.Query) ([]MigrationTracker, error) {
 	for _, t := range latestTrackers(history) {
 		switch t.Status {
 		case "", MigrationTrackerStatusCompleted, MigrationTrackerStatusRollbackFailed:
+			// "" is a legacy row from before the status column existed;
+			// remove after October 2027 (see MigrationTracker.Status).
 			active = append(active, t)
 		}
 	}
