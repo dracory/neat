@@ -8,17 +8,22 @@ import "time"
 // any real timestamp.
 var nullTime = time.Date(2, 1, 1, 0, 0, 0, 0, time.UTC)
 
+// MigrationStatus is the status value stored in the status column.
+// A named type so only the declared constants can be assigned to
+// MigrationTracker.Status — a misspelled literal is a compile error.
+type MigrationStatus string
+
 // Migration tracker status values stored in the status column.
 const (
-	MigrationTrackerStatusRunning   = "running"
-	MigrationTrackerStatusCompleted = "completed"
-	MigrationTrackerStatusFailed    = "failed"
+	MigrationStatusRunning   MigrationStatus = "running"
+	MigrationStatusCompleted MigrationStatus = "completed"
+	MigrationStatusFailed    MigrationStatus = "failed"
 	// RolledBack marks a migration that was rolled back via Down().
-	MigrationTrackerStatusRolledBack = "rolled_back"
+	MigrationStatusRolledBack MigrationStatus = "rolled_back"
 	// RollbackFailed marks a migration whose Down() failed. The schema change
 	// is still applied, so the migration counts as ran for Up() but remains
 	// eligible for a rollback retry.
-	MigrationTrackerStatusRollbackFailed = "rollback_failed"
+	MigrationStatusRollbackFailed MigrationStatus = "rollback_failed"
 )
 
 // MigrationTracker represents a migration record stored in the migration_tracker table
@@ -31,14 +36,14 @@ const (
 // (Status == "") should be removed after October 2027, once deployments have
 // had a year to write a status on every new row.
 type MigrationTracker struct {
-	ID           string    // Unique, time-ordered record ID for this execution attempt
-	Migration    string    // The migration signature (e.g., "2024_06_15_120000_create_users_table")
-	Batch        int       // Incrementing batch number grouping one Up() run; rollback rows keep the batch they reverse
-	Description  string    // The migration description from Description() method
-	Status       string    // "running", "completed", "failed" or "rollback_failed" (empty = completed, legacy rows — see note below)
-	ErrorMessage string    // The error text when Status is "failed" or "rollback_failed"
-	StartedAt    time.Time // When the migration started
-	CompletedAt  time.Time // When the migration attempt finished (success or failure)
+	ID           string          // Unique, time-ordered record ID for this execution attempt
+	Migration    string          // The migration signature (e.g., "2024_06_15_120000_create_users_table")
+	Batch        int             // Incrementing batch number grouping one Up() run; rollback rows keep the batch they reverse
+	Description  string          // The migration description from Description() method
+	Status       MigrationStatus // one of the MigrationStatus* values (empty = completed, legacy rows — see note below)
+	StartedAt    time.Time       // When the migration started
+	CompletedAt  time.Time       // When the migration attempt finished (success or failure)
+	ErrorMessage string          // The error text when Status is "failed" or "rollback_failed"
 }
 
 // MigrationName returns the migration signature, falling back to ID if Migration is empty (legacy rows).

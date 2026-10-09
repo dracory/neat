@@ -173,7 +173,7 @@ type migrationFailure struct {
 	signature   string
 	description string
 	batch       int
-	status      string // failed (Up) or rollback_failed (Down)
+	status      MigrationStatus // failed (Up) or rollback_failed (Down)
 	err         error
 	startedAt   time.Time
 	completedAt time.Time
@@ -266,7 +266,7 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 			Migration:   signature,
 			Batch:       batch,
 			Description: migration.Description(),
-			Status:      MigrationTrackerStatusRunning,
+			Status:      MigrationStatusRunning,
 			StartedAt:   startedAt,
 			CompletedAt: nullTime,
 		}
@@ -282,19 +282,19 @@ func (s *Migrator) runUp(ctx context.Context, schema contractsschema.Schema, que
 					signature:   signature,
 					description: migration.Description(),
 					batch:       batch,
-					status:      MigrationTrackerStatusFailed,
+					status:      MigrationStatusFailed,
 					err:         err,
 					startedAt:   startedAt,
 					completedAt: time.Now(),
 				}
 			}
-			_ = s.updateTrackerStatus(query, recID, MigrationTrackerStatusFailed, err.Error(), time.Now())
+			_ = s.updateTrackerStatus(query, recID, MigrationStatusFailed, err.Error(), time.Now())
 			return fmt.Errorf("migration %s failed: %w", signature, err)
 		}
 		completedAt := time.Now()
 
 		// Mark migration completed
-		if err := s.updateTrackerStatus(query, recID, MigrationTrackerStatusCompleted, "", completedAt); err != nil {
+		if err := s.updateTrackerStatus(query, recID, MigrationStatusCompleted, "", completedAt); err != nil {
 			return fmt.Errorf("failed to log migration %s: %w", signature, err)
 		}
 	}
@@ -456,7 +456,7 @@ func (s *Migrator) Status() ([]MigrationStatusResponse, error) {
 // remain in the tracker table.
 func trackerStatus(t MigrationTracker, pendingDescription string) MigrationStatusResponse {
 	switch t.Status {
-	case MigrationTrackerStatusRolledBack:
+	case MigrationStatusRolledBack:
 		return MigrationStatusResponse{
 			ID:          t.MigrationName(),
 			Description: pendingDescription,
@@ -465,7 +465,7 @@ func trackerStatus(t MigrationTracker, pendingDescription string) MigrationStatu
 	case "":
 		// Legacy row from before the status column existed; remove after
 		// October 2027 (see MigrationTracker.Status).
-		t.Status = MigrationTrackerStatusCompleted
+		t.Status = MigrationStatusCompleted
 	}
 	return MigrationStatusResponse{
 		ID:          t.MigrationName(),
@@ -473,7 +473,7 @@ func trackerStatus(t MigrationTracker, pendingDescription string) MigrationStatu
 		Batch:       t.Batch,
 		StartedAt:   t.StartedAt,
 		CompletedAt: t.CompletedAt,
-		State:       t.Status,
+		State:       string(t.Status),
 		Error:       t.ErrorMessage,
 	}
 }
@@ -529,7 +529,7 @@ func (s *Migrator) runFresh(ctx context.Context, schema contractsschema.Schema, 
 			Migration:   t.MigrationName(),
 			Batch:       t.Batch,
 			Description: t.Description,
-			Status:      MigrationTrackerStatusRolledBack,
+			Status:      MigrationStatusRolledBack,
 			StartedAt:   droppedAt,
 			CompletedAt: droppedAt,
 		}); err != nil {
@@ -648,7 +648,7 @@ func (s *Migrator) createTracker(query orm.Query, tracker MigrationTracker) erro
 	return cloneQuery(query).Table(s.tableName).Create(&tracker)
 }
 
-func (s *Migrator) updateTrackerStatus(query orm.Query, recordID string, status string, errMsg string, completedAt time.Time) error {
+func (s *Migrator) updateTrackerStatus(query orm.Query, recordID string, status MigrationStatus, errMsg string, completedAt time.Time) error {
 	updates := map[string]any{
 		"status":       status,
 		"completed_at": completedAt,
@@ -677,7 +677,7 @@ func (s *Migrator) recordFailure(failure *migrationFailure) {
 		var existing []MigrationTracker
 		if err := cloneQuery(query).Table(s.tableName).Where("id = ?", recID).Get(&existing); err == nil && len(existing) > 0 {
 			switch existing[0].Status {
-			case "", MigrationTrackerStatusCompleted, MigrationTrackerStatusRolledBack:
+			case "", MigrationStatusCompleted, MigrationStatusRolledBack:
 				// "" is a legacy row from before the status column existed;
 				// remove after October 2027 (see MigrationTracker.Status).
 				// The existing row is already in a terminal state; don't overwrite it.
@@ -757,7 +757,7 @@ func (s *Migrator) rollbackMigration(schema contractsschema.Schema, query orm.Qu
 		StartedAt:   time.Now(),
 	}
 	if err := migration.Down(); err != nil {
-		record.Status = MigrationTrackerStatusRollbackFailed
+		record.Status = MigrationStatusRollbackFailed
 		record.ErrorMessage = err.Error()
 		record.CompletedAt = time.Now()
 		if failure != nil {
@@ -776,7 +776,7 @@ func (s *Migrator) rollbackMigration(schema contractsschema.Schema, query orm.Qu
 		return fmt.Errorf("failed to rollback migration %s: %w", sig, err)
 	}
 
-	record.Status = MigrationTrackerStatusRolledBack
+	record.Status = MigrationStatusRolledBack
 	record.CompletedAt = time.Now()
 	if err := s.createTracker(query, record); err != nil {
 		return fmt.Errorf("failed to record rollback of migration %s: %w", sig, err)
@@ -863,7 +863,7 @@ func (s *Migrator) activeTrackers(query orm.Query) ([]MigrationTracker, error) {
 	active := make([]MigrationTracker, 0)
 	for _, t := range latestTrackers(history) {
 		switch t.Status {
-		case "", MigrationTrackerStatusCompleted, MigrationTrackerStatusRollbackFailed:
+		case "", MigrationStatusCompleted, MigrationStatusRollbackFailed:
 			// "" is a legacy row from before the status column existed;
 			// remove after October 2027 (see MigrationTracker.Status).
 			active = append(active, t)

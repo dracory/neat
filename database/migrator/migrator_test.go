@@ -1585,7 +1585,7 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	if len(trackers) != 1 {
 		t.Fatalf("Expected 1 tracker entry (the failed migration), got %d", len(trackers))
 	}
-	if trackers[0].MigrationName() != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
+	if trackers[0].MigrationName() != "migration_2" || trackers[0].Status != MigrationStatusFailed {
 		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].MigrationName(), trackers[0].Status)
 	}
 	if trackers[0].ErrorMessage == "" {
@@ -1650,10 +1650,10 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	for _, tr := range trackers {
 		statusByID[tr.MigrationName()] = tr
 	}
-	if statusByID["migration_1"].Status != MigrationTrackerStatusCompleted {
+	if statusByID["migration_1"].Status != MigrationStatusCompleted {
 		t.Errorf("Expected migration_1 status 'completed', got '%s'", statusByID["migration_1"].Status)
 	}
-	if statusByID["migration_2"].Status != MigrationTrackerStatusFailed {
+	if statusByID["migration_2"].Status != MigrationStatusFailed {
 		t.Errorf("Expected migration_2 status 'failed', got '%s'", statusByID["migration_2"].Status)
 	}
 	if statusByID["migration_2"].ErrorMessage == "" {
@@ -1830,7 +1830,7 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	if len(trackers) != 1 {
 		t.Fatalf("Expected 1 tracker entry (the failed migration), got %d", len(trackers))
 	}
-	if trackers[0].MigrationName() != "migration_2" || trackers[0].Status != MigrationTrackerStatusFailed {
+	if trackers[0].MigrationName() != "migration_2" || trackers[0].Status != MigrationStatusFailed {
 		t.Errorf("Expected migration_2 with status 'failed', got %s/%s", trackers[0].MigrationName(), trackers[0].Status)
 	}
 	if trackers[0].ErrorMessage == "" {
@@ -1872,10 +1872,10 @@ func TestFailedMigration_RetriedOnNextUp(t *testing.T) {
 	if len(trackers) != 2 {
 		t.Fatalf("Expected 2 tracker entries after retry (history preserved), got %d", len(trackers))
 	}
-	if trackers[0].Status != MigrationTrackerStatusFailed {
+	if trackers[0].Status != MigrationStatusFailed {
 		t.Errorf("Expected first entry status 'failed', got '%s'", trackers[0].Status)
 	}
-	if trackers[1].Status != MigrationTrackerStatusCompleted {
+	if trackers[1].Status != MigrationStatusCompleted {
 		t.Errorf("Expected second entry status 'completed' after retry, got '%s'", trackers[1].Status)
 	}
 }
@@ -1911,13 +1911,13 @@ func TestStatus_ReportsFailedMigration(t *testing.T) {
 	for _, st := range statuses {
 		byID[st.ID] = st
 	}
-	if byID["migration_2"].State != MigrationTrackerStatusFailed {
+	if byID["migration_2"].State != string(MigrationStatusFailed) {
 		t.Errorf("Expected migration_2 state 'failed', got '%s'", byID["migration_2"].State)
 	}
 	if byID["migration_2"].Error == "" {
 		t.Error("Expected Error to be populated for failed migration")
 	}
-	if s := byID["migration_1"].State; s != MigrationTrackerStatusCompleted && s != "pending" {
+	if s := byID["migration_1"].State; s != string(MigrationStatusCompleted) && s != "pending" {
 		t.Errorf("Unexpected state for migration_1: '%s'", s)
 	}
 }
@@ -1956,7 +1956,7 @@ func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Status failed: %v", err)
 	}
-	if len(statuses) != 1 || statuses[0].State != MigrationTrackerStatusCompleted {
+	if len(statuses) != 1 || statuses[0].State != string(MigrationStatusCompleted) {
 		t.Fatalf("Expected legacy row to report 'completed', got %+v", statuses)
 	}
 
@@ -2005,10 +2005,10 @@ func TestDown_FailureMarkedFailed(t *testing.T) {
 	if len(trackers) != 2 {
 		t.Fatalf("Expected 2 tracker entries (completed Up, failed rollback), got %d", len(trackers))
 	}
-	if trackers[0].Status != MigrationTrackerStatusCompleted || trackers[0].ErrorMessage != "" {
+	if trackers[0].Status != MigrationStatusCompleted || trackers[0].ErrorMessage != "" {
 		t.Errorf("Expected Up record to stay 'completed' without error, got '%s' (%q)", trackers[0].Status, trackers[0].ErrorMessage)
 	}
-	if trackers[1].Status != MigrationTrackerStatusRollbackFailed {
+	if trackers[1].Status != MigrationStatusRollbackFailed {
 		t.Errorf("Expected status 'rollback_failed' after failed rollback, got '%s'", trackers[1].Status)
 	}
 	if trackers[1].ErrorMessage == "" {
@@ -2024,7 +2024,7 @@ func TestDown_FailureMarkedFailed(t *testing.T) {
 		t.Fatalf("Down retry failed: %v", err)
 	}
 	trackers = trackerHistoryForTest(t, db)
-	if len(trackers) != 3 || trackers[2].Status != MigrationTrackerStatusRolledBack {
+	if len(trackers) != 3 || trackers[2].Status != MigrationStatusRolledBack {
 		t.Fatalf("Expected a third 'rolled_back' record after retry, got %+v", trackers)
 	}
 }
@@ -2104,11 +2104,11 @@ func TestHistory_PreservedOnRetry(t *testing.T) {
 		t.Fatalf("Expected 2 history records in migration_tracker, got %d", len(trackers))
 	}
 
-	if trackers[0].MigrationName() != "2026_06_15_120000_create_users" || trackers[0].Status != MigrationTrackerStatusFailed {
+	if trackers[0].MigrationName() != "2026_06_15_120000_create_users" || trackers[0].Status != MigrationStatusFailed {
 		t.Errorf("Expected first history record to be failed, got status %s", trackers[0].Status)
 	}
 
-	if trackers[1].MigrationName() != "2026_06_15_120000_create_users" || trackers[1].Status != MigrationTrackerStatusCompleted {
+	if trackers[1].MigrationName() != "2026_06_15_120000_create_users" || trackers[1].Status != MigrationStatusCompleted {
 		t.Errorf("Expected second history record to be completed, got status %s", trackers[1].Status)
 	}
 }
@@ -2151,7 +2151,7 @@ func TestHistory_PreservedOnRollbackAndReUp(t *testing.T) {
 		t.Fatalf("Expected 3 history records (completed, rolled_back, completed), got %d", len(trackers))
 	}
 
-	want := []string{MigrationTrackerStatusCompleted, MigrationTrackerStatusRolledBack, MigrationTrackerStatusCompleted}
+	want := []MigrationStatus{MigrationStatusCompleted, MigrationStatusRolledBack, MigrationStatusCompleted}
 	for i, status := range want {
 		if trackers[i].Status != status {
 			t.Errorf("Expected record %d status '%s', got '%s'", i, status, trackers[i].Status)
@@ -2203,8 +2203,8 @@ func TestHistory_SameSecondAttemptsOrderedByID(t *testing.T) {
 	// inserted first so that insertion order disagrees with execution order.
 	at := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
 	rows := []MigrationTracker{
-		{ID: "t0000000002", Migration: migration.signature, Batch: 2, Status: MigrationTrackerStatusCompleted, StartedAt: at, CompletedAt: at},
-		{ID: "t0000000001", Migration: migration.signature, Batch: 1, Status: MigrationTrackerStatusRolledBack, StartedAt: at, CompletedAt: at},
+		{ID: "t0000000002", Migration: migration.signature, Batch: 2, Status: MigrationStatusCompleted, StartedAt: at, CompletedAt: at},
+		{ID: "t0000000001", Migration: migration.signature, Batch: 1, Status: MigrationStatusRolledBack, StartedAt: at, CompletedAt: at},
 	}
 	for _, row := range rows {
 		if err := db.Schema().Orm().Query().Table(defaultTableName).Create(&row); err != nil {
@@ -2223,7 +2223,7 @@ func TestHistory_SameSecondAttemptsOrderedByID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Status failed: %v", err)
 	}
-	if len(statuses) != 1 || statuses[0].State != MigrationTrackerStatusCompleted || statuses[0].Batch != 2 {
+	if len(statuses) != 1 || statuses[0].State != string(MigrationStatusCompleted) || statuses[0].Batch != 2 {
 		t.Fatalf("Expected completed status from batch 2, got %+v", statuses)
 	}
 }
@@ -2294,7 +2294,7 @@ func TestFresh_PreservesHistory(t *testing.T) {
 	}
 
 	trackers := trackerHistoryForTest(t, db)
-	want := []string{MigrationTrackerStatusCompleted, MigrationTrackerStatusRolledBack, MigrationTrackerStatusCompleted}
+	want := []MigrationStatus{MigrationStatusCompleted, MigrationStatusRolledBack, MigrationStatusCompleted}
 	if len(trackers) != len(want) {
 		t.Fatalf("Expected %d history records after Fresh, got %+v", len(want), trackers)
 	}
