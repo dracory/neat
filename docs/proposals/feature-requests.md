@@ -27,7 +27,7 @@ Updated August 25, 2026 to reflect current implementation status.
 | 4 | [Better Error Messages](better-error-messages.md) | Partially Done | High | High | Low | Very High |
 | 6 | [CLI Tools](cli-tools.md) | Not Started | Medium | High | Medium | High |
 | 7 | [Query Optimization](query-optimization.md) | Partially Done | High | High | Medium | High |
-| 8 | [Benchmark Suite](benchmark-suite.md) | Partially Done | Medium | Medium | Low | High |
+| 8 | [Benchmark Suite](completed/benchmark-suite.md) | Completed | — | — | — | — |
 | 11 | [Property-Based Testing](property-based-testing.md) | Not Started | Medium | Medium | Medium | Medium |
 | 12 | [Snapshot Testing](snapshot-testing.md) | Not Started | Low | Medium | Low | Medium |
 | 15 | [Database-Specific Features](database-specific-features.md) | Partially Done | Medium | High | High | Medium |
@@ -66,7 +66,7 @@ Updated August 25, 2026. Completed and rejected items are excluded.
 
 ### Phase 3 (Enhanced Experience - Medium/High Effort)
 - [Query Caching](query-caching.md)
-- [Benchmark Suite](benchmark-suite.md) (remaining: GORM comparison, CI regression detection)
+- ~~Benchmark Suite~~ — completed (moved to `completed/`)
 - [Database-Specific Features](database-specific-features.md) (remaining: JSONB arrays, FTS5, spatial)
 - [Driver-Specific JSON Grammar](driver-specific-json-query-support.md) (Oracle/SQL Server JSON support)
 - [Property-Based Testing](property-based-testing.md)

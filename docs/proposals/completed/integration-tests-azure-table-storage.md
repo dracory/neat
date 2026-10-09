@@ -1,7 +1,13 @@
 # Proposal: Azure Table Storage Support Investigation
 
 **Date**: August 8, 2026 (original) · September 5, 2026 (revised)
-**Status**: Revised — core premise disproven by `aztablessql`
+**Status**: Completed — Option B implemented
+**Completed**: October 9, 2026
+
+> **Implementation note**: `aztablessql` is registered as the `"aztables"`
+> driver (`database/driver/aztables.go`), with a 15-file integration suite
+> in `integration_tests/aztables/` and CI coverage in
+> `.github/workflows/tests-aztables.yml`.
 **Priority**: Low
 
 > **Revision note (2026-09-05):** The original version of this proposal argued that Azure Table Storage **cannot** be used through `database/sql`, and that supporting it would require a "second interface alongside `Driver`" for non-SQL backends — a fundamental architectural change. That premise is now disproven. The [`aztablessql`](https://github.com/dracory/aztablessql) module is a working `database/sql` driver for Azure Table Storage: it registers `"aztables"` via `sql.Register`, implements `database/sql/driver.Driver`, and translates a SQL subset into Table Storage REST/OData calls. This means Neat can support Azure Table Storage as **just another driver returning a `*sql.DB`** — exactly like its existing MySQL, PostgreSQL, and SQLite drivers — with zero architectural change. The options and recommendation below have been rewritten accordingly. The analysis of *other* API-backed NoSQL stores (Cosmos DB native API, DynamoDB, MongoDB, Cassandra, Redis) remains valid, because none of those have `database/sql` drivers.

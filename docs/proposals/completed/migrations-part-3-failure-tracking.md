@@ -1,9 +1,15 @@
 # Enhanced Schema Migration Interface - Part 3: Failure Tracking
 
 **Date**: October 1, 2026
-**Status**: Proposed
+**Status**: Completed
+**Completed**: October 9, 2026
 **Priority**: High
 **Author**: Neat ORM Team
+
+> **Implementation note**: shipped as an append-only history (one row per
+> attempt) rather than the single-row-per-migration design written here.
+> The "Out of Scope" history item became the core model; all statuses and
+> `Status()` semantics below are implemented as specified.
 
 ## Overview
 
