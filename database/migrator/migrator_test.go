@@ -11,6 +11,7 @@ import (
 
 	"github.com/dracory/neat"
 	contractsschema "github.com/dracory/neat/contracts/database/schema"
+	"github.com/dracory/neat/database"
 )
 
 // MockMigration is a test migration implementation
@@ -56,6 +57,9 @@ func (m *MockMigration) GetSchema() contractsschema.Schema {
 	return m.schema
 }
 
+// TestNewMigrator verifies that NewMigrator returns a configured Migrator
+// with the given database, an empty migration list, and the default tracker
+// table name.
 func TestNewMigrator(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -83,6 +87,9 @@ func TestNewMigrator(t *testing.T) {
 	}
 }
 
+// TestSetTableName_Valid verifies that SetTableName accepts identifier-style
+// names (letters, digits, underscores; not starting with a digit) and stores
+// the chosen tracker table name.
 func TestSetTableName_Valid(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -106,6 +113,9 @@ func TestSetTableName_Valid(t *testing.T) {
 	}
 }
 
+// TestSetTableName_Invalid verifies that SetTableName rejects empty names,
+// names starting with a digit, names containing invalid characters, and SQL
+// keywords — and leaves the previous table name unchanged on failure.
 func TestSetTableName_Invalid(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -130,6 +140,9 @@ func TestSetTableName_Invalid(t *testing.T) {
 	}
 }
 
+// TestSetTableName_UsedForTracking verifies that after SetTableName, Up
+// creates and writes to the custom tracker table and does not create the
+// default one.
 func TestSetTableName_UsedForTracking(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -166,6 +179,7 @@ func TestSetTableName_UsedForTracking(t *testing.T) {
 	}
 }
 
+// TestAddMigration verifies that a single migration is registered.
 func TestAddMigration(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -190,6 +204,7 @@ func TestAddMigration(t *testing.T) {
 	}
 }
 
+// TestAddMigrations verifies that several migrations are registered in one call.
 func TestAddMigrations(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -215,6 +230,9 @@ func TestAddMigrations(t *testing.T) {
 	}
 }
 
+// TestAddMigration_Duplicate verifies that registering the same signature
+// twice fails with a "duplicate migration signature" error and that only the
+// first registration is kept.
 func TestAddMigration_Duplicate(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -249,6 +267,8 @@ func TestAddMigration_Duplicate(t *testing.T) {
 	}
 }
 
+// TestAddMigration_EmptySignature verifies that a migration with an empty
+// signature is rejected at registration time.
 func TestAddMigration_EmptySignature(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -271,6 +291,9 @@ func TestAddMigration_EmptySignature(t *testing.T) {
 	}
 }
 
+// TestAddMigrations_DuplicateInSlice verifies that AddMigrations fails when
+// two entries in the same slice share a signature, and that entries added
+// before the error stay registered.
 func TestAddMigrations_DuplicateInSlice(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -300,6 +323,9 @@ func TestAddMigrations_DuplicateInSlice(t *testing.T) {
 	}
 }
 
+// TestAddMigrations_DuplicateAcrossCalls verifies that AddMigrations rejects
+// signatures already registered by a previous call, while entries added
+// before the duplicate are kept.
 func TestAddMigrations_DuplicateAcrossCalls(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -337,6 +363,8 @@ func TestAddMigrations_DuplicateAcrossCalls(t *testing.T) {
 	}
 }
 
+// TestUp_AutoCreateMigrationTracker verifies that Up creates the migration
+// tracker table on the first run when it does not exist yet.
 func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -365,6 +393,8 @@ func TestUp_AutoCreateMigrationTracker(t *testing.T) {
 	}
 }
 
+// TestUp_SchemaInjection verifies that Up injects the database schema — with
+// a working ORM — into each migration before running it.
 func TestUp_SchemaInjection(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -413,6 +443,8 @@ func TestUp_SchemaInjection(t *testing.T) {
 	}
 }
 
+// TestUp_EmptySignature verifies that an empty signature is rejected before
+// any migration runs (registration itself fails).
 func TestUp_EmptySignature(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -449,6 +481,9 @@ func TestUp_EmptySignature(t *testing.T) {
 	}
 }
 
+// TestUp_SignatureValidation_DateTime verifies that with datetime signature
+// validation enabled, a "YYYY_MM_DD_HHMM_name" signature is accepted and the
+// migration runs.
 func TestUp_SignatureValidation_DateTime(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -491,6 +526,9 @@ func TestUp_SignatureValidation_DateTime(t *testing.T) {
 	}
 }
 
+// TestUp_SignatureValidation_InvalidFormat verifies that with datetime
+// validation enabled, a non-conforming signature makes Up fail and the
+// migration is not executed.
 func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -533,6 +571,8 @@ func TestUp_SignatureValidation_InvalidFormat(t *testing.T) {
 	}
 }
 
+// TestUp_SignatureValidation_Disabled verifies that with validation disabled,
+// any signature format is accepted and the migration runs.
 func TestUp_SignatureValidation_Disabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -575,6 +615,8 @@ func TestUp_SignatureValidation_Disabled(t *testing.T) {
 	}
 }
 
+// TestEnsureMigrationTracker_CreatesTable verifies that ensureMigrationTracker
+// creates the tracker table with all expected columns when it is missing.
 func TestEnsureMigrationTracker_CreatesTable(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -605,6 +647,9 @@ func TestEnsureMigrationTracker_CreatesTable(t *testing.T) {
 	}
 }
 
+// TestEnsureMigrationTracker_UpgradesExistingTable verifies that
+// ensureMigrationTracker adds the columns missing from a tracker table
+// created by an older version (schema upgrade path).
 func TestEnsureMigrationTracker_UpgradesExistingTable(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -643,6 +688,8 @@ func TestEnsureMigrationTracker_UpgradesExistingTable(t *testing.T) {
 	}
 }
 
+// TestUp_SkipAlreadyRun verifies that a second Up does not re-run a migration
+// that is already recorded as applied.
 func TestUp_SkipAlreadyRun(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -691,6 +738,8 @@ func TestUp_SkipAlreadyRun(t *testing.T) {
 	}
 }
 
+// TestDown verifies that Down rolls back the most recently applied migration
+// without error.
 func TestDown(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -733,6 +782,8 @@ func TestDown(t *testing.T) {
 	}
 }
 
+// TestRollbackSteps verifies that RollbackSteps rolls back the given number
+// of most recently applied migrations without error.
 func TestRollbackSteps(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -776,6 +827,8 @@ func TestRollbackSteps(t *testing.T) {
 	}
 }
 
+// TestRollbackToBatch verifies that RollbackToBatch rolls back every
+// migration belonging to the given batch without error.
 func TestRollbackToBatch(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -827,6 +880,8 @@ func TestRollbackToBatch(t *testing.T) {
 	}
 }
 
+// TestStatus_NoMigrationTrackerTable verifies that Status returns an empty
+// list when the tracker table does not exist.
 func TestStatus_NoMigrationTrackerTable(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -845,6 +900,8 @@ func TestStatus_NoMigrationTrackerTable(t *testing.T) {
 	}
 }
 
+// TestStatus_WithMigrations verifies that Status reports each applied
+// migration as "completed", keyed by its signature.
 func TestStatus_WithMigrations(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -899,6 +956,10 @@ func TestStatus_WithMigrations(t *testing.T) {
 	}
 }
 
+// TestStatus_WithPendingMigrations verifies that Status merges tracker rows
+// with registered migrations: applied ones report "completed" with their
+// batch, registered-but-not-run ones report "pending" with batch 0, and the
+// ordering stays stable.
 func TestStatus_WithPendingMigrations(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -984,6 +1045,8 @@ func TestStatus_WithPendingMigrations(t *testing.T) {
 	}
 }
 
+// TestStatus_AllPending verifies that with no tracker data, every registered
+// migration reports "pending".
 func TestStatus_AllPending(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1016,6 +1079,8 @@ func TestStatus_AllPending(t *testing.T) {
 	}
 }
 
+// TestStatus_AllCompleted verifies that once all migrations ran, every entry
+// reports "completed".
 func TestStatus_AllCompleted(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1067,6 +1132,9 @@ func TestStatus_AllCompleted(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_NilOpts verifies that a nil Options produces a
+// Migrator with default settings (default table name, lexicographical
+// ordering enabled).
 func TestNewMigratorWithOptions_NilOpts(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1088,6 +1156,8 @@ func TestNewMigratorWithOptions_NilOpts(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_EmptyOpts verifies that an empty Options struct
+// produces a Migrator with default settings.
 func TestNewMigratorWithOptions_EmptyOpts(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1106,6 +1176,8 @@ func TestNewMigratorWithOptions_EmptyOpts(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_TableName verifies that Options.TableName
+// overrides the default tracker table name.
 func TestNewMigratorWithOptions_TableName(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1126,6 +1198,9 @@ func TestNewMigratorWithOptions_TableName(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_InvalidTableName verifies that an invalid
+// Options.TableName makes NewMigratorWithOptions fail instead of producing
+// a migrator.
 func TestNewMigratorWithOptions_InvalidTableName(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1141,6 +1216,8 @@ func TestNewMigratorWithOptions_InvalidTableName(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_IsolationLevel verifies that
+// Options.TransactionIsolationLevel is stored on the migrator.
 func TestNewMigratorWithOptions_IsolationLevel(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1161,6 +1238,8 @@ func TestNewMigratorWithOptions_IsolationLevel(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_LexicographicalOrdering verifies that
+// Options.LexicographicalOrdering can disable signature ordering.
 func TestNewMigratorWithOptions_LexicographicalOrdering(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1181,6 +1260,8 @@ func TestNewMigratorWithOptions_LexicographicalOrdering(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_SignatureValidation verifies that the
+// Options signature-validation fields are stored on the migrator.
 func TestNewMigratorWithOptions_SignatureValidation(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1205,6 +1286,8 @@ func TestNewMigratorWithOptions_SignatureValidation(t *testing.T) {
 	}
 }
 
+// TestNewMigratorWithOptions_Full verifies that all Options fields are
+// applied together on a single migrator.
 func TestNewMigratorWithOptions_Full(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1241,6 +1324,8 @@ func TestNewMigratorWithOptions_Full(t *testing.T) {
 	}
 }
 
+// TestFresh verifies that Fresh drops the tables, records the rollback rows,
+// re-runs Up, and leaves the applied migrations tracked as completed.
 func TestFresh(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1305,6 +1390,8 @@ func TestFresh(t *testing.T) {
 	}
 }
 
+// TestReset verifies that Reset rolls back all applied migrations without
+// error.
 func TestReset(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1347,6 +1434,9 @@ func TestReset(t *testing.T) {
 	}
 }
 
+// TestReset_SafetyLimit verifies that Reset aborts with a "too many
+// migrations" error when the number of active tracker rows exceeds
+// maxResetIterations, guarding against runaway rollback loops.
 func TestReset_SafetyLimit(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1394,6 +1484,8 @@ func TestReset_SafetyLimit(t *testing.T) {
 	}
 }
 
+// TestSetTransactionsEnabled verifies that transactions are enabled by
+// default and that SetTransactionsEnabled toggles the flag.
 func TestSetTransactionsEnabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1419,6 +1511,8 @@ func TestSetTransactionsEnabled(t *testing.T) {
 	}
 }
 
+// TestSetTransactionIsolationLevel verifies that SetTransactionIsolationLevel
+// stores each known level string verbatim.
 func TestSetTransactionIsolationLevel(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1443,6 +1537,10 @@ func TestSetTransactionIsolationLevel(t *testing.T) {
 	}
 }
 
+// TestUpWithTransactionsEnabled verifies that when a migration fails inside
+// the transaction, the earlier tracker rows roll back with it and only a
+// single "failed" row — with error message and timestamps — is persisted for
+// the failed migration.
 func TestUpWithTransactionsEnabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1498,6 +1596,9 @@ func TestUpWithTransactionsEnabled(t *testing.T) {
 	}
 }
 
+// TestUpWithTransactionsDisabled verifies that without a transaction, the
+// earlier successful migration stays recorded as "completed" and the failure
+// is appended as a second "failed" row.
 func TestUpWithTransactionsDisabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1560,6 +1661,8 @@ func TestUpWithTransactionsDisabled(t *testing.T) {
 	}
 }
 
+// TestLexicographicalOrdering_Default verifies that lexicographical signature
+// ordering is enabled by default.
 func TestLexicographicalOrdering_Default(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1575,6 +1678,8 @@ func TestLexicographicalOrdering_Default(t *testing.T) {
 	}
 }
 
+// TestLexicographicalOrdering_Enabled verifies that when ordering is enabled,
+// Up runs migrations in signature order regardless of registration order.
 func TestLexicographicalOrdering_Enabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1631,6 +1736,8 @@ func TestLexicographicalOrdering_Enabled(t *testing.T) {
 	}
 }
 
+// TestLexicographicalOrdering_Disabled verifies that when ordering is
+// disabled, Up runs migrations in registration order.
 func TestLexicographicalOrdering_Disabled(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1687,6 +1794,9 @@ func TestLexicographicalOrdering_Disabled(t *testing.T) {
 	}
 }
 
+// TestTransactionRollbackOnFailure verifies that on a transactional failure
+// the whole batch rolls back and a single "failed" tracker row is
+// re-recorded afterwards outside the transaction.
 func TestTransactionRollbackOnFailure(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1728,6 +1838,9 @@ func TestTransactionRollbackOnFailure(t *testing.T) {
 	}
 }
 
+// TestFailedMigration_RetriedOnNextUp verifies that a failed migration is
+// retried by the next Up, and that both the failed and the successful
+// attempts are kept in the append-only history.
 func TestFailedMigration_RetriedOnNextUp(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1767,6 +1880,9 @@ func TestFailedMigration_RetriedOnNextUp(t *testing.T) {
 	}
 }
 
+// TestStatus_ReportsFailedMigration verifies that Status reports the failed
+// migration as "failed" with its error message, while the sibling migration
+// reports "completed" or "pending".
 func TestStatus_ReportsFailedMigration(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1806,6 +1922,9 @@ func TestStatus_ReportsFailedMigration(t *testing.T) {
 	}
 }
 
+// TestStatus_LegacyRowTreatedAsCompleted verifies that a tracker row with an
+// empty status (data from before the status column existed) is treated as
+// completed: Status reports it as such and Up does not re-run the migration.
 func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1856,6 +1975,10 @@ func TestStatus_LegacyRowTreatedAsCompleted(t *testing.T) {
 	}
 }
 
+// TestDown_FailureMarkedFailed verifies that a failing Down appends a
+// "rollback_failed" row carrying the error, leaves the original Up row
+// untouched in the same batch, and that the rollback can be retried
+// successfully afterwards.
 func TestDown_FailureMarkedFailed(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1878,21 +2001,37 @@ func TestDown_FailureMarkedFailed(t *testing.T) {
 		t.Fatal("Expected error from failing Down migration")
 	}
 
-	var trackers []MigrationTracker
-	if err := db.Schema().Orm().Query().Table(defaultTableName).Get(&trackers); err != nil {
-		t.Fatalf("failed to get trackers: %v", err)
+	trackers := trackerHistoryForTest(t, db)
+	if len(trackers) != 2 {
+		t.Fatalf("Expected 2 tracker entries (completed Up, failed rollback), got %d", len(trackers))
 	}
-	if len(trackers) != 1 {
-		t.Fatalf("Expected 1 tracker entry (failed rollback), got %d", len(trackers))
+	if trackers[0].Status != MigrationTrackerStatusCompleted || trackers[0].ErrorMessage != "" {
+		t.Errorf("Expected Up record to stay 'completed' without error, got '%s' (%q)", trackers[0].Status, trackers[0].ErrorMessage)
 	}
-	if trackers[0].Status != MigrationTrackerStatusRollbackFailed {
-		t.Errorf("Expected status 'rollback_failed' after failed rollback, got '%s'", trackers[0].Status)
+	if trackers[1].Status != MigrationTrackerStatusRollbackFailed {
+		t.Errorf("Expected status 'rollback_failed' after failed rollback, got '%s'", trackers[1].Status)
 	}
-	if trackers[0].ErrorMessage == "" {
+	if trackers[1].ErrorMessage == "" {
 		t.Error("Expected error message to be recorded for failed rollback")
+	}
+	if trackers[1].Batch != trackers[0].Batch {
+		t.Errorf("Expected rollback record in batch %d, got %d", trackers[0].Batch, trackers[1].Batch)
+	}
+
+	// The schema change is still applied, so the rollback can be retried.
+	migration.downShouldFail = false
+	if err := migrator.Down(ctx); err != nil {
+		t.Fatalf("Down retry failed: %v", err)
+	}
+	trackers = trackerHistoryForTest(t, db)
+	if len(trackers) != 3 || trackers[2].Status != MigrationTrackerStatusRolledBack {
+		t.Fatalf("Expected a third 'rolled_back' record after retry, got %+v", trackers)
 	}
 }
 
+// TestTrackerTimestampsStoredAsPlainDatetime verifies that started_at and
+// completed_at are stored as plain "YYYY-MM-DD HH:MM:SS" text in SQLite,
+// which keeps the column comparable and portable across drivers.
 func TestTrackerTimestampsStoredAsPlainDatetime(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1927,6 +2066,9 @@ func TestTrackerTimestampsStoredAsPlainDatetime(t *testing.T) {
 	}
 }
 
+// TestHistory_PreservedOnRetry verifies that a failed Up followed by a
+// successful retry leaves two history rows (failed then completed) — earlier
+// attempts are never overwritten.
 func TestHistory_PreservedOnRetry(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -1971,6 +2113,9 @@ func TestHistory_PreservedOnRetry(t *testing.T) {
 	}
 }
 
+// TestHistory_PreservedOnRollbackAndReUp verifies that Up → Down → Up appends
+// three rows (completed, rolled_back, completed), that the rollback row keeps
+// the batch it reversed, and that the re-run lands in a new batch.
 func TestHistory_PreservedOnRollbackAndReUp(t *testing.T) {
 	db, err := neat.NewFromDSN("sqlite://:memory:")
 	if err != nil {
@@ -2001,20 +2146,164 @@ func TestHistory_PreservedOnRollbackAndReUp(t *testing.T) {
 		t.Fatalf("Up second time failed: %v", err)
 	}
 
+	trackers := trackerHistoryForTest(t, db)
+	if len(trackers) != 3 {
+		t.Fatalf("Expected 3 history records (completed, rolled_back, completed), got %d", len(trackers))
+	}
+
+	want := []string{MigrationTrackerStatusCompleted, MigrationTrackerStatusRolledBack, MigrationTrackerStatusCompleted}
+	for i, status := range want {
+		if trackers[i].Status != status {
+			t.Errorf("Expected record %d status '%s', got '%s'", i, status, trackers[i].Status)
+		}
+	}
+	if trackers[1].Batch != trackers[0].Batch {
+		t.Errorf("Expected rollback record in batch %d, got %d", trackers[0].Batch, trackers[1].Batch)
+	}
+	if trackers[2].Batch <= trackers[0].Batch {
+		t.Errorf("Expected re-run in a new batch after %d, got %d", trackers[0].Batch, trackers[2].Batch)
+	}
+	if trackers[0].CompletedAt.After(trackers[1].StartedAt) {
+		t.Errorf("Expected first Up completion %v to be preserved (before rollback start %v)", trackers[0].CompletedAt, trackers[1].StartedAt)
+	}
+}
+
+// trackerHistoryForTest returns all tracker rows ordered by started_at then
+// ID — the same execution order the migrator uses.
+func trackerHistoryForTest(t *testing.T, db *database.Database) []MigrationTracker {
+	t.Helper()
 	var trackers []MigrationTracker
-	if err := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc").Get(&trackers); err != nil {
+	if err := db.Schema().Orm().Query().Table(defaultTableName).OrderBy("started_at", "asc").OrderBy("id", "asc").Get(&trackers); err != nil {
 		t.Fatalf("failed to get trackers: %v", err)
 	}
+	return trackers
+}
 
-	if len(trackers) != 2 { // Record 1 updated to rolled_back, Record 2 created as completed
-		t.Fatalf("Expected 2 history records in migration_tracker (rolled_back and completed), got %d", len(trackers))
+// TestHistory_SameSecondAttemptsOrderedByID verifies that when two attempts
+// of the same migration share a started_at second, the later row ID wins —
+// latest-wins logic must see the "completed" batch-2 row even though it was
+// inserted before the older "rolled_back" row.
+func TestHistory_SameSecondAttemptsOrderedByID(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{signature: "2026_06_15_120000_create_tags", description: "Create tags"}
+	if err := migrator.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := migrator.(*Migrator).ensureMigrationTracker(db.Schema()); err != nil {
+		t.Fatalf("ensureMigrationTracker failed: %v", err)
 	}
 
-	if trackers[0].Status != MigrationTrackerStatusRolledBack {
-		t.Errorf("Expected first record status 'rolled_back', got '%s'", trackers[0].Status)
+	// Two attempts within the same second: the newer completed row is
+	// inserted first so that insertion order disagrees with execution order.
+	at := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	rows := []MigrationTracker{
+		{ID: "t0000000002", Migration: migration.signature, Batch: 2, Status: MigrationTrackerStatusCompleted, StartedAt: at, CompletedAt: at},
+		{ID: "t0000000001", Migration: migration.signature, Batch: 1, Status: MigrationTrackerStatusRolledBack, StartedAt: at, CompletedAt: at},
+	}
+	for _, row := range rows {
+		if err := db.Schema().Orm().Query().Table(defaultTableName).Create(&row); err != nil {
+			t.Fatalf("failed to seed tracker: %v", err)
+		}
 	}
 
-	if trackers[1].Status != MigrationTrackerStatusCompleted {
-		t.Errorf("Expected second record status 'completed', got '%s'", trackers[1].Status)
+	if err := migrator.Up(context.Background()); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+	if migration.upCalled {
+		t.Error("Expected migration to be treated as applied, but Up ran it again")
+	}
+
+	statuses, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+	if len(statuses) != 1 || statuses[0].State != MigrationTrackerStatusCompleted || statuses[0].Batch != 2 {
+		t.Fatalf("Expected completed status from batch 2, got %+v", statuses)
+	}
+}
+
+// TestStatus_RolledBackReportedAsUnassignedPending verifies that a rolled-back
+// migration is reported exactly like a never-run one — "pending" with no
+// batch or timestamps — for both registered and unregistered tracker rows.
+func TestStatus_RolledBackReportedAsUnassignedPending(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	if err := migrator.AddMigration(&MockMigration{signature: "2026_06_15_120000_create_users", description: "Create users"}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+	if err := migrator.Down(ctx); err != nil {
+		t.Fatalf("Down failed: %v", err)
+	}
+
+	statuses, err := migrator.Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+	want := MigrationStatusResponse{ID: "2026_06_15_120000_create_users", Description: "Create users", State: "pending"}
+	if len(statuses) != 1 || statuses[0] != want {
+		t.Fatalf("Expected %+v, got %+v", want, statuses)
+	}
+
+	// Unregistered rolled-back rows follow the same policy.
+	statuses, err = NewMigrator(db).Status()
+	if err != nil {
+		t.Fatalf("Status failed: %v", err)
+	}
+	if len(statuses) != 1 || statuses[0] != want {
+		t.Fatalf("Expected unregistered %+v, got %+v", want, statuses)
+	}
+}
+
+// TestFresh_PreservesHistory verifies that Fresh appends a "rolled_back" row
+// for the dropped migration and a new "completed" row in a higher batch,
+// keeping the earlier attempt in history.
+func TestFresh_PreservesHistory(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	if err := migrator.AddMigration(&MockMigration{signature: "2026_06_15_120000_create_users", description: "Create users"}); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatalf("Up failed: %v", err)
+	}
+	if err := migrator.Fresh(ctx); err != nil {
+		t.Fatalf("Fresh failed: %v", err)
+	}
+
+	trackers := trackerHistoryForTest(t, db)
+	want := []string{MigrationTrackerStatusCompleted, MigrationTrackerStatusRolledBack, MigrationTrackerStatusCompleted}
+	if len(trackers) != len(want) {
+		t.Fatalf("Expected %d history records after Fresh, got %+v", len(want), trackers)
+	}
+	for i, status := range want {
+		if trackers[i].Status != status {
+			t.Errorf("Expected record %d status '%s', got '%s'", i, status, trackers[i].Status)
+		}
+	}
+	if trackers[2].Batch <= trackers[0].Batch {
+		t.Errorf("Expected Fresh re-run in a new batch after %d, got %d", trackers[0].Batch, trackers[2].Batch)
 	}
 }

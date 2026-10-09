@@ -74,6 +74,11 @@ func inferGoValueType(v any) string {
 	}
 }
 
+// sqliteDateTimeLayout keeps fractional seconds when present; values without
+// a fractional part keep the plain "YYYY-MM-DD HH:MM:SS" form. Both sort and
+// compare correctly as text in SQLite.
+const sqliteDateTimeLayout = "2006-01-02 15:04:05.999999999"
+
 // convertGoValue converts a native Go value into a form suitable for
 // database/sql insertion based on the inferred SQLite type.
 // Used by JSONDB, XMLDB, and GODB drivers.
@@ -144,23 +149,24 @@ func convertGoValue(val any, sqlType string) any {
 		}
 	case "DATETIME":
 		if t, ok := val.(time.Time); ok {
-			return t.UTC().Format("2006-01-02 15:04:05")
+			return t.UTC().Format(sqliteDateTimeLayout)
 		}
 		if t, ok := val.(*time.Time); ok {
 			if t != nil {
-				return t.UTC().Format("2006-01-02 15:04:05")
+				return t.UTC().Format(sqliteDateTimeLayout)
 			}
 			return nil
 		}
 		if str, ok := val.(string); ok {
 			for _, fmtStr := range []string{
+				sqliteDateTimeLayout,
 				time.RFC3339,
 				time.RFC3339Nano,
 				"2006-01-02 15:04:05",
 				"2006-01-02",
 			} {
 				if parsed, err := time.Parse(fmtStr, str); err == nil {
-					return parsed.UTC().Format("2006-01-02 15:04:05")
+					return parsed.UTC().Format(sqliteDateTimeLayout)
 				}
 			}
 		}

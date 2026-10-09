@@ -186,6 +186,65 @@ func TestGODB_Open_TypeMapping(t *testing.T) {
 	}
 }
 
+func TestGODB_Open_PreservesFractionalSeconds(t *testing.T) {
+	g := NewGODB()
+
+	type event struct {
+		ID int64     `db:"id"`
+		At time.Time `db:"at"`
+	}
+
+	at := time.Date(2026, 10, 9, 5, 28, 27, 123456000, time.UTC)
+	whole := time.Date(2026, 10, 9, 5, 28, 28, 0, time.UTC)
+	g.SetTables(Tables{"events": []event{{ID: 1, At: at}, {ID: 2, At: whole}}})
+
+	db, err := g.Open("")
+	if err != nil {
+		t.Fatalf("failed to open GODB: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	var raw string
+	if err := db.QueryRow("SELECT quote(at) FROM events WHERE id = 1").Scan(&raw); err != nil {
+		t.Fatalf("failed to query raw value: %v", err)
+	}
+	if raw != "'2026-10-09 05:28:27.123456'" {
+		t.Errorf("expected fractional datetime string, got %s", raw)
+	}
+	if err := db.QueryRow("SELECT quote(at) FROM events WHERE id = 2").Scan(&raw); err != nil {
+		t.Fatalf("failed to query raw value: %v", err)
+	}
+	if raw != "'2026-10-09 05:28:28'" {
+		t.Errorf("expected whole-second datetime string, got %s", raw)
+	}
+
+	var scanned time.Time
+	if err := db.QueryRow("SELECT at FROM events WHERE id = 1").Scan(&scanned); err != nil {
+		t.Fatalf("failed to scan time: %v", err)
+	}
+	if !scanned.Equal(at) {
+		t.Errorf("expected %v, got %v", at, scanned)
+	}
+
+	// Text comparison orders fractional and whole-second values correctly.
+	var ids []int64
+	rows, err := db.Query("SELECT id FROM events WHERE at > '2026-10-09 05:28:27' ORDER BY at")
+	if err != nil {
+		t.Fatalf("failed to query: %v", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("failed to scan id: %v", err)
+		}
+		ids = append(ids, id)
+	}
+	if len(ids) != 2 || ids[0] != 1 || ids[1] != 2 {
+		t.Errorf("expected ids [1 2], got %v", ids)
+	}
+}
+
 func TestGODB_Open_PointerStructsWithNil(t *testing.T) {
 	g := NewGODB()
 

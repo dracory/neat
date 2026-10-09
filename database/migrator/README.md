@@ -163,7 +163,7 @@ for _, s := range status {
 ```
 
 #### Fresh
-Drops all tables except `migration_tracker` and clears the tracker.
+Drops all tables except `migration_tracker`, records every applied migration as `rolled_back`, then re-runs all migrations in a new batch. Tracker history is kept.
 
 ```go
 ctx := context.Background()
@@ -243,13 +243,21 @@ The migrator automatically tracks migrations in a `migration_tracker` table with
 
 ```go
 type MigrationTracker struct {
-    ID          string    // Migration signature
-    Batch       int       // Batch number (timestamp)
-    Description string    // Migration description
-    StartedAt   time.Time // When migration started
-    CompletedAt time.Time // When migration finished
+    ID           string    // Unique, time-ordered record ID for this attempt
+    Migration    string    // Migration signature
+    Batch        int       // Batch of the Up run (rollback rows keep the batch they reverse)
+    Description  string    // Migration description
+    Status       string    // running, completed, failed, rolled_back or rollback_failed
+    ErrorMessage string    // Error text for failed or rollback_failed attempts
+    StartedAt    time.Time // When the attempt started
+    CompletedAt  time.Time // When the attempt finished
 }
 ```
+
+The tracker is an append-only history: every Up attempt (including failed
+ones and re-runs in later batches) and every rollback attempt adds a new row,
+and existing rows of earlier attempts are never overwritten. A migration's
+current state is its most recent row, ordered by `started_at` and then `id`.
 
 ## Transaction Support
 

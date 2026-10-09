@@ -16,13 +16,15 @@ const (
 )
 
 // MigrationTracker represents a migration record stored in the migration_tracker table
-// This is the database model/entity used for persistence
+// This is the database model/entity used for persistence. The table is an
+// append-only history: each Up or Down attempt adds a row, and a migration's
+// current state is its most recent row.
 type MigrationTracker struct {
-	ID           string    // Unique record ID for this execution attempt
+	ID           string    // Unique, time-ordered record ID for this execution attempt
 	Migration    string    // The migration signature (e.g., "2024_06_15_120000_create_users_table")
-	Batch        int       // Incrementing batch number grouping one Up() run
+	Batch        int       // Incrementing batch number grouping one Up() run; rollback rows keep the batch they reverse
 	Description  string    // The migration description from Description() method
-	Status       string    // "running", "completed", "failed", "rolled_back" or "rollback_failed" (empty = completed, legacy rows)
+	Status       string    // "running", "completed", "failed" or "rollback_failed" (empty = completed, legacy rows)
 	ErrorMessage string    // The error text when Status is "failed" or "rollback_failed"
 	StartedAt    time.Time // When the migration started
 	CompletedAt  time.Time // When the migration attempt finished (success or failure)
@@ -44,6 +46,6 @@ type MigrationStatusResponse struct {
 	Batch       int       `json:"batch"`
 	StartedAt   time.Time `json:"started_at"`
 	CompletedAt time.Time `json:"completed_at"`
-	State       string    `json:"state"`           // "pending", "running", "completed", "failed", "rolled_back", "rollback_failed"
+	State       string    `json:"state"`           // "pending", "running", "completed", "failed", "rollback_failed"
 	Error       string    `json:"error,omitempty"` // Error message when State is "failed" or "rollback_failed"
 }
