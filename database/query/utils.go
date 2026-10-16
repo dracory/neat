@@ -333,9 +333,9 @@ func isPrimaryKeyZero(value any) bool {
 	return true
 }
 
-// isShortIDModel reports whether the value is a struct (or slice of structs)
-// with a string ID field, indicating it uses client-generated short IDs.
-func isShortIDModel(value any) bool {
+// isStringIDModel reports whether the value is a struct (or slice of structs)
+// with a string ID field, indicating it uses client-generated string IDs.
+func isStringIDModel(value any) bool {
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {

@@ -13,10 +13,10 @@ type Model struct {
 	Timestamps
 }
 
-// ShortID provides a short string primary key field.
-// Embed it in your model to opt into client-generated short IDs.
+// StringID provides a string primary key field.
+// Embed it in your model to opt into client-generated UUIDv7 string IDs.
 // No timestamps, no soft deletes — just the ID.
-type ShortID struct {
+type StringID struct {
 	ID string `json:"id" db:"id"`
 }
 

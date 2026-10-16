@@ -527,7 +527,7 @@ const No  = "no"</code></pre>
 
     <ul class="method-list">
         <li><code>ID(column ...string)</code> - Auto-incrementing big integer primary key (default "id")</li>
-        <li><code>ShortID(column ...string)</code> - String primary key</li>
+        <li><code>StringID(column ...string)</code> - String primary key (VARCHAR(36), sized for UUIDs)</li>
     </ul>
 
     <h3>Soft Delete Columns</h3>
@@ -670,7 +670,7 @@ blueprint.Timestamp(constants.DeletedAtColumnName).Default(constants.MaxSoftDele
     <h3>ID Types</h3>
 
     <ul class="method-list">
-        <li><code>ShortID</code> - String primary key</li>
+        <li><code>StringID</code> - String primary key</li>
     </ul>
 
     <h3>Timestamps</h3>

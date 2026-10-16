@@ -34,7 +34,7 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 	// Check if this is SQL Server and we need OUTPUT clause for LastInsertId
 	isSQLServer := b.query.isSQLServer()
 	var idColumn string
-	if isSQLServer && !isShortIDModel(value) {
+	if isSQLServer && !isStringIDModel(value) {
 		// Find the ID column for OUTPUT clause (check for common primary key names)
 		for _, col := range columns {
 			lowerCol := strings.ToLower(col)

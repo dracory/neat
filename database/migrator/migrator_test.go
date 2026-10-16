@@ -2310,21 +2310,23 @@ func TestFresh_PreservesHistory(t *testing.T) {
 
 // TestTrackerIDRank verifies that tracker IDs are ranked by the scheme that
 // produced them, oldest first: legacy signature IDs rank 0, 21-char NanoIDs
-// rank 1, 11-char Crockford Base32 IDs rank 2, and 14-char vowel-free Base16
-// (SafeShortID) IDs rank 3.
+// rank 1, 11-char Crockford Base32 IDs rank 2, 14-char vowel-free Base16
+// safe short IDs rank 3, and 36-char UUIDs rank 4.
 func TestTrackerIDRank(t *testing.T) {
 	cases := []struct {
 		id       string
 		expected int
 	}{
-		{"2026_06_15_120000_create_users", 0}, // legacy signature ID
-		{"V1StGXR8_Z5jdHi6B-myT", 1},          // 21-char NanoID
-		{"t0000000002", 2},                    // 11-char Crockford
-		{"sa4rc789wxg", 2},                    // 11-char Crockford
-		{"05fh88gd139f8h", 3},                 // 14-char safe short ID
-		{"05fr88tc139r8z", 0},                 // 'r','t','z' are not in the safe alphabet -> not generated
-		{"abc123", 0},                         // wrong length
-		{"05FR88TC139R8T", 0},                 // uppercase is not generated
+		{"2026_06_15_120000_create_users", 0},       // legacy signature ID
+		{"V1StGXR8_Z5jdHi6B-myT", 1},                // 21-char NanoID
+		{"t0000000002", 2},                          // 11-char Crockford
+		{"sa4rc789wxg", 2},                          // 11-char Crockford
+		{"05fh88gd139f8h", 3},                       // 14-char safe short ID
+		{"019a05d8-7f1e-7c3a-9d2b-1f4e6a8c0e2f", 4}, // UUIDv7
+		{"05fr88tc139r8z", 0},                       // 'r','t','z' are not in the safe alphabet -> not generated
+		{"abc123", 0},                               // wrong length
+		{"05FR88TC139R8T", 0},                       // uppercase is not generated
+		{"zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz", 0}, // 36 chars but not a UUID
 	}
 	for _, c := range cases {
 		if got := trackerIDRank(c.id); got != c.expected {

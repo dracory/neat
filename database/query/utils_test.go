@@ -615,7 +615,7 @@ func TestIsValidColumnReference(t *testing.T) {
 	}
 }
 
-func TestIsShortIDModel(t *testing.T) {
+func TestIsStringIDModel(t *testing.T) {
 	type User struct {
 		ID uint
 	}
@@ -626,16 +626,16 @@ func TestIsShortIDModel(t *testing.T) {
 		Name string
 	}
 
-	if isShortIDModel(&User{ID: 1}) {
+	if isStringIDModel(&User{ID: 1}) {
 		t.Error("expected uint ID model to not be short ID model")
 	}
-	if !isShortIDModel(&Product{ID: "abc"}) {
+	if !isStringIDModel(&Product{ID: "abc"}) {
 		t.Error("expected string ID model to be short ID model")
 	}
-	if isShortIDModel(&NoID{Name: "test"}) {
+	if isStringIDModel(&NoID{Name: "test"}) {
 		t.Error("expected model without ID to not be short ID model")
 	}
-	if !isShortIDModel([]Product{{ID: "abc"}}) {
+	if !isStringIDModel([]Product{{ID: "abc"}}) {
 		t.Error("expected slice of string-ID models to be short ID model")
 	}
 }

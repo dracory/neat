@@ -539,14 +539,15 @@ func (r *Blueprint) SetTable(name string) {
 	r.table = name
 }
 
-// ShortID creates a new short string primary key column on the table.
-// Suitable for client-generated short IDs (e.g., SafeShortID).
-func (r *Blueprint) ShortID(column ...string) schema.ColumnDefinition {
+// StringID creates a new string primary key column on the table.
+// Suitable for client-generated IDs (UUIDv7 strings produced by
+// uuid.NewV7() from the Go 1.27 standard library).
+func (r *Blueprint) StringID(column ...string) schema.ColumnDefinition {
 	name := constants.DefaultIDColumn
 	if len(column) > 0 {
 		name = column[0]
 	}
-	col := r.String(name, 21)
+	col := r.String(name, 36)
 	r.Primary(name)
 	return col
 }

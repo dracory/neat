@@ -388,19 +388,19 @@ err := db.Schema().DropViewIfExists("active_users")</code></pre>
     table.Timestamps()
 })</code></pre>
 
-    <h3>Short String ID (SafeShortID)</h3>
+    <h3>String ID (UUID)</h3>
 
     <pre><code>db.Schema().Create("products", func(table neat.Blueprint) {
-    table.ShortID() // VARCHAR(21) PRIMARY KEY
+    table.StringID() // VARCHAR(36) PRIMARY KEY
     table.String("name", 255)
     table.Decimal("price", 10, 2)
     table.Timestamps()
 })</code></pre>
 
-    <p>Use with <code>orm.ShortID</code> embedded struct:</p>
+    <p>Use with <code>orm.StringID</code> embedded struct:</p>
 
     <pre><code>type Product struct {
-    orm.ShortID
+    orm.StringID
     orm.Timestamps
     Name  string  `db:"name"`
     Price float64 `db:"price"`

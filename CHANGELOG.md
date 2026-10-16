@@ -36,6 +36,27 @@ newCode()
 
 ### Current Breaking Changes
 
+#### `GenerateID` removed in favour of stdlib `uuid`; `support/uid` removed; `ShortID` renamed to `StringID`
+
+**Version**: 2026-10-16
+
+**Impact**: `neat.GenerateID()` has been **removed** — call `uuid.NewV7().String()` from the `uuid` package added to the Go standard library in **Go 1.27** (`import "uuid"`, no third-party dependency required) instead. UUIDv7 strings are 36 characters, remain time-ordered and lexicographically sortable, and add cross-process uniqueness. The `support/uid` package (`GenerateShortID`, `SafeShortID`, `NormalizeID`, `IsShortID`, and the `*EncodedLength` constants) has been **removed** — importing it is now a compile error. `Blueprint.ShortID()` has been **renamed to `Blueprint.StringID()`** and now creates a `VARCHAR(36)` column (was `VARCHAR(21)`); the `orm.ShortID` embed has been **renamed to `orm.StringID`**. String-primary-key models are populated with UUIDv7 strings on `Create`. Migration tracker record IDs are also UUIDv7; `trackerIDRank` still recognises legacy short-ID schemes when ordering historical tracker rows. Any code asserting `len(id) == 14`, relying on the vowel-free Base16 alphabet, or storing generated IDs in columns narrower than 36 characters must be updated.
+
+**Migration**:
+
+```go
+// Before (old code)
+import "github.com/dracory/neat/support/uid"
+id := neat.GenerateID()       // 14-char short ID
+id := uid.GenerateShortID()
+if len(id) != 14 { /* reject */ }
+
+// After (new code)
+import "uuid"
+id := uuid.NewV7().String()   // e.g. "019a05d8-7f1e-7c3a-9d2b-1f4e6a8c0e2f"
+if _, err := uuid.Parse(id); err != nil { /* reject */ }
+```
+
 #### Removed `Schema.Register()` and `Schema.Migrations()`
 
 **Version**: 2026-06-16

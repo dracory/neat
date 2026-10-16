@@ -216,7 +216,7 @@ func (b *stubBlueprint) Rename(_ string)          {}
 func (b *stubBlueprint) RenameColumn(_, _ string) {}
 func (b *stubBlueprint) RenameIndex(_, _ string)  {}
 func (b *stubBlueprint) SetTable(_ string)        {}
-func (b *stubBlueprint) ShortID(_ ...string) contractsschema.ColumnDefinition {
+func (b *stubBlueprint) StringID(_ ...string) contractsschema.ColumnDefinition {
 	return b.col("id", "string")
 }
 func (b *stubBlueprint) SmallIncrements(col string) contractsschema.ColumnDefinition {

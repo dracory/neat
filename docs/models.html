@@ -187,23 +187,23 @@ db.Schema().Create("users", func(table neat.Blueprint) {
     Email string
 }</code></pre>
 
-    <h3>Short String Primary Keys (Opt-In)</h3>
+    <h3>String Primary Keys (Opt-In)</h3>
 
-    <p>For URL-friendly, client-generated primary keys, embed <code>orm.ShortID</code> instead of <code>orm.Model</code>. The ID is generated automatically before insert using a vowel-free Base 16-encoded safe short ID (14 lowercase characters, e.g., <code>05fh88gd139f8h</code>).</p>
+    <p>For client-generated primary keys, embed <code>orm.StringID</code> instead of <code>orm.Model</code>. The ID is generated automatically before insert as a UUID version 7 string (RFC 9562) using the <code>uuid</code> package added to the Go standard library in Go 1.27 — time-ordered and globally unique (36 characters, e.g., <code>019a05d8-7f1e-7c3a-9d2b-1f4e6a8c0e2f</code>).</p>
 
     <pre><code>import "github.com/dracory/neat/database/orm"
 
 type Product struct {
-    orm.ShortID      // ID string — generated client-side
+    orm.StringID     // ID string — generated client-side
     orm.Timestamps   // optional — add only if you need it
     Name  string     `db:"name"`
     Price float64    `db:"price"`
 }</code></pre>
 
-    <p>Use <code>table.ShortID()</code> in migrations for string-primary-key tables:</p>
+    <p>Use <code>table.StringID()</code> in migrations for string-primary-key tables:</p>
 
     <pre><code>db.Schema().Create("products", func(table neat.Blueprint) {
-    table.ShortID()            // VARCHAR(21) PRIMARY KEY
+    table.StringID()           // VARCHAR(36) PRIMARY KEY
     table.String("name", 255)
     table.Decimal("price", 10, 2)
     table.Timestamps()
@@ -217,7 +217,7 @@ type Product struct {
         <thead><tr><th>Embed</th><th>Package</th><th>Fields</th><th>Use</th></tr></thead>
         <tbody>
             <tr><td><code>orm.Model</code></td><td><code>database/orm</code></td><td><code>ID uint</code> + <code>Timestamps</code></td><td>Default: auto-incrementing integer PK + created/updated timestamps</td></tr>
-            <tr><td><code>orm.ShortID</code></td><td><code>database/orm</code></td><td><code>ID string</code></td><td>URL-friendly client-generated string PK (vowel-free Base 16 safe short ID)</td></tr>
+            <tr><td><code>orm.StringID</code></td><td><code>database/orm</code></td><td><code>ID string</code></td><td>Client-generated string PK (UUIDv7)</td></tr>
             <tr><td><code>orm.Timestamps</code></td><td><code>database/orm</code></td><td><code>CreatedAt time.Time</code>, <code>UpdatedAt time.Time</code></td><td>Add <code>created_at</code> and <code>updated_at</code> columns</td></tr>
             <tr><td><code>orm.CreatedAt</code></td><td><code>database/orm</code></td><td><code>CreatedAt time.Time</code></td><td>Add only <code>created_at</code></td></tr>
             <tr><td><code>orm.UpdatedAt</code></td><td><code>database/orm</code></td><td><code>UpdatedAt time.Time</code></td><td>Add only <code>updated_at</code></td></tr>

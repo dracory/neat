@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/dracory/neat/database/observer"
-	"github.com/dracory/neat/support/uid"
 )
 
 // Create inserts a new record into the database.
@@ -27,8 +27,8 @@ func (q *Query) Create(value any) error {
 		}
 	}
 
-	// Pre-generate short IDs for string-primary-key models
-	if isShortIDModel(value) {
+	// Pre-generate IDs for string-primary-key models
+	if isStringIDModel(value) {
 		v := reflect.ValueOf(value)
 		if v.Kind() == reflect.Pointer {
 			v = v.Elem()
@@ -42,7 +42,7 @@ func (q *Query) Create(value any) error {
 				if elem.CanAddr() {
 					if id, ok := getPrimaryKeyValueAny(elem.Addr().Interface()); ok {
 						if s, _ := id.(string); s == "" {
-							setModelPrimaryKey(elem.Addr().Interface(), uid.GenerateShortID())
+							setModelPrimaryKey(elem.Addr().Interface(), uuid.NewV7().String())
 						}
 					}
 				}
@@ -50,7 +50,7 @@ func (q *Query) Create(value any) error {
 		} else {
 			if id, ok := getPrimaryKeyValueAny(value); ok {
 				if s, _ := id.(string); s == "" {
-					setModelPrimaryKey(value, uid.GenerateShortID())
+					setModelPrimaryKey(value, uuid.NewV7().String())
 				}
 			}
 		}
@@ -87,8 +87,8 @@ func (q *Query) Create(value any) error {
 	// Oracle: go-ora driver has issues with RETURNING clause and LastInsertId
 	// For Oracle, we'll use a separate SELECT query after INSERT
 	// Skip RETURNING/OUTPUT for short-ID models because the ID is generated client-side.
-	shortID := isShortIDModel(value)
-	if q.isPostgres() && !shortID {
+	stringID := isStringIDModel(value)
+	if q.isPostgres() && !stringID {
 		sqlStr = sqlStr + " RETURNING id"
 	}
 
@@ -99,7 +99,7 @@ func (q *Query) Create(value any) error {
 	var err error
 	start := time.Now()
 	if q.tx != nil {
-		if (q.isPostgres() || q.isSQLServer()) && !shortID {
+		if (q.isPostgres() || q.isSQLServer()) && !stringID {
 			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
 			rows, err = q.tx.QueryContext(ctx, sqlStr, args...)
@@ -157,7 +157,7 @@ func (q *Query) Create(value any) error {
 		if err != nil {
 			return err
 		}
-		if (q.isPostgres() || q.isSQLServer()) && !shortID {
+		if (q.isPostgres() || q.isSQLServer()) && !stringID {
 			// For PostgreSQL with RETURNING or SQL Server with OUTPUT, use Query instead of Exec
 			var rows *sql.Rows
 			rows, err = dbConn.QueryContext(ctx, sqlStr, args...)
@@ -217,7 +217,7 @@ func (q *Query) Create(value any) error {
 	q.logQuery(sqlStr, args, start)
 
 	// Populate last insert ID back into the model's primary key field
-	if shortID {
+	if stringID {
 		// Short IDs are generated client-side; nothing to retrieve from the database.
 	} else if q.isOracle() {
 		// Oracle: go-ora driver has issues with RETURNING clause and LastInsertId

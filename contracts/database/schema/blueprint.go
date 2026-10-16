@@ -125,8 +125,9 @@ type Blueprint interface {
 	RenameIndex(from, to string)
 	// SetTable Set the table that the blueprint operates on.
 	SetTable(name string)
-	// ShortID Create a new short string primary key column on the table.
-	ShortID(column ...string) ColumnDefinition
+	// StringID Create a new string primary key column on the table, sized for
+	// client-generated UUID strings (VARCHAR(36)).
+	StringID(column ...string) ColumnDefinition
 	// SmallIncrements Create a new auto-incrementing small integer (2-byte) column on the table.
 	SmallIncrements(column string) ColumnDefinition
 	// SmallInteger Create a new small integer (2-byte) column on the table.
