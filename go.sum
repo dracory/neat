@@ -20,6 +20,8 @@ github.com/coder/websocket v1.8.15 h1:6B2JPeOGlpff2Uz6vOEH1Vzpi0iUz20A+lPVhPHtNU
 github.com/coder/websocket v1.8.15/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
 github.com/dracory/aztablessql v0.7.0 h1:d+Ltj9C6d6RfH7pQXGBhIKQvzVvwA9UIUIuA6sVSJko=
 github.com/dracory/aztablessql v0.7.0/go.mod h1:+e4gpFlWI5/qovDOD9yjbGEyGQ3E9+kUz3HCSr+KPj4=
+github.com/dracory/uid v1.12.0 h1:RaGyex/VbjN2HrYv+xXqIXLQyMchojDIH1u2fPjFwEA=
+github.com/dracory/uid v1.12.0/go.mod h1:ldOjQLmGsQO4/oRIp5dpgajX3Qf1FI4QMPD34lXSIMI=
 github.com/dromara/carbon/v2 v2.6.17 h1:QL1LVcp5A/NQtIPbc1vrL9qIXxPNWnaDOBaFlmP1iDg=
 github.com/dromara/carbon/v2 v2.6.17/go.mod h1:NGo3reeV5vhWCYWcSqbJRZm46MEwyfYI5EJRdVFoLJo=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=

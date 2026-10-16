@@ -4,6 +4,7 @@ go 1.27.0
 
 require (
 	github.com/dracory/aztablessql v0.7.0
+	github.com/dracory/uid v1.12.0
 	github.com/dromara/carbon/v2 v2.6.17
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/lib/pq v1.12.3

@@ -820,12 +820,12 @@ func (s *Migrator) trackerHistory(query orm.Query) ([]MigrationTracker, error) {
 }
 
 // isGeneratedTrackerID reports whether id looks like a generated short ID
-// produced by uid.GenerateShortID (11 characters from the Crockford alphabet).
+// produced by uid.GenerateShortID (11 or 14 characters from the Crockford/vowel-free alphabet).
 // It is used as a tie-breaker when legacy signature IDs and generated IDs share
 // the same started_at second.
 func isGeneratedTrackerID(id string) bool {
 	const alphabet = "0123456789abcdefghjkmnpqrstvwxyz"
-	if len(id) != 11 {
+	if len(id) != 11 && len(id) != 14 {
 		return false
 	}
 	for i := 0; i < len(id); i++ {

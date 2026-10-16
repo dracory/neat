@@ -9,14 +9,24 @@ func TestGenerateShortID(t *testing.T) {
 	if id == "" {
 		t.Fatal("GenerateShortID returned empty string")
 	}
-	if len(id) != 11 {
-		t.Fatalf("expected ID length 11, got %d: %s", len(id), id)
+	if len(id) != 14 {
+		t.Fatalf("expected ID length 14, got %d: %s", len(id), id)
 	}
 
 	// Generate another ID and ensure they are different
 	id2 := GenerateShortID()
 	if id == id2 {
 		t.Fatal("GenerateShortID returned duplicate IDs")
+	}
+}
+
+func TestSafeShortID(t *testing.T) {
+	id := SafeShortID()
+	if id == "" {
+		t.Fatal("SafeShortID returned empty string")
+	}
+	if len(id) != 14 {
+		t.Fatalf("expected ID length 14, got %d: %s", len(id), id)
 	}
 }
 
@@ -32,26 +42,6 @@ func TestGenerateShortIDNoDuplicates(t *testing.T) {
 	}
 }
 
-func TestEncodeCrockford(t *testing.T) {
-	tests := []struct {
-		input    int64
-		expected string
-	}{
-		{0, "0"},
-		{1, "1"},
-		{31, "z"},
-		{32, "10"},
-		{1024, "100"},
-	}
-
-	for _, tt := range tests {
-		result := encodeCrockford(tt.input)
-		if result != tt.expected {
-			t.Errorf("encodeCrockford(%d) = %s, want %s", tt.input, result, tt.expected)
-		}
-	}
-}
-
 func TestNormalizeID(t *testing.T) {
 	if NormalizeID("  ABC123  ") != "abc123" {
 		t.Error("NormalizeID failed to normalize")
@@ -61,6 +51,9 @@ func TestNormalizeID(t *testing.T) {
 func TestIsShortID(t *testing.T) {
 	if !IsShortID("abc123def45") {
 		t.Error("expected 11-char ID to be short")
+	}
+	if !IsShortID("05fr88tc139r8t") {
+		t.Error("expected 14-char ID to be short")
 	}
 	if !IsShortID("abc123def45abc123def4") {
 		t.Error("expected 21-char ID to be short")
