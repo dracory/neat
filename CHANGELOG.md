@@ -60,6 +60,23 @@ s.AddMigrations(migrations)
 _ = s.Up(ctx)
 ```
 
+#### `GenerateID` / `GenerateShortID` output changed from 11 to 14 characters
+
+**Version**: 2026-10-16
+
+**Impact**: `neat.GenerateID()`, `support/uid.GenerateShortID()`, and the new `support/uid.SafeShortID()` now return 14-character vowel-free Base16 IDs (alphabet `0123456789bcdfgh`) instead of 11-character Crockford Base32 IDs. The generator was rewritten in-place to a lock-free atomic CAS loop (no mutex, no sleeping, tolerates backwards clock steps). IDs remain time-ordered and lexicographically sortable. `support/uid.IsShortID` still accepts 11-character legacy IDs (and now also 14). Any code asserting `len(id) == 11` or relying on the Crockford alphabet must be updated.
+
+**Migration**:
+
+```go
+// Before (old code)
+if len(id) != 11 { /* reject */ }
+
+// After (new code)
+if len(id) != 14 { /* reject */ }
+// or use uid.IsShortID(id), which accepts 11, 14, and 21 chars
+```
+
 ## [Unreleased]
 
 ### Added

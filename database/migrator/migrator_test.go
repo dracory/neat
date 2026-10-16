@@ -2307,3 +2307,77 @@ func TestFresh_PreservesHistory(t *testing.T) {
 		t.Errorf("Expected Fresh re-run in a new batch after %d, got %d", trackers[0].Batch, trackers[2].Batch)
 	}
 }
+
+// TestTrackerIDRank verifies that tracker IDs are ranked by the scheme that
+// produced them, oldest first: legacy signature IDs rank 0, 21-char NanoIDs
+// rank 1, 11-char Crockford Base32 IDs rank 2, and 14-char vowel-free Base16
+// (SafeShortID) IDs rank 3.
+func TestTrackerIDRank(t *testing.T) {
+	cases := []struct {
+		id       string
+		expected int
+	}{
+		{"2026_06_15_120000_create_users", 0}, // legacy signature ID
+		{"V1StGXR8_Z5jdHi6B-myT", 1},          // 21-char NanoID
+		{"t0000000002", 2},                    // 11-char Crockford
+		{"sa4rc789wxg", 2},                    // 11-char Crockford
+		{"05fh88gd139f8h", 3},                 // 14-char safe short ID
+		{"05fr88tc139r8z", 0},                 // 'r','t','z' are not in the safe alphabet -> not generated
+		{"abc123", 0},                         // wrong length
+		{"05FR88TC139R8T", 0},                 // uppercase is not generated
+	}
+	for _, c := range cases {
+		if got := trackerIDRank(c.id); got != c.expected {
+			t.Errorf("trackerIDRank(%q) = %d, want %d", c.id, got, c.expected)
+		}
+	}
+}
+
+// TestHistory_MixedIDSchemesOrderedChronologically verifies that tracker rows
+// sharing the same started_at second sort by generation scheme rather than raw
+// lexicographic order. The 14-char safe ID "05fh88gd139f8h" sorts before the
+// 11-char Crockford ID "zzzzzzzzzzz" lexicographically, but it is newer and
+// must come last.
+func TestHistory_MixedIDSchemesOrderedChronologically(t *testing.T) {
+	db, err := neat.NewFromDSN("sqlite://:memory:")
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	migrator := NewMigrator(db)
+	migration := &MockMigration{signature: "2026_06_15_120000_create_tags", description: "Create tags"}
+	if err := migrator.AddMigration(migration); err != nil {
+		t.Fatalf("AddMigration failed: %v", err)
+	}
+	if err := migrator.(*Migrator).ensureMigrationTracker(db.Schema()); err != nil {
+		t.Fatalf("ensureMigrationTracker failed: %v", err)
+	}
+
+	at := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	// Inserted in adversarial order: newest ID scheme first, oldest last.
+	rows := []MigrationTracker{
+		{ID: "05fh88gd139f8h", Migration: migration.signature, Batch: 3, Status: MigrationStatusCompleted, StartedAt: at, CompletedAt: at},
+		{ID: "zzzzzzzzzzz", Migration: migration.signature, Batch: 2, Status: MigrationStatusCompleted, StartedAt: at, CompletedAt: at},
+		{ID: "2026_06_15_120000_create_tags", Migration: migration.signature, Batch: 1, Status: MigrationStatusCompleted, StartedAt: at, CompletedAt: at},
+	}
+	for _, row := range rows {
+		if err := db.Schema().Orm().Query().Table(defaultTableName).Create(&row); err != nil {
+			t.Fatalf("failed to seed tracker: %v", err)
+		}
+	}
+
+	trackers, err := migrator.(*Migrator).trackerHistory(db.Schema().Orm().Query())
+	if err != nil {
+		t.Fatalf("trackerHistory failed: %v", err)
+	}
+	want := []string{"2026_06_15_120000_create_tags", "zzzzzzzzzzz", "05fh88gd139f8h"}
+	if len(trackers) != len(want) {
+		t.Fatalf("Expected %d tracker rows, got %d", len(want), len(trackers))
+	}
+	for i, id := range want {
+		if trackers[i].ID != id {
+			t.Errorf("Expected tracker %d ID %q, got %q", i, id, trackers[i].ID)
+		}
+	}
+}

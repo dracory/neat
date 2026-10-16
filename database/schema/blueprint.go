@@ -540,7 +540,7 @@ func (r *Blueprint) SetTable(name string) {
 }
 
 // ShortID creates a new short string primary key column on the table.
-// Suitable for client-generated short IDs (e.g., Crockford Base32).
+// Suitable for client-generated short IDs (e.g., SafeShortID).
 func (r *Blueprint) ShortID(column ...string) schema.ColumnDefinition {
 	name := constants.DefaultIDColumn
 	if len(column) > 0 {

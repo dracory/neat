@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/dracory/neat/contracts/database/orm"
@@ -808,32 +807,37 @@ func (s *Migrator) trackerHistory(query orm.Query) ([]MigrationTracker, error) {
 		if !trackers[i].StartedAt.Equal(trackers[j].StartedAt) {
 			return trackers[i].StartedAt.Before(trackers[j].StartedAt)
 		}
-		iGen := isGeneratedTrackerID(trackers[i].ID)
-		jGen := isGeneratedTrackerID(trackers[j].ID)
-		if iGen != jGen {
-			// Legacy signature IDs predate generated short IDs, so they sort first.
-			return !iGen
+		iRank := trackerIDRank(trackers[i].ID)
+		jRank := trackerIDRank(trackers[j].ID)
+		if iRank != jRank {
+			// Lower ranks predate higher ones: legacy signature IDs came first,
+			// then 21-char NanoIDs, 11-char Crockford IDs, then 14-char safe IDs.
+			return iRank < jRank
 		}
 		return trackers[i].ID < trackers[j].ID
 	})
 	return trackers, nil
 }
 
-// isGeneratedTrackerID reports whether id looks like a generated short ID
-// produced by uid.GenerateShortID (11 characters from the Crockford alphabet).
-// It is used as a tie-breaker when legacy signature IDs and generated IDs share
-// the same started_at second.
-func isGeneratedTrackerID(id string) bool {
-	const alphabet = "0123456789abcdefghjkmnpqrstvwxyz"
-	if len(id) != 11 {
-		return false
+// trackerIDRank ranks tracker IDs by the scheme that produced them, oldest to
+// newest: 0 for legacy signature IDs, 1 for 21-char NanoID-style IDs, 2 for
+// 11-char Crockford Base32 IDs, and 3 for 14-char vowel-free Base16
+// (SafeShortID) IDs. It is used as a tie-breaker when trackers share the same
+// started_at second, because lexicographic order is only chronological within
+// a single encoding scheme, not across schemes.
+func trackerIDRank(id string) int {
+	if !uid.IsShortID(id) {
+		return 0
 	}
-	for i := 0; i < len(id); i++ {
-		if !strings.ContainsRune(alphabet, rune(id[i])) {
-			return false
-		}
+	switch len(id) {
+	case uid.NanoIDEncodedLength:
+		return 1
+	case uid.CrockfordEncodedLength:
+		return 2
+	case uid.SafeShortEncodedLength:
+		return 3
 	}
-	return true
+	return 0
 }
 
 // latestTrackers reduces the append-only tracker history to the most recent

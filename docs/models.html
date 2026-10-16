@@ -189,7 +189,7 @@ db.Schema().Create("users", func(table neat.Blueprint) {
 
     <h3>Short String Primary Keys (Opt-In)</h3>
 
-    <p>For URL-friendly, client-generated primary keys, embed <code>orm.ShortID</code> instead of <code>orm.Model</code>. The ID is generated automatically before insert using a Crockford Base32-encoded microsecond timestamp (11 lowercase characters, e.g., <code>1jkne4e0jv0</code>).</p>
+    <p>For URL-friendly, client-generated primary keys, embed <code>orm.ShortID</code> instead of <code>orm.Model</code>. The ID is generated automatically before insert using a vowel-free Base 16-encoded safe short ID (14 lowercase characters, e.g., <code>05fh88gd139f8h</code>).</p>
 
     <pre><code>import "github.com/dracory/neat/database/orm"
 
@@ -217,7 +217,7 @@ type Product struct {
         <thead><tr><th>Embed</th><th>Package</th><th>Fields</th><th>Use</th></tr></thead>
         <tbody>
             <tr><td><code>orm.Model</code></td><td><code>database/orm</code></td><td><code>ID uint</code> + <code>Timestamps</code></td><td>Default: auto-incrementing integer PK + created/updated timestamps</td></tr>
-            <tr><td><code>orm.ShortID</code></td><td><code>database/orm</code></td><td><code>ID string</code></td><td>URL-friendly client-generated string PK (Crockford Base32 microsecond timestamp)</td></tr>
+            <tr><td><code>orm.ShortID</code></td><td><code>database/orm</code></td><td><code>ID string</code></td><td>URL-friendly client-generated string PK (vowel-free Base 16 safe short ID)</td></tr>
             <tr><td><code>orm.Timestamps</code></td><td><code>database/orm</code></td><td><code>CreatedAt time.Time</code>, <code>UpdatedAt time.Time</code></td><td>Add <code>created_at</code> and <code>updated_at</code> columns</td></tr>
             <tr><td><code>orm.CreatedAt</code></td><td><code>database/orm</code></td><td><code>CreatedAt time.Time</code></td><td>Add only <code>created_at</code></td></tr>
             <tr><td><code>orm.UpdatedAt</code></td><td><code>database/orm</code></td><td><code>UpdatedAt time.Time</code></td><td>Add only <code>updated_at</code></td></tr>

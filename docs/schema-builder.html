@@ -388,7 +388,7 @@ err := db.Schema().DropViewIfExists("active_users")</code></pre>
     table.Timestamps()
 })</code></pre>
 
-    <h3>Short String ID (Crockford Base32)</h3>
+    <h3>Short String ID (SafeShortID)</h3>
 
     <pre><code>db.Schema().Create("products", func(table neat.Blueprint) {
     table.ShortID() // VARCHAR(21) PRIMARY KEY
