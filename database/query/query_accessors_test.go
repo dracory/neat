@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/query"

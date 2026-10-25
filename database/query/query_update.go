@@ -13,6 +13,7 @@ import (
 
 // Update updates records in the database.
 func (q *Query) Update(column any, value ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
@@ -73,6 +74,7 @@ func (q *Query) Update(column any, value ...any) (*orm.Result, error) {
 // UpdateOrCreate updates a record if it exists, or creates it if it doesn't.
 // The operation is performed atomically within a transaction to prevent race conditions.
 func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
+	defer q.resetStatement()
 	// If already in a transaction, proceed without nesting
 	if q.inTransaction {
 		return q.updateOrCreateInTransaction(dest, attributes, values)

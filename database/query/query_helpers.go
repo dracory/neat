@@ -88,9 +88,58 @@ func (q *Query) timeoutContext() (context.Context, context.CancelFunc) {
 	return base, func() {}
 }
 
+// resetStatement clears statement-level builder state after a terminal
+// operation executes inside a transaction. The tx query object handed to a
+// Transaction callback is a single mutable builder reused for every
+// statement; without a reset, WHERE/ORDER/LIMIT clauses from one statement
+// leak into the next (e.g. `tx.Table(t).Where(a).Get()` followed by
+// `tx.Table(t).Where(b).Get()` would run `WHERE a AND b`).
+//
+// Gated on inTransaction so ordinary (non-transactional) queries keep the
+// existing mutable-builder semantics: callers may still reuse a query
+// object across statements outside a transaction.
+//
+// Transaction plumbing (tx handle, savepoints, hooks), observers, scopes,
+// and debug state are intentionally preserved — only the per-statement
+// SQL-building fields are cleared. table/tableArgs/model are also kept:
+// legitimate flows re-run statements on the same target (e.g.
+// updateOrCreateInTransaction fetches, saves, then re-fetches into dest),
+// and every statement-initialising call (Table/Model) sets them anyway.
+func (q *Query) resetStatement() {
+	if !q.inTransaction {
+		return
+	}
+	q.selects = nil
+	q.wheres = nil
+	q.joins = nil
+	q.groups = nil
+	q.havings = nil
+	q.orders = nil
+	q.limit = nil
+	q.offset = nil
+	q.distinct = false
+	q.distinctCols = nil
+	q.aggregate = ""
+	q.aggregateCol = ""
+	q.rawSQL = ""
+	q.rawArgs = nil
+	q.lockForUpdate = false
+	q.sharedLock = false
+	q.omitColumns = nil
+	q.withRelations = nil
+	q.relationConstraints = nil
+	q.withCountQueries = nil
+	q.withExistsQueries = nil
+	q.includeSoftDeleted = false
+	q.onlySoftDeleted = false
+	q.excludeSoftDeleted = false
+	q.buildError = nil
+}
+
 // UpdateOrInsert updates a record if it exists, or creates it if it doesn't.
 // The operation is performed atomically within a transaction to prevent race conditions.
 func (q *Query) UpdateOrInsert(attributes any, values any) error {
+	defer q.resetStatement()
 	// If already in a transaction, proceed without nesting
 	if q.inTransaction {
 		return q.updateOrInsertInTransaction(attributes, values)

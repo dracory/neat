@@ -8,6 +8,7 @@ import (
 
 // First retrieves the first record matching the query.
 func (q *Query) First(dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
@@ -115,6 +116,9 @@ func (q *Query) FirstOr(dest any, callback func() error) error {
 
 // FirstOrCreate retrieves the first record or creates it if not found.
 func (q *Query) FirstOrCreate(dest any, conds ...any) error {
+	// First runs on a clone when conds are supplied, so the receiver's own
+	// defer in First cannot clear this statement's accumulated state.
+	defer q.resetStatement()
 	// Work on a clone so we don't mutate the original query with conds.
 	query := q
 
@@ -136,6 +140,8 @@ func (q *Query) FirstOrCreate(dest any, conds ...any) error {
 
 // FirstOrNew retrieves the first record or prepares a new instance if not found.
 func (q *Query) FirstOrNew(dest any, attributes any, values ...any) error {
+	// All work happens on a clone; reset the receiver explicitly (see First).
+	defer q.resetStatement()
 	// Clone the query to avoid modifying the original
 	query := q.Clone().(*Query)
 

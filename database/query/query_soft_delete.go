@@ -61,6 +61,7 @@ func (q *Query) WithoutTrashed() orm.Query {
 // Returns an error if the model does not implement SoftDeleteColumnNamer
 // (i.e., does not support soft deletes).
 func (q *Query) SoftDelete(value ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	query := q.Clone().(*Query)
 	if len(value) > 0 {
 		applyConditions(query, value)

@@ -8,6 +8,7 @@ import (
 
 // Scan executes the query and scans the results into the destination.
 func (q *Query) Scan(dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Check for build errors from query construction
 	if q.buildError != nil {

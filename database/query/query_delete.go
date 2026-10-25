@@ -35,6 +35,7 @@ func getSoftDeleteColumn(model any) string {
 // For clarity, prefer SoftDelete() when the model supports soft deletes, or
 // HardDelete() when you want a permanent deletion.
 func (q *Query) Delete(value ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.

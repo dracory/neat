@@ -11,6 +11,7 @@ import (
 
 // Cursor returns a cursor for streaming query results.
 func (q *Query) Cursor() (chan orm.Cursor, error) {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Build SELECT query
 	builder := NewBuilder(q)

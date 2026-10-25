@@ -344,6 +344,7 @@ func (q *Query) With(query string, args ...any) orm.Query {
 
 // Load loads a relation for the given model.
 func (q *Query) Load(dest any, relation string, args ...any) error {
+	defer q.resetStatement()
 	// Create a new query for lazy loading
 	newQuery := q.Clone().(*Query)
 	newQuery.withRelations = []string{relation}
@@ -374,6 +375,7 @@ func (q *Query) Load(dest any, relation string, args ...any) error {
 
 // LoadMissing loads a relation only if it's not already loaded.
 func (q *Query) LoadMissing(dest any, relation string, args ...any) error {
+	defer q.resetStatement()
 	// Get the reflect value of the destination
 	v := reflect.ValueOf(dest)
 	if v.Kind() == reflect.Pointer {

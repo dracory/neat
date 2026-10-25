@@ -12,6 +12,7 @@ import (
 
 // Increment increments a column's value by a specified amount.
 func (q *Query) Increment(column string, amount ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	if err := q.validateAggregate(column); err != nil {
 		return nil, err
 	}
@@ -36,6 +37,7 @@ func (q *Query) Increment(column string, amount ...any) (*orm.Result, error) {
 
 // Decrement decrements a column's value by a specified amount.
 func (q *Query) Decrement(column string, amount ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	if err := q.validateAggregate(column); err != nil {
 		return nil, err
 	}
@@ -99,6 +101,7 @@ func (q *Query) Raw(sql string, values ...any) orm.Query {
 
 // Exec executes a raw SQL query.
 func (q *Query) Exec(sql string, values ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	// Strip trailing semicolon for Oracle (ORA-00911 error)
 	// Oracle doesn't accept semicolons in prepared statement execution
 	if q.driver != nil && q.driver.Dialect() == "oracle" {
@@ -158,6 +161,7 @@ func (q *Query) Omit(columns ...string) orm.Query {
 
 // RestoreSoftDeleted restores a soft-deleted record.
 func (q *Query) RestoreSoftDeleted(model ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
@@ -264,6 +268,7 @@ func (q *Query) Restore(model ...any) (*orm.Result, error) {
 //
 // Deprecated: Use HardDelete() instead.
 func (q *Query) ForceDelete(value ...any) (*orm.Result, error) {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.

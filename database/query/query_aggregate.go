@@ -9,6 +9,7 @@ import (
 
 // Count returns the number of records matching the query.
 func (q *Query) Count(count *int64) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
@@ -59,6 +60,7 @@ func (q *Query) Count(count *int64) error {
 
 // Sum returns the sum of the specified column.
 func (q *Query) Sum(column string, dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	if q.buildError != nil {
 		return q.buildError
@@ -111,6 +113,7 @@ func (q *Query) Sum(column string, dest any) error {
 
 // Avg returns the average of the specified column.
 func (q *Query) Avg(column string, dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	if q.buildError != nil {
 		return q.buildError
@@ -163,6 +166,7 @@ func (q *Query) Avg(column string, dest any) error {
 
 // Min returns the minimum value of the specified column.
 func (q *Query) Min(column string, dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	if q.buildError != nil {
 		return q.buildError
@@ -215,6 +219,7 @@ func (q *Query) Min(column string, dest any) error {
 
 // Max returns the maximum value of the specified column.
 func (q *Query) Max(column string, dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	if q.buildError != nil {
 		return q.buildError
@@ -267,6 +272,7 @@ func (q *Query) Max(column string, dest any) error {
 
 // Exists checks if any records match the query.
 func (q *Query) Exists(exists *bool) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
@@ -313,6 +319,7 @@ func (q *Query) Exists(exists *bool) error {
 
 // Pluck retrieves a single column's values from the query results.
 func (q *Query) Pluck(column string, dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
@@ -356,6 +363,7 @@ func (q *Query) Pluck(column string, dest any) error {
 
 // Value retrieves a single column's value from the first result.
 func (q *Query) Value(column string, dest any) error {
+	defer q.resetStatement()
 	q = q.applyScopes()
 	if q.buildError != nil {
 		return q.buildError

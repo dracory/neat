@@ -6,6 +6,7 @@ import (
 
 // Paginate paginates the query results.
 func (q *Query) Paginate(page, limit int, dest any, total *int64) error {
+	defer q.resetStatement()
 	// Calculate offset
 	offset := (page - 1) * limit
 	q.offset = &offset
