@@ -102,6 +102,17 @@ err := db.Transaction(func(tx neat.Query) error {
     return nil
 }, nil, ctx)</code></pre>
 
+    <h2>Statement State Inside Transactions</h2>
+
+    <p>The <code>tx</code> query passed to a transaction callback is a single mutable builder. Each terminal operation (<code>Get</code>, <code>First</code>, <code>Find</code>, <code>Create</code>, <code>Update</code>, <code>Delete</code>, <code>Save</code>, aggregates, etc.) consumes the builder state it was called with: once a statement executes, its <code>WHERE</code>/<code>ORDER BY</code>/<code>LIMIT</code>/joins are cleared automatically, so the next statement starts clean.</p>
+
+    <p>This means the two statements below are independent — the second update does <em>not</em> inherit the first one's <code>WHERE id = senderID</code> clause:</p>
+
+    <pre><code>tx.Table("accounts").Where("id = ?", senderID).Update(...)
+tx.Table("accounts").Where("id = ?", receiverID).Update(...) // runs on its own</code></pre>
+
+    <p>Outside transactions, query objects keep their accumulated builder state as before — if you intentionally reuse a query across statements, do it on a non-transactional query or use <code>Clone()</code> to fork the builder.</p>
+
     <h2>Nested Transactions</h2>
 
     <p>Neat ORM supports nested transactions using savepoints:</p>

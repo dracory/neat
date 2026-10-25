@@ -162,3 +162,27 @@ if len(id) != 14 { /* reject */ }
 - Configuration management
 - Error handling
 - Support utilities
+
+## Bug Fixes
+
+### Transaction query builder no longer leaks statement state (2026-10-25)
+
+**Impact**: Previously, the `tx` query handed to a `Transaction` callback was a
+single mutable builder reused for every statement. `WHERE`, `ORDER BY`,
+`LIMIT`, joins and other statement-level clauses accumulated across
+statements, so e.g. a second `tx.Table(t).Where(id=B).Get()` silently ran
+`WHERE id=A AND id=B` and matched nothing.
+
+**Fix**: Terminal operations (`Get`, `First`, `Find`, `Create`, `InsertGetId`,
+`Update`, `Delete`, `Save`, `SoftDelete`, `ForceDelete`, `RestoreSoftDeleted`,
+`Exec`, `Scan`, `Count`, `Sum`, `Avg`, `Min`, `Max`, `Exists`, `Pluck`,
+`Value`, `Chunk`, `Cursor`, `Paginate`, `Load`, `LoadMissing`, `Increment`,
+`Decrement`, `UpdateOrCreate`, `UpdateOrInsert`, `FirstOrCreate`,
+`FirstOrNew`) now reset statement-level builder state on the query when it is
+transaction-bound. `table`/`model` are preserved; transaction plumbing,
+scopes, observers and debug state are untouched.
+
+**Compatibility**: Only affects queries inside `Transaction`/`Begin`
+callbacks. Non-transactional queries keep the existing mutable-builder
+semantics. Code that accidentally relied on WHERE accumulation inside
+transactions was already broken.
