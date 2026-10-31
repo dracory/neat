@@ -1509,8 +1509,8 @@ func TestJsonPathSyntax_MySQL(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: JSON_CONTAINS(data, ?, '$.name')
-		if !contains(sql, "JSON_CONTAINS(data, ?, '$.name')") {
+		// Should generate: JSON_CONTAINS(`data`, ?, '$.name')
+		if !contains(sql, "JSON_CONTAINS(`data`, ?, '$.name')") {
 			t.Errorf("Expected JSON_CONTAINS with quoted path, got: %s", sql)
 		}
 
@@ -1527,8 +1527,8 @@ func TestJsonPathSyntax_MySQL(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: JSON_CONTAINS_PATH(data, 'one', '$.meta.active')
-		if !contains(sql, "JSON_CONTAINS_PATH(data, 'one', '$.meta.active')") {
+		// Should generate: JSON_CONTAINS_PATH(`data`, 'one', '$.meta.active')
+		if !contains(sql, "JSON_CONTAINS_PATH(`data`, 'one', '$.meta.active')") {
 			t.Errorf("Expected JSON_CONTAINS_PATH with quoted nested path, got: %s", sql)
 		}
 
@@ -1544,8 +1544,8 @@ func TestJsonPathSyntax_MySQL(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: JSON_LENGTH(data, '$.tags') = ?
-		if !contains(sql, "JSON_LENGTH(data, '$.tags') = ?") {
+		// Should generate: JSON_LENGTH(`data`, '$.tags') = ?
+		if !contains(sql, "JSON_LENGTH(`data`, '$.tags') = ?") {
 			t.Errorf("Expected JSON_LENGTH with quoted path, got: %s", sql)
 		}
 
@@ -1561,8 +1561,8 @@ func TestJsonPathSyntax_MySQL(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: JSON_CONTAINS(data, ?) - no path parameter
-		if !contains(sql, "JSON_CONTAINS(data, ?)") {
+		// Should generate: JSON_CONTAINS(`data`, ?) - no path parameter
+		if !contains(sql, "JSON_CONTAINS(`data`, ?)") {
 			t.Errorf("Expected JSON_CONTAINS without path, got: %s", sql)
 		}
 
@@ -1583,8 +1583,8 @@ func TestJsonPathSyntax_SQLite(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: json_extract(data, '$.name') = ?
-		if !contains(sql, "json_extract(data, '$.name') = ?") {
+		// Should generate: json_extract(\"data\", '$.name') = ?
+		if !contains(sql, "json_extract(\"data\", '$.name') = ?") {
 			t.Errorf("Expected json_extract with path, got: %s", sql)
 		}
 
@@ -1600,8 +1600,8 @@ func TestJsonPathSyntax_SQLite(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: json_type(data, '$.meta.active') IS NOT NULL
-		if !contains(sql, "json_type(data, '$.meta.active') IS NOT NULL") {
+		// Should generate: json_type(\"data\", '$.meta.active') IS NOT NULL
+		if !contains(sql, "json_type(\"data\", '$.meta.active') IS NOT NULL") {
 			t.Errorf("Expected json_type with nested path, got: %s", sql)
 		}
 
@@ -1617,8 +1617,8 @@ func TestJsonPathSyntax_SQLite(t *testing.T) {
 		builder := NewBuilder(q)
 		sql, args := builder.BuildSelect()
 
-		// Should generate: json_array_length(data, '$.tags') = ?
-		if !contains(sql, "json_array_length(data, '$.tags') = ?") {
+		// Should generate: json_array_length(\"data\", '$.tags') = ?
+		if !contains(sql, "json_array_length(\"data\", '$.tags') = ?") {
 			t.Errorf("Expected json_array_length with path, got: %s", sql)
 		}
 
@@ -1695,5 +1695,118 @@ func TestExcludeAsAliasForWhereNot(t *testing.T) {
 	}
 	if len(args1) != len(args2) {
 		t.Errorf("Exclude and WhereNot should generate identical args. Got %v vs %v", args1, args2)
+	}
+}
+
+// TestJsonWhereHelpers_InjectionRejected asserts that a JSON column/path
+// carrying SQL injection text is rejected with a build error and produces
+// no where clause, on every JSON-capable dialect.
+func TestJsonWhereHelpers_InjectionRejected(t *testing.T) {
+	dialects := []struct {
+		name   string
+		driver driver.Driver
+	}{
+		{"SQLite", driver.NewSQLite()},
+		{"MySQL", driver.NewMySQL()},
+		{"PostgreSQL", driver.NewPostgreSQL()},
+	}
+
+	payloads := []string{
+		"data->x') OR 1=1 --",
+		"data->x') UNION SELECT password FROM users --",
+		"data' OR '1'='1",
+		"data->a.b->c",
+	}
+
+	helpers := []struct {
+		name string
+		fn   func(q *Query, column string)
+	}{
+		{"WhereJsonContains", func(q *Query, c string) { q.WhereJsonContains(c, "v") }},
+		{"OrWhereJsonContains", func(q *Query, c string) { q.OrWhereJsonContains(c, "v") }},
+		{"WhereJsonDoesntContain", func(q *Query, c string) { q.WhereJsonDoesntContain(c, "v") }},
+		{"OrWhereJsonDoesntContain", func(q *Query, c string) { q.OrWhereJsonDoesntContain(c, "v") }},
+		{"WhereJsonContainsKey", func(q *Query, c string) { q.WhereJsonContainsKey(c) }},
+		{"OrWhereJsonContainsKey", func(q *Query, c string) { q.OrWhereJsonContainsKey(c) }},
+		{"WhereJsonDoesntContainKey", func(q *Query, c string) { q.WhereJsonDoesntContainKey(c) }},
+		{"OrWhereJsonDoesntContainKey", func(q *Query, c string) { q.OrWhereJsonDoesntContainKey(c) }},
+		{"WhereJsonLength", func(q *Query, c string) { q.WhereJsonLength(c, "=", 1) }},
+	}
+
+	for _, d := range dialects {
+		for _, h := range helpers {
+			for _, payload := range payloads {
+				t.Run(d.name+"/"+h.name+"/"+payload, func(t *testing.T) {
+					q := NewQuery(context.TODO(), nil, d.driver, "users", nil, nil)
+					h.fn(q, payload)
+
+					if q.buildError == nil {
+						t.Errorf("Expected build error for payload %q", payload)
+					}
+
+					sql, _ := NewBuilder(q).BuildSelect()
+					if strings.Contains(sql, "OR 1=1") || strings.Contains(sql, "UNION SELECT") {
+						t.Errorf("Injected SQL leaked into query: %s", sql)
+					}
+				})
+			}
+		}
+	}
+}
+
+// TestJsonUpdatePath_InjectionRejected asserts that a JSON path update with
+// SQL injection text produces no SET expression and a build error.
+func TestJsonUpdatePath_InjectionRejected(t *testing.T) {
+	dialects := []struct {
+		name   string
+		driver driver.Driver
+	}{
+		{"SQLite", driver.NewSQLite()},
+		{"MySQL", driver.NewMySQL()},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, d.driver, "users", nil, nil)
+			q.Where("id = ?", 1)
+
+			sql, _ := NewBuilder(q).BuildUpdate("data->x') OR 1=1 --", "v")
+
+			if q.buildError == nil {
+				t.Error("Expected build error for injected JSON path")
+			}
+			if sql != "" {
+				t.Errorf("Expected empty UPDATE for rejected JSON path, got: %s", sql)
+			}
+		})
+	}
+}
+
+// TestJsonWhereHelpers_ValidPathsAccepted ensures legitimate JSON paths,
+// including nested keys and array indexes, still build on every dialect.
+func TestJsonWhereHelpers_ValidPathsAccepted(t *testing.T) {
+	dialects := []struct {
+		name   string
+		driver driver.Driver
+	}{
+		{"SQLite", driver.NewSQLite()},
+		{"MySQL", driver.NewMySQL()},
+		{"PostgreSQL", driver.NewPostgreSQL()},
+	}
+
+	for _, d := range dialects {
+		t.Run(d.name, func(t *testing.T) {
+			q := NewQuery(context.TODO(), nil, d.driver, "users", nil, nil)
+			q.WhereJsonContains("data->meta->tags[0]", "v")
+
+			if q.buildError != nil {
+				t.Errorf("Unexpected build error: %v", q.buildError)
+			}
+
+			sql, _ := NewBuilder(q).BuildSelect()
+			if !contains(sql, "data") {
+				t.Errorf("Expected JSON clause in: %s", sql)
+			}
+		})
 	}
 }

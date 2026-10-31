@@ -73,13 +73,16 @@ func clampArgs(args []any, placeholders int) []any {
 // addJSONPath adds a JSON path update ("data->meta->active") using the
 // dialect's JSON function, falling back to a plain column assignment.
 func (s *updateSet) addJSONPath(colStr string, val any) {
-	segments := strings.Split(colStr, "->")
-	if len(segments) < 2 || (!s.b.query.isMySQL() && !s.b.query.isSQLite()) {
+	if !strings.Contains(colStr, "->") || (!s.b.query.isMySQL() && !s.b.query.isSQLite()) {
 		s.addValue(colStr, val)
 		return
 	}
-	jsonColumn := s.b.quoteIdentifier(segments[0])
-	jsonPath := "$." + strings.Join(segments[1:], ".")
+	col, segments, ok := s.b.query.jsonPathSegments(colStr)
+	if !ok {
+		return
+	}
+	jsonColumn := s.b.quoteIdentifier(col)
+	jsonPath := "$." + strings.Join(segments, ".")
 	fn := "json_set"
 	if s.b.query.isMySQL() {
 		fn = "JSON_SET"
@@ -124,10 +127,10 @@ func (b *Builder) buildUpdateSet(column any, values []any) *updateSet {
 			return set
 		}
 		switch {
-		case strings.Contains(colStr, "="):
-			set.addExpression(colStr, values...)
 		case strings.Contains(colStr, "->"):
 			set.addJSONPath(colStr, values[0])
+		case strings.Contains(colStr, "="):
+			set.addExpression(colStr, values...)
 		default:
 			set.addValue(colStr, values[0])
 		}
