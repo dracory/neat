@@ -29,9 +29,12 @@ func (b *Builder) quoteIdentifier(name string) string {
 		name = strings.ToUpper(name)
 	}
 
-	// If already quoted, return as is
-	if (strings.HasPrefix(name, "\"") && strings.HasSuffix(name, "\"")) ||
-		(strings.HasPrefix(name, "`") && strings.HasSuffix(name, "`")) {
+	// If already quoted, pass through — but only when the name is a
+	// complete quoted identifier whose inner text holds no unescaped
+	// quote characters. A string that merely starts and ends with a
+	// quote (e.g. `"a" = 1, "b"`) is a crafted fragment, not an
+	// identifier, and falls through to be quoted as a whole.
+	if isSafelyPreQuoted(name) {
 		return name
 	}
 

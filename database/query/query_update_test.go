@@ -315,3 +315,38 @@ func TestBulkUpdateWithLimitNoWhere(t *testing.T) {
 		t.Errorf("Expected 2 rows affected, got %d", result.RowsAffected)
 	}
 }
+
+// A map key that merely starts and ends with a quote character is an
+// injection attempt, not a pre-quoted identifier — Update must return an
+// error and execute nothing.
+func TestUpdateRejectsInjectedColumnName(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE inject_update (id INTEGER PRIMARY KEY, nickname TEXT, bio TEXT)")
+	execSQL(t, w, "INSERT INTO inject_update VALUES (1,'nick','bio0')")
+	w.SetTable("inject_update")
+
+	payload := `"nickname" = (SELECT bio FROM inject_update WHERE id = 1), "bio"`
+	_, err := w.Q.Update(map[string]any{payload: "x"})
+	if err == nil {
+		t.Fatal("expected error for crafted column name, got nil")
+	}
+
+	var nickname string
+	if err := w.PrimaryDB().QueryRowContext(context.Background(), "SELECT nickname FROM inject_update WHERE id = 1").Scan(&nickname); err != nil {
+		t.Fatalf("select nickname: %v", err)
+	}
+	if nickname != "nick" {
+		t.Fatalf("injected update executed; nickname = %q", nickname)
+	}
+}
+
+func TestUpdateAllowsPreQuotedColumnName(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE prequoted_update (id INTEGER PRIMARY KEY, nickname TEXT)")
+	execSQL(t, w, "INSERT INTO prequoted_update VALUES (1,'nick')")
+	w.SetTable("prequoted_update")
+
+	if _, err := w.Q.Update(map[string]any{`"nickname"`: "n2"}); err != nil {
+		t.Fatalf("legit pre-quoted column rejected: %v", err)
+	}
+}

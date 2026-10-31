@@ -15,6 +15,9 @@ func (q *Query) InsertGetId(values any) (uint, error) {
 	builder := NewBuilder(q)
 	insertSQL, args := builder.BuildInsert(values)
 	if insertSQL == "" {
+		if q.buildError != nil {
+			return 0, q.buildError
+		}
 		return 0, fmt.Errorf("failed to build INSERT query")
 	}
 

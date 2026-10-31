@@ -597,3 +597,23 @@ func TestInsertGetIdSQLServer(t *testing.T) {
 		t.Errorf("expected no 'RETURNING' clause for SQL Server, got: %s", insertSQL)
 	}
 }
+
+// A crafted column name in the insert map must surface as an error, not SQL.
+func TestCreateRejectsInjectedColumnName(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE inject_create (id INTEGER PRIMARY KEY, name TEXT)")
+	w.SetTable("inject_create")
+
+	payload := `"name" = 1, "bio"`
+	if err := w.Q.Create(map[string]any{payload: "x"}); err == nil {
+		t.Fatal("expected error for crafted column name, got nil")
+	}
+
+	var count int
+	if err := w.PrimaryDB().QueryRowContext(context.Background(), "SELECT COUNT(*) FROM inject_create").Scan(&count); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("injected insert executed; %d rows inserted", count)
+	}
+}
