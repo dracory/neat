@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
@@ -309,12 +310,18 @@ func (t *ToSql) replacePlaceholders(sql string, _ []any) string {
 	return sql
 }
 
-// replacePlaceholdersWithValues replaces ? placeholders with actual values for display.
+// replacePlaceholdersWithValues replaces placeholders with their literal
+// values. String literals are escaped (single quotes doubled, backslashes
+// doubled on MySQL-family dialects) so a bound value cannot break out of the
+// literal. Placeholders are located by scanning forward from the end of the
+// previously injected value, so '?'-like sequences inside an injected value
+// are never mistaken for remaining placeholders.
 func (t *ToSql) replacePlaceholdersWithValues(sql string, args []any) string {
 	// Determine the placeholder pattern based on the dialect
-	var placeholderPattern string
+	dialect := ""
+	placeholderPattern := "?"
 	if t.query.driver != nil {
-		dialect := t.query.driver.Dialect()
+		dialect = t.query.driver.Dialect()
 		switch dialect {
 		case "oracle":
 			placeholderPattern = ":%d"
@@ -322,37 +329,74 @@ func (t *ToSql) replacePlaceholdersWithValues(sql string, args []any) string {
 			placeholderPattern = "$%d"
 		case "sqlserver":
 			placeholderPattern = "@p%d"
-		default:
-			placeholderPattern = "?"
 		}
-	} else {
-		placeholderPattern = "?"
 	}
 
-	// Replace placeholders with actual values
+	var b strings.Builder
+	b.Grow(len(sql) + len(args)*8)
+	pos := 0
 	for i, arg := range args {
-		var val string
-		switch v := arg.(type) {
-		case string:
-			val = fmt.Sprintf("'%s'", v)
-		case int, int64, uint, uint64:
-			val = fmt.Sprintf("%d", v)
-		case float32, float64:
-			val = fmt.Sprintf("%f", v)
-		case nil:
-			val = "NULL"
-		default:
-			val = fmt.Sprintf("'%v'", v)
+		placeholder := placeholderPattern
+		if placeholderPattern != "?" {
+			placeholder = fmt.Sprintf(placeholderPattern, i+1)
 		}
-
-		if placeholderPattern == "?" {
-			sql = strings.Replace(sql, "?", val, 1)
-		} else {
-			placeholder := fmt.Sprintf(placeholderPattern, i+1)
-			sql = strings.Replace(sql, placeholder, val, 1)
+		idx := strings.Index(sql[pos:], placeholder)
+		if idx < 0 {
+			break
 		}
+		idx += pos
+		b.WriteString(sql[pos:idx])
+		b.WriteString(formatSQLLiteral(arg, dialect))
+		pos = idx + len(placeholder)
 	}
-	return sql
+	b.WriteString(sql[pos:])
+	return b.String()
+}
+
+// formatSQLLiteral renders a bound argument as an escaped SQL literal.
+func formatSQLLiteral(arg any, dialect string) string {
+	switch v := arg.(type) {
+	case string:
+		return "'" + escapeStringLiteral(v, dialect) + "'"
+	case []byte:
+		return "X'" + hex.EncodeToString(v) + "'"
+	case time.Time:
+		return "'" + v.Format("2006-01-02 15:04:05.999999") + "'"
+	case int, int8, int16, int32, int64:
+		return fmt.Sprintf("%d", v)
+	case uint, uint8, uint16, uint32, uint64:
+		return fmt.Sprintf("%d", v)
+	case float32, float64:
+		return fmt.Sprintf("%f", v)
+	case bool:
+		if dialect == "sqlserver" {
+			if v {
+				return "1"
+			}
+			return "0"
+		}
+		if v {
+			return "TRUE"
+		}
+		return "FALSE"
+	case nil:
+		return "NULL"
+	default:
+		return "'" + escapeStringLiteral(fmt.Sprintf("%v", v), dialect) + "'"
+	}
+}
+
+// escapeStringLiteral escapes a value placed inside a single-quoted SQL
+// string literal: single quotes are doubled for every dialect, and
+// backslashes are additionally doubled on MySQL-family dialects where
+// backslash is an escape character inside string literals.
+func escapeStringLiteral(s string, dialect string) string {
+	s = strings.ReplaceAll(s, "'", "''")
+	switch dialect {
+	case "mysql", "tidb":
+		s = strings.ReplaceAll(s, "\\", "\\\\")
+	}
+	return s
 }
 
 // ToRawSql returns the raw SQL with placeholders replaced by values.
