@@ -44,7 +44,7 @@ func (s *updateSet) replacePlaceholders(sql string, count int) string {
 // reference or a complete pre-quoted identifier; anything else (e.g.
 // `"a" = 1, "b"`) sets the build error so the statement is never emitted.
 func (s *updateSet) addValue(col string, val any) {
-	if !isQuotableColumn(col) {
+	if !isQuotableColumn(col, s.b.identifierQuoteChar()) {
 		if s.b.query.buildError == nil {
 			s.b.query.buildError = fmt.Errorf("invalid column name in Update: %q", col)
 		}

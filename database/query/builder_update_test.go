@@ -660,6 +660,42 @@ func TestBuildUpdateRejectsMalformedPreQuotedColumn(t *testing.T) {
 	}
 }
 
+// On MySQL a backslash inside a double-quoted token escapes the next
+// character, so `"\"" , x -- "` reads as a string literal that ends
+// early followed by raw SQL. Such keys must fail the build instead of
+// passing through as pre-quoted identifiers. Double-quoted tokens are
+// string literals on MySQL by default (not identifiers), so they are
+// rejected there outright; backtick-quoted names are still accepted.
+func TestBuildUpdateRejectsBackslashPreQuotedOnMySQL(t *testing.T) {
+	payloads := []string{
+		`"\"" , x -- "`,
+		`"a\"" , "b"`,
+		"`a\\` , `b`",
+		`"name"`,
+	}
+	for _, payload := range payloads {
+		q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "mysql"}, "users", nil, nil)
+		sql, _ := NewBuilder(q).BuildUpdate(map[string]any{payload: 1})
+		if sql != "" {
+			t.Errorf("expected empty SQL for crafted column %q, got: %s", payload, sql)
+		}
+		if q.buildError == nil {
+			t.Errorf("expected buildError for crafted column %q", payload)
+		}
+	}
+}
+
+func TestBuildUpdateAllowsBacktickPreQuotedOnMySQL(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "mysql"}, "users", nil, nil)
+	sql, _ := NewBuilder(q).BuildUpdate(map[string]any{"`name`": "x"})
+	if sql == "" {
+		t.Fatalf("expected SQL for backtick-quoted column, buildError: %v", q.buildError)
+	}
+	if !strings.Contains(sql, "`name`") {
+		t.Errorf("expected SQL to contain `name`, got: %s", sql)
+	}
+}
+
 // A crafted key must fail the whole statement even when other keys are valid.
 func TestBuildUpdateRejectsMixedValidAndCraftedKeys(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)

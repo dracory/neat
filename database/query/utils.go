@@ -637,23 +637,32 @@ func isValidColumnReference(s string) bool {
 }
 
 // isSafelyPreQuoted reports whether s is a complete quoted identifier —
-// wrapped in matching double quotes or backticks whose inner text holds
-// no unescaped quote characters. Inner quote characters are only allowed
-// as doubled escapes ("" or “). A string that merely starts and ends
-// with a quote character, like `"a" = 1, "b"`, is not a quoted
-// identifier and must never pass through to SQL unmodified.
-func isSafelyPreQuoted(s string) bool {
+// wrapped in matching quote characters whose inner text holds
+// no unescaped quote characters. quoteChar is the dialect's identifier
+// quote character ('"' for most dialects, '`' for MySQL): a token quoted
+// with a different character is not an identifier on that dialect — on
+// MySQL a "..." token is a string literal, not an identifier. Inner
+// quote characters are only allowed as doubled escapes ("" or ``).
+// Backslashes are rejected outright: on MySQL in its default mode a
+// backslash escapes the next character inside a double-quoted literal,
+// so `"\""` ends the literal early and the rest becomes raw SQL.
+// A string that merely starts and ends with a quote character, like
+// `"a" = 1, "b"`, is not a quoted identifier and must never pass
+// through to SQL unmodified.
+func isSafelyPreQuoted(s string, quoteChar byte) bool {
 	if len(s) < 2 {
 		return false
 	}
-	quoteChar := s[0]
-	if quoteChar != '"' && quoteChar != '`' {
+	if s[0] != quoteChar {
 		return false
 	}
 	if s[len(s)-1] != quoteChar {
 		return false
 	}
 	inner := s[1 : len(s)-1]
+	if strings.IndexByte(inner, '\\') != -1 {
+		return false
+	}
 	// Remove every doubled escape; no quote character may remain.
 	doubled := string([]byte{quoteChar, quoteChar})
 	return !strings.Contains(strings.ReplaceAll(inner, doubled, ""), string(quoteChar))
@@ -662,17 +671,18 @@ func isSafelyPreQuoted(s string) bool {
 // isQuotableColumn reports whether col is a column name that
 // quoteIdentifier can safely emit: either a plain (optionally dotted)
 // column reference or a fully pre-quoted identifier — including the
-// per-part quoted "a"."b" form. Crafted fragments that merely start and
-// end with a quote character, such as `"a" = 1, "b"`, are rejected.
-func isQuotableColumn(col string) bool {
-	if isValidColumnReference(col) || isSafelyPreQuoted(col) {
+// per-part quoted "a"."b" form — using the dialect's quote character.
+// Crafted fragments that merely start and end with a quote character,
+// such as `"a" = 1, "b"`, are rejected.
+func isQuotableColumn(col string, quoteChar byte) bool {
+	if isValidColumnReference(col) || isSafelyPreQuoted(col, quoteChar) {
 		return true
 	}
 	if !strings.Contains(col, ".") {
 		return false
 	}
 	for _, part := range strings.Split(col, ".") {
-		if !isTableIdentifier(part) && !isSafelyPreQuoted(part) {
+		if !isTableIdentifier(part) && !isSafelyPreQuoted(part, quoteChar) {
 			return false
 		}
 	}
