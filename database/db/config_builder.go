@@ -3,7 +3,9 @@ package db
 import (
 	"fmt"
 	"io/fs"
+	"net"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -310,13 +312,22 @@ func (b *ConfigBuilder) buildAztablesDSN() (string, error) {
 }
 
 // buildMySQLDSN builds a MySQL DSN string.
+//
+// The password is written verbatim — go-sql-driver's parser scans for the
+// last '/' and last '@', so credentials containing '@', '/' or '?' still
+// round-trip correctly and cannot inject a fake network address or extra
+// parameters. The database name and parameter values are percent-encoded
+// (the driver PathUnescape/QueryUnescape's them in ParseDSN). Deliberately
+// hand-built rather than mysql.Config.FormatDSN so this package does not
+// import the driver — the go-sql-driver dependency must only be referenced
+// from the MySQL integration tests.
 func (b *ConfigBuilder) buildMySQLDSN() (string, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		b.config.Username,
 		b.config.Password,
 		b.config.Host,
 		b.config.Port,
-		b.config.Database,
+		url.PathEscape(b.config.Database),
 	)
 
 	params := []string{}
@@ -324,7 +335,7 @@ func (b *ConfigBuilder) buildMySQLDSN() (string, error) {
 	if charset == "" {
 		charset = "utf8mb4"
 	}
-	params = append(params, "charset="+charset)
+	params = append(params, "charset="+url.QueryEscape(charset))
 	// parseTime=true is required for the MySQL driver to return time.Time values
 	// for DATETIME/TIMESTAMP columns instead of []uint8 byte slices.
 	params = append(params, "parseTime=true")
@@ -339,27 +350,31 @@ func (b *ConfigBuilder) buildMySQLDSN() (string, error) {
 	return dsn, nil
 }
 
-// buildPostgresDSN builds a PostgreSQL DSN string.
+// buildPostgresDSN builds a PostgreSQL DSN string in URL form.
+// libpq accepts postgres:// URIs; building via url.URL guarantees every
+// component is escaped so values cannot inject additional connection
+// parameters (e.g. a password containing " sslmode=disable").
 func (b *ConfigBuilder) buildPostgresDSN() (string, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s",
-		b.config.Host,
-		b.config.Port,
-		b.config.Username,
-		b.config.Password,
-		b.config.Database,
-	)
+	u := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(b.config.Username, b.config.Password),
+		Host:   net.JoinHostPort(b.config.Host, strconv.Itoa(b.config.Port)),
+		Path:   "/" + b.config.Database,
+	}
 
+	params := url.Values{}
 	if b.config.Schema != "" {
-		dsn += " search_path=" + b.config.Schema
+		params.Set("search_path", b.config.Schema)
 	}
 	if b.config.SSLMode != "" {
-		dsn += " sslmode=" + b.config.SSLMode
+		params.Set("sslmode", b.config.SSLMode)
 	}
 	if b.config.Timezone != "" {
-		dsn += " TimeZone=" + b.config.Timezone
+		params.Set("TimeZone", b.config.Timezone)
 	}
+	u.RawQuery = params.Encode()
 
-	return dsn, nil
+	return u.String(), nil
 }
 
 // buildSQLiteDSN builds a SQLite DSN string.
@@ -407,16 +422,19 @@ func (b *ConfigBuilder) buildCSVDBDSN() (string, error) {
 	return b.config.Database, nil
 }
 
-// buildSQLServerDSN builds a SQL Server DSN string.
+// buildSQLServerDSN builds a SQL Server DSN string. Components are escaped
+// via url.URL so values cannot inject query parameters (e.g. a database
+// name containing "&encrypt=disable").
 func (b *ConfigBuilder) buildSQLServerDSN() (string, error) {
-	dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s",
-		b.config.Username,
-		b.config.Password,
-		b.config.Host,
-		b.config.Port,
-		b.config.Database,
-	)
-	return dsn, nil
+	u := &url.URL{
+		Scheme: "sqlserver",
+		User:   url.UserPassword(b.config.Username, b.config.Password),
+		Host:   net.JoinHostPort(b.config.Host, strconv.Itoa(b.config.Port)),
+	}
+	params := url.Values{}
+	params.Set("database", b.config.Database)
+	u.RawQuery = params.Encode()
+	return u.String(), nil
 }
 
 // buildTursoDSN builds a Turso DSN string.
@@ -440,15 +458,17 @@ func (b *ConfigBuilder) buildTursoDSN() (string, error) {
 }
 
 // buildOracleDSN builds an Oracle DSN string.
+// Oracle connection string format: oracle://user:pass@host:port/service.
+// Credentials are escaped via url.UserPassword so special characters cannot
+// corrupt the authority section.
 func (b *ConfigBuilder) buildOracleDSN() (string, error) {
-	// Oracle connection string format: oracle://user:pass@host:port/service
-	return fmt.Sprintf("oracle://%s:%s@%s:%d/%s",
-		b.config.Username,
-		b.config.Password,
-		b.config.Host,
-		b.config.Port,
-		b.config.Database,
-	), nil
+	u := &url.URL{
+		Scheme: "oracle",
+		User:   url.UserPassword(b.config.Username, b.config.Password),
+		Host:   net.JoinHostPort(b.config.Host, strconv.Itoa(b.config.Port)),
+		Path:   "/" + b.config.Database,
+	}
+	return u.String(), nil
 }
 
 // ReplicaConfig holds host/port/credentials for a single read or write replica.

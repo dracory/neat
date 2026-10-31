@@ -155,6 +155,11 @@ type Query interface {
 	// This is memory-efficient for processing large datasets.
 	// Returns a channel of Cursor instances and an error if the query fails.
 	//
+	// Consumers MUST either drain the channel to exhaustion or cancel the
+	// query's context / configure Pool.QueryTimeout. Abandoning the channel
+	// without cancellation leaks the producer goroutine and the connection
+	// it holds until the context ends.
+	//
 	// Example:
 	//   cursor, err := query.Cursor()
 	//   if err != nil {

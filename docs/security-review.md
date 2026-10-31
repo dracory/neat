@@ -24,7 +24,7 @@ None.
 
 ## High Severity Findings
 
-### Finding #1: `redactDSN` Does Not Redact Non-URL DSN Formats — Credentials Leak Into Error Messages
+### Finding #1: `redactDSN` Does Not Redact Non-URL DSN Formats — Credentials Leak Into Error Messages ✅ FIXED
 
 - **Location**: `database/db.go:359-392`, used at `database/db.go:210` and `database/db.go:514`
 - **Description**: `redactDSN` only strips credentials when the DSN contains `://` (URL-style) or a `mysql://` prefix. Two supported DSN families pass through **unredacted**:
@@ -56,7 +56,7 @@ dsn = re.ReplaceAllString(dsn, "${1}[REDACTED]")
 
 ## Medium Severity Findings
 
-### Finding #2: `buildPostgresDSN` Allows libpq Parameter Injection via Unquoted Values
+### Finding #2: `buildPostgresDSN` Allows libpq Parameter Injection via Unquoted Values ✅ FIXED
 
 - **Location**: `database/db/config_builder.go:344-360`
 - **Description**: The keyword/value DSN is assembled with `fmt.Sprintf` and raw values. libpq treats the string as space-separated `key=value` pairs; a value containing whitespace or a quote breaks out of its pair. `Password`, `Schema` (`search_path`), and `Timezone` are concatenated unquoted:
@@ -68,7 +68,7 @@ dsn += " TimeZone=" + b.config.Timezone
 - **Impact**: CWE-88 (Argument/Parameter Injection). TLS downgrade (`sslmode=disable`), credential-relevant parameter injection, schema search-path hijack.
 - **Recommendation**: Quote every value per libpq rules (`'` wrapping, `\'`/`\\` escaping), or build the DSN via `url.URL` (the `postgres://` URL form) with `url.UserPassword`/`QueryEscape` for all components. Validate `Schema`/`Timezone`/`SSLMode` against an allowlist (e.g. `isTableIdentifier` for schema names; fixed enum for `sslmode`).
 
-### Finding #3: URL-Style DSNs Interpolate Credentials Without Escaping (MySQL, SQL Server, Oracle)
+### Finding #3: URL-Style DSNs Interpolate Credentials Without Escaping (MySQL, SQL Server, Oracle) ✅ FIXED
 
 - **Location**: `database/db/config_builder.go:314` (MySQL), `:412` (SQL Server), `:445` (Oracle)
 - **Description**: Credentials and database names are placed into userinfo/path positions without escaping:
@@ -81,7 +81,7 @@ return fmt.Sprintf("oracle://%s:%s@%s:%d/%s", ...)
 - **Impact**: CWE-88. Connection-string injection: TLS/encryption downgrade, wrong-host connection (credential phishing to attacker server), or persistent connection failure (DoS).
 - **Recommendation**: For URL DSNs use `(&url.URL{Scheme, User: url.UserPassword(u,p), Host: net.JoinHostPort(h,port), Path: db}).String()`; for go-sql-driver, prefer `mysql.Config{}.FormatDSN()` which handles escaping correctly.
 
-### Finding #4: `sanitizeError` "Sanitized" Message Still Contains Full SQL Error Detail
+### Finding #4: `sanitizeError` "Sanitized" Message Still Contains Full SQL Error Detail ✅ FIXED
 
 - **Location**: `database/query/error_sanitizer.go:38-40`
 - **Description**: When an error matches a SQL keyword, production mode returns `fmt.Errorf("database operation failed: %w", err)`. `%w` **embeds the original message text** in the rendered error — `err.Error()` still contains the full `pq: syntax error at or near …`, `Error 1064 …`, constraint names, column names, etc. The wrap only adds a prefix; nothing is actually redacted. Host apps that return/log `err.Error()` leak exactly what the sanitizer claims to hide.
@@ -94,7 +94,7 @@ func (e sanitizedError) Unwrap() error { return e.inner }
 ```
   …or keep `%w` but document clearly that the detail remains visible and the function only adds a generic prefix — currently the code and comment ("return generic error messages") misrepresent the behavior.
 
-### Finding #5: `Query.Cursor` Goroutine Leaks When Consumer Abandons the Channel
+### Finding #5: Query.Cursor Goroutine Leak — ✅ DOCUMENTED + TESTED
 
 - **Location**: `database/query/query_cursor.go:44-78`
 - **Description**: The cursor goroutine sends on `cursorChan` (buffer 10) with `select { case cursorChan <- …: case <-ctx.Done(): }`. When `Pool.QueryTimeout == 0`, `timeoutContext()` returns `context.Background()` (`query_helpers.go:85-88`) — `ctx.Done()` never fires. If the caller stops draining the channel without canceling its own context, the goroutine blocks forever holding `rows` open — a leaked goroutine plus a leaked connection-pool slot.
@@ -105,28 +105,28 @@ func (e sanitizedError) Unwrap() error { return e.inner }
 
 ## Low Severity Findings
 
-### Finding #6: Exported `QuoteIdentifier`/`QuoteValue` Helpers Are Unsafe for MySQL/SQL Server
+### Finding #6: Exported `QuoteIdentifier`/`QuoteValue` Helpers Are Unsafe for MySQL/SQL Server ✅ FIXED
 
 - **Location**: `database/db/expression.go:122-146`
 - **Description**: `QuoteIdentifier` wraps identifiers without escaping embedded quote characters (`` ` `` for MySQL, `]` for SQL Server — `[a]]b` breaks out). `QuoteValue` escapes only `'`, but under MySQL's default SQL mode `\` also escapes inside string literals, so `\'` injection remains possible. These helpers are exported and encourage building SQL by concatenation.
 - **Impact**: CWE-89 if a host app feeds user input through them. Not used internally — API foot-gun.
 - **Recommendation**: Escape the dialect quote char inside identifiers; deprecate `QuoteValue` in favor of bound parameters, or document it as debug-only.
 
-### Finding #7: `Paginate` Accepts Negative `page`/`limit` Without Validation
+### Finding #7: `Paginate` Accepts Negative `page`/`limit` Without Validation ✅ FIXED
 
 - **Location**: `database/query/query_paginate.go:9-13`
 - **Description**: `offset := (page - 1) * limit` — negative or zero inputs produce negative `LIMIT`/`OFFSET` and (with extreme values) int overflow of the offset computation. Results are dialect-dependent syntax errors or silently wrong windows.
 - **Impact**: Low — malformed queries, no injection (values are formatted via `%d`).
 - **Recommendation**: Clamp to `page >= 1`, `limit >= 0` (or return a validation error).
 
-### Finding #8: Panic-Based Error Handling in `support/*source` Parsers
+### Finding #8: Panic-Based Error Handling in support source Parsers — OUT OF SCOPE
 
 - **Location**: `support/csvsource/csv_source.go:40-127`, `support/jsonsource/json_source.go:56-125`, `support/xmlsource/xml_source.go:59-108`, `support/arraysource/*`
 - **Description**: Malformed input (`failed to parse …`) triggers `panic` rather than an error return. These are file/local-dev drivers per `SECURITY_MODEL.md` (out of scope), but a host app that ever parses untrusted uploads through them has a crash-level DoS.
 - **Impact**: CWE-248 (Uncaught Exception) — process crash on bad input.
 - **Recommendation**: Prefer returning `error`; at minimum document the panic contract prominently.
 
-### Finding #9: No `recover()` Around Observer Callbacks
+### Finding #9: No `recover()` Around Observer Callbacks ✅ FIXED
 
 - **Location**: `database/observer/dispatcher.go:62-90`
 - **Description**: Host-registered observer hooks (`Created`, `Creating`, …) run synchronously; a panicking observer propagates up through `Create`/`Update`/etc. and can crash the host process mid-transaction.

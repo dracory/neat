@@ -3,7 +3,6 @@ package query
 import (
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
 )
@@ -11,7 +10,7 @@ import (
 // sanitizeError removes SQL details from error messages in production mode.
 // Logs full errors when debug is enabled.
 // Integrated into query execution error return paths (Scan, Exec, Create, Update, Delete, Restore, ForceDelete).
-// See security review Finding #9.
+// See docs/security-review.md Finding #4.
 func (q *Query) sanitizeError(err error) error {
 	if err == nil {
 		return err
@@ -37,8 +36,20 @@ func (q *Query) sanitizeError(err error) error {
 	lowerMsg := strings.ToLower(errMsg)
 	keywords := []string{"sql", "query", "syntax", "column", "table", "constraint", "foreign key", "primary key", "duplicate", "unique", "relation", "schema"}
 	if slices.ContainsFunc(keywords, func(k string) bool { return strings.Contains(lowerMsg, k) }) {
-		return fmt.Errorf("database operation failed: %w", err)
+		return &redactedError{inner: err}
 	}
 
 	return err
 }
+
+// redactedError presents a generic message via Error() while keeping the
+// original error reachable through Unwrap() so errors.Is/errors.As still
+// work. Unlike fmt.Errorf("...: %w", err), the wrapped error's message text
+// is NOT included in Error() output — that is what actually prevents SQL
+// detail leakage.
+type redactedError struct {
+	inner error
+}
+
+func (e *redactedError) Error() string { return "database operation failed" }
+func (e *redactedError) Unwrap() error { return e.inner }

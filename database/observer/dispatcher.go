@@ -60,13 +60,27 @@ func (d *Dispatcher) Dispatch(
 
 	// Dispatch event to matching observers
 	for _, observer := range matchingObservers {
-		if err := d.dispatchToObserver(event, observer, eventType); err != nil {
-			d.log.Errorf("[Dispatcher] Error dispatching event %s: %v", eventType, err)
+		if err := d.safeDispatchToObserver(event, observer, eventType); err != nil {
+			if d.log != nil {
+				d.log.Errorf("[Dispatcher] Error dispatching event %s: %v", eventType, err)
+			}
 			// Continue with other observers even if one fails
 		}
 	}
 
 	return nil
+}
+
+// safeDispatchToObserver calls dispatchToObserver and converts a panicking
+// observer callback into an error instead of letting the panic propagate to
+// the caller (which could crash the host process mid-transaction).
+func (d *Dispatcher) safeDispatchToObserver(event *Event, observer orm.Observer, eventType orm.EventType) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("observer panicked during %s event: %v", eventType, r)
+		}
+	}()
+	return d.dispatchToObserver(event, observer, eventType)
 }
 
 // dispatchToObserver dispatches an event to a specific observer based on the event type.

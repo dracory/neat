@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -367,8 +368,9 @@ func redactDSN(dsn string) string {
 		if len(parts) == 2 {
 			scheme := parts[0]
 			rest := parts[1]
-			// Remove user:password@ part if present
-			if atIdx := strings.Index(rest, "@"); atIdx != -1 {
+			// Remove user:password@ part if present — use the LAST '@' so a
+			// password containing '@' does not leak its tail.
+			if atIdx := strings.LastIndex(rest, "@"); atIdx != -1 {
 				rest = "[REDACTED]@" + rest[atIdx+1:]
 			}
 			// Redact authToken/auth_token/jwt query parameters
@@ -381,14 +383,38 @@ func redactDSN(dsn string) string {
 			return scheme + "://" + rest
 		}
 	}
-	// Handle mysql:// DSNs with user:pass@tcp(host:port)/db format
-	if strings.HasPrefix(dsn, "mysql://") {
-		rest := strings.TrimPrefix(dsn, "mysql://")
-		if atIdx := strings.Index(rest, "@"); atIdx != -1 {
-			return "mysql://[REDACTED]@" + rest[atIdx+1:]
+	// Handle keyword/value DSNs (e.g., libpq "host=x user=y password=z ...")
+	if strings.Contains(dsn, "=") {
+		if redacted, ok := redactKeywordValueDSN(dsn); ok {
+			return redacted
+		}
+	}
+	// Handle driver-native MySQL DSNs: user:pass@tcp(host:port)/db — no scheme.
+	// Also covers any other schemeless "userinfo@location" DSN. The boundary
+	// is the LAST '@' before the address (matching go-sql-driver's parser),
+	// so passwords containing '@' are fully redacted.
+	if atIdx := strings.LastIndex(dsn, "@"); atIdx != -1 {
+		if cIdx := strings.Index(dsn[:atIdx], ":"); cIdx != -1 {
+			return dsn[:cIdx+1] + "[REDACTED]" + dsn[atIdx:]
 		}
 	}
 	return dsn
+}
+
+// kvSensitiveValueRe matches password-like key=value pairs in keyword/value
+// connection strings (libpq-style). The value is either a single-quoted
+// string (backslash escapes allowed) or a run of non-space characters.
+var kvSensitiveValueRe = regexp.MustCompile(`(?i)(\b(?:\w*password|passwd|pwd)\s*=\s*)('(?:[^'\\]|\\.)*'|\S+)`)
+
+// redactKeywordValueDSN redacts password-like values in space-separated
+// key=value connection strings, e.g.
+// "host=h user=u password=secret dbname=d". Returns ok=false when no
+// password-like key is present.
+func redactKeywordValueDSN(dsn string) (string, bool) {
+	if !kvSensitiveValueRe.MatchString(dsn) {
+		return dsn, false
+	}
+	return kvSensitiveValueRe.ReplaceAllString(dsn, "${1}[REDACTED]"), true
 }
 
 // redactQueryParams redacts sensitive query parameters (authToken, auth_token, jwt)

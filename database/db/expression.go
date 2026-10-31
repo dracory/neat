@@ -119,25 +119,34 @@ func (e *WhereExpression) Boolean() string {
 	return e.boolean
 }
 
-// QuoteIdentifier quotes an identifier for SQL.
+// QuoteIdentifier quotes an identifier for SQL. Embedded quote characters
+// are escaped by doubling them (SQL Server escapes the closing bracket).
+// Prefer bound parameters and validated identifiers over manual quoting.
 func QuoteIdentifier(identifier string, dialect string) string {
 	switch dialect {
 	case "mysql":
-		return fmt.Sprintf("`%s`", identifier)
+		return "`" + strings.ReplaceAll(identifier, "`", "``") + "`"
 	case "postgres", "sqlite", "turso":
-		return fmt.Sprintf(`"%s"`, identifier)
+		return `"` + strings.ReplaceAll(identifier, `"`, `""`) + `"`
 	case "sqlserver":
-		return fmt.Sprintf("[%s]", identifier)
+		return "[" + strings.ReplaceAll(identifier, "]", "]]") + "]"
 	default:
 		return identifier
 	}
 }
 
-// QuoteValue quotes a value for SQL.
+// QuoteValue quotes a value for SQL. Bound parameters are always preferable;
+// this helper exists for composing literals where placeholders cannot be
+// used. Both single quotes and, for MySQL, backslashes are escaped — MySQL
+// treats '\' as an escape character inside string literals, so failing to
+// escape it leaves \' injection possible.
 func QuoteValue(value any, dialect string) string {
 	switch v := value.(type) {
 	case string:
-		return fmt.Sprintf("'%s'", strings.ReplaceAll(v, "'", "''"))
+		if dialect == "mysql" {
+			v = strings.ReplaceAll(v, `\`, `\\`)
+		}
+		return "'" + strings.ReplaceAll(v, "'", "''") + "'"
 	case nil:
 		return "NULL"
 	default:
