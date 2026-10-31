@@ -69,6 +69,73 @@ func TestReplacePlaceholdersWithValuesNil(t *testing.T) {
 	}
 }
 
+// TestReplacePlaceholdersWithValuesEscapesStringQuotes verifies that a bound
+// string containing single quotes cannot break out of the SQL literal
+// (prevents SQL injection via ToRawSql, e.g. through Schema.CreateView).
+func TestReplacePlaceholdersWithValuesEscapesStringQuotes(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	toSql := q.ToRawSql().(*ToSql)
+
+	sql := toSql.replacePlaceholdersWithValues(
+		"SELECT * FROM users WHERE name = ?",
+		[]any{"x' OR '1'='1"},
+	)
+	expected := "SELECT * FROM users WHERE name = 'x'' OR ''1''=''1'"
+	if sql != expected {
+		t.Errorf("Expected %q, got %q", expected, sql)
+	}
+}
+
+// TestReplacePlaceholdersWithValuesEscapesDefaultCaseQuotes verifies that the
+// catch-all '%v' formatting path also escapes embedded single quotes.
+func TestReplacePlaceholdersWithValuesEscapesDefaultCaseQuotes(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	toSql := q.ToRawSql().(*ToSql)
+
+	type custom struct{ v string }
+	arg := custom{v: "x' OR '1'='1"}
+
+	sql := toSql.replacePlaceholdersWithValues(
+		"SELECT * FROM users WHERE name = ?",
+		[]any{arg},
+	)
+	if !strings.Contains(sql, "'{x'' OR ''1''=''1}'") {
+		t.Errorf("Expected escaped quotes in %q", sql)
+	}
+}
+
+// TestReplacePlaceholdersWithValuesSkipsQuestionMarksInValues verifies that a
+// '?' inside an injected value is not consumed as a later placeholder.
+func TestReplacePlaceholdersWithValuesSkipsQuestionMarksInValues(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	toSql := q.ToRawSql().(*ToSql)
+
+	sql := toSql.replacePlaceholdersWithValues(
+		"SELECT * FROM users WHERE a = ? AND b = ?",
+		[]any{"what?", 42},
+	)
+	expected := "SELECT * FROM users WHERE a = 'what?' AND b = 42"
+	if sql != expected {
+		t.Errorf("Expected %q, got %q", expected, sql)
+	}
+}
+
+// TestReplacePlaceholdersWithValuesBoolAndBytes verifies bool and []byte
+// literal formatting.
+func TestReplacePlaceholdersWithValuesBoolAndBytes(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	toSql := q.ToRawSql().(*ToSql)
+
+	sql := toSql.replacePlaceholdersWithValues(
+		"SELECT * FROM users WHERE active = ? AND token = ?",
+		[]any{true, []byte{0xde, 0xad}},
+	)
+	expected := "SELECT * FROM users WHERE active = TRUE AND token = X'dead'"
+	if sql != expected {
+		t.Errorf("Expected %q, got %q", expected, sql)
+	}
+}
+
 func TestToSqlSaveInsert(t *testing.T) {
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
 	q.table = "users"
