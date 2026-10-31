@@ -80,6 +80,53 @@ func TestOracleCompileDropViewIfExists(t *testing.T) {
 	}
 }
 
+func TestOracleCompileDropIfExists(t *testing.T) {
+	g := newOracleGrammar()
+
+	sql, err := g.CompileDropIfExists(newBlueprint("users"))
+	if err != nil {
+		t.Fatalf("CompileDropIfExists returned error: %v", err)
+	}
+	if !strings.Contains(sql, "BEGIN EXECUTE IMMEDIATE") {
+		t.Errorf("Expected PL/SQL block, got: %s", sql)
+	}
+	if !strings.Contains(sql, "DROP TABLE USERS CASCADE CONSTRAINTS") {
+		t.Errorf("Expected 'DROP TABLE USERS CASCADE CONSTRAINTS' inside block, got: %s", sql)
+	}
+	if !strings.HasSuffix(sql, "END;;") {
+		t.Errorf("Expected to end with 'END;;', got: %s", sql)
+	}
+
+	// Schema-qualified name — still validated by wrap.Table, uppercased in output
+	sql, err = g.CompileDropIfExists(newBlueprint("scott.users"))
+	if err != nil {
+		t.Fatalf("CompileDropIfExists returned error for schema-qualified name: %v", err)
+	}
+	if !strings.Contains(sql, "DROP TABLE SCOTT.USERS") {
+		t.Errorf("Expected uppercased schema-qualified name, got: %s", sql)
+	}
+}
+
+func TestOracleCompileDropIfExistsInjection(t *testing.T) {
+	g := newOracleGrammar()
+
+	// A quote closes the PL/SQL string literal and a semicolon starts a new
+	// statement — both must be rejected by identifier validation.
+	for _, name := range []string{
+		"users'; DROP TABLE users; --",
+		"x'; EXECUTE IMMEDIATE 'DROP TABLE users'; --",
+		"users; DROP TABLE users",
+		"users'--",
+		"users\"",
+		"users ",
+		"",
+	} {
+		if _, err := g.CompileDropIfExists(newBlueprint(name)); err == nil {
+			t.Errorf("Expected error for malicious table name %q, got nil", name)
+		}
+	}
+}
+
 func TestOracleCompileCreateViewInjection(t *testing.T) {
 	g := newOracleGrammar()
 
