@@ -248,8 +248,24 @@ func (r *Oracle) CompileDropFullText(blueprint schema.Blueprint, command *schema
 }
 
 func (r *Oracle) CompileDropIfExists(blueprint schema.Blueprint) (string, error) {
-	tableName := strings.ToUpper(blueprint.GetTableName())
-	// Use the same pattern as helper.go for consistency
+	// Validate the identifier via wrap.Table (rejects injection attempts),
+	// then use the unquoted uppercased form inside EXECUTE IMMEDIATE.
+	// This matches the pattern of CompileDropViewIfExists: the go-ora
+	// driver's PL/SQL parser mishandles double-quoted identifiers inside the
+	// single-quoted EXECUTE IMMEDIATE string, so we embed the bare uppercased
+	// name instead. Oracle treats unquoted identifiers as uppercase by default.
+	table := blueprint.GetTableName()
+	if _, err := r.wrap.Table(table); err != nil {
+		return "", err
+	}
+	// Apply the table prefix to the final segment so schema-qualified names
+	// ("schema.table") keep their schema part unprefixed.
+	if i := strings.LastIndex(table, "."); i >= 0 {
+		table = table[:i+1] + r.wrap.GetPrefix() + table[i+1:]
+	} else {
+		table = r.wrap.GetPrefix() + table
+	}
+	tableName := strings.ToUpper(table)
 	// Simple PL/SQL block with exception handling
 	// Add trailing semicolon for proper execution
 	return fmt.Sprintf("BEGIN EXECUTE IMMEDIATE 'DROP TABLE %s CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;", tableName) + ";", nil
