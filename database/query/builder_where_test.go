@@ -388,6 +388,13 @@ func TestWhereShorthandRejectsInjection(t *testing.T) {
 		"name` = ? OR `x` = ?",     // quoted-identifier breakout attempt
 		"name = 1",                 // operator but no placeholder
 		"COUNT(*) > 1",             // expression binding no placeholder
+
+		// MySQL backslash escape: '\' escapes its own closing quote, so the
+		// second "literal" argument runs as SQL.
+		`concat('\', ') OR 1=1 OR 1=? -- ') = ?`,
+		`coalesce(name, 'a\', ') OR 1=1 OR 1=? -- ') = ?`,
+		`json_extract('\', ') OR 1=1 OR 1=? -- ') = ?`,
+		`concat('\\', 'x') = ?`, // literal ending in backslash
 	}
 
 	for _, col := range injections {
@@ -408,6 +415,21 @@ func TestWhereShorthandRejectsInjection(t *testing.T) {
 		if q.buildError == nil {
 			t.Errorf("Filter(%q, 5) should set a build error", col)
 		}
+	}
+}
+
+func TestWhereShorthandRejectsBackslashLiteralMySQL(t *testing.T) {
+	// On MySQL a backslash escapes the following quote inside a string
+	// literal, so concat('\', ') ... -- ') smuggles live SQL past a check
+	// that only rejects inner quotes.
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "mysql"}, "", nil, nil)
+	q.Where(`concat('\', ') OR 1=1 OR 1=? -- ') = ?`, 1)
+	if q.buildError == nil {
+		t.Fatal("expected buildError for backslash-escaped literal operand")
+	}
+	where, args := NewBuilder(q).buildWheres()
+	if where != "" || len(args) != 0 {
+		t.Fatalf("expected no clause emitted, got where=%q args=%v", where, args)
 	}
 }
 
