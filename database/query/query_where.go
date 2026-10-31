@@ -2,7 +2,6 @@ package query
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -396,90 +395,166 @@ func (q *Query) WhereNone(columns []string, operator string, value any) orm.Quer
 	return q
 }
 
-// splitJsonColumn splits a JSON column name into column and path.
-func (q *Query) splitJsonColumn(column string) (string, string) {
-	if !strings.Contains(column, "->") {
-		return column, ""
+// isValidJSONPathSegment reports whether s is a safe JSON path segment:
+// a simple identifier optionally followed by [n] array indexes ("items",
+// "items[0]", "items[0][2]") or a pure array index ("0"). The admitted
+// character set contains no quotes or separators, so a validated segment
+// can be embedded in a JSON path literal safely.
+func isValidJSONPathSegment(s string) bool {
+	if s == "" {
+		return false
 	}
-	parts := strings.SplitN(column, "->", 2)
-	if len(parts) < 2 {
-		return column, ""
+	// Pure numeric array index
+	if _, err := strconv.Atoi(s); err == nil {
+		return true
 	}
-	// Replace all -> with . for SQLite JSON path syntax
-	// SQLite's json_extract requires the $ prefix: $.name not .name
-	path := "$." + strings.ReplaceAll(parts[1], "->", ".")
-	return parts[0], path
+	head, indexes := s, ""
+	if i := strings.IndexByte(s, '['); i != -1 {
+		head, indexes = s[:i], s[i:]
+	}
+	if !isTableIdentifier(head) {
+		return false
+	}
+	// indexes must be a sequence of [n] groups
+	for indexes != "" {
+		if indexes[0] != '[' {
+			return false
+		}
+		end := strings.IndexByte(indexes, ']')
+		if end < 2 {
+			return false
+		}
+		if _, err := strconv.Atoi(indexes[1:end]); err != nil {
+			return false
+		}
+		indexes = indexes[end+1:]
+	}
+	return true
 }
 
-// splitJsonColumnForMySQL splits a JSON column name into column and path for MySQL.
-// MySQL uses $.path for object paths and $[index] for array indexing.
-func (q *Query) splitJsonColumnForMySQL(column string) (string, string) {
-	if !strings.Contains(column, "->") {
-		return column, ""
+// jsonPathSegmentParts splits a validated segment into its identifier head
+// and its array indexes: "items[0][2]" -> ("items", ["0","2"]) and a pure
+// index "0" -> ("", ["0"]). Input must satisfy isValidJSONPathSegment.
+func jsonPathSegmentParts(segment string) (head string, indexes []string) {
+	if i := strings.IndexByte(segment, '['); i != -1 {
+		head = segment[:i]
+		rest := segment[i:]
+		for rest != "" {
+			end := strings.IndexByte(rest, ']')
+			indexes = append(indexes, rest[1:end])
+			rest = rest[end+1:]
+		}
+		return head, indexes
 	}
-	parts := strings.SplitN(column, "->", 2)
-	if len(parts) < 2 {
-		return column, ""
+	if _, err := strconv.Atoi(segment); err == nil {
+		return "", []string{segment}
 	}
-	// Convert -> to MySQL JSON path syntax
-	// For array indices like tags->0, convert to $.tags[0]
-	// For object paths like meta->id, convert to $.meta.id
-	path := strings.ReplaceAll(parts[1], "->", ".")
-	// Handle array indexing: replace .0. with [0]., .1. with [1]., etc.
-	re := regexp.MustCompile(`\.(\d+)\.`)
-	path = re.ReplaceAllString(path, "[$1].")
-	// Handle trailing array index: replace .0 with [0]
-	re = regexp.MustCompile(`\.(\d+)$`)
-	path = re.ReplaceAllString(path, "[$1]")
-	return parts[0], "$." + path
+	return segment, nil
 }
 
-// splitJsonColumnForPostgreSQL splits a JSON column name into column and path for PostgreSQL.
-// PostgreSQL uses -> for JSON object access and ->> for text extraction.
-func (q *Query) splitJsonColumnForPostgreSQL(column string) (string, string) {
-	if !strings.Contains(column, "->") {
-		return column, ""
+// jsonPathSegments splits a JSON column ("data->meta->active") into the
+// column reference and the path segments, validating each: the column must
+// be a valid column reference and every segment a valid JSON path segment.
+// On invalid input it sets q.buildError and returns ok=false; callers must
+// emit no clause then.
+func (q *Query) jsonPathSegments(column string) (col string, segments []string, ok bool) {
+	parts := strings.Split(column, "->")
+	if !isValidColumnReference(parts[0]) {
+		if q.buildError == nil {
+			q.buildError = fmt.Errorf("invalid JSON column name: %q", parts[0])
+		}
+		return "", nil, false
 	}
-	parts := strings.SplitN(column, "->", 2)
-	if len(parts) < 2 {
-		return column, ""
-	}
-	// Convert -> to PostgreSQL JSON path syntax
-	// For array indices like tags->0, convert to ->0
-	// For object paths like meta->id, convert to ->'meta'->'id'
-	pathParts := strings.Split(parts[1], "->")
-	var pathBuilder strings.Builder
-	for _, part := range pathParts {
-		// Check if it's a numeric index (array)
-		if _, err := strconv.Atoi(part); err == nil {
-			// It's a number, don't quote it
-			pathBuilder.WriteString("->")
-			pathBuilder.WriteString(part)
-		} else {
-			// It's a string key, validate it's a simple identifier before quoting
-			if !isTableIdentifier(part) {
-				if q.buildError == nil {
-					q.buildError = fmt.Errorf("invalid JSON path segment: %q", part)
-				}
-				return parts[0], ""
+	for _, segment := range parts[1:] {
+		if !isValidJSONPathSegment(segment) {
+			if q.buildError == nil {
+				q.buildError = fmt.Errorf("invalid JSON path segment: %q", segment)
 			}
-			// Escape single quotes by doubling them (PostgreSQL style)
-			escapedPart := strings.ReplaceAll(part, "'", "''")
-			pathBuilder.WriteString("->'")
-			pathBuilder.WriteString(escapedPart)
-			pathBuilder.WriteString("'")
+			return "", nil, false
 		}
 	}
-	return parts[0], pathBuilder.String()
+	return parts[0], parts[1:], true
+}
+
+// splitJsonColumn splits a JSON column name into a validated column and a
+// SQLite JSON path ("$.a.b"). Returns empty strings on invalid input
+// (q.buildError is set); callers must emit no clause then.
+func (q *Query) splitJsonColumn(column string) (string, string) {
+	col, segments, ok := q.jsonPathSegments(column)
+	if !ok {
+		return "", ""
+	}
+	if len(segments) == 0 {
+		return col, ""
+	}
+	return col, "$." + strings.Join(segments, ".")
+}
+
+// splitJsonColumnForMySQL splits a JSON column name into a validated column
+// and a MySQL JSON path. Numeric segments and [n] indexes emit bracket
+// syntax ("$[0]", "$.a[0]"). Returns empty strings on invalid input
+// (q.buildError is set); callers must emit no clause then.
+func (q *Query) splitJsonColumnForMySQL(column string) (string, string) {
+	col, segments, ok := q.jsonPathSegments(column)
+	if !ok {
+		return "", ""
+	}
+	if len(segments) == 0 {
+		return col, ""
+	}
+	var path strings.Builder
+	path.WriteString("$")
+	for _, segment := range segments {
+		head, indexes := jsonPathSegmentParts(segment)
+		if head != "" {
+			path.WriteString("." + head)
+		}
+		for _, index := range indexes {
+			path.WriteString("[" + index + "]")
+		}
+	}
+	return col, path.String()
+}
+
+// splitJsonColumnForPostgreSQL splits a JSON column name into a validated
+// column and a PostgreSQL JSON path ("->'a'->0"). Returns empty strings on
+// invalid input (q.buildError is set); callers must emit no clause then.
+func (q *Query) splitJsonColumnForPostgreSQL(column string) (string, string) {
+	col, segments, ok := q.jsonPathSegments(column)
+	if !ok {
+		return "", ""
+	}
+	var pathBuilder strings.Builder
+	for _, segment := range segments {
+		head, indexes := jsonPathSegmentParts(segment)
+		if head != "" {
+			pathBuilder.WriteString("->'")
+			pathBuilder.WriteString(head)
+			pathBuilder.WriteString("'")
+		}
+		for _, index := range indexes {
+			pathBuilder.WriteString("->")
+			pathBuilder.WriteString(index)
+		}
+	}
+	return col, pathBuilder.String()
 }
 
 // WhereJsonContains adds a where json contains clause to the query.
 func (q *Query) WhereJsonContains(column string, value any) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '%s') = ?", col, path), args: []any{value}})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '%s') = ?", builder.quoteIdentifier(col), path), args: []any{value}})
 	} else if q.isMySQL() {
 		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		// MySQL's JSON_CONTAINS requires the value to be valid JSON
 		// If it's a string, wrap it in quotes to make it a JSON string
 		jsonValue := value
@@ -488,14 +563,16 @@ func (q *Query) WhereJsonContains(column string, value any) orm.Query {
 		}
 		if path != "" {
 			// MySQL: JSON_CONTAINS(column, value, path)
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", quotedCol), args: []any{jsonValue}})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		// PostgreSQL uses @> operator for JSONB containment
 		// Convert value to JSON format
@@ -511,18 +588,35 @@ func (q *Query) WhereJsonContains(column string, value any) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s @> ?::jsonb", quotedCol), args: []any{jsonValue}})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{value}})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", quotedCol), args: []any{value}})
+		}
 	}
 	return q
 }
 
 // OrWhereJsonContains adds an or where json contains clause to the query.
 func (q *Query) OrWhereJsonContains(column string, value any) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '%s') = ?", col, path), args: []any{value}})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '%s') = ?", builder.quoteIdentifier(col), path), args: []any{value}})
 	} else if q.isMySQL() {
 		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		// MySQL's JSON_CONTAINS requires the value to be valid JSON
 		jsonValue := value
 		if strVal, ok := value.(string); ok {
@@ -530,14 +624,16 @@ func (q *Query) OrWhereJsonContains(column string, value any) orm.Query {
 		}
 		if path != "" {
 			// MySQL: JSON_CONTAINS(column, value, path)
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", quotedCol), args: []any{jsonValue}})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		// PostgreSQL uses @> operator for JSONB containment
 		// Convert value to JSON format
@@ -553,18 +649,35 @@ func (q *Query) OrWhereJsonContains(column string, value any) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s @> ?::jsonb", quotedCol), args: []any{jsonValue}})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{value}})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS(%s, ?)", quotedCol), args: []any{value}})
+		}
 	}
 	return q
 }
 
 // WhereJsonDoesntContain adds a where json doesnt contain clause to the query.
 func (q *Query) WhereJsonDoesntContain(column string, value any) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '%s') != ?", col, path), args: []any{value}})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_extract(%s, '%s') != ?", builder.quoteIdentifier(col), path), args: []any{value}})
 	} else if q.isMySQL() {
 		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		// MySQL's JSON_CONTAINS requires the value to be valid JSON
 		jsonValue := value
 		if strVal, ok := value.(string); ok {
@@ -572,14 +685,16 @@ func (q *Query) WhereJsonDoesntContain(column string, value any) orm.Query {
 		}
 		if path != "" {
 			// MySQL: NOT JSON_CONTAINS(column, value, path)
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", quotedCol), args: []any{jsonValue}})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		// PostgreSQL uses @> operator for JSONB containment
 		// Convert value to JSON format
@@ -595,18 +710,35 @@ func (q *Query) WhereJsonDoesntContain(column string, value any) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT (%s @> ?::jsonb)", quotedCol), args: []any{jsonValue}})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{value}})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", quotedCol), args: []any{value}})
+		}
 	}
 	return q
 }
 
 // OrWhereJsonDoesntContain adds an or where json doesnt contain clause to the query.
 func (q *Query) OrWhereJsonDoesntContain(column string, value any) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '%s') != ?", col, path), args: []any{value}})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_extract(%s, '%s') != ?", builder.quoteIdentifier(col), path), args: []any{value}})
 	} else if q.isMySQL() {
 		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		// MySQL's JSON_CONTAINS requires the value to be valid JSON
 		jsonValue := value
 		if strVal, ok := value.(string); ok {
@@ -614,14 +746,16 @@ func (q *Query) OrWhereJsonDoesntContain(column string, value any) orm.Query {
 		}
 		if path != "" {
 			// MySQL: NOT JSON_CONTAINS(column, value, path)
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", col, path), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{jsonValue}})
 		} else {
 			// No path specified, search entire document
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", col), args: []any{jsonValue}})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", quotedCol), args: []any{jsonValue}})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		// PostgreSQL uses @> operator for JSONB containment
 		// Convert value to JSON format
@@ -637,29 +771,48 @@ func (q *Query) OrWhereJsonDoesntContain(column string, value any) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT (%s @> ?::jsonb)", quotedCol), args: []any{jsonValue}})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", column), args: []any{value}})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?, '%s')", quotedCol, path), args: []any{value}})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS(%s, ?)", quotedCol), args: []any{value}})
+		}
 	}
 	return q
 }
 
 // WhereJsonContainsKey adds a where json contains key clause to the query.
 func (q *Query) WhereJsonContainsKey(column string) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '%s') IS NOT NULL", col, path), args: nil})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '%s') IS NOT NULL", builder.quoteIdentifier(col), path), args: nil})
 	} else if q.isMySQL() {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// MySQL: JSON_CONTAINS_PATH(column, 'one', path)
 			// splitJsonColumnForMySQL already includes the $ prefix
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", col, path), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
 		} else {
 			// No path specified, check if column has any JSON data
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// PostgreSQL: check if path exists using -> operator with IS NOT NULL
@@ -669,29 +822,48 @@ func (q *Query) WhereJsonContainsKey(column string) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NOT NULL AND %s::text != ''", quotedCol, quotedCol), args: nil})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
+		}
 	}
 	return q
 }
 
 // OrWhereJsonContainsKey adds an or where json contains key clause to the query.
 func (q *Query) OrWhereJsonContainsKey(column string) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '%s') IS NOT NULL", col, path), args: nil})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '%s') IS NOT NULL", builder.quoteIdentifier(col), path), args: nil})
 	} else if q.isMySQL() {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// MySQL: JSON_CONTAINS_PATH(column, 'one', path)
 			// splitJsonColumnForMySQL already includes the $ prefix
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", col, path), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
 		} else {
 			// No path specified, check if column has any JSON data
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// PostgreSQL: check if path exists using -> operator with IS NOT NULL
@@ -701,29 +873,48 @@ func (q *Query) OrWhereJsonContainsKey(column string) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IS NOT NULL AND %s::text != ''", quotedCol, quotedCol), args: nil})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
+		}
 	}
 	return q
 }
 
 // WhereJsonDoesntContainKey adds a where json doesnt contain key clause to the query.
 func (q *Query) WhereJsonDoesntContainKey(column string) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '%s') IS NULL", col, path), args: nil})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_type(%s, '%s') IS NULL", builder.quoteIdentifier(col), path), args: nil})
 	} else if q.isMySQL() {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// MySQL: NOT JSON_CONTAINS_PATH(column, 'one', path)
 			// splitJsonColumnForMySQL already includes the $ prefix
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", col, path), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
 		} else {
 			// No path specified, check if column has any JSON data
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// PostgreSQL: check if path doesn't exist using -> operator with IS NULL
@@ -733,29 +924,48 @@ func (q *Query) WhereJsonDoesntContainKey(column string) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("%s IS NULL OR %s::text = ''", quotedCol, quotedCol), args: nil})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
+		}
 	}
 	return q
 }
 
 // OrWhereJsonDoesntContainKey adds an or where json doesnt contain key clause to the query.
 func (q *Query) OrWhereJsonDoesntContainKey(column string) orm.Query {
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '%s') IS NULL", col, path), args: nil})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("json_type(%s, '%s') IS NULL", builder.quoteIdentifier(col), path), args: nil})
 	} else if q.isMySQL() {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// MySQL: NOT JSON_CONTAINS_PATH(column, 'one', path)
 			// splitJsonColumnForMySQL already includes the $ prefix
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", col, path), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
 		} else {
 			// No path specified, check if column has any JSON data
-			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", col), args: nil})
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// PostgreSQL: check if path doesn't exist using -> operator with IS NULL
@@ -765,7 +975,16 @@ func (q *Query) OrWhereJsonDoesntContainKey(column string) orm.Query {
 			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("%s IS NULL OR %s::text = ''", quotedCol, quotedCol), args: nil})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, '$.%s')", column, column), args: nil})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '%s')", quotedCol, path), args: nil})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "or", query: fmt.Sprintf("NOT JSON_CONTAINS_PATH(%s, 'one', '$.*')", quotedCol), args: nil})
+		}
 	}
 	return q
 }
@@ -784,22 +1003,32 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) orm.Q
 		return q
 	}
 
+	builder := NewBuilder(q)
 	if q.isSQLite() {
 		col, path := q.splitJsonColumn(column)
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '%s') %s ?", col, path, normOp), args: []any{value}})
+		if col == "" {
+			return q
+		}
+		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("json_array_length(%s, '%s') %s ?", builder.quoteIdentifier(col), path, normOp), args: []any{value}})
 	} else if q.isMySQL() {
-		col, path := q.splitJsonColumn(column)
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// MySQL: JSON_LENGTH(column, path)
 			// splitJsonColumnForMySQL already includes the $ prefix
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s, '%s') %s ?", col, path, normOp), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s, '%s') %s ?", quotedCol, path, normOp), args: []any{value}})
 		} else {
 			// No path specified, get length of entire document
-			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", col, normOp), args: []any{value}})
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", quotedCol, normOp), args: []any{value}})
 		}
 	} else if q.isPostgres() {
 		col, path := q.splitJsonColumnForPostgreSQL(column)
-		builder := NewBuilder(q)
+		if col == "" {
+			return q
+		}
 		quotedCol := builder.quoteIdentifier(col)
 		if path != "" {
 			// PostgreSQL: jsonb_array_length(column->path)
@@ -809,7 +1038,16 @@ func (q *Query) WhereJsonLength(column string, operator string, value any) orm.Q
 			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("jsonb_array_length(%s) %s ?", quotedCol, normOp), args: []any{value}})
 		}
 	} else {
-		q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", column, normOp), args: []any{value}})
+		col, path := q.splitJsonColumnForMySQL(column)
+		if col == "" {
+			return q
+		}
+		quotedCol := builder.quoteIdentifier(col)
+		if path != "" {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s, '%s') %s ?", quotedCol, path, normOp), args: []any{value}})
+		} else {
+			q.wheres = append(q.wheres, whereClause{_type: "and", query: fmt.Sprintf("JSON_LENGTH(%s) %s ?", quotedCol, normOp), args: []any{value}})
+		}
 	}
 	return q
 }

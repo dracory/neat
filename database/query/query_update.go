@@ -31,6 +31,9 @@ func (q *Query) Update(column any, value ...any) (*orm.Result, error) {
 	builder := NewBuilder(q)
 	sqlStr, args := builder.BuildUpdate(column, value...)
 	if sqlStr == "" {
+		if q.buildError != nil {
+			return nil, q.buildError
+		}
 		return nil, fmt.Errorf("failed to build UPDATE query: no columns to update")
 	}
 
