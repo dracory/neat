@@ -777,10 +777,13 @@ func isNumericLiteral(s string) bool {
 }
 
 // isStringLiteral reports whether s is a simple single-quoted literal with
-// no embedded quote characters (no escaping support).
+// no embedded quote or escape characters (no escaping support). Backslashes
+// are rejected because MySQL treats them as escapes inside string literals:
+// a literal like '\' escapes its own closing quote, turning text the
+// checker saw as a separate argument into live SQL.
 func isStringLiteral(s string) bool {
 	return len(s) >= 2 && s[0] == '\'' && s[len(s)-1] == '\'' &&
-		!strings.Contains(s[1:len(s)-1], "'")
+		!strings.ContainsAny(s[1:len(s)-1], "'\\")
 }
 
 // normalizeScanValue converts []byte to string.
