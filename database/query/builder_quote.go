@@ -5,6 +5,15 @@ import (
 	"strings"
 )
 
+// identifierQuoteChar returns the character this dialect uses to quote
+// identifiers: '`' on MySQL, '"' everywhere else.
+func (b *Builder) identifierQuoteChar() byte {
+	if b.query.driver != nil && b.query.driver.Dialect() == "mysql" {
+		return '`'
+	}
+	return '"'
+}
+
 // quoteIdentifier wraps an identifier in the appropriate quotes for the dialect.
 func (b *Builder) quoteIdentifier(name string) string {
 	if b.query.driver == nil || name == "*" || name == "" {
@@ -12,10 +21,7 @@ func (b *Builder) quoteIdentifier(name string) string {
 	}
 
 	dialect := b.query.driver.Dialect()
-	quoteChar := "\""
-	if dialect == "mysql" {
-		quoteChar = "`"
-	}
+	quoteChar := string(b.identifierQuoteChar())
 
 	// aztablessql parser only accepts [A-Za-z0-9_]+ identifiers — no quotes.
 	if dialect == "aztables" {
@@ -34,7 +40,7 @@ func (b *Builder) quoteIdentifier(name string) string {
 	// quote characters. A string that merely starts and ends with a
 	// quote (e.g. `"a" = 1, "b"`) is a crafted fragment, not an
 	// identifier, and falls through to be quoted as a whole.
-	if isSafelyPreQuoted(name) {
+	if isSafelyPreQuoted(name, b.identifierQuoteChar()) {
 		return name
 	}
 
