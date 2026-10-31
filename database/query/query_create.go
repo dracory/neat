@@ -61,6 +61,9 @@ func (q *Query) Create(value any) error {
 	builder := NewBuilder(q)
 	sqlStr, args := builder.BuildInsert(value)
 	if sqlStr == "" {
+		if q.buildError != nil {
+			return q.buildError
+		}
 		// For Oracle bulk inserts, BuildInsert returns empty to signal we should handle it differently
 		// Fall back to iterating and inserting one by one
 		v := reflect.ValueOf(value)

@@ -31,6 +31,17 @@ func (b *Builder) BuildInsert(value any) (string, []any) {
 		return "", []any{}
 	}
 
+	// Reject crafted column names (e.g. `"a" = 1, "b"`) before they reach
+	// the SQL text; legitimately pre-quoted identifiers are still accepted.
+	for _, col := range columns {
+		if !isQuotableColumn(col) {
+			if b.query.buildError == nil {
+				b.query.buildError = fmt.Errorf("invalid column name in Insert: %q", col)
+			}
+			return "", []any{}
+		}
+	}
+
 	// Check if this is SQL Server and we need OUTPUT clause for LastInsertId
 	isSQLServer := b.query.isSQLServer()
 	var idColumn string

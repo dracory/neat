@@ -372,3 +372,35 @@ func TestBuildInsertWithSQLServerOutputUUID(t *testing.T) {
 		t.Errorf("Expected 3 args, got %d: %v", len(args), args)
 	}
 }
+
+// Crafted "pre-quoted" map keys must fail the build instead of reaching
+// the column list raw.
+func TestBuildInsertRejectsMalformedPreQuotedColumn(t *testing.T) {
+	payloads := []string{
+		`"a" = 1, "b"`,
+		`"name") VALUES ('x'); --`,
+		`name", "other`,
+		"",
+	}
+	for _, payload := range payloads {
+		q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)
+		sql, _ := NewBuilder(q).BuildInsert(map[string]any{payload: 1})
+		if sql != "" {
+			t.Errorf("expected empty SQL for crafted column %q, got: %s", payload, sql)
+		}
+		if q.buildError == nil {
+			t.Errorf("expected buildError for crafted column %q", payload)
+		}
+	}
+}
+
+func TestBuildInsertAllowsPreQuotedColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)
+	sql, _ := NewBuilder(q).BuildInsert(map[string]any{`"name"`: "x"})
+	if sql == "" {
+		t.Fatalf("expected SQL for pre-quoted column, buildError: %v", q.buildError)
+	}
+	if !strings.Contains(sql, `"name"`) {
+		t.Errorf("expected SQL to contain \"name\", got: %s", sql)
+	}
+}

@@ -636,6 +636,49 @@ func isValidColumnReference(s string) bool {
 	return true
 }
 
+// isSafelyPreQuoted reports whether s is a complete quoted identifier —
+// wrapped in matching double quotes or backticks whose inner text holds
+// no unescaped quote characters. Inner quote characters are only allowed
+// as doubled escapes ("" or “). A string that merely starts and ends
+// with a quote character, like `"a" = 1, "b"`, is not a quoted
+// identifier and must never pass through to SQL unmodified.
+func isSafelyPreQuoted(s string) bool {
+	if len(s) < 2 {
+		return false
+	}
+	quoteChar := s[0]
+	if quoteChar != '"' && quoteChar != '`' {
+		return false
+	}
+	if s[len(s)-1] != quoteChar {
+		return false
+	}
+	inner := s[1 : len(s)-1]
+	// Remove every doubled escape; no quote character may remain.
+	doubled := string([]byte{quoteChar, quoteChar})
+	return !strings.Contains(strings.ReplaceAll(inner, doubled, ""), string(quoteChar))
+}
+
+// isQuotableColumn reports whether col is a column name that
+// quoteIdentifier can safely emit: either a plain (optionally dotted)
+// column reference or a fully pre-quoted identifier — including the
+// per-part quoted "a"."b" form. Crafted fragments that merely start and
+// end with a quote character, such as `"a" = 1, "b"`, are rejected.
+func isQuotableColumn(col string) bool {
+	if isValidColumnReference(col) || isSafelyPreQuoted(col) {
+		return true
+	}
+	if !strings.Contains(col, ".") {
+		return false
+	}
+	for _, part := range strings.Split(col, ".") {
+		if !isTableIdentifier(part) && !isSafelyPreQuoted(part) {
+			return false
+		}
+	}
+	return true
+}
+
 // isValidOrderExpression checks if a string is safe to use in an ORDER BY
 // clause. It accepts either a valid column reference ("name", "users.name")
 // or a function call whose name is an identifier and whose arguments are a

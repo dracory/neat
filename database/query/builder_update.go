@@ -40,8 +40,25 @@ func (s *updateSet) replacePlaceholders(sql string, count int) string {
 	return sql
 }
 
-// addValue adds "col = <value>", inlining the SQL of a RawExpression value.
+// addValue adds "col = <value>". The column must be a valid column
+// reference or a complete pre-quoted identifier; anything else (e.g.
+// `"a" = 1, "b"`) sets the build error so the statement is never emitted.
 func (s *updateSet) addValue(col string, val any) {
+	if !isQuotableColumn(col) {
+		if s.b.query.buildError == nil {
+			s.b.query.buildError = fmt.Errorf("invalid column name in Update: %q", col)
+		}
+		return
+	}
+	s.addQuotedValue(col, val)
+}
+
+// addQuotedValue emits "col = <value>" for a column name that is not a
+// plain identifier (e.g. a JSON path on a dialect without JSON support).
+// quoteIdentifier still wraps the name as a whole quoted identifier, so
+// arbitrary text stays contained; inlining the SQL of a RawExpression
+// value.
+func (s *updateSet) addQuotedValue(col string, val any) {
 	quoted := s.b.quoteIdentifier(col)
 	if raw, ok := val.(RawExpression); ok {
 		args := clampArgs(raw.Args, strings.Count(raw.SQL, "?"))
@@ -74,7 +91,9 @@ func clampArgs(args []any, placeholders int) []any {
 // dialect's JSON function, falling back to a plain column assignment.
 func (s *updateSet) addJSONPath(colStr string, val any) {
 	if !strings.Contains(colStr, "->") || (!s.b.query.isMySQL() && !s.b.query.isSQLite()) {
-		s.addValue(colStr, val)
+		// No JSON path support on this dialect: emit a plain assignment.
+		// The name is quoted as a whole identifier by quoteIdentifier.
+		s.addQuotedValue(colStr, val)
 		return
 	}
 	col, segments, ok := s.b.query.jsonPathSegments(colStr)
@@ -167,8 +186,8 @@ func (b *Builder) isSoftDeleteUpdate(column any) bool {
 }
 
 // BuildUpdate builds an UPDATE query from the query state. It returns an
-// empty string when there is nothing to set (unsupported input, or every
-// column omitted).
+// empty string when there is nothing to set (unsupported input, an invalid
+// column name, or every column omitted).
 func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	parts := []string{"UPDATE"}
 	if b.query.table != "" {
@@ -176,7 +195,7 @@ func (b *Builder) BuildUpdate(column any, values ...any) (string, []any) {
 	}
 
 	set := b.buildUpdateSet(column, values)
-	if len(set.exprs) == 0 {
+	if b.query.buildError != nil || len(set.exprs) == 0 {
 		return "", nil
 	}
 	parts = append(parts, "SET "+strings.Join(set.exprs, ", "))

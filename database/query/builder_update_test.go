@@ -636,3 +636,68 @@ func TestBuildUpdateExpressionWithMultiplePlaceholders(t *testing.T) {
 		t.Errorf("Expected 2 args, got %d", len(args))
 	}
 }
+
+// Crafted "pre-quoted" column names — strings that merely start and end
+// with a quote character — must not reach the SET clause: the build
+// fails with a buildError instead of emitting injectable SQL.
+func TestBuildUpdateRejectsMalformedPreQuotedColumn(t *testing.T) {
+	payloads := []string{
+		`"a" = 1, "b"`,
+		`"nickname" = (SELECT password FROM users WHERE id = 1), "bio"`,
+		`a = 1, b`,
+		"weird name",
+		"",
+	}
+	for _, payload := range payloads {
+		q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)
+		sql, _ := NewBuilder(q).BuildUpdate(map[string]any{payload: 1})
+		if sql != "" {
+			t.Errorf("expected empty SQL for crafted column %q, got: %s", payload, sql)
+		}
+		if q.buildError == nil {
+			t.Errorf("expected buildError for crafted column %q", payload)
+		}
+	}
+}
+
+// A crafted key must fail the whole statement even when other keys are valid.
+func TestBuildUpdateRejectsMixedValidAndCraftedKeys(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)
+	payload := `"nickname" = (SELECT password FROM users WHERE id = 1), "bio"`
+	sql, _ := NewBuilder(q).BuildUpdate(map[string]any{"name": "x", payload: 1})
+	if sql != "" {
+		t.Fatalf("expected empty SQL when any column is invalid, got: %s", sql)
+	}
+	if q.buildError == nil {
+		t.Fatal("expected buildError for crafted column name")
+	}
+}
+
+func TestBuildUpdateSingleColumnRejectsInvalidName(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)
+	sql, _ := NewBuilder(q).BuildUpdate("weird name", 1)
+	if sql != "" {
+		t.Fatalf("expected empty SQL for invalid column, got: %s", sql)
+	}
+	if q.buildError == nil {
+		t.Fatal("expected buildError for invalid column name")
+	}
+}
+
+// Plain, dotted, and complete pre-quoted column names still build normally.
+func TestBuildUpdateAllowsValidColumnNames(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, &FakeDriver{DialectName: "postgres"}, "users", nil, nil)
+	sql, _ := NewBuilder(q).BuildUpdate(map[string]any{
+		"name":          "x",
+		`"email"`:       "y",
+		`users."phone"`: "z",
+	})
+	if sql == "" {
+		t.Fatalf("expected SQL for valid columns, buildError: %v", q.buildError)
+	}
+	for _, want := range []string{`"name"`, `"email"`, `"users"."phone"`} {
+		if !strings.Contains(sql, want) {
+			t.Errorf("expected SQL to contain %s, got: %s", want, sql)
+		}
+	}
+}
