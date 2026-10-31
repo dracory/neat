@@ -668,6 +668,48 @@ func isValidOrderExpression(s string) bool {
 	return true
 }
 
+// isSingleValueCondition checks whether a where clause string is a simple
+// "operand OP ?" condition safe to pair with exactly one bound value: the
+// operand must be a column reference or a simple function expression (see
+// isValidOrderExpression), the operator a comparison from a fixed whitelist,
+// and the bound value the trailing ?. "IN (?)" and "NOT IN (?)" are accepted
+// by unwrapping the parenthesized placeholder. Anything else — boolean
+// combinations, subqueries, comments, missing placeholders — is rejected so a
+// caller passing untrusted input to Where(field, value) cannot smuggle raw
+// SQL through the column-shorthand signature.
+func isSingleValueCondition(s string) bool {
+	trimmed := strings.TrimSpace(s)
+
+	// Unwrap a trailing parenthesized placeholder: "x IN (?)" -> "x IN ?".
+	if strings.HasSuffix(trimmed, ")") {
+		openIdx := strings.LastIndex(trimmed, "(")
+		if openIdx < 0 || trimmed[openIdx+1:len(trimmed)-1] != "?" {
+			return false
+		}
+		trimmed = strings.TrimSpace(trimmed[:openIdx]) + "?"
+	}
+
+	if !strings.HasSuffix(trimmed, "?") {
+		return false
+	}
+	head := strings.TrimSpace(trimmed[:len(trimmed)-1])
+	if head == "" {
+		return false
+	}
+
+	// Longest operators first so e.g. ">=" claims its span before ">".
+	operators := []string{" NOT IN", " NOT LIKE", " IS NOT", " IN", " LIKE", " IS",
+		"!=", "<>", ">=", "<=", "=", ">", "<"}
+	upperHead := strings.ToUpper(head)
+	for _, op := range operators {
+		if strings.HasSuffix(upperHead, op) {
+			operand := strings.TrimSpace(head[:len(head)-len(op)])
+			return isValidOrderExpression(operand)
+		}
+	}
+	return false
+}
+
 // isNumericLiteral reports whether s consists only of digits, an optional
 // leading sign, and at most one decimal point.
 func isNumericLiteral(s string) bool {

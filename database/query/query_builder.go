@@ -115,14 +115,31 @@ func (q *Query) Select(query any, args ...any) orm.Query {
 
 // Where adds a where clause to the query.
 // Supports Laravel-style syntax: Where("column", "value") automatically uses = operator.
+// With exactly one argument the first parameter is either a column reference
+// (identifier or table.column, quoted for the dialect) or a simple
+// "operand OP ?" condition; anything else is rejected. With zero or several
+// arguments, Where("expr", args...) is raw SQL and callers must not pass
+// untrusted input as expr.
 func (q *Query) Where(query any, args ...any) orm.Query {
+	return q.addWhere("and", "Where", query, args)
+}
+
+// addWhere appends an AND/OR where clause, applying the Laravel-style
+// shorthand ("column", "value") -> "column = ?" for single-argument calls.
+func (q *Query) addWhere(clauseType, method string, query any, args []any) orm.Query {
 	queryStr := fmt.Sprintf("%v", query)
-	// Laravel-style: Where("column", "value") -> Where("column = ?", "value")
-	// Only transform if exactly 1 arg and no operator is present
-	if len(args) == 1 && !containsOperator(queryStr) {
-		queryStr = fmt.Sprintf("%s = ?", queryStr)
+	if len(args) == 1 {
+		if isValidColumnReference(queryStr) {
+			// Laravel-style: Where("column", "value") -> Where("column = ?", "value")
+			queryStr = fmt.Sprintf("%s = ?", NewBuilder(q).quoteIdentifier(queryStr))
+		} else if !isSingleValueCondition(queryStr) {
+			// A one-value clause must be a column shorthand or a simple
+			// "operand OP ?" condition; anything else ("1=1 OR id",
+			// "name=? OR 1=1") is a mistyped shorthand or an injection attempt.
+			return q.invalidColumnError(method, queryStr)
+		}
 	}
-	q.wheres = append(q.wheres, whereClause{_type: "and", query: queryStr, args: args})
+	q.wheres = append(q.wheres, whereClause{_type: clauseType, query: queryStr, args: args})
 	return q
 }
 
@@ -209,15 +226,9 @@ func (q *Query) Filter(query any, args ...any) orm.Query {
 
 // OrWhere adds an or where clause to the query.
 // Supports Laravel-style syntax: OrWhere("column", "value") automatically uses = operator.
+// The single-argument form follows the same rules as Where.
 func (q *Query) OrWhere(query any, args ...any) orm.Query {
-	queryStr := fmt.Sprintf("%v", query)
-	// Laravel-style: OrWhere("column", "value") -> OrWhere("column = ?", "value")
-	// Only transform if exactly 1 arg and no operator is present
-	if len(args) == 1 && !containsOperator(queryStr) {
-		queryStr = fmt.Sprintf("%s = ?", queryStr)
-	}
-	q.wheres = append(q.wheres, whereClause{_type: "or", query: queryStr, args: args})
-	return q
+	return q.addWhere("or", "OrWhere", query, args)
 }
 
 // Order adds an order by clause to the query.

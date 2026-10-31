@@ -373,6 +373,86 @@ func TestWhereWithNilArgs(t *testing.T) {
 	}
 }
 
+func TestWhereShorthandRejectsInjection(t *testing.T) {
+	// A one-value clause must be a column shorthand or a simple
+	// "operand OP ?" condition; everything else sets a build error.
+	injections := []string{
+		"1=1 OR tenant_id",         // reported exploit: boolean bypass
+		"1=1 OR id",                // recommended regression case
+		"name=? OR 1=1",            // placeholder smuggled into a compound
+		"name OR 1=1",              // operator-like string, no placeholder
+		"(SELECT password) = ?",    // subquery operand
+		"name = ? UNION SELECT 1",  // union payload after the placeholder
+		"name; DROP TABLE users--", // statement terminator
+		"a.b.c",                    // too many dotted parts
+		"name` = ? OR `x` = ?",     // quoted-identifier breakout attempt
+		"name = 1",                 // operator but no placeholder
+		"COUNT(*) > 1",             // expression binding no placeholder
+	}
+
+	for _, col := range injections {
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+		q.Where(col, 5)
+		if q.buildError == nil {
+			t.Errorf("Where(%q, 5) should set a build error", col)
+		}
+
+		q = NewQuery(context.TODO(), nil, nil, "", nil, nil)
+		q.OrWhere(col, 5)
+		if q.buildError == nil {
+			t.Errorf("OrWhere(%q, 5) should set a build error", col)
+		}
+
+		q = NewQuery(context.TODO(), nil, nil, "", nil, nil)
+		q.Filter(col, 5)
+		if q.buildError == nil {
+			t.Errorf("Filter(%q, 5) should set a build error", col)
+		}
+	}
+}
+
+func TestWhereSingleValueConditionStillWorks(t *testing.T) {
+	// One-argument raw expressions of the form "operand OP ?" remain valid.
+	valid := []struct {
+		clause   string
+		expected string
+	}{
+		{"name = ?", "name = ?"},
+		{"age > ?", "age > ?"},
+		{"age>=?", "age>=?"},
+		{"name!=?", "name!=?"},
+		{"name LIKE ?", "name LIKE ?"},
+		{"name NOT LIKE ?", "name NOT LIKE ?"},
+		{"id IN ?", "id IN ?"},
+		{"id NOT IN ?", "id NOT IN ?"},
+		{"id IN (?)", "id IN (?)"},
+		{"json_extract(data, '$.key') = ?", "json_extract(data, '$.key') = ?"},
+		{"orders.user_id = ?", "orders.user_id = ?"},
+	}
+
+	for _, tt := range valid {
+		q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+		q.Where(tt.clause, 5)
+		if q.buildError != nil {
+			t.Errorf("Where(%q, 5) set unexpected build error: %v", tt.clause, q.buildError)
+			continue
+		}
+		where, _ := NewBuilder(q).buildWheres()
+		if !strings.Contains(where, tt.expected) {
+			t.Errorf("Where(%q, 5): expected %q in clause, got %q", tt.clause, tt.expected, where)
+		}
+	}
+}
+
+func TestWhereShorthandQuotesColumn(t *testing.T) {
+	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
+	q.Where("users.name", "Alice")
+	where, _ := NewBuilder(q).buildWheres()
+	if !strings.Contains(where, "users.name = ?") {
+		t.Errorf("Expected 'users.name = ?' in WHERE clause, got %s", where)
+	}
+}
+
 func TestBuildWheresWithSoftDelete(t *testing.T) {
 	model := &whereTestSoftModel{}
 	q := NewQuery(context.TODO(), nil, nil, "", nil, nil)
