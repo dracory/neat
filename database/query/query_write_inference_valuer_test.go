@@ -1,0 +1,276 @@
+package query_test
+
+// Regression tests for docs/proposals/write-ops-model-inference-and-valuer.md
+//
+// 1. Write ops (and reads) should resolve the table from the value's
+//    TableName() method or struct-name convention when .Model()/.Table()
+//    was not called.
+// 2. Fields whose type implements driver.Valuer must reach the driver even
+//    when nil (or of a slice/map kind), so Value() decides the stored
+//    representation.
+
+import (
+	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
+	"testing"
+
+	"github.com/dracory/neat/database/query"
+)
+
+// ---------------------------------------------------------------------------
+// Test fixtures
+// ---------------------------------------------------------------------------
+
+type inferRow struct {
+	ID   string `db:"id"`
+	Name string `db:"name"`
+}
+
+func (inferRow) TableName() string { return "infer_items" }
+
+// JSONMap is a map column type stored as TEXT via driver.Valuer.
+// A nil map must still produce "{}" through Value().
+type JSONMap map[string]any
+
+func (m JSONMap) Value() (driver.Value, error) {
+	if m == nil {
+		return "{}", nil
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return string(b), nil
+}
+
+func (m *JSONMap) Scan(src any) error {
+	if src == nil {
+		*m = nil
+		return nil
+	}
+	var b []byte
+	switch v := src.(type) {
+	case string:
+		b = []byte(v)
+	case []byte:
+		b = v
+	default:
+		*m = nil
+		return nil
+	}
+	return json.Unmarshal(b, m)
+}
+
+// JSONList is a slice column type stored as TEXT via driver.Valuer.
+type JSONList []string
+
+func (l JSONList) Value() (driver.Value, error) {
+	if l == nil {
+		return "[]", nil
+	}
+	b, err := json.Marshal(l)
+	if err != nil {
+		return nil, err
+	}
+	return string(b), nil
+}
+
+func (l *JSONList) Scan(src any) error {
+	if src == nil {
+		*l = nil
+		return nil
+	}
+	var b []byte
+	switch v := src.(type) {
+	case string:
+		b = []byte(v)
+	case []byte:
+		b = v
+	default:
+		*l = nil
+		return nil
+	}
+	return json.Unmarshal(b, l)
+}
+
+type valuerRow struct {
+	ID   string   `db:"id"`
+	Data JSONMap  `db:"data"`
+	Tags JSONList `db:"tags"`
+}
+
+func (valuerRow) TableName() string { return "valuer_items" }
+
+func createInferTable(t *testing.T, w *query.TestQuery) {
+	t.Helper()
+	execSQL(t, w, "CREATE TABLE infer_items (id TEXT PRIMARY KEY, name TEXT)")
+}
+
+func createValuerTable(t *testing.T, w *query.TestQuery) {
+	t.Helper()
+	execSQL(t, w, "CREATE TABLE valuer_items (id TEXT PRIMARY KEY, data TEXT NOT NULL, tags TEXT NOT NULL)")
+}
+
+func queryString(t *testing.T, db *sql.DB, stmt string, args ...any) string {
+	t.Helper()
+	var s string
+	if err := db.QueryRow(stmt, args...).Scan(&s); err != nil {
+		t.Fatalf("query %q: %v", stmt, err)
+	}
+	return s
+}
+
+// ---------------------------------------------------------------------------
+// 1. Table inference without .Model()/.Table()
+// ---------------------------------------------------------------------------
+
+func TestCreateInfersTableFromTableNameMethod(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createInferTable(t, w)
+
+	err := w.Q.Create(&inferRow{ID: "i1", Name: "first"})
+	if err != nil {
+		t.Fatalf("Create without Model() failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT name FROM infer_items WHERE id = ?", "i1")
+	if got != "first" {
+		t.Fatalf("expected name 'first', got %q", got)
+	}
+}
+
+func TestCreateInfersTableFromStructNameConvention(t *testing.T) {
+	type conventionWidget struct {
+		ID   string `db:"id"`
+		Name string `db:"name"`
+	}
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE convention_widgets (id TEXT PRIMARY KEY, name TEXT)")
+
+	err := w.Q.Create(&conventionWidget{ID: "w1", Name: "widget"})
+	if err != nil {
+		t.Fatalf("Create without Model() failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT name FROM convention_widgets WHERE id = ?", "w1")
+	if got != "widget" {
+		t.Fatalf("expected name 'widget', got %q", got)
+	}
+}
+
+func TestSaveInfersTableFromValue(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createInferTable(t, w)
+	// Save() with a non-zero primary key performs an UPDATE, so the row must
+	// already exist; this exercises table inference on the update path.
+	execSQL(t, w, "INSERT INTO infer_items (id, name) VALUES ('s1', 'old')")
+
+	err := w.Q.Save(&inferRow{ID: "s1", Name: "saved"})
+	if err != nil {
+		t.Fatalf("Save without Model() failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT name FROM infer_items WHERE id = ?", "s1")
+	if got != "saved" {
+		t.Fatalf("expected name 'saved', got %q", got)
+	}
+}
+
+func TestDeleteInfersTableFromValue(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createInferTable(t, w)
+	execSQL(t, w, "INSERT INTO infer_items (id, name) VALUES ('d1', 'gone')")
+
+	_, err := w.Q.Delete(&inferRow{ID: "d1"})
+	if err != nil {
+		t.Fatalf("Delete without Model() failed: %v", err)
+	}
+
+	var n int
+	if err := w.PrimaryDB().QueryRow("SELECT COUNT(*) FROM infer_items WHERE id = 'd1'").Scan(&n); err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("expected row d1 to be deleted, still present")
+	}
+}
+
+func TestFirstInfersTableFromDestination(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createInferTable(t, w)
+	execSQL(t, w, "INSERT INTO infer_items (id, name) VALUES ('f1', 'found')")
+
+	var dest inferRow
+	err := w.Q.First(&dest)
+	if err != nil {
+		t.Fatalf("First without Model() failed: %v", err)
+	}
+	if dest.Name != "found" {
+		t.Fatalf("expected name 'found', got %q", dest.Name)
+	}
+}
+
+func TestFindInfersTableFromDestination(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createInferTable(t, w)
+	execSQL(t, w, "INSERT INTO infer_items (id, name) VALUES ('f2', 'a'),('f3', 'b')")
+
+	var dest []inferRow
+	err := w.Q.Find(&dest)
+	if err != nil {
+		t.Fatalf("Find without Model() failed: %v", err)
+	}
+	if len(dest) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(dest))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 2. driver.Valuer honoured for nil and slice-kind fields
+// ---------------------------------------------------------------------------
+
+func TestCreateCallsValuerOnNilMapField(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createValuerTable(t, w)
+
+	row := &valuerRow{ID: "v1", Data: nil, Tags: JSONList{"a"}}
+	if err := w.Q.Model(&valuerRow{}).Create(row); err != nil {
+		t.Fatalf("Create with nil JSONMap failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT data FROM valuer_items WHERE id = ?", "v1")
+	if got != "{}" {
+		t.Fatalf("expected data '{}', got %q", got)
+	}
+}
+
+func TestCreateBindsNonNilSliceValuerField(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createValuerTable(t, w)
+
+	row := &valuerRow{ID: "v2", Data: JSONMap{"k": "v"}, Tags: JSONList{"x", "y"}}
+	if err := w.Q.Model(&valuerRow{}).Create(row); err != nil {
+		t.Fatalf("Create with JSONList failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT tags FROM valuer_items WHERE id = ?", "v2")
+	if got != `["x","y"]` {
+		t.Fatalf("expected tags '[\"x\",\"y\"]', got %q", got)
+	}
+}
+
+func TestCreateCallsValuerOnNilSliceField(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createValuerTable(t, w)
+
+	row := &valuerRow{ID: "v3", Data: JSONMap{"k": "v"}, Tags: nil}
+	if err := w.Q.Model(&valuerRow{}).Create(row); err != nil {
+		t.Fatalf("Create with nil JSONList failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT tags FROM valuer_items WHERE id = ?", "v3")
+	if got != "[]" {
+		t.Fatalf("expected tags '[]', got %q", got)
+	}
+}

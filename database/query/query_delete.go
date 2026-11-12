@@ -42,6 +42,8 @@ func (q *Query) Delete(value ...any) (*orm.Result, error) {
 	query := q.Clone().(*Query)
 	if len(value) > 0 {
 		applyConditions(query, value)
+		// Resolve the table from a struct-like argument when .Model()/.Table() was not called
+		query.inferTableFromConds(value)
 	}
 
 	// Validate common conditions (build errors, nil DB, empty table)

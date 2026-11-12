@@ -9,6 +9,8 @@ import (
 // Save saves the model to the database (INSERT if no primary key, UPDATE otherwise).
 func (q *Query) Save(value any) error {
 	defer q.resetStatement()
+	// Resolve the table from the value when .Model()/.Table() was not called
+	q.inferTableFromValue(value)
 	// Fire Saving event
 	if !q.withoutEvents {
 		attributes := observer.ExtractModelAttributes(value)

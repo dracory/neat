@@ -2,12 +2,17 @@ package query
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"time"
 )
 
 const dateTimeLayout = "2006-01-02 15:04:05"
+
+// driverValuerType is the reflect.Type of driver.Valuer, used to detect
+// column types that control their own stored representation.
+var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 
 // timeToDateTimeString converts a time.Time to a datetime string in
 // "YYYY-MM-DD HH:MM:SS" format, expressed in loc. Sub-second precision is dropped.
@@ -175,6 +180,12 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 			continue
 		}
 
+		// Fields whose type implements driver.Valuer are always bound: the
+		// driver calls Value() so the type decides the stored representation
+		// (e.g. a nil map marshalling to "{}" instead of being dropped or NULL).
+		implementsValuer := fieldValue.Type().Implements(driverValuerType) ||
+			reflect.PointerTo(fieldValue.Type()).Implements(driverValuerType)
+
 		// Handle named wrapper structs consisting solely of time.Time fields
 		// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). Extract each
 		// inner field's column name and value so INSERTs include
@@ -214,7 +225,8 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		}
 
 		// Skip slice/struct fields that are not handled as basic types
-		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Pointer) &&
+		if !implementsValuer &&
+			(fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Pointer) &&
 			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
 			// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
 			if fieldValue.Kind() == reflect.Pointer {
@@ -255,7 +267,7 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		// For other nil pointers (like Bio), also include as NULL
 		// For strings, include empty strings as they are valid values
 		// For integers and floats, include zero values as they are valid
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 && fieldValue.Kind() != reflect.Float32 && fieldValue.Kind() != reflect.Float64 {
+		if !implementsValuer && fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 && fieldValue.Kind() != reflect.Float32 && fieldValue.Kind() != reflect.Float64 {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For Oracle, also skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For SQL Server, also skip zero time.Time values to use DEFAULT GETDATE()

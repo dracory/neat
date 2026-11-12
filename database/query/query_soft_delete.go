@@ -65,6 +65,8 @@ func (q *Query) SoftDelete(value ...any) (*orm.Result, error) {
 	query := q.Clone().(*Query)
 	if len(value) > 0 {
 		applyConditions(query, value)
+		// Resolve the table from a struct-like argument when .Model()/.Table() was not called
+		query.inferTableFromConds(value)
 	}
 
 	if err := query.validate(); err != nil {

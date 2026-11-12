@@ -163,6 +163,8 @@ func (q *Query) Omit(columns ...string) orm.Query {
 func (q *Query) RestoreSoftDeleted(model ...any) (*orm.Result, error) {
 	defer q.resetStatement()
 	q = q.applyScopes()
+	// Resolve the table from a struct-like argument when .Model()/.Table() was not called
+	q.inferTableFromConds(model)
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
 		attributes := observer.ExtractModelAttributes(model[0])
@@ -275,6 +277,8 @@ func (q *Query) ForceDelete(value ...any) (*orm.Result, error) {
 	clone := q.Clone().(*Query)
 	if len(value) > 0 {
 		applyConditions(clone, value)
+		// Resolve the table from a struct-like argument when .Model()/.Table() was not called
+		clone.inferTableFromConds(value)
 	}
 
 	// Fire ForceDeleting event if not disabled

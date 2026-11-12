@@ -11,6 +11,8 @@ import (
 // For Oracle databases, wrap the call in a transaction to reduce the race window in ID retrieval.
 func (q *Query) InsertGetId(values any) (uint, error) {
 	defer q.resetStatement()
+	// Resolve the table from the values when .Model()/.Table() was not called
+	q.inferTableFromValue(values)
 	// Build INSERT query
 	builder := NewBuilder(q)
 	insertSQL, args := builder.BuildInsert(values)

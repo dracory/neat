@@ -79,6 +79,31 @@ func (q *Query) Model(value any) orm.Query {
 	return q
 }
 
+// inferTableFromValue resolves the table name from the given value when no
+// table was configured explicitly via .Model(), .Table() or raw SQL. The
+// value may be a struct, a pointer to a struct, or a slice destination.
+func (q *Query) inferTableFromValue(value any) {
+	if q.table != "" || q.rawSQL != "" {
+		return
+	}
+	q.table = q.resolveTableName(value)
+}
+
+// inferTableFromConds resolves the table name from the first struct-like
+// condition argument (e.g. a model passed to Delete) when no table was
+// configured explicitly.
+func (q *Query) inferTableFromConds(conds []any) {
+	if q.table != "" || q.rawSQL != "" {
+		return
+	}
+	for _, c := range conds {
+		if isStructLike(c) {
+			q.table = q.resolveTableName(c)
+			return
+		}
+	}
+}
+
 // resolveTableName resolves the table name from the model.
 func (q *Query) resolveTableName(model any) string {
 	if model == nil {
@@ -113,6 +138,13 @@ func (q *Query) resolveTableName(model any) string {
 
 	if t.Kind() != reflect.Struct {
 		return ""
+	}
+
+	// Check TableName() on the resolved struct element type. This covers
+	// slice destinations such as *[]User and []User where the method check
+	// above cannot see through the slice.
+	if tn, ok := reflect.New(t).Interface().(interface{ TableName() string }); ok {
+		return tn.TableName()
 	}
 
 	name := t.Name()
