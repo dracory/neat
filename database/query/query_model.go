@@ -91,9 +91,7 @@ func (q *Query) inferTableFromValue(value any) {
 		return
 	}
 	q.table = table
-	if q.model == nil {
-		q.model = modelInstance(value)
-	}
+	q.adoptInferredModel(modelInstance(value))
 }
 
 // inferTableFromConds resolves the table name from the first struct-like
@@ -104,17 +102,27 @@ func (q *Query) inferTableFromConds(conds []any) {
 		return
 	}
 	for _, c := range conds {
-		if isStructLike(c) {
-			table := q.resolveTableName(c)
-			if table == "" {
-				return
-			}
-			q.table = table
-			if q.model == nil {
-				q.model = c
-			}
-			return
+		if !isStructLike(c) {
+			continue
 		}
+		table := q.resolveTableName(c)
+		if table == "" {
+			continue
+		}
+		q.table = table
+		q.adoptInferredModel(modelInstance(c))
+		return
+	}
+}
+
+// adoptInferredModel sets q.model from an inferred value and loads the
+// model's global scopes, mirroring the relevant parts of Model().
+func (q *Query) adoptInferredModel(m any) {
+	if q.model == nil {
+		q.model = m
+	}
+	if gs, ok := q.model.(orm.GlobalScope); ok && len(q.globalScopes) == 0 {
+		q.globalScopes = gs.GlobalScopes()
 	}
 }
 

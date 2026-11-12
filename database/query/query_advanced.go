@@ -162,9 +162,9 @@ func (q *Query) Omit(columns ...string) orm.Query {
 // RestoreSoftDeleted restores a soft-deleted record.
 func (q *Query) RestoreSoftDeleted(model ...any) (*orm.Result, error) {
 	defer q.resetStatement()
-	q = q.applyScopes()
 	// Resolve the table from a struct-like argument when .Model()/.Table() was not called
 	q.inferTableFromConds(model)
+	q = q.applyScopes()
 	// Fire Restoring event if not disabled
 	if !q.withoutEvents && len(model) > 0 {
 		attributes := observer.ExtractModelAttributes(model[0])

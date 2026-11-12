@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/dracory/neat/contracts/database/orm"
 	neatdriver "github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/query"
 )
@@ -94,6 +95,36 @@ func (l *JSONList) Scan(src any) error {
 	}
 	return json.Unmarshal(b, l)
 }
+
+// scopedRow applies a tenant global scope — inferred models must apply it
+// exactly like an explicit .Model() would.
+type scopedRow struct {
+	ID     string `db:"id"`
+	Tenant string `db:"tenant"`
+}
+
+func (scopedRow) TableName() string { return "scoped_items" }
+
+func (scopedRow) GlobalScopes() []func(orm.Query) orm.Query {
+	return []func(orm.Query) orm.Query{
+		func(q orm.Query) orm.Query { return q.Where("tenant = ?", "t1") },
+	}
+}
+
+// EmbeddedVal is an exported embedded type implementing driver.Valuer. As an
+// anonymous field it must be bound as a single column, not flattened.
+type EmbeddedVal struct {
+	Inner string
+}
+
+func (e EmbeddedVal) Value() (driver.Value, error) { return "EMB:" + e.Inner, nil }
+
+type embedRow struct {
+	ID string `db:"id"`
+	EmbeddedVal
+}
+
+func (embedRow) TableName() string { return "embed_items" }
 
 type valuerRow struct {
 	ID   string   `db:"id"`
@@ -282,9 +313,71 @@ func TestFirstInferredModelExcludesSoftDeleted(t *testing.T) {
 	}
 }
 
+func TestFirstInferredModelAppliesGlobalScope(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE scoped_items (id TEXT PRIMARY KEY, tenant TEXT)")
+	// t2 first so an unscoped First() returns the wrong row
+	execSQL(t, w, "INSERT INTO scoped_items (id, tenant) VALUES ('b','t2'),('a','t1')")
+
+	var dest scopedRow
+	err := w.Q.First(&dest)
+	if err != nil {
+		t.Fatalf("First without Model() failed: %v", err)
+	}
+	if dest.Tenant != "t1" {
+		t.Fatalf("expected global scope to restrict to tenant t1, got %+v", dest)
+	}
+}
+
+func TestFindInferredModelAppliesGlobalScope(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE scoped_items (id TEXT PRIMARY KEY, tenant TEXT)")
+	execSQL(t, w, "INSERT INTO scoped_items (id, tenant) VALUES ('a','t1'),('b','t2')")
+
+	var dest []scopedRow
+	err := w.Q.Find(&dest)
+	if err != nil {
+		t.Fatalf("Find without Model() failed: %v", err)
+	}
+	if len(dest) != 1 || dest[0].Tenant != "t1" {
+		t.Fatalf("expected only the t1 row, got %+v", dest)
+	}
+}
+
+func TestUpdateOrCreateInfersTableFromDest(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createInferTable(t, w)
+
+	var dest inferRow
+	err := w.Q.UpdateOrCreate(&dest, map[string]any{"id": "u1"}, map[string]any{"name": "created"})
+	if err != nil {
+		t.Fatalf("UpdateOrCreate without Model() failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT name FROM infer_items WHERE id = ?", "u1")
+	if got != "created" {
+		t.Fatalf("expected name 'created', got %q", got)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // 2. driver.Valuer honoured for nil and slice-kind fields
 // ---------------------------------------------------------------------------
+
+func TestCreateBindsEmbeddedValuerField(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE embed_items (id TEXT PRIMARY KEY, embedded_val TEXT)")
+
+	row := &embedRow{ID: "e1", EmbeddedVal: EmbeddedVal{Inner: "hello"}}
+	if err := w.Q.Model(&embedRow{}).Create(row); err != nil {
+		t.Fatalf("Create with embedded Valuer failed: %v", err)
+	}
+
+	got := queryString(t, w.PrimaryDB(), "SELECT embedded_val FROM embed_items WHERE id = ?", "e1")
+	if got != "EMB:hello" {
+		t.Fatalf("expected 'EMB:hello', got %q", got)
+	}
+}
 
 func TestCreateCallsValuerOnNilMapField(t *testing.T) {
 	w := openSQLiteQuery(t)

@@ -9,9 +9,9 @@ import (
 // Get retrieves all records matching the query.
 func (q *Query) Get(dest any) error {
 	defer q.resetStatement()
-	q = q.applyScopes()
 	// Resolve the table from the destination when .Model()/.Table() was not called
 	q.inferTableFromValue(dest)
+	q = q.applyScopes()
 	// Check for build errors from query construction
 	if q.buildError != nil {
 		return q.buildError

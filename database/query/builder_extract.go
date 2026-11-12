@@ -14,6 +14,11 @@ const dateTimeLayout = "2006-01-02 15:04:05"
 // column types that control their own stored representation.
 var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 
+// typeImplementsValuer reports whether t or *t implements driver.Valuer.
+func typeImplementsValuer(t reflect.Type) bool {
+	return t.Implements(driverValuerType) || reflect.PointerTo(t).Implements(driverValuerType)
+}
+
 // timeToDateTimeString converts a time.Time to a datetime string in
 // "YYYY-MM-DD HH:MM:SS" format, expressed in loc. Sub-second precision is dropped.
 func timeToDateTimeString(t time.Time, loc *time.Location) string {
@@ -157,7 +162,14 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
-		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
+		// Fields whose type implements driver.Valuer are always bound: the
+		// driver calls Value() so the type decides the stored representation
+		// (e.g. a nil map marshalling to "{}" instead of being dropped or NULL).
+		// Checked before the anonymous-struct recursion so an embedded Valuer
+		// type is bound as a single column rather than flattened.
+		implementsValuer := typeImplementsValuer(fieldValue.Type())
+
+		if field.Anonymous && fieldValue.Kind() == reflect.Struct && !implementsValuer {
 			cols, vals := b.extractStructColumnsAndValues(fieldValue)
 			columns = append(columns, cols...)
 			values = append(values, vals...)
@@ -179,12 +191,6 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		if columnName == "id" && fieldValue.IsZero() {
 			continue
 		}
-
-		// Fields whose type implements driver.Valuer are always bound: the
-		// driver calls Value() so the type decides the stored representation
-		// (e.g. a nil map marshalling to "{}" instead of being dropped or NULL).
-		implementsValuer := fieldValue.Type().Implements(driverValuerType) ||
-			reflect.PointerTo(fieldValue.Type()).Implements(driverValuerType)
 
 		// Handle named wrapper structs consisting solely of time.Time fields
 		// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). Extract each
@@ -315,7 +321,7 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
-		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
+		if field.Anonymous && fieldValue.Kind() == reflect.Struct && !typeImplementsValuer(fieldValue.Type()) {
 			columns = append(columns, b.extractStructColumnNames(fieldValue)...)
 			continue
 		}
