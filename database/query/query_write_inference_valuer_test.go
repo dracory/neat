@@ -119,6 +119,16 @@ type EmbeddedVal struct {
 
 func (e EmbeddedVal) Value() (driver.Value, error) { return "EMB:" + e.Inner, nil }
 
+func (e *EmbeddedVal) Scan(src any) error {
+	switch v := src.(type) {
+	case string:
+		e.Inner = v
+	case []byte:
+		e.Inner = string(v)
+	}
+	return nil
+}
+
 type embedRow struct {
 	ID string `db:"id"`
 	EmbeddedVal
@@ -360,6 +370,25 @@ func TestUpdateOrCreateInfersTableFromDest(t *testing.T) {
 	}
 }
 
+func TestDeleteInferredModelAppliesGlobalScope(t *testing.T) {
+	w := openSQLiteQuery(t)
+	execSQL(t, w, "CREATE TABLE scoped_items (id TEXT PRIMARY KEY, tenant TEXT)")
+	execSQL(t, w, "INSERT INTO scoped_items (id, tenant) VALUES ('a','t1'),('b','t2')")
+
+	// The tenant global scope must restrict the delete to t1 rows
+	if _, err := w.Q.Delete(&scopedRow{ID: "b"}); err != nil {
+		t.Fatalf("Delete without Model() failed: %v", err)
+	}
+
+	var n int
+	if err := w.PrimaryDB().QueryRow("SELECT COUNT(*) FROM scoped_items WHERE id = 'b'").Scan(&n); err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("expected global scope to prevent deleting t2 row 'b', got count %d", n)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // 2. driver.Valuer honoured for nil and slice-kind fields
 // ---------------------------------------------------------------------------
@@ -376,6 +405,15 @@ func TestCreateBindsEmbeddedValuerField(t *testing.T) {
 	got := queryString(t, w.PrimaryDB(), "SELECT embedded_val FROM embed_items WHERE id = ?", "e1")
 	if got != "EMB:hello" {
 		t.Fatalf("expected 'EMB:hello', got %q", got)
+	}
+
+	// Round-trip: the embedded_val column must scan back into the embedded field
+	var dest embedRow
+	if err := w.Q.Where("id = ?", "e1").First(&dest); err != nil {
+		t.Fatalf("First for embedded Valuer failed: %v", err)
+	}
+	if dest.EmbeddedVal.Inner != "EMB:hello" {
+		t.Fatalf("expected embedded field 'EMB:hello', got %+v", dest.EmbeddedVal)
 	}
 }
 

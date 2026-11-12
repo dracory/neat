@@ -344,7 +344,8 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 			fieldType = fieldType.Elem()
 		}
 
-		if (fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
+		if !typeImplementsValuer(field.Type) &&
+			(fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
 			fieldType != reflect.TypeOf(time.Time{}) {
 			// Handle wrapper structs consisting solely of time.Time fields
 			// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). These

@@ -271,7 +271,6 @@ func (q *Query) Restore(model ...any) (*orm.Result, error) {
 // Deprecated: Use HardDelete() instead.
 func (q *Query) ForceDelete(value ...any) (*orm.Result, error) {
 	defer q.resetStatement()
-	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
 	clone := q.Clone().(*Query)
@@ -280,6 +279,8 @@ func (q *Query) ForceDelete(value ...any) (*orm.Result, error) {
 		// Resolve the table from a struct-like argument when .Model()/.Table() was not called
 		clone.inferTableFromConds(value)
 	}
+	// Apply scopes after inference so inferred-model global scopes are included
+	clone = clone.applyScopes()
 
 	// Fire ForceDeleting event if not disabled
 	if !clone.withoutEvents && clone.model != nil {

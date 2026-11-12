@@ -66,7 +66,9 @@ func getColumnToIndexPath(t reflect.Type) map[string][]int {
 	m := make(map[string][]int)
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		if f.Anonymous && f.Type.Kind() == reflect.Struct {
+		// Anonymous structs that implement driver.Valuer are bound/scanned as
+		// single columns (see extractStructColumnsAndValues), not flattened.
+		if f.Anonymous && f.Type.Kind() == reflect.Struct && !typeImplementsValuer(f.Type) {
 			for k, path := range getColumnToIndexPath(f.Type) {
 				if _, ok := m[k]; !ok {
 					newPath := make([]int, len(path)+1)
