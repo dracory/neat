@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	neatdriver "github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/database/query"
 )
 
@@ -102,9 +103,25 @@ type valuerRow struct {
 
 func (valuerRow) TableName() string { return "valuer_items" }
 
+// softRow is a soft-deleting model: Delete(&softRow{}) must UPDATE
+// deleted_at, not remove the row — even without an explicit .Model().
+type softRow struct {
+	ID        string  `db:"id"`
+	Name      string  `db:"name"`
+	DeletedAt *string `db:"deleted_at"`
+}
+
+func (softRow) TableName() string           { return "soft_items" }
+func (softRow) SoftDeletedAtColumn() string { return "deleted_at" }
+
 func createInferTable(t *testing.T, w *query.TestQuery) {
 	t.Helper()
 	execSQL(t, w, "CREATE TABLE infer_items (id TEXT PRIMARY KEY, name TEXT)")
+}
+
+func createSoftTable(t *testing.T, w *query.TestQuery) {
+	t.Helper()
+	execSQL(t, w, "CREATE TABLE soft_items (id TEXT PRIMARY KEY, name TEXT, deleted_at TEXT)")
 }
 
 func createValuerTable(t *testing.T, w *query.TestQuery) {
@@ -223,6 +240,45 @@ func TestFindInfersTableFromDestination(t *testing.T) {
 	}
 	if len(dest) != 2 {
 		t.Fatalf("expected 2 rows, got %d", len(dest))
+	}
+}
+
+func TestDeleteInferredModelUsesSoftDelete(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createSoftTable(t, w)
+	execSQL(t, w, "INSERT INTO soft_items (id, name) VALUES ('sd1', 'keep')")
+
+	_, err := w.Q.Delete(&softRow{ID: "sd1"})
+	if err != nil {
+		t.Fatalf("Delete without Model() failed: %v", err)
+	}
+
+	var n int
+	if err := w.PrimaryDB().QueryRow("SELECT COUNT(*) FROM soft_items WHERE id = 'sd1' AND deleted_at IS NOT NULL").Scan(&n); err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("expected row sd1 to be soft-deleted (deleted_at set), got count %d", n)
+	}
+}
+
+func TestFirstInferredModelExcludesSoftDeleted(t *testing.T) {
+	w := openSQLiteQuery(t)
+	createSoftTable(t, w)
+	execSQL(t, w, "INSERT INTO soft_items (id, name, deleted_at) VALUES ('sd2', 'gone', '2026-01-01 00:00:00'),('sd3', 'alive', NULL)")
+
+	var dest softRow
+	if err := w.Q.Where("id = ?", "sd2").First(&dest); err == nil {
+		t.Fatalf("expected soft-deleted row sd2 to be excluded, got %+v", dest)
+	}
+
+	// A fresh Query is required: WHERE clauses accumulate on the same builder.
+	q2 := query.NewTestQuery(w.PrimaryDB(), neatdriver.NewSQLite(), query.MakeDBConfig(), nil)
+	if err := q2.Where("id = ?", "sd3").First(&dest); err != nil {
+		t.Fatalf("First for live row failed: %v", err)
+	}
+	if dest.Name != "alive" {
+		t.Fatalf("expected name 'alive', got %q", dest.Name)
 	}
 }
 

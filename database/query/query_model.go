@@ -86,7 +86,14 @@ func (q *Query) inferTableFromValue(value any) {
 	if q.table != "" || q.rawSQL != "" {
 		return
 	}
-	q.table = q.resolveTableName(value)
+	table := q.resolveTableName(value)
+	if table == "" {
+		return
+	}
+	q.table = table
+	if q.model == nil {
+		q.model = modelInstance(value)
+	}
 }
 
 // inferTableFromConds resolves the table name from the first struct-like
@@ -98,10 +105,40 @@ func (q *Query) inferTableFromConds(conds []any) {
 	}
 	for _, c := range conds {
 		if isStructLike(c) {
-			q.table = q.resolveTableName(c)
+			table := q.resolveTableName(c)
+			if table == "" {
+				return
+			}
+			q.table = table
+			if q.model == nil {
+				q.model = c
+			}
 			return
 		}
 	}
+}
+
+// modelInstance returns a model value usable for capability checks (soft
+// deletes, global scopes): the value itself when it is struct-like, otherwise
+// a fresh instance of the slice/array element struct (e.g. *[]T -> *T).
+func modelInstance(value any) any {
+	if isStructLike(value) {
+		return value
+	}
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		t := v.Type().Elem()
+		if t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		if t.Kind() == reflect.Struct {
+			return reflect.New(t).Interface()
+		}
+	}
+	return nil
 }
 
 // resolveTableName resolves the table name from the model.
