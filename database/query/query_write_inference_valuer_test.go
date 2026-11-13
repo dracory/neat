@@ -412,7 +412,7 @@ func TestCreateBindsEmbeddedValuerField(t *testing.T) {
 	if err := w.Q.Where("id = ?", "e1").First(&dest); err != nil {
 		t.Fatalf("First for embedded Valuer failed: %v", err)
 	}
-	if dest.EmbeddedVal.Inner != "EMB:hello" {
+	if dest.Inner != "EMB:hello" {
 		t.Fatalf("expected embedded field 'EMB:hello', got %+v", dest.EmbeddedVal)
 	}
 }
