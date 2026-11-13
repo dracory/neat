@@ -99,16 +99,29 @@ func (q *Query) timeoutContext() (context.Context, context.CancelFunc) {
 // existing mutable-builder semantics: callers may still reuse a query
 // object across statements outside a transaction.
 //
-// Transaction plumbing (tx handle, savepoints, hooks), observers, scopes,
+// Transaction plumbing (tx handle, savepoints, hooks), observers,
 // and debug state are intentionally preserved — only the per-statement
-// SQL-building fields are cleared. table/tableArgs/model are also kept:
-// legitimate flows re-run statements on the same target (e.g.
-// updateOrCreateInTransaction fetches, saves, then re-fetches into dest),
-// and every statement-initialising call (Table/Model) sets them anyway.
+// SQL-building fields are cleared.
+//
+// table/tableArgs/model and the model-derived scope sets are cleared too:
+// a statement that sets its target explicitly via .Model()/.Table() would
+// otherwise leak that target into the next statement, where
+// inferTableFromValue() would skip inference because q.table != "".
+// Internal flows that run several statements for one logical operation
+// (Save, Paginate, updateOrInsertInTransaction, updateOrCreateInTransaction,
+// Load) either work on clones or re-resolve the table from the statement's
+// value/dest on each call, so they are unaffected.
 func (q *Query) resetStatement() {
 	if !q.inTransaction {
 		return
 	}
+	q.table = ""
+	q.tableArgs = nil
+	q.model = nil
+	q.globalScopes = nil
+	q.withoutGlobalScopes = false
+	q.disabledScopes = nil
+	q.scopes = nil
 	q.selects = nil
 	q.wheres = nil
 	q.joins = nil
