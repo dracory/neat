@@ -1,41 +1,25 @@
-# MySQL integration tests.
-#
-# Runs as a separate workflow so it does not add to the already-long
-# tests.yml runtime. Uses mysql:8.0 as a service container on port 3306.
-
 name: tests-mysql
 
 on:
   push:
-    branches: ["main"]
   pull_request:
-    branches: ["main"]
 
 jobs:
-  mysql:
+  test:
     runs-on: ubuntu-latest
-
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:8.4
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: test
+          MYSQL_DATABASE: testdb
         ports:
-          - "3306:3306"
+          - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=20s
-          --health-timeout=10s
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
           --health-retries=10
-
-    env:
-      MYSQL_HOST: 127.0.0.1
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: test
-      MYSQL_USER: root
-      MYSQL_PASS: root
-      GITHUB_ACTIONS: true
 
     steps:
       - uses: actions/checkout@v6
@@ -44,28 +28,10 @@ jobs:
         run: |
           git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
 
-      - name: Install MySQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mysql-client || \
-          sudo apt-get install -y --no-install-recommends mysql-client-8.4
-
-      - name: Wait for MySQL service
-        run: |
-          echo "Waiting for MySQL to be ready..."
-          for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; then
-              echo "MySQL is ready!"
-              break
-            fi
-            echo "Attempt $i: MySQL not ready, waiting..."
-            sleep 2
-          done
-
       - name: Verify MySQL connection
         run: |
-          mysql --version
-          mysql --host 127.0.0.1 --port ${{ env.MYSQL_PORT }} -u${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASS }} -e "SHOW DATABASES;"
+          CID=$(docker ps --filter "ancestor=mysql:8.0" --format '{{.ID}}' | head -n1)
+          docker exec "$CID" mysql -uroot -proot -e "SELECT VERSION(); SHOW DATABASES;"
 
       - name: Set up Go
         uses: actions/setup-go@v6
