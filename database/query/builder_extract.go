@@ -300,6 +300,73 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 
 // extractColumnNames extracts column names from a struct without checking values.
 // This is used for SELECT clause generation where we want all columns regardless of their values.
+// extractFullyTaggedColumnNames returns the column list for an inferred
+// model, but only when every scannable field has an explicit `db` tag.
+// A partially-tagged (or untagged) struct returns nil so the caller falls
+// back to SELECT * — untagged exported fields may be computed values or
+// relation placeholders rather than real columns, and projecting them
+// would reference non-existent columns. Fields tagged `db:"-"` and
+// non-scannable kinds (relations, nested structs) are skipped.
+func (b *Builder) extractFullyTaggedColumnNames(value any) []string {
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil
+	}
+	return b.extractFullyTaggedStructColumns(v)
+}
+
+func (b *Builder) extractFullyTaggedStructColumns(v reflect.Value) []string {
+	var columns []string
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		if field.Anonymous && fieldValue.Kind() == reflect.Struct && !typeImplementsValuer(fieldValue.Type()) {
+			inner := b.extractFullyTaggedStructColumns(fieldValue)
+			if inner == nil {
+				return nil
+			}
+			columns = append(columns, inner...)
+			continue
+		}
+		if !fieldValue.CanInterface() {
+			continue
+		}
+
+		// Non-scannable kinds are not columns (relations, nested structs);
+		// skip them rather than disqualifying the projection.
+		fieldType := field.Type
+		if fieldType.Kind() == reflect.Pointer {
+			fieldType = fieldType.Elem()
+		}
+		if !typeImplementsValuer(field.Type) &&
+			(fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
+			fieldType != reflect.TypeOf(time.Time{}) {
+			if fieldType.Kind() == reflect.Struct {
+				if cols, ok := unwrapTimeColumns(fieldType); ok {
+					columns = append(columns, cols...)
+					continue
+				}
+			}
+			continue
+		}
+
+		tag := field.Tag.Get("db")
+		if tag == "-" {
+			continue
+		}
+		if tag == "" {
+			return nil
+		}
+		columns = append(columns, tag)
+	}
+	return columns
+}
+
 func (b *Builder) extractColumnNames(value any) []string {
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Pointer {

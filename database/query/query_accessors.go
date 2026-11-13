@@ -35,20 +35,25 @@ func (q *Query) Table(name string, args ...any) orm.Query {
 			return q
 		}
 	}
+	// Drop the model context only when it is left over from a previous
+	// statement (tableExplicit is still false — no .Model()/.Table() was
+	// called for this one), so a stale model's soft-delete filter and
+	// global scopes are not applied to a table they were not meant for.
+	// When .Model() was already called for this statement the model stays,
+	// preserving .Model(m).Table(t) semantics.
+	if !q.tableExplicit {
+		q.model = nil
+		q.modelExplicit = false
+		q.globalScopes = nil
+	}
 	q.table = name
 	q.tableArgs = nil
-	q.tableExplicit = true
 	// .Table() establishes a persistent table context: it survives
 	// resetStatement() and beats value-based table inference on later
 	// statements, unlike a .Model()-derived target which only lasts one
-	// statement. It also drops the model context so a stale model's
-	// soft-delete filter and global scopes are not applied to a table they
-	// were not meant for. Call .Model() after .Table() to re-attach model
-	// semantics to a custom table.
+	// statement.
+	q.tableExplicit = true
 	q.tableLocked = true
-	q.model = nil
-	q.modelExplicit = false
-	q.globalScopes = nil
 	// If it's a subquery callback
 	if strings.Contains(name, "(") && strings.Contains(name, ")") && len(args) > 0 {
 		for _, arg := range args {
