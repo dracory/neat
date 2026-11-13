@@ -58,8 +58,8 @@ func (w *TestQuery) PrimaryDB() *sql.DB { return w.Q.db }
 func (w *TestQuery) SetReadDB(d *sql.DB)            { w.Q.readDB = d }
 func (w *TestQuery) SetWriteDB(d *sql.DB)           { w.Q.writeDB = d }
 func (w *TestQuery) SetTx(tx *sql.Tx)               { w.Q.tx = tx }
-func (w *TestQuery) SetTable(t string)              { w.Q.table = t }
-func (w *TestQuery) SetModel(m any)                 { w.Q.model = m }
+func (w *TestQuery) SetTable(t string)              { w.Q.table = t; w.Q.tableLocked = true }
+func (w *TestQuery) SetModel(m any)                 { w.Q.model = m; w.Q.modelExplicit = true }
 func (w *TestQuery) SetIncludeSoftDeleted(v bool)   { w.Q.includeSoftDeleted = v }
 func (w *TestQuery) SetOnlySoftDeleted(v bool)      { w.Q.onlySoftDeleted = v }
 func (w *TestQuery) SetDBConfig(cfg *db.DBConfig)   { w.Q.dbConfig = cfg }

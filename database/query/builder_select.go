@@ -98,9 +98,18 @@ func (b *Builder) BuildSelect() (string, []any) {
 			parts = append(parts, fmt.Sprintf("SELECT %s", strings.Join(selectParts, ", ")))
 		}
 	} else {
-		// No explicit SELECT, derive from model
+		// No explicit SELECT, derive from model. A model set via .Model()
+		// always drives projection; an inferred model (from a dest/value)
+		// only projects when every exported field has an explicit db tag —
+		// untagged fields may be computed (e.g. PostsCount) rather than
+		// real columns, so partially-tagged structs keep SELECT *.
 		if b.query.model != nil {
-			cols := b.extractColumnNames(b.query.model)
+			var cols []string
+			if b.query.modelExplicit {
+				cols = b.extractColumnNames(b.query.model)
+			} else {
+				cols = b.extractFullyTaggedColumnNames(b.query.model)
+			}
 			if len(cols) > 0 {
 				// Filter out omitted columns
 				var filteredCols []string

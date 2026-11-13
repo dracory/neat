@@ -12,7 +12,12 @@ import (
 // Model sets the model for the query.
 func (q *Query) Model(value any) orm.Query {
 	q.model = value
+	q.modelExplicit = true
 	q.table = q.resolveTableName(value)
+	q.tableExplicit = true
+	// A model-derived target is per-statement: it does not persist the way
+	// a .Table() context does, so clear any inherited lock.
+	q.tableLocked = false
 
 	// If driver is "array" and model implements ArraySource, populate the database
 	if q.driver != nil && q.driver.Dialect() == "array" {
@@ -79,11 +84,15 @@ func (q *Query) Model(value any) orm.Query {
 	return q
 }
 
-// inferTableFromValue resolves the table name from the given value when no
-// table was configured explicitly via .Model(), .Table() or raw SQL. The
-// value may be a struct, a pointer to a struct, or a slice destination.
+// inferTableFromValue resolves the table name from the given value unless a
+// table was configured explicitly via .Model()/.Table() for this statement
+// or raw SQL is in use. A table left over from a previous statement on the
+// same query object does NOT block inference — resetStatement() demotes it
+// to a non-explicit default that a resolving value overrides, so reusing a
+// query without .Model()/.Table() cannot silently target the wrong table.
+// The value may be a struct, a pointer to a struct, or a slice destination.
 func (q *Query) inferTableFromValue(value any) {
-	if q.table != "" || q.rawSQL != "" {
+	if q.tableExplicit || q.tableLocked || q.rawSQL != "" {
 		return
 	}
 	table := q.resolveTableName(value)
@@ -91,14 +100,15 @@ func (q *Query) inferTableFromValue(value any) {
 		return
 	}
 	q.table = table
+	q.tableArgs = nil
 	q.adoptInferredModel(modelInstance(value))
 }
 
 // inferTableFromConds resolves the table name from the first struct-like
 // condition argument (e.g. a model passed to Delete) when no table was
-// configured explicitly.
+// configured explicitly for this statement.
 func (q *Query) inferTableFromConds(conds []any) {
-	if q.table != "" || q.rawSQL != "" {
+	if q.tableExplicit || q.tableLocked || q.rawSQL != "" {
 		return
 	}
 	for _, c := range conds {
@@ -110,18 +120,21 @@ func (q *Query) inferTableFromConds(conds []any) {
 			continue
 		}
 		q.table = table
+		q.tableArgs = nil
 		q.adoptInferredModel(modelInstance(c))
 		return
 	}
 }
 
 // adoptInferredModel sets q.model from an inferred value and loads the
-// model's global scopes, mirroring the relevant parts of Model().
+// model's global scopes, mirroring the relevant parts of Model(). It
+// replaces any model left over from a previous statement: the inferred
+// model is authoritative for the statement it was inferred from.
 func (q *Query) adoptInferredModel(m any) {
-	if q.model == nil {
-		q.model = m
-	}
-	if gs, ok := q.model.(orm.GlobalScope); ok && len(q.globalScopes) == 0 {
+	q.model = m
+	q.modelExplicit = false
+	q.globalScopes = nil
+	if gs, ok := m.(orm.GlobalScope); ok {
 		q.globalScopes = gs.GlobalScopes()
 	}
 }

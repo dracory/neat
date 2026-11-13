@@ -14,7 +14,10 @@ func (q *Query) Clone() orm.Query {
 	clone := q.newQuery()
 	clone.table = q.table
 	clone.tableArgs = append([]any{}, q.tableArgs...)
+	clone.tableExplicit = q.tableExplicit
+	clone.tableLocked = q.tableLocked
 	clone.model = q.model
+	clone.modelExplicit = q.modelExplicit
 	clone.omitColumns = append([]string{}, q.omitColumns...)
 	clone.distinct = q.distinct
 	clone.distinctCols = append([]string{}, q.distinctCols...)
