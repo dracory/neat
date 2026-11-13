@@ -97,8 +97,10 @@ func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
 func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any) error {
 	// Resolve the table from the destination when .Model()/.Table() was not called
 	q.inferTableFromValue(dest)
-	// Use a clone to avoid mutating the original query
-	clone := q.Clone().(*Query)
+	// Snapshot the statement state (table + caller-supplied wheres/scopes)
+	// before any terminal runs: inside a transaction each terminal resets the
+	// receiver, so later statements must be built from this snapshot.
+	base := q.Clone().(*Query)
 
 	// Build WHERE clause from attributes
 	attrsMap, err := extractAttributes(attributes)
@@ -106,12 +108,16 @@ func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any
 		return fmt.Errorf("failed to extract attributes: %w", err)
 	}
 
-	for col, val := range attrsMap {
-		clone = clone.Where(col+" = ?", val).(*Query)
+	find := func() *Query {
+		st := base.Clone().(*Query)
+		for col, val := range attrsMap {
+			st = st.Where(col+" = ?", val).(*Query)
+		}
+		return st
 	}
 
 	// Try to find the record first
-	err = clone.First(dest)
+	err = find().First(dest)
 	if err == nil {
 		// Record exists, update it
 		// Merge attributes into values for the update
@@ -119,11 +125,11 @@ func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any
 		// Set the ID from the found record to ensure we update the correct record
 		idVal, _ := getPrimaryKeyValueAny(dest)
 		setModelPrimaryKey(merged, idVal)
-		if err := q.Save(merged); err != nil {
+		if err := base.Clone().(*Query).Save(merged); err != nil {
 			return err
 		}
 		// Re-fetch the updated record into dest
-		return clone.First(dest)
+		return find().First(dest)
 	}
 
 	// Only treat "not found" as a signal to create; return all other errors immediately
@@ -134,11 +140,11 @@ func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any
 	// Record doesn't exist, create it
 	// Merge attributes and values for the create
 	merged := mergeAttributes(values, attributes)
-	if err := q.Create(merged); err != nil {
+	if err := base.Clone().(*Query).Create(merged); err != nil {
 		return err
 	}
 	// Fetch the created record into dest
-	return clone.First(dest)
+	return find().First(dest)
 }
 
 // extractAttributes extracts key-value pairs from a struct or map
