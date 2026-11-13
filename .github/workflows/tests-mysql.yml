@@ -47,7 +47,8 @@ jobs:
       - name: Install MySQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mysql-client-core
+          sudo apt-get install -y --no-install-recommends mysql-client || \
+          sudo apt-get install -y --no-install-recommends mysql-client-8.4
 
       - name: Wait for MySQL service
         run: |
