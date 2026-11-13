@@ -2,12 +2,22 @@ package query
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"time"
 )
 
 const dateTimeLayout = "2006-01-02 15:04:05"
+
+// driverValuerType is the reflect.Type of driver.Valuer, used to detect
+// column types that control their own stored representation.
+var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+
+// typeImplementsValuer reports whether t or *t implements driver.Valuer.
+func typeImplementsValuer(t reflect.Type) bool {
+	return t.Implements(driverValuerType) || reflect.PointerTo(t).Implements(driverValuerType)
+}
 
 // timeToDateTimeString converts a time.Time to a datetime string in
 // "YYYY-MM-DD HH:MM:SS" format, expressed in loc. Sub-second precision is dropped.
@@ -152,7 +162,14 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
-		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
+		// Fields whose type implements driver.Valuer are always bound: the
+		// driver calls Value() so the type decides the stored representation
+		// (e.g. a nil map marshalling to "{}" instead of being dropped or NULL).
+		// Checked before the anonymous-struct recursion so an embedded Valuer
+		// type is bound as a single column rather than flattened.
+		implementsValuer := typeImplementsValuer(fieldValue.Type())
+
+		if field.Anonymous && fieldValue.Kind() == reflect.Struct && !implementsValuer {
 			cols, vals := b.extractStructColumnsAndValues(fieldValue)
 			columns = append(columns, cols...)
 			values = append(values, vals...)
@@ -214,7 +231,8 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		}
 
 		// Skip slice/struct fields that are not handled as basic types
-		if (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Pointer) &&
+		if !implementsValuer &&
+			(fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Pointer) &&
 			fieldValue.Type() != reflect.TypeOf(time.Time{}) {
 			// Special case: if it's a pointer to a basic type, we might want it, but for associations we skip
 			if fieldValue.Kind() == reflect.Pointer {
@@ -255,7 +273,7 @@ func (b *Builder) extractStructColumnsAndValues(v reflect.Value) ([]string, []an
 		// For other nil pointers (like Bio), also include as NULL
 		// For strings, include empty strings as they are valid values
 		// For integers and floats, include zero values as they are valid
-		if fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 && fieldValue.Kind() != reflect.Float32 && fieldValue.Kind() != reflect.Float64 {
+		if !implementsValuer && fieldValue.IsZero() && fieldValue.Kind() != reflect.Bool && fieldValue.Kind() != reflect.Pointer && fieldValue.Kind() != reflect.String && fieldValue.Kind() != reflect.Int && fieldValue.Kind() != reflect.Int8 && fieldValue.Kind() != reflect.Int16 && fieldValue.Kind() != reflect.Int32 && fieldValue.Kind() != reflect.Int64 && fieldValue.Kind() != reflect.Uint && fieldValue.Kind() != reflect.Uint8 && fieldValue.Kind() != reflect.Uint16 && fieldValue.Kind() != reflect.Uint32 && fieldValue.Kind() != reflect.Uint64 && fieldValue.Kind() != reflect.Float32 && fieldValue.Kind() != reflect.Float64 {
 			// For MySQL, skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For Oracle, also skip zero time.Time values to use DEFAULT CURRENT_TIMESTAMP
 			// For SQL Server, also skip zero time.Time values to use DEFAULT GETDATE()
@@ -303,7 +321,7 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
-		if field.Anonymous && fieldValue.Kind() == reflect.Struct {
+		if field.Anonymous && fieldValue.Kind() == reflect.Struct && !typeImplementsValuer(fieldValue.Type()) {
 			columns = append(columns, b.extractStructColumnNames(fieldValue)...)
 			continue
 		}
@@ -326,7 +344,8 @@ func (b *Builder) extractStructColumnNames(v reflect.Value) []string {
 			fieldType = fieldType.Elem()
 		}
 
-		if (fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
+		if !typeImplementsValuer(field.Type) &&
+			(fieldType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Struct) &&
 			fieldType != reflect.TypeOf(time.Time{}) {
 			// Handle wrapper structs consisting solely of time.Time fields
 			// (e.g., orm.CreatedAt, orm.UpdatedAt, orm.Timestamps). These

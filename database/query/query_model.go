@@ -79,6 +79,76 @@ func (q *Query) Model(value any) orm.Query {
 	return q
 }
 
+// inferTableFromValue resolves the table name from the given value when no
+// table was configured explicitly via .Model(), .Table() or raw SQL. The
+// value may be a struct, a pointer to a struct, or a slice destination.
+func (q *Query) inferTableFromValue(value any) {
+	if q.table != "" || q.rawSQL != "" {
+		return
+	}
+	table := q.resolveTableName(value)
+	if table == "" {
+		return
+	}
+	q.table = table
+	q.adoptInferredModel(modelInstance(value))
+}
+
+// inferTableFromConds resolves the table name from the first struct-like
+// condition argument (e.g. a model passed to Delete) when no table was
+// configured explicitly.
+func (q *Query) inferTableFromConds(conds []any) {
+	if q.table != "" || q.rawSQL != "" {
+		return
+	}
+	for _, c := range conds {
+		if !isStructLike(c) {
+			continue
+		}
+		table := q.resolveTableName(c)
+		if table == "" {
+			continue
+		}
+		q.table = table
+		q.adoptInferredModel(modelInstance(c))
+		return
+	}
+}
+
+// adoptInferredModel sets q.model from an inferred value and loads the
+// model's global scopes, mirroring the relevant parts of Model().
+func (q *Query) adoptInferredModel(m any) {
+	if q.model == nil {
+		q.model = m
+	}
+	if gs, ok := q.model.(orm.GlobalScope); ok && len(q.globalScopes) == 0 {
+		q.globalScopes = gs.GlobalScopes()
+	}
+}
+
+// modelInstance returns a model value usable for capability checks (soft
+// deletes, global scopes): the value itself when it is struct-like, otherwise
+// a fresh instance of the slice/array element struct (e.g. *[]T -> *T).
+func modelInstance(value any) any {
+	if isStructLike(value) {
+		return value
+	}
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		t := v.Type().Elem()
+		if t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		if t.Kind() == reflect.Struct {
+			return reflect.New(t).Interface()
+		}
+	}
+	return nil
+}
+
 // resolveTableName resolves the table name from the model.
 func (q *Query) resolveTableName(model any) string {
 	if model == nil {
@@ -113,6 +183,13 @@ func (q *Query) resolveTableName(model any) string {
 
 	if t.Kind() != reflect.Struct {
 		return ""
+	}
+
+	// Check TableName() on the resolved struct element type. This covers
+	// slice destinations such as *[]User and []User where the method check
+	// above cannot see through the slice.
+	if tn, ok := reflect.New(t).Interface().(interface{ TableName() string }); ok {
+		return tn.TableName()
 	}
 
 	name := t.Name()

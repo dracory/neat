@@ -16,6 +16,8 @@ import (
 // wrap the call in a transaction to reduce the race window in ID retrieval.
 func (q *Query) Create(value any) error {
 	defer q.resetStatement()
+	// Resolve the table from the value when .Model()/.Table() was not called
+	q.inferTableFromValue(value)
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {
 		return err

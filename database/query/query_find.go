@@ -9,6 +9,8 @@ import (
 // Find retrieves records matching the given conditions.
 func (q *Query) Find(dest any, conds ...any) error {
 	defer q.resetStatement()
+	// Resolve the table from the destination when .Model()/.Table() was not called
+	q.inferTableFromValue(dest)
 	q = q.applyScopes()
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := q.validate(); err != nil {

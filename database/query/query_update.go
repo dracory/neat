@@ -95,6 +95,8 @@ func (q *Query) UpdateOrCreate(dest any, attributes any, values any) error {
 
 // updateOrCreateInTransaction performs the actual UpdateOrCreate logic within a transaction.
 func (q *Query) updateOrCreateInTransaction(dest any, attributes any, values any) error {
+	// Resolve the table from the destination when .Model()/.Table() was not called
+	q.inferTableFromValue(dest)
 	// Use a clone to avoid mutating the original query
 	clone := q.Clone().(*Query)
 

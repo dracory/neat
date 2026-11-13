@@ -36,13 +36,16 @@ func getSoftDeleteColumn(model any) string {
 // HardDelete() when you want a permanent deletion.
 func (q *Query) Delete(value ...any) (*orm.Result, error) {
 	defer q.resetStatement()
-	q = q.applyScopes()
 	// Work on a clone to avoid mutating the original query and to apply
 	// any variadic value arguments as additional WHERE conditions.
 	query := q.Clone().(*Query)
 	if len(value) > 0 {
 		applyConditions(query, value)
+		// Resolve the table from a struct-like argument when .Model()/.Table() was not called
+		query.inferTableFromConds(value)
 	}
+	// Apply scopes after inference so inferred-model global scopes are included
+	query = query.applyScopes()
 
 	// Validate common conditions (build errors, nil DB, empty table)
 	if err := query.validate(); err != nil {
