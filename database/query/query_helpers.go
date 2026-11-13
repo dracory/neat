@@ -88,37 +88,34 @@ func (q *Query) timeoutContext() (context.Context, context.CancelFunc) {
 	return base, func() {}
 }
 
-// resetStatement clears statement-level builder state after a terminal
-// operation executes inside a transaction. The tx query object handed to a
-// Transaction callback is a single mutable builder reused for every
-// statement; without a reset, WHERE/ORDER/LIMIT clauses from one statement
-// leak into the next (e.g. `tx.Table(t).Where(a).Get()` followed by
-// `tx.Table(t).Where(b).Get()` would run `WHERE a AND b`).
+// resetStatement clears statement-level builder state after every terminal
+// operation executes, inside and outside transactions. *Query is a mutable
+// builder; without a reset, WHERE/ORDER/LIMIT/scope clauses from one
+// statement leak into the next when the same query object is reused
+// (e.g. `q.Where(a).Get()` followed by `q.Where(b).Get()` would run
+// `WHERE a AND b`).
 //
-// Gated on inTransaction so ordinary (non-transactional) queries keep the
-// existing mutable-builder semantics: callers may still reuse a query
-// object across statements outside a transaction.
+// The target context — q.table, q.tableArgs, q.model and the model-derived
+// globalScopes — is intentionally kept so multi-terminal idioms like
+// `q.Model(m).Where(a).First(&r)` followed by `q.Count(&n)` keep working.
+// It is demoted to a weak default, though: tableExplicit is cleared so
+// inferTableFromValue() can retarget the next statement when its value
+// resolves a different table. A .Model()-derived target therefore can't
+// silently hijack an inferred statement (INSERT INTO edges for a node row).
+// Only a target set via .Table() is locked against inference — that is a
+// deliberate user-chosen context and wins until another .Table()/.Model()
+// call changes it.
 //
 // Transaction plumbing (tx handle, savepoints, hooks), observers,
 // and debug state are intentionally preserved — only the per-statement
 // SQL-building fields are cleared.
 //
-// table/tableArgs/model and the model-derived scope sets are cleared too:
-// a statement that sets its target explicitly via .Model()/.Table() would
-// otherwise leak that target into the next statement, where
-// inferTableFromValue() would skip inference because q.table != "".
 // Internal flows that run several statements for one logical operation
 // (Save, Paginate, updateOrInsertInTransaction, updateOrCreateInTransaction,
 // Load) either work on clones or re-resolve the table from the statement's
 // value/dest on each call, so they are unaffected.
 func (q *Query) resetStatement() {
-	if !q.inTransaction {
-		return
-	}
-	q.table = ""
-	q.tableArgs = nil
-	q.model = nil
-	q.globalScopes = nil
+	q.tableExplicit = false
 	q.withoutGlobalScopes = false
 	q.disabledScopes = nil
 	q.scopes = nil

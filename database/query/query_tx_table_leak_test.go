@@ -45,6 +45,87 @@ func TestTransactionTableDoesNotLeakIntoInferredCreate(t *testing.T) {
 	}
 }
 
+// Regression test: outside a transaction the same leak existed via sticky
+// builder state — a reused *Query kept accumulated wheres AND the previous
+// statement's table, so `q.Model(a).Where(x).First()` followed by
+// `q.Where(y).Find(&bs)` queried table a with both filters. Now
+// resetStatement() clears clause state after every terminal op and demotes
+// the .Model() target, so inference retargets the next statement.
+func TestReusedQueryDoesNotLeakWheresOrTable(t *testing.T) {
+	w := openSQLiteQuery(t)
+
+	execSQL(t, w, `CREATE TABLE leak_nodes (id TEXT PRIMARY KEY, type TEXT)`)
+	execSQL(t, w, `CREATE TABLE leak_edges (id TEXT PRIMARY KEY, source TEXT)`)
+	execSQL(t, w, `INSERT INTO leak_edges (id, source) VALUES ('e1', 'n1')`)
+	execSQL(t, w, `INSERT INTO leak_nodes (id, type) VALUES ('n1', 'x'), ('n2', 'x')`)
+
+	var edge edgeLeakRow
+	var nodes []nodeLeakRow
+
+	// Statement 1: model-scoped read leaves q.table="leak_edges" + wheres.
+	if err := w.Q.Model(&edgeLeakRow{}).Where("id = ?", "e1").First(&edge); err != nil {
+		t.Fatalf("first statement failed: %v", err)
+	}
+	// Statement 2: no .Model()/.Table() — must infer leak_nodes from dest
+	// and must NOT carry over the previous "id = 'e1'" filter.
+	if err := w.Q.Where("type = ?", "x").Find(&nodes); err != nil {
+		t.Fatalf("second statement failed: %v", err)
+	}
+	if len(nodes) != 2 {
+		t.Fatalf("expected both leak_nodes rows, got %+v — stale wheres/table leaked", nodes)
+	}
+}
+
+// Regression test: an inferred statement after an explicit .Model()
+// statement must retarget the inferred table — the stale target must not
+// hijack the INSERT (previously: INSERT INTO leak_edges with node columns).
+func TestReusedQueryInferredCreateRetargets(t *testing.T) {
+	w := openSQLiteQuery(t)
+
+	execSQL(t, w, `CREATE TABLE leak_nodes (id TEXT PRIMARY KEY, type TEXT)`)
+	execSQL(t, w, `CREATE TABLE leak_edges (id TEXT PRIMARY KEY, source TEXT)`)
+	execSQL(t, w, `INSERT INTO leak_edges (id, source) VALUES ('e1', 'n1')`)
+
+	if _, err := w.Q.Model(&edgeLeakRow{}).Where("id = ?", "e1").Delete(); err != nil {
+		t.Fatalf("delete failed: %v", err)
+	}
+	if err := w.Q.Create(&nodeLeakRow{ID: "n1", Type: "x"}); err != nil {
+		t.Fatalf("inferred create failed (leaked table): %v", err)
+	}
+
+	var got []nodeLeakRow
+	if err := w.Q.Table("leak_nodes").Find(&got); err != nil {
+		t.Fatalf("find: %v", err)
+	}
+	if len(got) != 1 || got[0].Type != "x" {
+		t.Fatalf("expected 1 node row, got %+v", got)
+	}
+}
+
+// The explicit .Table() context is locked: it survives across statements
+// and beats inference from a differently-named destination struct.
+func TestTableContextSurvivesAndBeatsInference(t *testing.T) {
+	w := openSQLiteQuery(t)
+
+	execSQL(t, w, `CREATE TABLE custom (id TEXT PRIMARY KEY, type TEXT)`)
+	execSQL(t, w, `INSERT INTO custom (id, type) VALUES ('c1', 'x'), ('c2', 'x')`)
+
+	var one nodeLeakRow
+	var all []nodeLeakRow
+
+	w.Q.Table("custom")
+	if err := w.Q.Where("id = ?", "c1").First(&one); err != nil {
+		t.Fatalf("first failed: %v", err)
+	}
+	// Without the lock, inference would retarget to leak_nodes.
+	if err := w.Q.Find(&all); err != nil {
+		t.Fatalf("find failed: %v", err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("expected both custom rows, got %+v", all)
+	}
+}
+
 type nodeLeakRow struct {
 	ID   string `db:"id"`
 	Type string `db:"type"`

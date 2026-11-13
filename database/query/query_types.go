@@ -32,7 +32,10 @@ type Query struct {
 	// Query state
 	table        string
 	tableArgs    []any
+	tableExplicit bool // target was set by .Table()/.Model() for the current statement
+	tableLocked   bool // target was set by .Table(); persists across statements
 	model        any
+	modelExplicit bool // model came from .Model(); inferred models drive capabilities, not SELECT projection
 	selects      []selectClause
 	wheres       []whereClause
 	joins        []joinClause

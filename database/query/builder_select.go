@@ -98,8 +98,12 @@ func (b *Builder) BuildSelect() (string, []any) {
 			parts = append(parts, fmt.Sprintf("SELECT %s", strings.Join(selectParts, ", ")))
 		}
 	} else {
-		// No explicit SELECT, derive from model
-		if b.query.model != nil {
+		// No explicit SELECT, derive from model. Only a model set via
+		// .Model() drives column projection; an inferred model (from a
+		// dest/value) is used for capabilities (soft delete, scopes,
+		// relations) but the dest struct's fields may not map to real
+		// columns, so SELECT * stays.
+		if b.query.model != nil && b.query.modelExplicit {
 			cols := b.extractColumnNames(b.query.model)
 			if len(cols) > 0 {
 				// Filter out omitted columns
