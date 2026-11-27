@@ -44,10 +44,12 @@ jobs:
         run: |
           git config --global url."https://${{ github.token }}@github.com/".insteadOf "https://github.com/"
 
-      - name: Install MySQL client
+      - name: Install MySQL client if needed
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mysql-client-core
+          if ! command -v mysql >/dev/null 2>&1 || ! command -v mysqladmin >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends mysql-client-core
+          fi
 
       - name: Wait for MySQL service
         run: |
