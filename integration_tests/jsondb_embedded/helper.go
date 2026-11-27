@@ -55,7 +55,7 @@ func SetupJSONDBEmbeddedTest(t *testing.T) *database.Database {
 		Default: "json_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"json_db": {
-				Driver: contractsdb.DriverJSONDB,
+				Driver:   contractsdb.DriverJSONDB,
 				Database: "data",
 				FS:       jsonFS,
 			},

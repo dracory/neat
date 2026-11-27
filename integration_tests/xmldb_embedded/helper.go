@@ -55,7 +55,7 @@ func SetupXMLDBEmbeddedTest(t *testing.T) *database.Database {
 		Default: "xml_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"xml_db": {
-				Driver: contractsdb.DriverXMLDB,
+				Driver:   contractsdb.DriverXMLDB,
 				Database: "data",
 				FS:       xmlFS,
 			},

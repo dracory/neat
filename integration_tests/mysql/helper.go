@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
-	"github.com/dracory/neat/contracts/log"
 	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
 	_ "github.com/go-sql-driver/mysql"
@@ -42,7 +42,7 @@ func GetMySQLConfig() neat.DBConfig {
 		Default: "mysql",
 		Connections: map[string]neat.ConnectionConfig{
 			"mysql": {
-				Driver: contractsdb.DriverMysql,
+				Driver:   contractsdb.DriverMysql,
 				Host:     host,
 				Port:     port,
 				Database: database,

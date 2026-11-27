@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/driver"
 	"github.com/dracory/neat/examples/godb-driver/data"
 	_ "modernc.org/sqlite"

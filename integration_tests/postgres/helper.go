@@ -27,7 +27,7 @@ func GetPostgresConfig() neat.DBConfig {
 		Default: "postgres",
 		Connections: map[string]neat.ConnectionConfig{
 			"postgres": {
-				Driver: contractsdb.DriverPostgres,
+				Driver:   contractsdb.DriverPostgres,
 				Host:     host,
 				Port:     port,
 				Database: database,

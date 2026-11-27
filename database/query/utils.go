@@ -644,7 +644,7 @@ func isValidColumnReference(s string) bool {
 // quote character ('"' for most dialects, '`' for MySQL): a token quoted
 // with a different character is not an identifier on that dialect — on
 // MySQL a "..." token is a string literal, not an identifier. Inner
-// quote characters are only allowed as doubled escapes ("" or ``).
+// quote characters are only allowed as doubled escapes ("" or “).
 // Backslashes are rejected outright: on MySQL in its default mode a
 // backslash escapes the next character inside a double-quoted literal,
 // so `"\""` ends the literal early and the rest becomes raw SQL.

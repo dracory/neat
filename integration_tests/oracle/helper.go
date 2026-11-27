@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dracory/neat"
-	"github.com/dracory/neat/contracts/log"
 	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database"
 	"github.com/dracory/neat/integration_tests/common"
 	_ "github.com/sijms/go-ora/v2"
@@ -42,7 +42,7 @@ func GetOracleConfig() neat.DBConfig {
 		Default: "oracle",
 		Connections: map[string]neat.ConnectionConfig{
 			"oracle": {
-				Driver: contractsdb.DriverOracle,
+				Driver:   contractsdb.DriverOracle,
 				Host:     host,
 				Port:     port,
 				Database: database,
@@ -101,7 +101,7 @@ func SetupOracleTest(t *testing.T) *database.Database {
 		Debug:   true, // Enable debug mode to see actual SQL errors
 		Connections: map[string]neat.ConnectionConfig{
 			"oracle": {
-				Driver: contractsdb.DriverOracle,
+				Driver:   contractsdb.DriverOracle,
 				Host:     host,
 				Port:     port,
 				Database: dbName,

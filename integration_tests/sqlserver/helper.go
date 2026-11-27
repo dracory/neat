@@ -86,7 +86,7 @@ func GetSQLServerConfig() neat.DBConfig {
 		Default: "sqlserver",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlserver": {
-				Driver: contractsdb.DriverSqlserver,
+				Driver:   contractsdb.DriverSqlserver,
 				Host:     host,
 				Port:     port,
 				Database: dbName,

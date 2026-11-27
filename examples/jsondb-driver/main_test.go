@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/contracts/database"
 	_ "modernc.org/sqlite"
 )
 
@@ -27,7 +27,7 @@ func TestJSONDBExampleQueries(t *testing.T) {
 		Default: "json_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"json_db": {
-				Driver: database.DriverJSONDB,
+				Driver:   database.DriverJSONDB,
 				Database: dataDir,
 			},
 		},

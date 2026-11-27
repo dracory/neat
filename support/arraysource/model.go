@@ -11,7 +11,7 @@ type Model struct {
 	schema map[string]string
 }
 
-func (m *Model) TableName() string              { return m.table }
+func (m *Model) TableName() string               { return m.table }
 func (m *Model) Rows() ([]map[string]any, error) { return m.data, nil }
 func (m *Model) Schema() map[string]string       { return m.schema }
 
@@ -30,8 +30,8 @@ func New(rows []map[string]any) *Model {
 		panic("arraysource: New() requires non-empty rows; use NewWithSchema() for empty datasets")
 	}
 	return &Model{
-		table:  "array_map_" + strconv.FormatUint(atomic.AddUint64(&arrayCounter, 1), 10),
-		data:   copyRows(rows),
+		table: "array_map_" + strconv.FormatUint(atomic.AddUint64(&arrayCounter, 1), 10),
+		data:  copyRows(rows),
 	}
 }
 

@@ -119,7 +119,7 @@ func SetupCSVDBTest(t *testing.T) *database.Database {
 		Default: "csv_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"csv_db": {
-				Driver: contractsdb.DriverCSVDB,
+				Driver:   contractsdb.DriverCSVDB,
 				Database: dir,
 			},
 		},

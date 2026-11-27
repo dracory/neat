@@ -23,8 +23,8 @@ import (
 //	// The Profile and Posts fields would be managed through Association instances
 type Association struct {
 	query       orm.Query // The query builder for database operations
-	model       any                // The model instance this association belongs to
-	association string             // The name of the association (e.g., "profile", "posts")
+	model       any       // The model instance this association belongs to
+	association string    // The name of the association (e.g., "profile", "posts")
 }
 
 // NewAssociation creates a new Association instance.

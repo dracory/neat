@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/contracts/database/orm"
 	"github.com/dracory/neat/contracts/database/seeder"
 	"github.com/dracory/neat/contracts/log"
-	contractsdb "github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/database/db"
 	_ "modernc.org/sqlite"
 )
@@ -18,7 +18,7 @@ func TestDatabaseName(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -40,11 +40,11 @@ func TestDatabaseName_MultipleConnections(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"secondary": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -71,7 +71,7 @@ func TestDatabaseName_EmptyStringUsesDefault(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -98,7 +98,7 @@ func TestDatabaseName_DatabaseName(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -120,11 +120,11 @@ func TestDatabase_Connection(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"secondary": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -169,7 +169,7 @@ func TestDatabase_Query(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -192,7 +192,7 @@ func TestDatabase_Schema(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -215,7 +215,7 @@ func TestDatabase_DB(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -241,7 +241,7 @@ func TestDatabase_Close(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -263,7 +263,7 @@ func TestDatabase_QueryLog(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -300,7 +300,7 @@ func TestDatabase_Transaction(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -326,7 +326,7 @@ func TestNew_AutoDefaultConnection(t *testing.T) {
 	config := db.DBConfig{
 		Connections: map[string]db.ConnectionConfig{
 			"custom": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -441,7 +441,7 @@ func TestDatabase_Seed(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -476,7 +476,7 @@ func TestDatabase_SeedOnce(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -520,7 +520,7 @@ func TestDatabase_Seeder(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -624,7 +624,7 @@ func ExampleNew() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -647,11 +647,11 @@ func ExampleNew_multipleConnections() {
 		Default: "primary",
 		Connections: map[string]db.ConnectionConfig{
 			"primary": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"replica": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -677,7 +677,7 @@ func ExampleNew_withPoolConfig() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -788,7 +788,7 @@ func ExampleDatabase_Query() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -810,7 +810,7 @@ func ExampleDatabase_Schema() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -832,7 +832,7 @@ func ExampleDatabase_Transaction() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -861,7 +861,7 @@ func ExampleDatabase_Transaction_withError() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -889,7 +889,7 @@ func ExampleDatabase_Transaction_withIsolation() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -920,11 +920,11 @@ func ExampleNew_withReadWriteConnections() {
 		Default: "read",
 		Connections: map[string]db.ConnectionConfig{
 			"read": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 			"write": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -966,7 +966,7 @@ func ExampleDatabase_Transaction_nested() {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 			},
 		},

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat/contracts/database/schema"
 	mainpkg "github.com/dracory/neat/examples/configuration"
 	_ "modernc.org/sqlite"
@@ -43,7 +43,7 @@ func TestConfiguration_PoolConfig_Functional(t *testing.T) {
 		Default: "sqlite",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlite": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: ":memory:",
 			},
 		},
@@ -79,7 +79,7 @@ func TestConfiguration_DebugMode_Functional(t *testing.T) {
 		Default: "sqlite",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlite": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: ":memory:",
 			},
 		},

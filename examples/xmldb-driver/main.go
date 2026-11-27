@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/contracts/database"
 	_ "modernc.org/sqlite"
 )
 
@@ -60,7 +60,7 @@ func RunExample() error {
 		Default: "xml_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"xml_db": {
-				Driver: database.DriverXMLDB,
+				Driver:   database.DriverXMLDB,
 				Database: dataDir,
 			},
 		},

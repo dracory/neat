@@ -5,8 +5,8 @@ import (
 	stdlog "log"
 	"time"
 
-	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/contracts/database"
 )
 
 // This example demonstrates different configuration options for the database connection
@@ -33,7 +33,7 @@ func RunExample() error {
 		Default: "sqlite",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlite": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: "./example.db",
 			},
 		},
@@ -58,11 +58,11 @@ func RunExample() error {
 		Default: "sqlite",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlite": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: "./local.db",
 			},
 			"postgres": {
-				Driver: database.DriverPostgres,
+				Driver:   database.DriverPostgres,
 				Host:     "localhost",
 				Port:     5432,
 				Database: "test",
@@ -71,7 +71,7 @@ func RunExample() error {
 				SSLMode:  "disable",
 			},
 			"mysql": {
-				Driver: database.DriverMysql,
+				Driver:   database.DriverMysql,
 				Host:     "localhost",
 				Port:     3306,
 				Database: "test",
@@ -96,7 +96,7 @@ func RunExample() error {
 		Default: "mysql",
 		Connections: map[string]neat.ConnectionConfig{
 			"mysql": {
-				Driver: database.DriverMysql,
+				Driver:   database.DriverMysql,
 				Host:     "localhost",
 				Port:     3306,
 				Database: "test",
@@ -121,7 +121,7 @@ func RunExample() error {
 		Default: "sqlserver",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlserver": {
-				Driver: database.DriverSqlserver,
+				Driver:   database.DriverSqlserver,
 				Host:     "localhost",
 				Port:     1433,
 				Database: "mydb",
@@ -145,7 +145,7 @@ func RunExample() error {
 		Default: "sqlite",
 		Connections: map[string]neat.ConnectionConfig{
 			"sqlite": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: "./example.db",
 			},
 		},

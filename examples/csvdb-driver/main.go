@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dracory/neat/contracts/database"
 	"github.com/dracory/neat"
+	"github.com/dracory/neat/contracts/database"
 	_ "modernc.org/sqlite"
 )
 
@@ -60,7 +60,7 @@ func RunExample() error {
 		Default: "csv_db",
 		Connections: map[string]neat.ConnectionConfig{
 			"csv_db": {
-				Driver: database.DriverCSVDB,
+				Driver:   database.DriverCSVDB,
 				Database: dataDir,
 			},
 		},

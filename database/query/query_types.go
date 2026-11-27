@@ -30,24 +30,24 @@ type Query struct {
 	debugState bool
 
 	// Query state
-	table        string
-	tableArgs    []any
+	table         string
+	tableArgs     []any
 	tableExplicit bool // target was set by .Table()/.Model() for the current statement
 	tableLocked   bool // target was set by .Table(); persists across statements
-	model        any
+	model         any
 	modelExplicit bool // model came from .Model(); inferred models drive capabilities, not SELECT projection
-	selects      []selectClause
-	wheres       []whereClause
-	joins        []joinClause
-	groups       []string
-	havings      []havingClause
-	orders       []orderClause
-	limit        *int
-	offset       *int
-	distinct     bool
-	distinctCols []string
-	aggregate    string
-	aggregateCol string
+	selects       []selectClause
+	wheres        []whereClause
+	joins         []joinClause
+	groups        []string
+	havings       []havingClause
+	orders        []orderClause
+	limit         *int
+	offset        *int
+	distinct      bool
+	distinctCols  []string
+	aggregate     string
+	aggregateCol  string
 
 	// Transaction state
 	inTransaction  bool

@@ -52,7 +52,7 @@ func TestNewPropagatesReplicaConfig(t *testing.T) {
 		Default: "main",
 		Connections: map[string]ConnectionConfig{
 			"main": {
-				Driver: contractsdb.DriverSqlite,
+				Driver:   contractsdb.DriverSqlite,
 				Database: ":memory:",
 				Read: []ReplicaConfig{
 					{Host: "read-host", Port: 3306, Database: "rdb", Username: "ru", Password: "rp"},

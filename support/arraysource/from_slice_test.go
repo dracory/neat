@@ -212,10 +212,10 @@ func TestNewArraySourceFrom_StructsWithTags(t *testing.T) {
 
 func TestNewArraySourceFrom_TimeTime(t *testing.T) {
 	type TimeStruct struct {
-		ID       int
-		ValTime  time.Time
-		PtrTime  *time.Time
-		NilTime  *time.Time
+		ID      int
+		ValTime time.Time
+		PtrTime *time.Time
+		NilTime *time.Time
 	}
 
 	now := time.Now()

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dracory/neat/contracts/log"
 	contractsdb "github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	"github.com/dracory/neat/support/arraysource"
 )
@@ -34,7 +34,7 @@ func TestArrayDriverIntegration(t *testing.T) {
 		Default: "array_connection",
 		Connections: map[string]db.ConnectionConfig{
 			"array_connection": {
-				Driver: contractsdb.DriverArray,
+				Driver:   contractsdb.DriverArray,
 				Database: ":memory:",
 			},
 		},
@@ -85,7 +85,7 @@ func TestNewArraySourceFrom_NullableFields_Integration(t *testing.T) {
 		Default: "array_connection",
 		Connections: map[string]db.ConnectionConfig{
 			"array_connection": {
-				Driver: contractsdb.DriverArray,
+				Driver:   contractsdb.DriverArray,
 				Database: ":memory:",
 			},
 		},

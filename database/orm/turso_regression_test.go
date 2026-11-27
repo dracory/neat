@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/contracts/database"
+	"github.com/dracory/neat/contracts/log"
 	"github.com/dracory/neat/database/db"
 	_ "modernc.org/sqlite"
 )
@@ -17,7 +17,7 @@ func TestReplicaConnectionsClosed(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: ":memory:",
 				Read: []db.ReplicaConfig{
 					{Database: ":memory:"},
@@ -64,7 +64,7 @@ func TestReplicaDsnCleared(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: ":memory:",
 				Read: []db.ReplicaConfig{
 					{Database: ":memory:"},
@@ -95,7 +95,7 @@ func TestWritePrimaryConnectionsClosed(t *testing.T) {
 		Default: "default",
 		Connections: map[string]db.ConnectionConfig{
 			"default": {
-				Driver: database.DriverSqlite,
+				Driver:   database.DriverSqlite,
 				Database: ":memory:",
 				Write: []db.ReplicaConfig{
 					{Database: ":memory:"},
@@ -180,7 +180,7 @@ func TestConfigureConnectionPoolTursoFilePrefix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			connConfig := db.ConnectionConfig{
-				Driver: database.DriverTurso,
+				Driver:   database.DriverTurso,
 				Dsn:      tt.dsn,
 				Database: tt.database,
 			}
